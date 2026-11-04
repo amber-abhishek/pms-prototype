@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button, DL, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, Tabs, Toolbar, cx } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, bookingCounts, fmtN, firstName, hallFull, roomTerms, useAlloc, type Booking, type Conflict, type Data, type Offer } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
-import { Caption, EmptyArea, Foot, Grid, Ini, Kbd, Modal, Person, Radio, St, type C } from './common';
+import { Caption, EmptyArea, Foot, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
 import { useAllocActions } from './actions';
 
 type TabId = 'All' | 'Lease sent' | 'Drafts' | 'Conflicts' | 'Cancelled';
@@ -142,10 +142,10 @@ export function Bookings() {
         <div className="flex-1 min-h-0 flex flex-col">
           {caption[tab] && <Caption>{caption[tab]}</Caption>}
           <div className="flex-1 overflow-auto">
-            {rows.length ? <Grid cols={cols[tab]} rows={rows} onRow={(b) => setOpen(b.id)} selected={open} />
+            {rows.length ? <Grid key={tab} cols={cols[tab]} rows={rows} onRow={(b) => setOpen(b.id)} selected={open} />
               : <EmptyArea icon={FileText} title={tab === 'Drafts' ? 'No drafts' : tab === 'Lease sent' ? 'Every lease is signed' : `No ${tab.toLowerCase()} bookings`} sub={q || f.hall || f.lease ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
-          <Foot right={<><Kbd>↵</Kbd><span>open</span></>}>{foot[tab]}</Foot>
+          <Foot>{foot[tab]}</Foot>
         </div>
       )}
       {sel && <BookingSheet b={sel} onClose={() => setOpen(null)} onSend={() => sendLease(sel)} onRemind={() => remind([sel])} onSigned={() => markSigned(sel)} withUndo={withUndo} />}

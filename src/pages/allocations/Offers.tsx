@@ -1,17 +1,20 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarPlus, CheckCircle, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray, XCircle } from '../../components/icons';
+import { CalendarPlus, CaretLeft, CaretRight, CheckCircle, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, DL, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, Tabs, Toolbar, cx } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
-import { Caption, EmptyArea, Foot, Grid, Ini, Kbd, Person, St, type C } from './common';
+import { Caption, EmptyArea, Foot, Grid, Ini, Person, St, type C } from './common';
 import { useAllocActions } from './actions';
 
 type TabId = 'Recent' | 'Open' | 'Accepted' | 'Declined' | 'Lapsed' | 'Waitlist';
 const LEGACY: Record<string, TabId> = { Sent: 'Open', Expired: 'Lapsed' };
 const ST: Record<Offer['status'], string> = { open: 'Open', accepted: 'Accepted', declined: 'Declined', lapsed: 'Lapsed' };
 const unitOf = (o: { hall: string; unit: string }) => `${o.hall} · ${o.unit}`;
+const PAGE = 50;
+/** Generated rows have ids starting with g; the design's rows stay on top. */
+const isGen = (o: Offer) => o.id.startsWith('g');
 const leftCls = (h?: number) => (h === undefined ? '' : h <= 24 ? 'font-semibold text-[#E5530C]' : 'text-ink');
 const Left = ({ h, text }: { h?: number; text: string }) => <span className={cx('inline-flex items-center gap-1', leftCls(h))}>{h !== undefined && h <= 24 && <Clock size={14} />}{text}</span>;
 
@@ -35,8 +38,10 @@ export function Offers() {
   const [adding, setAdding] = useState(false);
   const [offering, setOffering] = useState<Wait | null>(null);
   const c = offerCounts(d);
-  const match = (x: { name: string; hall: string }) => (!q || x.name.toLowerCase().includes(q.toLowerCase())) && (!f.hall || hallFull[x.hall] === f.hall);
+  const liveCycle = d.cycles.find((x) => x.status === 'open')?.name ?? '2027/28';
+  const match = (x: { name: string; hall: string; cycle?: string }) => (!q || x.name.toLowerCase().includes(q.toLowerCase())) && (!f.hall || hallFull[x.hall] === f.hall) && (!f.cycle || (x.cycle ?? liveCycle) === f.cycle);
   const rowsFor = (s: Offer['status']) => d.offers.filter((o) => o.status === s && match(o));
+  const [page, setPage] = useState(0);
   const recent = d.recent.map((id) => d.offers.find((o) => o.id === id)).filter((o): o is Offer => !!o && match(o)).filter((o, i, a) => a.indexOf(o) === i);
   const sel = d.offers.find((o) => o.id === open);
   const booking = (name: string) => d.bookings.find((b) => b.name === name && !b.cancelled);
@@ -45,7 +50,7 @@ export function Offers() {
   const remind = () => {
     const due = d.offers.filter((o) => o.status === 'open' && (o.leftH ?? 99) < 48);
     d.up((x) => ({ offers: x.offers.map((o) => (due.includes(o) ? { ...o, reminders: o.reminders + 1, next: 'Reminder sent today' } : o)) }));
-    toast.success(`Reminders sent to ${9 + due.length} applicants`, { description: 'Everyone whose offer expires in the next 48 hours' });
+    toast.success(`Reminders sent to ${due.length} applicants`, { description: 'Everyone whose offer expires in the next 48 hours' });
   };
   const extend = (o: Offer) => {
     d.up((x) => ({ offers: x.offers.map((y) => (y.id === o.id ? { ...y, expires: addDays(y.expires ?? '', 2), leftH: (y.leftH ?? 0) + 48 } : y)) }));
@@ -123,7 +128,7 @@ export function Offers() {
       { key: 'u', label: 'Unit', render: (o) => unitOf(o) },
       { key: 'd', label: 'Accepted', render: (o) => <span className="text-gray-500">{o.accepted}</span> },
       { key: 'p', label: 'Deposit', render: (o) => <span className="text-[#0B8A4C]">{o.deposit}</span> },
-      { key: 'l', label: 'Lease', render: (o) => <St s={booking(o.name)?.lease ?? 'Draft'} /> },
+      { key: 'l', label: 'Lease', render: (o) => <St s={booking(o.name)?.lease ?? o.lease ?? 'Draft'} /> },
       { key: 'a', label: '', className: 'text-right', render: (o) => <Button size="sm" onClick={(e) => { e.stopPropagation(); openBooking(o.name); }}>Open booking</Button> },
     ],
     Declined: [
@@ -142,16 +147,23 @@ export function Offers() {
       { key: 'a', label: '', className: 'text-right', render: (o) => <Button size="sm" icon={PaperPlaneTilt} onClick={(e) => { e.stopPropagation(); offerAgain(o); }}>Offer again</Button> },
     ],
   };
-  const caption: Record<TabId, string> = {
-    Recent: 'Everything that changed in the last 7 days', Open: 'Sorted by time left · lapsed offers go to the waitlist', Accepted: 'A booking is created when an offer is accepted, with the lease sent straight after',
+  const caption: Record<TabId, string | null> = {
+    Recent: 'Everything that changed in the last 7 days', Open: 'Sorted by time left · lapsed offers go to the waitlist', Accepted: null,
     Declined: 'The unit is re-offered or goes back into search', Lapsed: 'An offer lapses after its deadline with no reply', Waitlist: 'When a unit frees up it goes to #1 for that room type',
   };
-  const open48 = 9 + d.offers.filter((o) => o.status === 'open' && (o.leftH ?? 99) < 48).length;
+  const rows = tab === 'Recent' ? recent : tab === 'Open' ? rowsFor('open').sort((a, b) => +isGen(a) - +isGen(b) || (a.leftH ?? 0) - (b.leftH ?? 0)) : tab === 'Waitlist' ? [] : rowsFor(tab.toLowerCase() as Offer['status']);
+  useEffect(() => setPage(0), [tab, rows.length]);
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  const shown = rows.slice(page * PAGE, page * PAGE + PAGE);
+  /* The foot counts the rows in the list (search and filters applied), so it matches what you can page through. */
+  const waitRows = d.waitlist.filter(match);
+  const lease = (s: string) => rows.filter((o) => (booking(o.name)?.lease ?? o.lease ?? 'Draft') === s).length;
   const foot: Record<TabId, string> = {
-    Recent: `${recent.length} offers changed in the last 7 days`, Open: `${fmtN(c.open)} open · ${open48} expire in the next 48 h`, Accepted: `${fmtN(c.accepted)} accepted · a booking is created when an offer is accepted`,
-    Declined: `${fmtN(c.declined)} declined`, Lapsed: `${c.lapsed} lapsed · the applicant moves to the waitlist and can be offered again`, Waitlist: `${c.waitlist} waiting across 14 room types`,
+    Recent: `${recent.length} offers changed in the last 7 days`, Open: `${rows.length} open · ${rows.filter((o) => (o.leftH ?? 99) < 48).length} expire in the next 48 h`,
+    Accepted: `${fmtN(rows.length)} accepted · ${fmtN(lease('Signed'))} leases signed · ${lease('Sent')} out for signature`,
+    Declined: `${rows.length} declined`, Lapsed: `${rows.length} lapsed · the applicant moves to the waitlist and can be offered again`,
+    Waitlist: `${waitRows.length} waiting across ${new Set(waitRows.map((w) => `${w.hall}|${w.room}`)).size} room types`,
   };
-  const rows = tab === 'Recent' ? recent : tab === 'Open' ? rowsFor('open').sort((a, b) => (a.leftH ?? 0) - (b.leftH ?? 0)) : tab === 'Waitlist' ? [] : rowsFor(tab.toLowerCase() as Offer['status']);
   const noOffers = c.open + c.accepted + c.declined + c.lapsed === 0;
   return (
     <>
@@ -170,14 +182,18 @@ export function Offers() {
           <EmptyArea icon={HourglassMedium} title="No one is waiting" sub="When an offer lapses or a hall is full, the applicant can join the waitlist for that room type. The first in line gets the next unit that frees up.">
             <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add to waitlist</Button>
           </EmptyArea>
-        ) : <Waitlist rows={d.waitlist.filter(match)} onOffer={setOffering} caption={caption.Waitlist} foot={foot.Waitlist} />
+        ) : <Waitlist rows={waitRows} onOffer={setOffering} caption={caption.Waitlist!} foot={foot.Waitlist} />
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
-          <Caption>{caption[tab]}</Caption>
+          {caption[tab] && <Caption>{caption[tab]}</Caption>}
           <div className="flex-1 overflow-auto">
-            {rows.length ? <Grid cols={cols[tab]} rows={rows} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
+            {rows.length ? <Grid key={tab} cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || f.cycle !== liveCycle ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
-          <Foot right={<><Kbd>↵</Kbd><span>open</span></>}>{foot[tab]}</Foot>
+          <Foot right={pages > 1 && <span className="flex items-center gap-1 tabular-nums">
+            {page * PAGE + 1}–{Math.min(rows.length, page * PAGE + PAGE)} of {fmtN(rows.length)}
+            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretLeft size={12} /></button>
+            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretRight size={12} /></button>
+          </span>}>{foot[tab]}</Foot>
         </div>
       )}
       {sel && <OfferSheet o={sel} onClose={() => setOpen(null)} onAccept={() => accept(sel)} onLapse={() => lapse(sel)} onDecline={(r) => decline(sel, r)} onExtend={() => extend(sel)} onBooking={() => openBooking(sel.name)} />}

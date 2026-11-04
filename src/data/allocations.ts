@@ -38,7 +38,7 @@ export type App = {
   status: AppStatus; fee: 'Home' | 'International'; guarantee: boolean; arrival: string; course: string; cycle: string;
   reqs: Req[]; toCheck?: Req[];
   why?: string; assignee?: string;
-  unit?: string; allocBy?: string; allocOn?: string; offer?: 'Accepted' | 'Offer open' | 'Declined'; override?: string;
+  unit?: string; allocBy?: string; allocOn?: string; offer?: 'Accepted' | 'Offer open' | 'Declined' | 'Lapsed'; override?: string;
   reason?: string; rejBy?: string; rejOn?: string; emailed?: boolean;
   opened?: string; log?: Hist[];
 };
@@ -48,6 +48,7 @@ export type Offer = {
   sent: string; expires?: string; leftH?: number; reminders: number;
   accepted?: string; deposit?: string; declined?: string; reason?: string; unitNow?: string; lapsed?: string; wentTo?: string;
   next?: string; recent?: boolean; fromWaitlist?: string;
+  /** The cycle (2027/28 when unset), and on generated accepted rows the booking's lease state. */ cycle?: string; lease?: Lease;
 };
 export type Wait = { id: string; name: string; hall: string; room: string; note: string; joined: string; appId?: string };
 export type Lease = 'Signed' | 'Sent' | 'Draft';
@@ -142,7 +143,109 @@ function seedApps(): App[] {
     ['Ravi Patel', '11880', 'Other · moved to private halls', ME, '21 Oct', 'Hild Bede'],
   ];
   rej.forEach(([name, ref, reason, by, on, hall], i) => out.push(app({ name, ref, hall, room: hall === 'Josephine Butler' ? 'Studio' : 'Standard single', reason, rejBy: by, rejOn: on, emailed: true, status: 'rejected', waiting: 0, submitted: '15 Oct' }, i)));
+  out.push(...bulk(out));
+  out.push(...pastCycles());
   return out;
+}
+
+/* The rest of 2027/28, so every tab's number is real rows: the designs total 3,410 applications · 128 to review ·
+   14 manual · 2,480 allocated · 96 rejected, and the remainder are waitlisted or declined. Deterministic (no
+   Math.random), so a reset gives the same list. Names come from a separate pool, every pair used once. */
+export const APP_TARGETS = { manual: 14, allocated: 2480, rejected: 96, all: 3410 };
+const BULK_FIRST = ['Adam', 'Aisha', 'Alex', 'Amelia', 'Amir', 'Anna', 'Arjun', 'Aryan', 'Bella', 'Caleb', 'Chloe', 'Daisy', 'Daniel', 'Eden', 'Eliza', 'Emily', 'Ethan', 'Fatima', 'Felix', 'Florence', 'Gabriel', 'George', 'Hamza', 'Harper', 'Harry', 'Iris', 'Isaac', 'Jade', 'James', 'Jasmine', 'Joseph', 'Kiara', 'Laila', 'Liam', 'Lucy', 'Mason', 'Matilda', 'Mohammed', 'Nadia', 'Nathan', 'Olivia', 'Oscar', 'Phoebe', 'Rafael', 'Rhys', 'Sana', 'Sebastian', 'Sienna', 'Sofia', 'Thomas', 'Willow', 'Yusuf', 'Zain', 'Aaliyah', 'Beatrice', 'Cyrus', 'Delphine', 'Emeka', 'Farah', 'Hugo'];
+const BULK_LAST = ['Abbott', 'Adeyemi', 'Akhtar', 'Barker', 'Bose', 'Brennan', 'Brooks', 'Campbell', 'Chen', 'Chowdhury', 'Cole', 'Dawson', 'Dixon', 'Edwards', 'Ellis', 'Farouk', 'Fletcher', 'Gallagher', 'Gill', 'Gordon', 'Greene', 'Hassan', 'Hayes', 'Holt', 'Hussain', 'Iqbal', 'Jackson', 'James', 'Jenkins', 'Kelly', 'Kennedy', 'Lam', 'Lawson', 'Lee', 'Lowe', 'Malik', 'Marsh', 'Mitchell', 'Moss', 'Nash', 'Obi', 'Owen', 'Parker', 'Perera', 'Quinn', 'Rana', 'Richards', 'Robinson', 'Saunders', 'Sharma', 'Simmons', 'Stone', 'Sutton', 'Thompson', 'Tran', 'Usman', 'Vaughan', 'Ward', 'Webb', 'Yates'];
+const REJECT_REASONS: [string, number][] = [['No offer to study at Durham', 41], ['Duplicate application', 22], ['Withdrawn by the applicant', 19], ['Not eligible for this cycle', 9], ['Other · moved to private halls', 5]];
+const MANUAL_WHY = ['Late application', 'Fee status not confirmed', 'Asks to live with a friend', 'Under 18 at arrival', 'Two applications, different emails', 'Medical letter to check', 'Wants a year-round room', 'Course start date unclear'];
+const STAFF = [ME, 'Tom Okafor', 'Aisha Khan'];
+
+function bulk(seeded: App[]): App[] {
+  const live = seeded.filter((a) => a.cycle === '2027/28');
+  const have = (s: AppStatus) => live.filter((a) => a.status === s).length;
+  const need = {
+    manual: APP_TARGETS.manual - have('manual'),
+    allocated: APP_TARGETS.allocated - have('allocated'),
+    rejected: APP_TARGETS.rejected - have('rejected'),
+  };
+  const other = APP_TARGETS.all - live.length - need.manual - need.allocated - need.rejected;
+  const taken = new Set(seeded.map((a) => a.name));
+  let k = 0;
+  const nextName = () => {
+    for (;;) {
+      const n = `${BULK_FIRST[k % BULK_FIRST.length]} ${BULK_LAST[(Math.floor(k / BULK_FIRST.length) * 7 + k) % BULK_LAST.length]}`;
+      k++;
+      if (!taken.has(n)) { taken.add(n); return n; }
+    }
+  };
+  const out: App[] = [];
+  let ref = 20001;
+  /* A cheap integer hash, so neighbouring rows (same day, same status) don't fall into a visible pattern. */
+  const h = (i: number, salt: number) => {
+    let x = Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(salt + 1, 0x85ebca6b);
+    x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16;
+    return x >>> 0;
+  };
+  const base = (i: number) => {
+    const [hall, room] = COMBOS[h(i, 1) % COMBOS.length];
+    return { name: nextName(), ref: String(ref++), hall, room, year: (i % 9 === 4 ? 'Returning' : i % 13 === 6 ? 'Postgraduate' : 'First year') as App['year'] };
+  };
+  for (let i = 0; i < need.manual; i++) {
+    out.push(app({ ...base(i), status: 'manual', why: MANUAL_WHY[i % MANUAL_WHY.length], assignee: i % 3 === 0 ? 'Tom Okafor' : undefined, waiting: 1 + (i % 4), submitted: `${22 + (i % 4)} Oct` }, i));
+  }
+  for (let i = 0; i < need.allocated; i++) {
+    const b = base(i + 3);
+    /* Offers went out from 20 Oct; most by auto-allocate in the first runs. */
+    const day = 20 + (h(i, 2) % 8);
+    const r = h(i, 3);
+    out.push(app({ ...b, status: 'allocated', unit: `${b.hall} · ${1 + (r % 5)}.${1 + ((r >>> 3) % 4)}.${'ABCD'[(r >>> 6) % 4]}`,
+      allocBy: h(i, 4) % 5 === 0 ? STAFF[h(i, 5) % 3] : 'Auto-allocate', allocOn: `${day} Oct`,
+      offer: h(i, 6) % 11 === 0 ? 'Offer open' : h(i, 6) % 23 === 1 ? 'Declined' : 'Accepted', waiting: 0, submitted: `${Math.max(1, day - 14 + (i % 5))} Oct` }, i));
+  }
+  /* Rejection reasons in the cycle report's proportions (41 · 22 · 19 · 14), minus the ones the designs show. */
+  const reasons = REJECT_REASONS.flatMap(([r, n]) => Array(n).fill(r) as string[]);
+  for (let i = 0; i < need.rejected; i++) {
+    out.push(app({ ...base(i + 5), status: 'rejected', reason: reasons[(i * 17) % reasons.length], rejBy: i % 4 === 0 ? 'Self-service' : STAFF[i % 3], rejOn: `${14 + (i % 13)} Oct`, emailed: true, waiting: 0, submitted: `${4 + (i % 10)} Oct` }, i));
+  }
+  for (let i = 0; i < other; i++) {
+    out.push(app({ ...base(i + 7), status: i % 4 === 0 ? 'declined' : 'waitlist', waiting: 0, submitted: `${3 + (i % 20)} Oct` }, i));
+  }
+  return out;
+}
+
+/* Earlier cycles, so clearing the Cycle filter shows more than 2027/28. 2026/27 is in tenancy but still takes in-year
+   applications (January starters, visiting students), so a few of those wait in To review; the rest are decided. */
+function pastCycles(): App[] {
+  const y27 = { cycle: '2026/27', arrival: '11 Jan 2027' };
+  const review: Spec[] = [
+    { name: 'Lukas Weber', ref: '10412', hall: 'Ustinov', room: 'Ensuite single', year: 'Postgraduate', course: 'MSc Data Science', fee: 'International', waiting: 23, submitted: '4 Oct' },
+    { name: 'Camille Dubois', ref: '10418', hall: 'Josephine Butler', room: 'Studio', year: 'Returning', course: 'BA Modern Languages', fee: 'International', waiting: 19, submitted: '8 Oct' },
+    { name: 'Hiro Tanaka', ref: '10431', hall: 'John Snow', room: 'Ensuite single', year: 'Postgraduate', course: 'MSc Physics', fee: 'International', waiting: 15, submitted: '12 Oct' },
+    { name: 'Sophie Grant', ref: '10437', hall: 'Collingwood', room: 'Standard single', year: 'First year', course: 'BA History', fee: 'Home', waiting: 12, submitted: '15 Oct' },
+    { name: 'Mateo Ruiz', ref: '10446', hall: 'Van Mildert', room: 'Ensuite', year: 'Postgraduate', course: 'MBA', fee: 'International', waiting: 10, submitted: '17 Oct', tag: 'No study offer' },
+    { name: 'Grace Okafor', ref: '10452', hall: 'Stephenson', room: 'Standard single', year: 'Returning', course: 'LLB Law', fee: 'Home', waiting: 8, submitted: '19 Oct' },
+  ];
+  const allocated: [Spec, string, string, string][] = [
+    [{ name: 'Elena Rossi', ref: '10388', hall: 'Hild Bede', room: 'Standard single', year: 'Postgraduate' }, 'Hild Bede · 1.4.A', ME, '2 Oct'],
+    [{ name: 'Tom Hardy', ref: '10371', hall: 'Collingwood', room: 'Ensuite single', year: 'Returning' }, 'Collingwood · 2.1.C', 'Tom Okafor', '28 Sep'],
+    [{ name: 'Aiko Mori', ref: '10359', hall: 'Ustinov', room: 'Studio', year: 'Postgraduate' }, 'Ustinov · 3.2.D', 'Auto-allocate', '24 Sep'],
+    [{ name: 'Ben Ashworth', ref: '10340', hall: 'Stephenson', room: 'Ensuite', year: 'First year' }, 'Stephenson · 4.3.B', 'Auto-allocate', '20 Sep'],
+  ];
+  const rejected: [Spec, string, string, string][] = [
+    [{ name: 'Daniel Novak', ref: '10395', hall: 'John Snow', room: 'Ensuite single' }, 'Withdrawn by the applicant', 'Self-service', '6 Oct'],
+    [{ name: 'Leah Coombs', ref: '10366', hall: 'Van Mildert', room: 'Standard single' }, 'No offer to study at Durham', ME, '26 Sep'],
+  ];
+  const y26 = { cycle: '2025/26', arrival: '20 Sep 2025', submitted: '14 Mar' };
+  const older: [Spec, string, string, string][] = [
+    [{ name: 'Oscar Lindqvist', ref: '9821', hall: 'Collingwood', room: 'Standard single' }, 'Collingwood · 1.3.B', 'Auto-allocate', '2 Jun'],
+    [{ name: 'Maya Fernandes', ref: '9804', hall: 'Josephine Butler', room: 'Ensuite' }, 'Josephine Butler · 2.2.A', ME, '28 May'],
+    [{ name: 'Ifeoma Nwosu', ref: '9779', hall: 'Ustinov', room: 'Accessible ensuite' }, 'Ustinov · G.01.A', 'Tom Okafor', '21 May'],
+  ];
+  return [
+    ...review.map((s, i) => app({ ...y27, ...s }, i + 2)),
+    ...allocated.map(([s, unit, by, on], i) => app({ ...y27, ...s, unit, allocBy: by, allocOn: on, offer: 'Accepted', status: 'allocated', waiting: 0, submitted: '1 Sep' }, i)),
+    ...rejected.map(([s, reason, by, on], i) => app({ ...y27, ...s, reason, rejBy: by, rejOn: on, emailed: true, status: 'rejected', waiting: 0, submitted: '3 Sep' }, i)),
+    ...older.map(([s, unit, by, on], i) => app({ ...y26, ...s, unit, allocBy: by, allocOn: on, offer: 'Accepted', status: 'allocated', waiting: 0 }, i + 1)),
+    app({ ...y26, name: 'Ruairi Doyle', ref: '9790', hall: 'Hild Bede', room: 'Standard single', reason: 'Duplicate application', rejBy: ME, rejOn: '19 May', emailed: true, status: 'rejected', waiting: 0 }, 4),
+  ];
 }
 
 function seedOffers(): Offer[] {
@@ -181,6 +284,79 @@ function seedWait(): Wait[] {
     { id: 'w5', name: 'Maya Singh', hall: 'Collingwood', room: 'Studio', note: '—', joined: '19 Oct' },
     { id: 'w6', name: 'Priyanka Iyer', hall: 'Ustinov', room: 'Accessible ensuite', note: 'Needs step-free · verified', joined: '23 Oct' },
   ];
+}
+
+/* The rest of 2027/28's offers and waitlist, so each tab's number is real rows (Open 42 · Accepted 2,215 ·
+   Declined 176 · Lapsed 58 · Waitlist 63). Offers go to applications already allocated in bulk(), and each
+   application's Offer column is set to match. Earlier cycles' allocations get accepted offers too, so clearing the
+   Cycle filter widens the list. The design rows stay first; these follow, newest first. Deterministic. */
+export const OFFER_TARGETS = { open: 42, accepted: 2215, declined: 176, lapsed: 58, waitlist: 63 };
+const DECLINE_REASONS: [string, number][] = [['Chose another university', 9], ['Too expensive', 5], ['Living at home', 4], ['Wanted a different hall', 3], ['No reason given', 3]];
+const WAIT_NOTES = ['—', '—', '—', 'Late application', 'Fee status not confirmed', 'Lapsed · asked to stay on the list', 'Wants this hall only', 'Declined another hall', 'Needs step-free · verified'];
+const hash = (i: number, salt: number) => {
+  let x = Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(salt + 1, 0x85ebca6b);
+  x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16;
+  return x >>> 0;
+};
+const pad = (n: number) => String(n).padStart(2, '0');
+const OFFER_LABEL: Record<OfferStatus, NonNullable<App['offer']>> = { open: 'Offer open', accepted: 'Accepted', declined: 'Declined', lapsed: 'Lapsed' };
+
+function bulkOffers(apps: App[], seeded: Offer[], wait: Wait[]): { apps: App[]; offers: Offer[]; waitlist: Wait[] } {
+  const have = (s: OfferStatus) => seeded.filter((o) => !o.cycle && o.status === s).length;
+  const taken = new Set([...seeded.map((o) => o.name), ...wait.map((w) => w.name)]);
+  const pool = apps.filter((a) => a.cycle === '2027/28' && a.status === 'allocated' && a.unit && !taken.has(a.name));
+  const need: [OfferStatus, number][] = [['open', OFFER_TARGETS.open - have('open')], ['declined', OFFER_TARGETS.declined - have('declined')], ['lapsed', OFFER_TARGETS.lapsed - have('lapsed')], ['accepted', OFFER_TARGETS.accepted - have('accepted')]];
+  /* Shuffle the pool by hash, so the declined and lapsed aren't all one hall or one day. */
+  const order = pool.map((a, i) => [hash(i, 11), a] as const).sort((x, y) => x[0] - y[0]).map(([, a]) => a);
+  const waiters = apps.filter((a) => a.cycle === '2027/28' && a.status === 'waitlist' && !taken.has(a.name));
+  const declineReasons = DECLINE_REASONS.flatMap(([r, n]) => Array(n).fill(r) as string[]);
+  const offers: Offer[] = [];
+  const offerOf = new Map<string, NonNullable<App['offer']>>();
+  let p = 0, w = 0;
+  const nextWaiter = () => waiters[w++ % Math.max(1, waiters.length)];
+  for (const [status, n] of need) {
+    for (let j = 0; j < n && p < order.length; j++, p++) {
+      const a = order[p];
+      const r = hash(p, 12);
+      const sentDay = Math.min(27, Math.max(15, +(a.allocOn ?? '20 Oct').split(' ')[0]));
+      const o: Offer = { id: `g${a.ref}`, name: a.name, appId: a.id, hall: a.hall, room: a.room, unit: a.unit!.split(' · ')[1], status, sent: `${sentDay} Oct`, reminders: 0 };
+      if (status === 'open') {
+        const leftH = 3 + (r % 117);
+        const at = 10 + leftH;
+        const k = 27 + Math.floor(at / 24); // days from 27 Oct (the module-level date helpers aren't defined yet when the seed runs)
+        const expDay = k > 31 ? `${k - 31} Nov` : `${k} Oct`;
+        Object.assign(o, { leftH, expires: `${expDay} ${pad(at % 24)}:${pad((r >>> 8) % 60)}`, sent: `${k - 5} Oct`, reminders: leftH < 24 ? 2 : leftH < 48 ? 1 : 0 });
+      } else if (status === 'accepted') {
+        const lr = r % 20;
+        Object.assign(o, { accepted: `${Math.min(27, sentDay + 1 + (r % 4))} Oct`, deposit: 'Paid £250', reminders: (r >>> 4) % 3 === 0 ? 1 : 0, lease: lr < 16 ? 'Signed' : lr < 19 ? 'Sent' : 'Draft' });
+      } else if (status === 'declined') {
+        const to = r % 3 !== 0 && waiters.length ? nextWaiter() : null;
+        Object.assign(o, { declined: `${Math.min(27, sentDay + 1 + (r % 5))} Oct`, reason: declineReasons[r % declineReasons.length], unitNow: to ? `Offered to ${to.name}` : 'Back in search', reminders: r % 3 });
+      } else {
+        const s = 15 + (r % 8);
+        const to = r % 4 !== 0 && waiters.length ? nextWaiter() : null;
+        Object.assign(o, { sent: `${s} Oct`, lapsed: `${s + 5} Oct`, reminders: 2, wentTo: to ? `${to.name} · waitlist #1` : 'No one waiting · back in search' });
+      }
+      offers.push(o);
+      offerOf.set(a.id, OFFER_LABEL[status]);
+    }
+  }
+  const day = (o: Offer) => +(o.accepted ?? o.declined ?? o.lapsed ?? o.sent).split(' ')[0];
+  offers.sort((x, y) => day(y) - day(x) || +y.id.slice(1) - +x.id.slice(1));
+  /* Earlier cycles: every allocation there was accepted. */
+  const past: Offer[] = apps.filter((a) => a.cycle !== '2027/28' && a.status === 'allocated' && a.unit).map((a) => (
+    { id: `g${a.ref}`, name: a.name, appId: a.id, hall: a.hall, room: a.room, unit: a.unit!.split(' · ')[1], status: 'accepted', sent: a.allocOn ?? '—', accepted: a.allocOn, deposit: 'Paid £250', reminders: 0, cycle: a.cycle, lease: 'Signed' }));
+  /* Waitlist: people whose application is waitlisted (not already offered a freed unit), spread over the room types, earliest first. */
+  const rest = waiters.slice(Math.min(w, waiters.length));
+  const extra: Wait[] = rest.slice(0, Math.max(0, OFFER_TARGETS.waitlist - wait.length)).map((a, i) => {
+    const [hall, room] = COMBOS[hash(i, 13) % COMBOS.length];
+    return { id: `gw${a.ref}`, name: a.name, appId: a.id, hall, room, note: WAIT_NOTES[hash(i, 14) % WAIT_NOTES.length], joined: `${8 + (hash(i, 15) % 19)} Oct` };
+  }).sort((x, y) => +x.joined.split(' ')[0] - +y.joined.split(' ')[0]);
+  return {
+    apps: apps.map((a) => (offerOf.has(a.id) ? { ...a, offer: offerOf.get(a.id) } : a)),
+    offers: [...seeded, ...offers, ...past],
+    waitlist: [...wait, ...extra],
+  };
 }
 
 const TERM = '19 Sep 2027 – 9 Sep 2028';
@@ -241,15 +417,13 @@ export type Data = {
   hidden: { manual: number; allocated: number; rejected: number; other: number; open: number; accepted: number; declined: number; lapsed: number; waitlist: number; bookings: number; leaseSent: number; drafts: number; cancelled: number };
 };
 export function makeAllocSeed(): Data {
-  const apps = seedApps(); const offers = seedOffers(); const bookings = seedBookings(); const waitlist = seedWait();
-  const n = (s: AppStatus) => apps.filter((a) => a.status === s).length;
-  const o = (s: OfferStatus) => offers.filter((x) => x.status === s).length;
+  const { apps, offers, waitlist } = bulkOffers(seedApps(), seedOffers(), seedWait()); const bookings = seedBookings();
   const active = bookings.filter((b) => !b.cancelled);
   return {
     cycles: seedCycles(), apps, offers, recent: RECENT_ORDER, waitlist, bookings, conflicts: seedConflicts(), used: {}, usedUnits: [],
     hidden: {
-      manual: 14 - n('manual'), allocated: 2480 - n('allocated'), rejected: 96 - n('rejected'), other: 3410 - 128 - 14 - 2480 - 96,
-      open: 42 - o('open'), accepted: 2215 - o('accepted'), declined: 176 - o('declined'), lapsed: 58 - o('lapsed'), waitlist: 63 - waitlist.length,
+      manual: 0, allocated: 0, rejected: 0, other: 0, // every application is a real row now (see bulk())
+      open: 0, accepted: 0, declined: 0, lapsed: 0, waitlist: 0, // every offer and waitlist entry is a real row now (see bulkOffers())
       bookings: 2216 - active.length, leaseSent: 185 - active.filter((b) => b.lease === 'Sent').length, drafts: 41 - active.filter((b) => b.lease === 'Draft').length,
       cancelled: 58 - bookings.filter((b) => b.cancelled).length,
     },
@@ -270,20 +444,25 @@ export const useAlloc = create<State>()(
       snap: () => pick(get()),
       restore: (d) => set(d),
     }),
-    { name: 'pms-allocations', storage: createJSONStorage(() => sessionStorage), version: 1 },
+    { name: 'pms-allocations', storage: createJSONStorage(() => sessionStorage), version: 6 },
   ),
 );
 
 /* ---------------- Derived ---------------- */
 export const fmtN = (n: number) => n.toLocaleString('en-GB');
 export function appCounts(d: Data) {
-  const n = (s: AppStatus) => d.apps.filter((a) => a.status === s).length;
+  /* Tabs and the nav count the live cycle (what the default filter shows); earlier cycles appear when you clear it. */
+  const live = d.cycles.find((c) => c.status === 'open')?.name ?? '2027/28';
+  const apps = d.apps.filter((a) => a.cycle === live);
+  const n = (s: AppStatus) => apps.filter((a) => a.status === s).length;
   const review = n('review'), manual = n('manual') + d.hidden.manual, allocated = n('allocated') + d.hidden.allocated, rejected = n('rejected') + d.hidden.rejected;
-  const all = d.apps.length + d.hidden.manual + d.hidden.allocated + d.hidden.rejected + d.hidden.other;
+  const all = apps.length + d.hidden.manual + d.hidden.allocated + d.hidden.rejected + d.hidden.other;
   return { review, manual, allocated, rejected, all };
 }
 export function offerCounts(d: Data) {
-  const n = (s: OfferStatus) => d.offers.filter((o) => o.status === s).length;
+  /* The tabs count the live cycle, like Applications; the list can widen with the Cycle filter. */
+  const live = d.cycles.find((c) => c.status === 'open')?.name ?? '2027/28';
+  const n = (s: OfferStatus) => d.offers.filter((o) => o.status === s && (o.cycle ?? '2027/28') === live).length;
   return { open: n('open') + d.hidden.open, accepted: n('accepted') + d.hidden.accepted, declined: n('declined') + d.hidden.declined, lapsed: n('lapsed') + d.hidden.lapsed, waitlist: d.waitlist.length + d.hidden.waitlist };
 }
 export function bookingCounts(d: Data) {

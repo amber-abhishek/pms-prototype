@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState, type DragEvent, type KeyboardEv
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
-import { ArrowCounterClockwise, CaretDown, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
+import { ArrowCounterClockwise, CaretDown, Moon, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
 import { modules, moduleFor, pinnable, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
@@ -13,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../com
 import { Popover, PopoverContent, PopoverTrigger } from '../components/shadcn/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../components/shadcn/command';
 import { Palette } from './Palette';
+import { Switch } from '../components/shadcn/switch';
+import { useTheme } from '../data/theme';
 import { RailSolid, hasSolid } from './railIcons';
 import { SolidIcon, hasSolidIcon } from './solidIcons';
 import { NoAccess } from '../pages/Misc';
@@ -72,7 +74,7 @@ export function Shell() {
       <div className="flex-1 flex min-h-0 pr-2 pb-2">
         <Rail visible={visible} active={mod} />
         <div className="flex-1 flex min-w-0 rounded-xl border border-line bg-white shadow-card overflow-hidden">
-          {panelOpen && <Panel mod={mod} />}
+          <Panel mod={mod} collapsed={!panelOpen} />
           <main className="flex-1 min-w-0 flex flex-col">{allowed ? <Outlet /> : <NoAccess />}</main>
         </div>
       </div>
@@ -84,7 +86,7 @@ export function Shell() {
 function Rail({ visible, active }: { visible: Module[]; active: Module }) {
   const groups = (['top', 'modules', 'bottom'] as const).map((g) => visible.filter((m) => m.group === g));
   return (
-    <TooltipProvider delayDuration={500} skipDelayDuration={300}>
+    <TooltipProvider delayDuration={300}>
     <nav aria-label="Modules" className="w-14 shrink-0 flex flex-col items-center pt-1 pb-1 gap-1">
       {groups.map((g, i) => (
         <Fragment key={i}>
@@ -111,32 +113,34 @@ function RailItem({ m, on }: { m: Module; on: boolean }) {
         {m.locked && <span className="absolute right-1 bottom-1 size-4 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center"><Lock size={10} weight="fill" className="text-gray-500" /></span>}
       </NavLink>
     </TooltipTrigger>
-    {/* Hangs off the icon's bottom-right corner: start-aligned under it, shifted 31px right and 5px up. */}
-    <TooltipContent side="bottom" align="start" sideOffset={-5} alignOffset={31} className="pointer-events-none data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 zoom-in-100 slide-in-from-top-0">
+    {/* Same tooltip as the collapsed panel's page icons: to the right, 8px off. */}
+    <TooltipContent side="right" sideOffset={8}>
       {m.label}{m.locked && <span className="text-gray-400"> · locked</span>}
     </TooltipContent>
     </Tooltip>
   );
 }
 
-function Panel({ mod }: { mod: Module }) {
+/* Collapsed (⌘.): the panel narrows to its page icons, each with a tooltip; section labels become short dividers. */
+function Panel({ mod, collapsed }: { mod: Module; collapsed: boolean }) {
   const counts = useNavCounts();
   return (
-    <TooltipProvider delayDuration={400}>
-    <aside aria-label={`${mod.label} pages`} className="w-56 shrink-0 border-r border-line flex flex-col px-3 pb-4">
-      <div className="h-[52px] shrink-0 pl-2 pr-1 flex items-center">
-        <div className="text-[15px] leading-5 font-semibold text-ink">{mod.label}</div>
+    <TooltipProvider delayDuration={collapsed ? 300 : 400}>
+    <aside aria-label={`${mod.label} pages`} className={cx('shrink-0 border-r border-line flex flex-col pb-4', collapsed ? 'w-14 px-3' : 'w-56 px-3')}>
+      <div className={cx('shrink-0 flex items-center', collapsed ? 'h-3' : 'h-[52px] pl-2 pr-1')}>
+        {!collapsed && <div className="text-[15px] leading-5 font-semibold text-ink">{mod.label}</div>}
       </div>
-      <div className="flex-1 overflow-auto flex flex-col gap-1">
-        {mod.sections.map((s, i) => s.pinned ? <PinnedSection key={i} counts={counts} /> : (
+      <div className={cx('flex-1 flex flex-col gap-1', collapsed ? 'overflow-y-auto overflow-x-hidden' : 'overflow-auto')}>
+        {mod.sections.map((s, i) => s.pinned ? <PinnedSection key={i} counts={counts} collapsed={collapsed} /> : (
           <div key={i} className="flex flex-col gap-1">
-            {s.label && (
-              <div className="h-6 mt-2 px-2 flex items-center justify-between text-xs leading-5 font-medium text-gray-500">{s.label}</div>
+            {s.label && (collapsed
+              ? <div className="h-px w-5 mx-auto my-2.5 bg-[#E2E3E7]" aria-hidden />
+              : <div className="h-6 mt-2 px-2 flex items-center justify-between text-xs leading-5 font-medium text-gray-500">{s.label}</div>
             )}
-            {s.items.map((it) => <PanelRow key={it.label} it={it} count={it.count?.(counts)} locked={mod.locked} mode={mod.id === 'home' ? 'plain' : 'module'} />)}
+            {s.items.map((it) => <PanelRow key={it.label} it={it} count={it.count?.(counts)} locked={mod.locked} mode={mod.id === 'home' ? 'plain' : 'module'} collapsed={collapsed} />)}
           </div>
         ))}
-        {mod.locked && (
+        {mod.locked && !collapsed && (
           <div className="mt-4 mx-1 rounded-xl border border-[#A855F7]/30 p-3">
             <div className="text-sm font-semibold text-[#7E22CE]">Not in your plan</div>
             <div className="text-xs text-gray-500 mt-0.5">Listing site (LMS) lets you publish your halls on your own website.</div>
@@ -180,7 +184,7 @@ function pinToggle(it: NavItem) {
 /** Every module row target, so a row without ?tab can tell when a sibling row owns the current tab. */
 const ALL_TO = modules.flatMap((m) => m.sections.flatMap((s) => s.items.map((i) => i.to)));
 
-function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; locked?: boolean; mode: 'plain' | 'module' | 'pinned' }) {
+function PanelRow({ it, count, locked, mode, collapsed }: { it: NavItem; count?: number; locked?: boolean; mode: 'plain' | 'module' | 'pinned'; collapsed?: boolean }) {
   const { pathname: route, search } = useLocation();
   const pathname = useNavPath(route);
   const href = useNavHref(route, search);
@@ -198,6 +202,23 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
     </>
   );
   const cls = cx(!disabled && 'group', 'h-8 shrink-0 px-2 rounded-lg flex items-center gap-2 text-sm leading-5 font-medium transition-colors duration-0 hover:duration-150', on ? 'bg-[#F3F4F6] text-ink shadow-[inset_0_1px_2px_rgba(17,24,39,0.08),inset_0_0_0_1px_rgba(17,24,39,0.06),0_1px_0_#fff]' : 'text-gray-700 hover:bg-[#F9FAFB]', disabled && 'opacity-60 cursor-default');
+  if (collapsed) {
+    const icon = <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolidIcon(I) ? <SolidIcon icon={I} className="shrink-0 text-[#2563EB]" /> : <I size={16} className={on ? 'text-[#2563EB]' : 'text-gray-500'} />}</span>;
+    const dot = count !== undefined && count > 0 && it.alert && <span className="absolute right-1 top-1 size-1.5 rounded-full bg-[#DC2626]" />;
+    const ccls = cx(cls, 'relative w-8 px-0 justify-center');
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {disabled
+            ? <div className={ccls} aria-disabled aria-label={it.label}>{icon}</div>
+            : <NavLink to={it.to} end draggable={false} aria-label={it.label} className={ccls} onClick={() => usePins.getState().go(it.to, mode === 'pinned' ? it.to : null)}>{icon}{dot}</NavLink>}
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8}>
+          {it.label}{count !== undefined && count > 0 && <span className={it.alert ? 'text-[#FCA5A5]' : 'text-gray-400'}> · {count}</span>}{it.soon && <span className="text-gray-400"> · soon</span>}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
   if (disabled) return <div className={cls} aria-disabled>{inner}</div>;
   return (
     <div className="relative group/row">
@@ -208,7 +229,7 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
 }
 
 /** Home's Pinned list: drag (or Alt+↑/↓) to reorder, hover to unpin, + to pin any page. */
-function PinnedSection({ counts }: { counts: NavCounts }) {
+function PinnedSection({ counts, collapsed }: { counts: NavCounts; collapsed?: boolean }) {
   const role = useDb((s) => s.role);
   const { pins, move } = usePins();
   const pages = pins.map((to) => pinnable.find((p) => p.to === to)).filter((p): p is (typeof pinnable)[number] => !!p && p.roles.includes(role));
@@ -236,6 +257,13 @@ function PinnedSection({ counts }: { counts: NavCounts }) {
     move(pins.indexOf(to), j < pages.length ? pins.indexOf(pages[j].to) : pins.length);
     requestAnimationFrame(() => (document.querySelector(`[data-pin="${to}"] a`) as HTMLElement | null)?.focus());
   };
+
+  if (collapsed) return pages.length === 0 ? null : (
+    <div className="flex flex-col gap-1">
+      <div className="h-px w-5 mx-auto my-2.5 bg-[#E2E3E7]" aria-hidden />
+      {pages.map((p) => <PanelRow key={p.to} it={p} count={p.count?.(counts)} mode="pinned" collapsed />)}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-1">
@@ -316,6 +344,7 @@ function UserMenu() {
   /* Sign out: cover the app ("Signing you out…"), confirm it, then land on the sign-in page, which now says Welcome back. */
   const me = useAuth((s) => s.remembered) ?? { name: 'Priya Shah', email: 'priya.shah@durham.ac.uk' };
   const [leaving, setLeaving] = useState<'pending' | 'done'>();
+  const { theme, setTheme } = useTheme();
   const signOut = () => {
     setLeaving('pending');
     setTimeout(() => setLeaving('done'), 900);
@@ -339,6 +368,12 @@ function UserMenu() {
             <span><span className="block">{r.label}</span><span className="block text-xs text-gray-500">{r.sub}</span></span>
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator className="bg-line" />
+        {/* Stays open when toggled, so you see the switch flip and the app change behind it. */}
+        <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
+          <Moon size={16} className="text-gray-500" /><span className="flex-1">Dark mode</span>
+          <Switch checked={theme === 'dark'} tabIndex={-1} aria-hidden className="pointer-events-none" />
+        </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-line" />
         <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={() => { reset(); nav('/'); toast.success('Demo data reset'); }}>
           <ArrowCounterClockwise size={16} className="text-gray-500" />Reset demo data

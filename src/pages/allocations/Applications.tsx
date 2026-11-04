@@ -3,9 +3,9 @@ import { ArrowsDownUp, CaretLeft, CaretRight, Check, CheckCircle, DownloadSimple
 import { toast } from 'sonner';
 import { Button, PageHeader, SearchInput, Sheet, Tabs, Toolbar, cx } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
-import { TODAY, appCounts, fmtN, useAlloc, type App, type AppStatus } from '../../data/allocations';
+import { appCounts, fmtN, useAlloc, type App, type AppStatus } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
-import { Caption, DisplayButton, EmptyArea, Foot, Grid, Ini, Kbd, Person, Pop, St, type C } from './common';
+import { Caption, DisplayButton, EmptyArea, Foot, Grid, Ini, Person, Pop, St, type C } from './common';
 import { AppDetail, statusLabel, type Pref } from './AppDetail';
 import { AllocateSheet, AutoAllocateDialog, RejectDialog } from './AppSheets';
 import { applyFilters, describe, fieldsFor, FilterPanel, type Filters } from './filters';
@@ -14,6 +14,15 @@ type TabId = 'To review' | 'Manual review' | 'Allocated' | 'Rejected' | 'All';
 const LEGACY: Record<string, TabId> = { New: 'To review', 'In review': 'To review', Offered: 'Allocated', Accepted: 'Allocated', Waitlisted: 'All', Declined: 'Rejected' };
 const tabStatus: Record<TabId, AppStatus | null> = { 'To review': 'review', 'Manual review': 'manual', Allocated: 'allocated', Rejected: 'rejected', All: null };
 const PAGE = 50;
+
+/* "24 Oct" within a cycle → a sortable number: newer cycles first, then the date inside the cycle's
+   September-to-August year. A plain string sort put 28 May next to 28 Sep. */
+const MON = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+function dayKey(cycle: string, label?: string) {
+  if (!label) return 0;
+  const [d, m] = label.split(' ');
+  return (+cycle.slice(0, 4) || 0) * 10000 + Math.max(0, MON.indexOf(m)) * 100 + (+d || 0);
+}
 
 /* Filters live at module level so they survive tab switches within the session (Flow 1 keeps them while she works). */
 let saved: Filters | null = null;
@@ -70,7 +79,7 @@ export function Applications() {
       ) : split ? (
         <Queue key={tab} sort={sort} tab={tab} rows={rows} total={isDefault ? counts.review : rows.length} filtered={!isDefault} open={open} setOpen={setOpen} fs={fs} setFs={setFs} fields={fields} base={base} defaults={defaults} />
       ) : (
-        <AppTable tab={tab} rows={rows} counts={counts} open={open} setOpen={setOpen} />
+        <AppTable key={tab} tab={tab} rows={rows} open={open} setOpen={setOpen} />
       )}
       <AutoAllocateDialog open={auto} onClose={() => setAuto(false)} />
     </>
@@ -185,14 +194,19 @@ function TableDisplay({ tab }: { tab: TabId }) {
   return <DisplayButton cols={COLS[tab] ?? []} hidden={hiddenCols[tab] ?? []} onChange={(h) => { hiddenCols = { ...hiddenCols, [tab]: h }; force((n) => n + 1); window.dispatchEvent(new Event('alloc-cols')); }} />;
 }
 
-function AppTable({ tab, rows, counts, open, setOpen }: { tab: TabId; rows: App[]; counts: ReturnType<typeof appCounts>; open: string | null; setOpen: (id: string | null) => void }) {
+function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open: string | null; setOpen: (id: string | null) => void }) {
   const [, force] = useState(0);
   useEffect(() => { const h = () => force((n) => n + 1); window.addEventListener('alloc-cols', h); return () => window.removeEventListener('alloc-cols', h); }, []);
   const [allocating, setAllocating] = useState<{ a: App; p: Pref } | null>(null);
   const [rejecting, setRejecting] = useState<App | null>(null);
   const sel = rows.find((a) => a.id === open);
+  const [page, setPage] = useState(0);
+  useEffect(() => setPage(0), [rows.length]);
   const applicant: C<App> = { key: 'name', label: 'Applicant', render: (a) => <Person name={a.name} /> };
-  const order = tab === 'Manual review' ? [...rows].sort((x, y) => y.waiting - x.waiting) : tab === 'All' ? [...rows].sort((x, y) => +x.ref - +y.ref) : [...rows].sort((x, y) => (y.allocOn ?? y.rejOn ?? '').localeCompare(x.allocOn ?? x.rejOn ?? '', undefined, { numeric: true }));
+  const order = useMemo(() => (tab === 'Manual review' ? [...rows].sort((x, y) => y.waiting - x.waiting) : tab === 'All' ? [...rows].sort((x, y) => +x.ref - +y.ref)
+    : [...rows].sort((x, y) => dayKey(y.cycle, y.allocOn ?? y.rejOn) - dayKey(x.cycle, x.allocOn ?? x.rejOn) || +y.ref - +x.ref)), [rows, tab]);
+  const pages = Math.max(1, Math.ceil(order.length / PAGE));
+  const shown = order.slice(page * PAGE, page * PAGE + PAGE);
   const cols: C<App>[] = tab === 'Manual review' ? [
     applicant,
     { key: 'why', label: 'Why it’s here', render: (a) => <span className="flex items-center gap-2"><Flag size={14} className="text-[#8B2CF5]" />{a.why}</span> },
@@ -218,19 +232,25 @@ function AppTable({ tab, rows, counts, open, setOpen }: { tab: TabId; rows: App[
     { key: 'on', label: 'On', render: (a) => <span className="text-gray-400">{a.rejOn}</span> },
     { key: 'emailed', label: 'Emailed', render: (a) => (a.emailed ? <span className="flex items-center gap-1.5"><Check size={14} className="text-[#0B8A4C]" />Yes</span> : <span className="text-gray-400">No</span>) },
   ];
-  const sessionRej = rows.filter((a) => a.status === 'rejected' && a.rejOn === TODAY);
-  const cat = (k: RegExp) => sessionRej.filter((a) => k.test(a.reason ?? '')).length;
-  const caption = tab === 'All' ? null : tab === 'Manual review' ? 'Applications here are left out of auto-allocate' : tab === 'Rejected' ? 'Reasons are counted in the cycle report' : 'Each allocation sends an offer · the student has 5 days to accept';
-  const foot = tab === 'All' ? `${fmtN(counts.all)} applications in 2027/28` : tab === 'Manual review' ? `${counts.manual} in manual review`
-    : tab === 'Allocated' ? `${fmtN(counts.allocated)} allocated · ${3 + rows.filter((a) => a.override).length} with an override`
-    : `${counts.rejected} rejected · ${41 + cat(/study/)} no study offer · ${22 + cat(/Duplicate/)} duplicate · ${19 + cat(/Withdrawn/)} withdrawn · ${14 + cat(/eligible|Other/)} other`;
+  /* The foot counts the rows in the list (all filters applied), so it always matches what you can page through. */
+  const cat = (k: RegExp) => rows.filter((a) => k.test(a.reason ?? '')).length;
+  const caption = tab === 'All' ? null : tab === 'Manual review' ? 'Applications here are left out of auto-allocate' : tab === 'Rejected' ? 'Reasons are counted in the cycle report' : null;
+  const foot = tab === 'All' ? `${fmtN(rows.length)} applications` : tab === 'Manual review' ? `${rows.length} in manual review`
+    : tab === 'Allocated' ? `${fmtN(rows.length)} allocated${rows.some((a) => a.override) ? ` · ${rows.filter((a) => a.override).length} with an override` : ''}`
+    : `${rows.length} rejected · ${cat(/study/)} no study offer · ${cat(/Duplicate/)} duplicate · ${cat(/Withdrawn/)} withdrawn · ${cat(/eligible|Other/)} other`;
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {caption && <Caption>{caption}</Caption>}
       <div className="flex-1 overflow-auto">
-        {order.length ? <Grid cols={cols} rows={order} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()} for these filters`} sub="Clear a filter to see more." />}
+        {order.length ? <Grid cols={cols} rows={shown} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()} for these filters`} sub="Clear a filter to see more." />}
       </div>
-      <Foot right={<><Kbd>↵</Kbd><span>open</span></>}>{foot}</Foot>
+      <Foot right={<>
+        {pages > 1 && <span className="flex items-center gap-1 tabular-nums">
+          {page * PAGE + 1}–{Math.min(order.length, page * PAGE + PAGE)} of {fmtN(order.length)}
+          <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretLeft size={12} /></button>
+          <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretRight size={12} /></button>
+        </span>}
+      </>}>{foot}</Foot>
       <Sheet open={!!sel && !allocating && !rejecting} onClose={() => setOpen(null)} width={920} title={sel ? `APP-${sel.ref}` : ''} sub={sel ? statusLabel[sel.status] : ''}>
         {sel && <div className="-m-4 h-[calc(100vh-16px-56px)] flex"><AppDetail a={sel} onAllocate={(p) => setAllocating({ a: sel, p })} onReject={() => setRejecting(sel)} onAfter={() => setOpen(null)} /></div>}
       </Sheet>

@@ -36,6 +36,34 @@
     --density-input: 2rem;               /* the prototype's fields are 32px too */
     --control-compact: 1.75rem;          /* 28px */
   }
+  /* Dark mode (src/data/theme.ts puts .dark on <html>). Hard-coded colours get their dark twins from postcss-dark.js;
+     these are the shadcn tokens, set to match it: neutral 228° greys, white card → #141519, brand blue lifted. */
+  .dark {
+    --background: 228 7% 9%;
+    --foreground: 220 14% 93%;
+    --card: 228 7% 9%;
+    --card-foreground: 220 14% 93%;
+    --popover: 228 7% 11%;
+    --popover-foreground: 220 14% 93%;
+    --primary: 217 91% 60%;              /* #3B82F6 */
+    --primary-hover: 213 94% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 228 7% 14%;
+    --secondary-foreground: 220 14% 93%;
+    --muted: 228 7% 14%;
+    --muted-foreground: 222 7% 62%;
+    --subtle: 228 7% 11%;
+    --accent: 228 7% 16%;
+    --accent-foreground: 220 14% 93%;
+    --destructive: 355 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 151 70% 36%;
+    --success-foreground: 0 0% 100%;
+    --border: 228 7% 21%;
+    --input: 228 7% 30%;
+    --ring: 217 91% 60%;
+    color-scheme: dark;
+  }
   html, body, #root { height: 100%; }
   body { @apply bg-chrome text-ink font-sans antialiased text-sm; }
   * { @apply border-line; }
@@ -55,6 +83,10 @@
    normal ground; a row that leaves fades out, then the rows around it slide into place. */
 @keyframes row-in { from { opacity: 0 } to { opacity: 1 } }
 @keyframes row-wash { from { background-color: #EFF6FF } to { background-color: transparent } }
+@keyframes row-wash-dark { from { background-color: #172554 } to { background-color: transparent } }
+.dark [data-motion=in] { animation-name: row-in, row-wash-dark; }
+/* Inline-styled tint tiles (Overview's "Needs you today" icons): in dark, a deep wash of the icon colour, icon lifted. */
+.dark .tint { background: color-mix(in srgb, var(--tint) 22%, #141519) !important; color: color-mix(in srgb, var(--tint) 65%, white) !important; }
 [data-motion=in] { animation: row-in 240ms cubic-bezier(0.23, 1, 0.32, 1), row-wash 1400ms cubic-bezier(0.23, 1, 0.32, 1); }
 [data-motion=out] { opacity: 0; transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1); pointer-events: none; }
 

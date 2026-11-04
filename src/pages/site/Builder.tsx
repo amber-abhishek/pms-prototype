@@ -256,7 +256,8 @@ function Preview() {
     apply: (
       <div className={cx('p-4 flex items-center gap-4 text-white', r, mobile && 'flex-col items-start')} style={{ background: s.brand }}>
         <div className="flex-1"><div className="text-sm font-semibold">Applications for {s.cycle} open 1 February</div><div className="text-xs opacity-80 mt-0.5">Choose up to three colleges.</div></div>
-        <span className={cx('h-8 px-3 bg-white text-sm font-medium flex items-center', r)} style={{ color: s.brand }}>Apply now</span>
+        {/* Inline white, not bg-white: the button sits on the brand colour, so dark mode mustn't darken it. */}
+        <span className={cx('h-8 px-3 text-sm font-medium flex items-center', r)} style={{ background: '#fff', color: s.brand }}>Apply now</span>
       </div>
     ),
     faqs: <><h2 className="text-base font-semibold mb-2">FAQs</h2>{['When will I hear back?', 'Can I live with friends?', 'Is there parking?'].map((q) => <div key={q} className="py-2 border-b border-[#F3F4F6] text-sm">{q}</div>)}</>,

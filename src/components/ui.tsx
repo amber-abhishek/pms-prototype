@@ -104,7 +104,7 @@ export function PageTitle({ title, sub, children }: { title: string; sub?: React
 }
 export const Page = ({ children, className }: { children: ReactNode; className?: string }) => <div className={cx('flex-1 overflow-auto p-5', className)}>{children}</div>;
 /** A card you can click: the drop deepens on hover (border stays put) and it squeezes to .99 on press. */
-export const pressCard = 'transition-[box-shadow,transform] duration-150 ease-[cubic-bezier(.23,1,.32,1)] hover:shadow-[0_0_0_1px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.12)] active:scale-[.99] motion-reduce:transition-none motion-reduce:active:scale-100';
+export const pressCard = 'transition-[box-shadow,transform] duration-150 ease-[cubic-bezier(.23,1,.32,1)] hover:shadow-[0_0_0_1px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.12)] active:scale-[.99] dark:transition-[box-shadow,transform,background-color,border-color] dark:hover:bg-[#1F2026] dark:hover:border-[#4A4D57] motion-reduce:transition-none motion-reduce:active:scale-100';
 export const Card = ({ children, className }: { children: ReactNode; className?: string }) => <UICard className={className}>{children}</UICard>;
 export function CardHead({ title, children }: { title: ReactNode; children?: ReactNode }) {
   return <div className="h-12 px-4 flex items-center justify-between border-b border-line"><h2 className="text-sm font-semibold">{title}</h2>{children}</div>;

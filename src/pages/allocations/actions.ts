@@ -68,6 +68,7 @@ export function useAllocActions() {
     up((d) => {
       const used = { ...d.used };
       const usedUnits = [...d.usedUnits];
+      const offers: Offer[] = [];
       const apps = d.apps.map((a) => {
         if (a.status !== 'review' || a.tag || a.reqs.length) return a;
         const p = a.prefs.find(([h, r]) => available({ ...d, used }, h, r) > 0);
@@ -77,9 +78,10 @@ export function useAllocActions() {
         const unit = `${p[0]} · ${(+a.ref % 5) + 1}.${(+a.ref % 4) + 1}.${'ABCD'[+a.ref % 4]}`;
         usedUnits.push(unit);
         n++;
+        offers.push({ id: `o${Date.now()}${a.ref}`, name: a.name, appId: a.id, hall: p[0], room: p[1], unit: unit.split(' · ')[1], status: 'open', sent: TODAY, expires: addDays(NOW.replace(' 10:42', ' 17:00'), days), leftH: days * 24, reminders: 0, next: email ? 'Offer emailed by auto-allocate' : 'Offer saved by auto-allocate · not emailed yet' });
         return { ...a, status: 'allocated' as const, unit, allocBy: 'Auto-allocate', allocOn: TODAY, offer: 'Offer open' as const };
       });
-      return { apps, used, usedUnits, hidden: { ...d.hidden, open: d.hidden.open + n }, cycles: d.cycles.map((c) => (c.name === '2027/28' ? { ...c, allocated: c.allocated + n } : c)) };
+      return { apps, used, usedUnits, offers: [...offers, ...d.offers], cycles: d.cycles.map((c) => (c.name === '2027/28' ? { ...c, allocated: c.allocated + n } : c)) };
     });
     toast.success(`Auto-allocate placed ${n} applications`, { description: `${n} offers ${email ? 'emailed' : 'saved'} · expire in ${days} days. The rest need a person.`, action: undo });
   }

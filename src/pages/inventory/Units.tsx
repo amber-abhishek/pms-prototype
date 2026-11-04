@@ -174,7 +174,7 @@ function UnitsView({ props }: { props: Property[] }) {
                     <button type="button" className="text-primary" onClick={() => setChecked([])}>Clear</button>
                   </>
                 ) : <span>{flatList.length} of {counts.all} units on this {curFlat ? 'flat' : 'floor'}{floorTotal !== flatList.length && !curFlat ? ` · ${floorTotal} in all` : ''}</span>}
-                <span className="ml-auto flex items-center gap-3"><span className="flex items-center gap-1"><Kbd>J</Kbd><Kbd>K</Kbd> move</span><span className="flex items-center gap-1"><Kbd>↵</Kbd> open</span><span className="flex items-center gap-1"><Kbd>X</Kbd> select</span></span>
+                <span className="ml-auto flex items-center gap-3"><span className="flex items-center gap-1"><Kbd>J</Kbd><Kbd>K</Kbd> move</span><span className="flex items-center gap-1"><Kbd>X</Kbd> select</span></span>
               </div>
             </>
           )}

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowsLeftRight, Bed, CalendarBlank, Check, CheckCircle, Clock, MapPin, Megaphone, NotePencil, PencilSimple, Plus, SquaresFour, Timer, Tray, TrendDown, UserCheck, Warning, Wrench, type Icon } from '../../components/icons';
+import { ArrowsLeftRight, Bed, CalendarBlank, CalendarX, Check, CheckCircle, Clock, MapPin, Megaphone, NotePencil, PencilSimple, Plus, SquaresFour, Timer, Tray, TrendDown, UserCheck, Warning, Wrench, type Icon } from '../../components/icons';
 import { useDb } from '../../data/store';
 import { ME, NEEDS, useHome, type Need } from '../../data/home';
 import { useRms } from '../../data/residents';
@@ -9,7 +9,7 @@ import { MenuButton, Who } from './parts';
 
 const needIcon: Record<Need['icon'], [Icon, string, string]> = {
   alert: [Warning, '#FDEDED', '#B91C1C'], swap: [ArrowsLeftRight, '#F3EEFF', '#6E3BD8'], lease: [NotePencil, '#EFF6FF', '#1F45E0'],
-  inbox: [Tray, '#E3F6F6', '#0E7A80'], notice: [Megaphone, '#F3F4F6', '#374151'], landlord: [UserCheck, '#FFF0E0', '#E5530C'],
+  inbox: [Tray, '#E3F6F6', '#0E7A80'], notice: [Megaphone, '#F3F4F6', '#374151'], landlord: [UserCheck, '#FFF0E0', '#E5530C'], conflict: [CalendarX, '#FFF6E0', '#B45309'],
 };
 const badgeIcon: Record<Need['badge']['icon'], Icon> = { clock: Clock, calendar: CalendarBlank, timer: Timer, trend: TrendDown, pencil: PencilSimple };
 
@@ -49,7 +49,7 @@ function Today() {
   const activity = useDb((s) => s.activity);
   const tasks = useHome((s) => s.rows.main);
   const stillMine = (id?: string) => !id || tasks.some((t) => t.id === id && !t.done && t.owner === ME);
-  const needs = NEEDS.filter((n) => stillMine(n.taskId)).slice(0, 5);
+  const needs = NEEDS.filter((n) => stillMine(n.taskId)).slice(0, 7);
   /* The five halls furthest from full: the ones that need attention. */
   const halls = [...properties].map((p) => ({ ...p, pct: Math.round((p.let / p.beds) * 100) })).sort((a, b) => a.pct - b.pct).slice(0, 5);
 
@@ -72,7 +72,7 @@ function Today() {
               const B = badgeIcon[n.badge.icon];
               return (
                 <Link key={n.id} to={n.to} className="flex items-center gap-3 px-3 h-14 border-b border-[#F3F4F6] hover:bg-[#F9FAFB]">
-                  <span className="size-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: bg, color: fg }}><I size={16} /></span>
+                  <span className="tint size-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: bg, color: fg, '--tint': fg } as CSSProperties}><I size={16} /></span>
                   <span className="min-w-0 flex-1"><span className="block text-sm leading-5 font-medium text-ink truncate">{n.title}</span><span className="block text-xs text-gray-500 truncate">{n.sub}</span></span>
                   <Pill tone={n.badge.tone} icon={B}>{n.badge.label}</Pill>
                 </Link>

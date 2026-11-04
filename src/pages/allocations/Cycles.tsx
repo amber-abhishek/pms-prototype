@@ -216,7 +216,7 @@ function CloseCycle({ c, onClose }: { c: Cycle; onClose: () => void }) {
     d.up((x) => ({
       cycles: x.cycles.map((y) => (y.id === c.id ? { ...y, status: 'closed', closedOn: `${TODAY} 2026`, occupancy: `${((y.allocated / y.beds) * 100).toFixed(1)}%` } : y)),
       apps: x.apps.map((a) => (ids.has(a.id) ? (choice === 'wait' ? { ...a, status: 'waitlist' as const } : { ...a, status: 'rejected' as const, reason: 'Cycle closed · standard email', rejBy: 'Priya Shah', rejOn: TODAY, emailed: true }) : a)),
-      hidden: choice === 'wait' ? { ...x.hidden, waitlist: x.hidden.waitlist + left.length } : x.hidden,
+      waitlist: choice === 'wait' ? [...x.waitlist, ...left.map((a) => ({ id: `w${Date.now()}${a.ref}`, name: a.name, appId: a.id, hall: a.hall, room: a.room, note: `Cycle ${c.name} closed`, joined: TODAY }))] : x.waitlist,
     }));
     toast.success(`Cycle closed · ${left.length} students ${choice === 'wait' ? 'moved to the waitlist' : 'declined'} and emailed`, { action: undo });
     onClose();

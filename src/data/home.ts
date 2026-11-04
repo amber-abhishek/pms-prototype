@@ -179,13 +179,14 @@ export const PEOPLE: Record<string, { color: string; role: string; pronoun: 'he'
 };
 
 /* ---------- "Needs you today" on Overview ---------- */
-export type Need = { id: string; icon: 'alert' | 'swap' | 'lease' | 'inbox' | 'notice' | 'landlord'; title: string; sub: string; badge: { label: string; tone: Tone; icon: 'clock' | 'calendar' | 'timer' | 'trend' | 'pencil' }; to: string; taskId?: string };
+export type Need = { id: string; icon: 'alert' | 'swap' | 'lease' | 'inbox' | 'notice' | 'landlord' | 'conflict'; title: string; sub: string; badge: { label: string; tone: Tone; icon: 'clock' | 'calendar' | 'timer' | 'trend' | 'pencil' }; to: string; taskId?: string };
 export const NEEDS: Need[] = [
   { id: 'n1', icon: 'alert', title: 'Leaking radiator, Ustinov C.2.14', sub: 'Urgent · reported 2h ago · no one assigned', badge: { label: 'Past SLA', tone: 'red', icon: 'clock' }, to: '/residents/maintenance?open=m1', taskId: 'k1' },
   { id: 'n2', icon: 'swap', title: 'Room swap: Ella Morgan ↔ Josh Patel', sub: 'Collingwood · both residents agreed', badge: { label: 'Due today', tone: 'orange', icon: 'calendar' }, to: '/residents/requests?open=rq1', taskId: 'k2' },
   { id: 'n3', icon: 'lease', title: '14 leases not signed', sub: 'Move-in on Saturday · lease needed to collect keys', badge: { label: '5 days', tone: 'amber', icon: 'timer' }, to: '/allocations/bookings?tab=Lease%20unsigned', taskId: 'k3' },
   { id: 'n4', icon: 'inbox', title: '31 applications waiting more than 5 days', sub: '2027/28 · To review', badge: { label: 'Behind', tone: 'orange', icon: 'trend' }, to: '/allocations/applications?tab=To%20review', taskId: 'k5' },
   { id: 'n5', icon: 'notice', title: 'Move-in notice to Ustinov residents', sub: 'Draft · scheduled for Wednesday 09:00', badge: { label: 'Draft', tone: 'grey', icon: 'pencil' }, to: '/residents/notices?open=n1', taskId: 'k4' },
+  { id: 'n7', icon: 'conflict', title: '2 double-booked units', sub: 'Collingwood 3.2.C · Stephenson 4.2.C · overlapping bookings', badge: { label: 'Due today', tone: 'orange', icon: 'calendar' }, to: '/allocations/bookings?tab=Conflicts' },
   { id: 'n6', icon: 'landlord', title: 'Review 4 landlord applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange', icon: 'trend' }, to: '/offcampus/landlords' },
 ];
 

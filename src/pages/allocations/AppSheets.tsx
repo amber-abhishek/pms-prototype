@@ -146,7 +146,7 @@ export function AutoAllocateDialog({ open, onClose }: { open: boolean; onClose: 
   const [email, setEmail] = useState(true);
   const busy = useRef(false);
   if (!open) return null;
-  const queue = d.apps.filter((a) => a.status === 'review');
+  const queue = d.apps.filter((a) => a.status === 'review' && a.cycle === '2027/28'); // the dialog is for 2027/28 only
   const flagged = queue.filter((a) => a.tag || a.reqs.length);
   const free = queue.filter((a) => !a.tag && !a.reqs.length && a.prefs.some(([h, r]) => available(d, h, r) > 0));
   const none = queue.length - flagged.length - free.length;

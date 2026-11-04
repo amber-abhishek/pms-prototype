@@ -1,0 +1,263 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowsDownUp, ArrowsLeftRight, CalendarBlank, Car, Check, CheckCircle, Clock, Envelope, Plus, SignOut, UserPlus, WarningCircle, Wrench, X, XCircle, type Icon } from '../../components/icons';
+import { toast } from 'sonner';
+import { useDb } from '../../data/store';
+import { useRms, type ReqKind, type ReqStatus, type ResRequest } from '../../data/residents';
+import { Button, Card, Check as CheckBox, Empty, Field, FilterButton, Input, Note, Pill, Select, Table, Tabs, Textarea, Toolbar, cx, gbp } from '../../components/ui';
+import { Checks, Modal, Panel, Person, RHeader, RoomMove, undoToast, useOnce } from './kit';
+import { useTab } from '../hooks';
+
+export const kindIcon: Record<ReqKind, Icon> = {
+  'Room swap': ArrowsLeftRight, 'Leave early': SignOut, 'Overnight guest': UserPlus, 'Parking permit': Car, 'Room move': ArrowsLeftRight, Furniture: Wrench, 'Early arrival': CalendarBlank,
+};
+const checkIcon = (tone: string): Icon => (tone === 'green' ? Check : tone === 'red' ? XCircle : tone === 'grey' ? Clock : WarningCircle);
+
+type Tab = 'Open' | 'Waiting' | 'Approved' | 'Declined';
+const tabStatus: Record<Tab, ReqStatus> = { Open: 'Open', Waiting: 'Waiting on resident', Approved: 'Approved', Declined: 'Declined' };
+
+/* ---------------- List: 3009, 3120 (empty), 3206 ---------------- */
+export function RequestsList() {
+  const [sp] = useSearchParams();
+  const open = sp.get('open');
+  const { requests, patch } = useRms();
+  const nav = useNavigate();
+  const [tab, setTab] = useTab<Tab>('Open');
+  const [f, setF] = useState<Record<string, string>>({ hall: 'Collingwood' });
+  const [oldest, setOldest] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const inHall = useMemo(() => requests.filter((r) => (!f.hall || r.hall === f.hall) && (!f.kind || r.kind === f.kind)), [requests, f]);
+  const rows = useMemo(() => inHall.filter((r) => r.status === tabStatus[tab]).sort((a, b) => (oldest ? b.waitDays - a.waitDays : a.waitDays - b.waitDays)), [inHall, tab, oldest]);
+  if (open) return <Navigate to={`/residents/requests/${open}`} replace />;
+  const count = (t: Tab) => inHall.filter((r) => r.status === tabStatus[t]).length;
+  return (
+    <>
+      <RHeader icon={ArrowsLeftRight} crumbs={[['Residents', '/residents']]} title="Requests">
+        <Button icon={Plus} onClick={() => setCreating(true)}>New request</Button>
+      </RHeader>
+      <Toolbar right={<>
+        <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: ['Collingwood', 'Ustinov College'] }, { id: 'kind', label: 'Type', options: Object.keys(kindIcon) }]} />
+        <Button size="sm" icon={ArrowsDownUp} onClick={() => setOldest((o) => !o)}>{oldest ? 'Oldest first' : 'Newest first'}</Button>
+      </>}>
+        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Open', label: 'Open', count: count('Open') }, { id: 'Waiting', label: 'Waiting on resident', count: count('Waiting') }, { id: 'Approved', label: 'Approved', count: count('Approved') }, { id: 'Declined', label: 'Declined', count: count('Declined') }]} />
+      </Toolbar>
+      {f.hall && rows.length > 0 && <div className="h-10 shrink-0 px-5 flex items-center text-xs text-[#646A78] border-b border-[#F3F4F6]">Showing {f.hall}, the halls you look after</div>}
+      <Table rows={rows} onRow={(r) => nav(`/residents/requests/${r.id}`)}
+        summary="Residents ask from the resident portal; the PMS checks what it can before anyone looks"
+        empty={<Empty icon={ArrowsLeftRight} title={tab === 'Open' ? 'No open requests' : `No ${tab === 'Waiting' ? 'requests waiting on a resident' : tab.toLowerCase() + ' requests'}`}
+          sub="Room swaps, guests and early arrivals that residents ask for in the portal show here and in My tasks."
+          action={tab !== 'Approved' && <Button icon={Check} onClick={() => setTab('Approved')}>See approved</Button>} />}
+        cols={[
+          { key: 'ref', label: 'Ref', className: 'w-[90px]', render: (r) => <span className="font-mono text-xs text-gray-500">{r.ref}</span> },
+          { key: 'k', label: 'Type', render: (r) => { const I = kindIcon[r.kind]; return <span className="flex items-center gap-2 font-medium"><I size={14} className="text-gray-500" />{r.kind}</span>; } },
+          { key: 'w', label: 'Resident', render: (r) => r.who },
+          { key: 'd', label: 'Detail', render: (r) => <span className="text-gray-500">{r.detail}</span> },
+          { key: 'c', label: 'Checks', render: (r) => <Pill tone={r.check.tone} icon={checkIcon(r.check.tone)}>{r.check.label}</Pill> },
+          { key: 'wt', label: 'Waiting', className: 'text-right', render: (r) => <span className="text-gray-500">{r.status === 'Approved' || r.status === 'Declined' ? (r.decidedBy ? `${r.status} by ${r.decidedBy.split(' ')[0]}` : r.status) : r.waiting}</span> },
+        ]} />
+      <NewRequest open={creating} onClose={() => setCreating(false)} onCreate={(r) => { patch('requests', (rs) => [r, ...rs]); toast.success(`${r.ref} logged`, { description: 'It shows in Open and in My tasks.' }); setCreating(false); }} />
+    </>
+  );
+}
+
+function NewRequest({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (r: ResRequest) => void }) {
+  const residents = useRms((s) => s.residents);
+  const once = useOnce();
+  const [kind, setKind] = useState<ReqKind>('Overnight guest');
+  const [who, setWho] = useState('');
+  const [detail, setDetail] = useState('');
+  const submit = () => once(() => {
+    const r = residents.find((x) => x.name === who);
+    if (!r || !detail.trim()) { toast.error('Pick a resident and add the detail'); return; }
+    const n = 123 + Math.floor(Math.random() * 800);
+    onCreate({ id: `rqn${n}`, ref: `RQ-${n}`, kind, who: r.name, hall: r.hall, detail: `${r.hall.replace(' College', '')} ${r.room} · ${detail.trim()}`, check: { label: 'Checking', tone: 'grey' }, waiting: 'Just now', waitDays: 0, status: 'Open', sub: `${r.hall} · logged by Priya Shah for ${r.name} today`, checks: [{ label: 'Logged by staff', sub: 'On behalf of the resident', ok: true }], history: [['Logged by Priya Shah', 'Just now']] });
+    setWho(''); setDetail('');
+  });
+  return (
+    <Modal open={open} onClose={onClose} title="New request" sub="Log a request for a resident who asked at the desk or by phone." footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Check} onClick={submit}>Log request</Button></>}>
+      <Field label="Type"><Select value={kind} onChange={(e) => setKind(e.target.value as ReqKind)}>{Object.keys(kindIcon).map((k) => <option key={k}>{k}</option>)}</Select></Field>
+      <Field label="Resident"><Select value={who} onChange={(e) => setWho(e.target.value)}><option value="">Choose a resident</option>{residents.map((r) => <option key={r.id}>{r.name}</option>)}</Select></Field>
+      <Field label="Detail"><Input value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="e.g. 25–27 Sep" /></Field>
+    </Modal>
+  );
+}
+
+/* ---------------- Detail: 3010, 3011, 3012, 3207, 3208 ---------------- */
+export function RequestDetail() {
+  const { id } = useParams();
+  const nav = useNavigate();
+  const { requests, update } = useRms();
+  const { patch: patchDb, log } = useDb();
+  const r = requests.find((x) => x.id === id);
+  const [approving, setApproving] = useState(false);
+  const [declining, setDeclining] = useState(false);
+  const [messaging, setMessaging] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const once = useOnce();
+
+  // E1 · 03: once the arrears are paid the PMS re-runs the checks and says it's ready.
+  useEffect(() => {
+    if (!paying || !r?.arrears) return;
+    const t = setTimeout(() => {
+      update('requests', r.id, {
+        arrears: { ...r.arrears!, paid: `${r.arrears!.first} paid £340 just now` }, check: { label: 'Both agreed', tone: 'green' }, status: 'Open',
+        checks: r.checks?.map((c) => (c.label === 'No arrears' ? { ...c, ok: true, sub: `${r.arrears!.first} paid £340 just now` } : c)),
+        history: [[`${r.arrears!.first} paid £340 · checks re-run`, 'Just now'], ...(r.history ?? [])],
+      });
+      toast.success(`${r.arrears!.first} paid £340`, { description: 'The checks ran again. The swap is ready to approve.' });
+      setPaying(false);
+    }, 3500);
+    return () => clearTimeout(t);
+  }, [paying, r, update]);
+
+  if (!r) return <Navigate to="/residents/requests" replace />;
+  const decided = r.status === 'Approved' || r.status === 'Declined';
+  const failing = !!r.checks?.some((c) => !c.ok);
+  const held = failing && r.kind === 'Room swap';
+  const isSwap = r.kind === 'Room swap' && r.sides;
+
+  const approve = (swapOn?: string) => once(() => {
+    const undo = update('requests', r.id, {
+      status: 'Approved', decidedBy: 'Tom Baker', due: undefined,
+      history: [[isSwap ? `Approved by Tom Baker · lease addendums sent to both${swapOn && swapOn !== 'Monday 21 September' ? ` · swap on ${swapOn}` : ''}` : 'Approved by Tom Baker', '14 Sep, 11:20'], ...(r.history ?? [])],
+    });
+    const t2 = r.id === 'rq1' && useDb.getState().tasks.find((t) => t.id === 't2' && !t.done);
+    if (t2) patchDb('tasks', (ts) => ts.map((t) => (t.id === 't2' ? { ...t, done: true } : t)));
+    log(`approved ${r.ref} · ${r.kind.toLowerCase()} (${r.who})`, 'Residents');
+    setApproving(false);
+    const [a, b] = r.who.split(' ↔ ').map((n) => n.split(' ')[0]);
+    undoToast(isSwap ? `Swap approved · addendums sent to ${a} and ${b}${t2 ? ' · task closed' : ''}` : `${r.ref} approved · ${r.who.split(' ')[0]} has been told`, () => {
+      undo();
+      if (t2) patchDb('tasks', (ts) => ts.map((t) => (t.id === 't2' ? { ...t, done: false } : t)));
+    });
+  });
+  const decline = (reason: string) => once(() => {
+    const undo = update('requests', r.id, { status: 'Declined', decidedBy: 'Tom Baker', due: undefined, history: [[`Declined by Tom Baker${reason ? ` · ${reason}` : ''}`, '14 Sep, 11:20'], ...(r.history ?? [])] });
+    log(`declined ${r.ref} · ${r.kind.toLowerCase()} (${r.who})`, 'Residents');
+    setDeclining(false);
+    undoToast(`${r.ref} declined · the resident has been told by email`, undo);
+    nav('/residents/requests');
+  });
+
+  const title = r.arrears ? `${r.kind} · ${r.who}` : r.kind;
+  return (
+    <>
+      <RHeader icon={ArrowsLeftRight} crumbs={[['Residents', '/residents'], ['Requests', '/residents/requests']]} title={r.ref}>
+        {decided ? <Pill tone={r.status === 'Approved' ? 'green' : 'red'} icon={r.status === 'Approved' ? Check : XCircle}>{r.status}</Pill>
+          : <>
+            <Button variant="danger-outline" icon={X} onClick={() => setDeclining(true)}>Decline</Button>
+            <Button variant="primary" icon={Check} disabled={held} onClick={() => (isSwap ? setApproving(true) : approve())}>Approve</Button>
+          </>}
+      </RHeader>
+      <div className="flex-1 overflow-auto">
+        <div className="px-6 pt-6 pb-5 max-w-[1180px]">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-[20px] font-semibold tracking-tight">{title}</h2>
+            {decided ? <Pill tone={r.status === 'Approved' ? 'green' : 'red'} icon={r.status === 'Approved' ? Check : XCircle}>{r.status} by {r.decidedBy}</Pill>
+              : held ? <Pill tone="amber">Needs a decision</Pill>
+                : r.arrears?.paid ? <Pill tone="green" icon={Check}>Ready to approve</Pill>
+                  : r.due ? <Pill tone="orange" icon={CalendarBlank}>{r.due}</Pill> : <Pill tone="grey" icon={Clock}>Waiting {r.waiting}</Pill>}
+          </div>
+          {r.sub && <p className="text-sm text-gray-500 mt-1">{r.sub}</p>}
+
+          {isSwap && (
+            <div className="grid grid-cols-2 gap-4 mt-5">
+              {r.sides!.map((s) => (
+                <Card key={s.name} className="p-4">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <Person name={s.name} />
+                    <div className="flex-1"><div className="text-sm leading-5 font-semibold">{s.name}</div><div className="text-xs text-gray-500">{s.agreed}</div></div>
+                    <Pill tone="green" icon={Check}>Agreed</Pill>
+                  </div>
+                  <RoomMove now={s.now} after={s.after} />
+                  <div className="grid grid-cols-[92px_1fr] gap-y-[26px] text-sm leading-5 mt-5 mb-1 px-1">
+                    <span className="text-gray-500">Rent</span>
+                    <span>{gbp(s.rentFrom)} → <b className="font-semibold">{gbp(s.rentTo)} / wk</b> {s.rentTo !== s.rentFrom && <span>({s.rentTo > s.rentFrom ? '+' : '−'}{gbp(Math.abs(s.rentTo - s.rentFrom))})</span>}</span>
+                    <span className="text-gray-500">Reason</span><span>{s.reason}</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {r.checks && (
+            <Panel title="Checks" right="run by the PMS" className="mt-4"><Checks items={r.checks} /></Panel>
+          )}
+
+          {held && r.arrears && !decided && (
+            <div className="mt-4 space-y-4">
+              <Note tone="red" icon={XCircle} title={`Can’t approve while ${r.arrears.first} is in arrears`}>Swaps change the tenancy, so the rules hold them until rent is up to date. You can still decline or wait.</Note>
+              <div className="flex gap-2">
+                <Button onClick={() => setDeclining(true)}>Decline</Button>
+                <Button icon={Envelope} onClick={() => setMessaging(true)} disabled={paying}>{paying ? `Waiting for ${r.arrears.first} to pay…` : `Message ${r.arrears.first} about arrears`}</Button>
+                <Button variant="primary" icon={Check} disabled>Approve</Button>
+              </div>
+            </div>
+          )}
+          {!held && r.arrears?.paid && !decided && (
+            <div className="mt-4 flex gap-2"><Button onClick={() => setDeclining(true)}>Decline</Button><Button variant="primary" icon={Check} onClick={() => setApproving(true)}>Approve</Button></div>
+          )}
+          {failing && !held && !decided && (
+            <div className="mt-4"><Note tone="amber" icon={WarningCircle} title="Some checks haven’t passed">You can still approve it if you have checked these yourself, or wait for the resident.</Note></div>
+          )}
+
+          {r.history && (
+            <div className="mt-6">
+              <div className="text-sm text-gray-500 mb-2">History</div>
+              <ul className="space-y-1.5">
+                {r.history.map(([w, t], i) => <li key={i} className="flex items-center gap-3 text-sm"><span className="size-1 rounded-full bg-gray-300 ml-1" /><span className="flex-1">{w}</span><span className="text-gray-500">{t}</span></li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+      {isSwap && <ApproveSwap open={approving} r={r} onClose={() => setApproving(false)} onApprove={approve} />}
+      <DeclineDialog open={declining} r={r} onClose={() => setDeclining(false)} onDecline={decline} />
+      {r.arrears && <MessageDialog open={messaging} to={r.who.split(' ↔ ').find((n) => n.startsWith(r.arrears!.first)) ?? r.arrears.first} owes={r.arrears.owes} onClose={() => setMessaging(false)}
+        onSend={() => { setMessaging(false); setPaying(true); update('requests', r.id, { history: [[`Messaged ${r.arrears!.first} about arrears`, 'Just now'], ...(r.history ?? [])] }); toast.success(`Message sent to ${r.arrears!.first}`, { description: 'You’ll be told when the payment lands.' }); }} />}
+    </>
+  );
+}
+
+function ApproveSwap({ open, r, onClose, onApprove }: { open: boolean; r: ResRequest; onClose: () => void; onApprove: (on: string) => void }) {
+  const [on, setOn] = useState('Monday 21 September');
+  const [lease, setLease] = useState(true);
+  const [keys, setKeys] = useState(true);
+  const [a, b] = r.sides!;
+  const diff = (s: typeof a) => (s.rentTo === s.rentFrom ? 'same rent' : `rent ${s.rentTo > s.rentFrom ? '+' : '−'}${gbp(Math.abs(s.rentTo - s.rentFrom))} / wk`);
+  return (
+    <Modal open={open} onClose={onClose} title="Approve the room swap?" sub={`${a.name} and ${b.name} swap rooms at ${r.hall}.`}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Check} onClick={() => onApprove(on)}>Approve swap</Button></>}>
+      <Field label="Swap on"><Select value={on} onChange={(e) => setOn(e.target.value)}>{['Monday 21 September', 'Saturday 19 September', 'Monday 28 September'].map((d) => <option key={d}>{d}</option>)}</Select></Field>
+      <div className="rounded-lg border border-line px-3 py-1">
+        {[a, b].map((s) => <div key={s.name} className="grid grid-cols-[120px_1fr] text-sm py-2"><span className="text-gray-500">{s.name}</span><span>{s.now[0]} → {s.after[0]} · {diff(s)}</span></div>)}
+      </div>
+      <div className="space-y-2.5 pt-1">
+        <CheckBox checked={lease} onChange={setLease} label="Update both tenancies and send lease addendums to sign" />
+        <div><CheckBox checked={keys} onChange={setKeys} label="Book the key swap with reception" /></div>
+      </div>
+    </Modal>
+  );
+}
+
+function DeclineDialog({ open, r, onClose, onDecline }: { open: boolean; r: ResRequest; onClose: () => void; onDecline: (reason: string) => void }) {
+  const [reason, setReason] = useState('');
+  return (
+    <Modal open={open} onClose={onClose} title={`Decline ${r.ref}?`} sub={`${r.who} will be told by email and in the resident portal.`}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" icon={XCircle} onClick={() => onDecline(reason.trim())}>Decline</Button></>}>
+      <Field label="Reason (shown to the resident)"><Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Rooms on that floor are held for first years" /></Field>
+    </Modal>
+  );
+}
+
+function MessageDialog({ open, to, owes, onClose, onSend }: { open: boolean; to: string; owes: string; onClose: () => void; onSend: () => void }) {
+  const first = to.split(' ')[0];
+  const [body, setBody] = useState(`Hi ${first}, your room swap is on hold because your rent account shows £340 outstanding. Once it’s paid in the portal we can approve the swap straight away.`);
+  return (
+    <Modal open={open} onClose={onClose} title={`Message ${to}`} sub={owes}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Envelope} onClick={onSend}>Send message</Button></>}>
+      <Textarea rows={5} value={body} onChange={(e) => setBody(e.target.value)} />
+      <div className={cx('text-xs text-gray-500 flex items-center gap-1.5')}><CheckCircle size={14} className="text-[#16A34A]" /> Includes a payment link · email and resident portal</div>
+    </Modal>
+  );
+}

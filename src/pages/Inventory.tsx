@@ -1,0 +1,28 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { NotFound } from './Misc';
+import { ImportsPage } from './inventory/Imports';
+import { OccupancyPage } from './inventory/Occupancy';
+import { PropertiesPage } from './inventory/Properties';
+import { PropertyDetail } from './inventory/PropertyDetail';
+import { RentFeesPage } from './inventory/RentFees';
+import { CustomFieldsPage, StructuresPage } from './inventory/Setup';
+import { UnitsPage } from './inventory/Units';
+import { AddPropertyWizard } from './inventory/Wizard';
+
+export function InventoryRoutes() {
+  return (
+    <Routes>
+      <Route index element={<Navigate to="properties" replace />} />
+      <Route path="properties" element={<PropertiesPage />} />
+      <Route path="properties/new" element={<AddPropertyWizard />} />
+      <Route path="properties/:id" element={<PropertyDetail />} />
+      <Route path="units" element={<UnitsPage />} />
+      <Route path="occupancy" element={<OccupancyPage />} />
+      <Route path="structures" element={<StructuresPage />} />
+      <Route path="custom-fields" element={<CustomFieldsPage />} />
+      <Route path="rent-fees" element={<RentFeesPage />} />
+      <Route path="imports" element={<ImportsPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}

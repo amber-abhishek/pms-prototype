@@ -1,0 +1,179 @@
+import { Fragment, type ReactNode } from 'react';
+import { CaretUpDown, Check, CheckCircle, Clock, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, X, XCircle, Archive, type Icon } from '../../components/icons';
+import { Status, cx } from '../../components/ui';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
+import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
+import type { PStatus, Tag, UStatus } from '../../data/inventory';
+
+/* Status pills as the CMS frames draw them: Draft is a white outlined chip. */
+export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' | 'Succeeded' | 'Failed' }) {
+  if (s === 'Draft') return <span className="inline-flex items-center h-[22px] px-2 rounded-lg border border-line bg-white text-xs font-medium text-[#374151]">Draft</span>;
+  if (s === 'Queued') return <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-lg border border-line bg-white text-xs font-medium text-[#374151]"><Clock size={12} />Queued</span>;
+  if (s === 'Active' || s === 'Succeeded') return <Status s={s} tone="green" icon={CheckCircle} />;
+  if (s === 'Inactive') return <Status s="Inactive" tone="grey" icon={MinusCircle} />;
+  if (s === 'Archived') return <Status s="Archived" tone="grey" icon={Archive} />;
+  if (s === 'Closed to allocations') return <Status s="Closed to allocations" tone="amber" icon={PauseCircle} />;
+  if (s === 'Failed') return <Status s="Failed" tone="red" icon={XCircle} />;
+  return <Status s={s} tone="blue" icon={RadioButton} />;
+}
+
+/* Tag text colours from 2820:111; the border is the same colour at 35%. Self-catered/Riverside are teal, Common room pink. */
+const TAG_HEX: Record<string, string> = { green: '#0B8A4C', blue: '#1F45E0', amber: '#A16207', orange: '#E5530C', red: '#E0243A', purple: '#6E3BD8', grey: '#374151' };
+const TAG_BY_LABEL: Record<string, string> = { 'Self-catered': '#0E7A80', Riverside: '#0E7A80', 'Common room': '#C0266D' };
+const tagColor = (t: Tag) => TAG_BY_LABEL[t.label] ?? TAG_HEX[t.tone] ?? '#374151';
+export function Tags({ tags, max = 2 }: { tags: Tag[]; max?: number }) {
+  if (!tags.length) return <span className="text-gray-400">—</span>;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-[22px] px-2 rounded-lg border bg-white text-xs font-medium whitespace-nowrap" style={{ color: c, borderColor: c + '59' }}>{t.label}</span>; })}
+      {tags.length > max && <span className="text-xs font-medium text-[#646A78]">+{tags.length - max}</span>}
+    </span>
+  );
+}
+
+/* Icon tile used in front of a property name and in dialog headers. */
+export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; tone?: 'grey' | 'blue' | 'red' | 'green' | 'amber'; size?: number }) {
+  const c = { grey: 'bg-[#F3F4F6] text-gray-500', blue: 'bg-[#EFF6FF] text-[#2563EB]', red: 'bg-[#FFE3E7] text-[#E0243A]', green: 'bg-[#E8F7EE] text-[#0B8A4C]', amber: 'bg-[#FFF6E0] text-[#A16207]' }[tone];
+  return <span className={cx('inline-flex items-center justify-center shrink-0', c, size >= 36 ? 'rounded-[10px]' : 'rounded-lg')} style={{ width: size, height: size }}><I size={size <= 28 ? 14 : size <= 32 ? 16 : Math.round(size * 0.5)} /></span>;
+}
+
+/* Dialog as in the frames: icon + title, grey sub, body, grey footer bar. */
+export function Modal({ open, onClose, icon, tone = 'blue', title, sub, children, footer, width = 560, center }: {
+  open: boolean; onClose: () => void; icon?: Icon; tone?: 'grey' | 'blue' | 'red' | 'green' | 'amber'; title?: ReactNode; sub?: ReactNode; children?: ReactNode; footer?: ReactNode; width?: number; center?: boolean;
+}) {
+  /* shadcn Dialog. A dialog with no title still needs an accessible name, so it gets a hidden one. */
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
+        <div className="flex-1 overflow-auto p-5">
+          {title ? (
+            <div className={cx('flex gap-3', center ? 'flex-col items-center text-center' : 'items-start')}>
+              {icon && <IconTile icon={icon} tone={tone} size={center ? 48 : 32} />}
+              <DialogTitle className={cx(!center && icon ? 'leading-8' : 'leading-6')}>{title}</DialogTitle>
+              {!center && <DialogClose aria-label="Close" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center shrink-0"><X size={16} /></DialogClose>}
+            </div>
+          ) : <DialogTitle className="sr-only">Dialog</DialogTitle>}
+          {sub && <DialogDescription className={cx('mt-2', center && 'text-center')}>{sub}</DialogDescription>}
+          {children && <div className="mt-4">{children}</div>}
+        </div>
+        {footer && <DialogFooter>{footer}</DialogFooter>}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* Radio card: white card, blue ring + soft blue ground when picked. */
+export function RadioCard({ checked, onClick, title, sub, right, disabled }: { checked: boolean; onClick: () => void; title: ReactNode; sub?: ReactNode; right?: ReactNode; disabled?: boolean }) {
+  return (
+    <div role="radio" aria-checked={checked} tabIndex={0} onClick={() => !disabled && onClick()} onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && !disabled && onClick()}
+      className={cx('w-full text-left rounded-[10px] border px-3 py-2.5 flex items-center gap-3 transition-colors cursor-pointer', checked ? 'border-primary bg-white' : 'border-line bg-white hover:bg-gray-50', disabled && 'opacity-50 cursor-not-allowed')}>
+      <span className={cx('size-4 rounded-full shrink-0 bg-white', checked ? 'border-[5px] border-primary' : 'border border-gray-300')} />
+      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#111827]">{title}</span>{sub && <span className="block text-xs leading-4 text-[#646A78]">{sub}</span>}</span>
+      {right}
+    </div>
+  );
+}
+
+/* Segmented control (Weekly | Monthly, Flat | Percentage | Per unit). */
+export function Seg<T extends string>({ value, onChange, options, className }: { value: T; onChange: (v: T) => void; options: T[]; className?: string }) {
+  /* shadcn Tabs list: the same segmented track as the filter tabs. */
+  return (
+    <Tabs value={value} onValueChange={(v) => onChange(v as T)} className={cx('inline-flex', className)}>
+      <TabsList className="w-full">{options.map((o) => <TabsTrigger key={o} value={o} className="flex-1">{o}</TabsTrigger>)}</TabsList>
+    </Tabs>
+  );
+}
+
+/* Underline tabs used on the property page (shadcn Tabs, underline style). */
+export function LineTabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string }[] }) {
+  return (
+    <Tabs value={value} onValueChange={(v) => onChange(v as T)}>
+      <TabsList slide={false} className="flex justify-start gap-0.5 rounded-none bg-transparent p-0 px-5 border-b border-line">
+        {tabs.map((t) => (
+          <TabsTrigger key={t.id} value={t.id} className="h-10 px-2.5 rounded-none -mb-px border-b-2 border-transparent text-[#646A78] data-[state=active]:border-[#111827] data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  );
+}
+
+/* Dropdown menu anchored to a trigger. */
+export type MenuItem = { label: string; icon?: Icon; onClick: () => void; danger?: boolean; disabled?: boolean } | 'sep';
+export function Menu({ trigger, items, align = 'right', width = 200 }: { trigger: (open: () => void) => ReactNode; items: MenuItem[]; align?: 'left' | 'right'; width?: number }) {
+  /* shadcn DropdownMenu. The wrapper is the trigger, so the caller's button needs no handler of its own. */
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild><span className="relative inline-flex" onClick={(e) => e.stopPropagation()}>{trigger(() => {})}</span></DropdownMenuTrigger>
+      <DropdownMenuContent align={align === 'right' ? 'end' : 'start'} style={{ width }} onClick={(e) => e.stopPropagation()}>
+        {items.map((it, i) => it === 'sep' ? <DropdownMenuSeparator key={i} /> : (
+          <Fragment key={it.label}>
+            {it.danger && i > 0 && items[i - 1] !== 'sep' && !(items[i - 1] as { danger?: boolean }).danger && <DropdownMenuSeparator />}
+            <DropdownMenuItem disabled={it.disabled} onSelect={() => it.onClick()} variant={it.danger ? 'destructive' : 'default'} className="px-2.5">
+              {it.icon && <it.icon size={16} />}{it.label}
+            </DropdownMenuItem>
+          </Fragment>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/* Stepper −  n  + */
+export function Stepper({ value, onChange, min = 1, max = 99 }: { value: number; onChange: (n: number) => void; min?: number; max?: number }) {
+  return (
+    <div className="inline-flex h-8 rounded-lg border border-gray-300 bg-white overflow-hidden">
+      <button type="button" aria-label="Fewer" onClick={() => onChange(Math.max(min, value - 1))} className="w-8 flex items-center justify-center text-[#646A78] hover:bg-gray-50 border-r border-gray-200"><Minus size={13} /></button>
+      <input aria-label="Count" value={value} onChange={(e) => { const n = parseInt(e.target.value, 10); if (!Number.isNaN(n)) onChange(Math.min(max, Math.max(min, n))); }} className="w-12 text-center text-sm outline-none" />
+      <button type="button" aria-label="More" onClick={() => onChange(Math.min(max, value + 1))} className="w-8 flex items-center justify-center text-[#646A78] hover:bg-gray-50 border-l border-gray-200"><Plus size={13} /></button>
+    </div>
+  );
+}
+
+/* £ prefixed input with an optional suffix (/ wk). */
+export function MoneyInput({ value, onChange, suffix, className, autoFocusRef }: { value: string; onChange: (v: string) => void; suffix?: string; className?: string; autoFocusRef?: React.Ref<HTMLInputElement> }) {
+  return (
+    <label className={cx('h-8 flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 text-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25', className)}>
+      <span className="text-[#646A78]">£</span>
+      <input ref={autoFocusRef} value={value} inputMode="decimal" onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 min-w-0 outline-none bg-transparent" />
+      {suffix && <span className="text-gray-400">{suffix}</span>}
+    </label>
+  );
+}
+
+/* Custom select that looks like the frames' (icon + value + ⇕). */
+export function Picker<T extends string>({ value, onChange, options, icon: I, placeholder, footer, className }: { value: T | ''; onChange: (v: T) => void; options: { id: T; label: ReactNode; icon?: Icon }[]; icon?: Icon; placeholder?: string; footer?: ReactNode; className?: string }) {
+  /* shadcn DropdownMenu as a rich select: options can carry icons, and a footer action sits under them. */
+  const cur = options.find((o) => o.id === value);
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger className={cx('w-full h-8 rounded-lg border border-gray-300 bg-white px-2.5 text-sm flex items-center gap-2 text-left outline-none data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25', className)}>
+        {I && <I size={14} className="text-gray-500" />}
+        <span className={cx('flex-1 truncate', !cur && 'text-gray-400')}>{cur?.label ?? placeholder ?? 'Pick one'}</span>
+        <CaretUpDown size={14} className="text-gray-400" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-72">
+        {options.map((o) => (
+          <DropdownMenuItem key={o.id} onSelect={() => onChange(o.id)} className="px-2.5 focus:bg-gray-50">
+            {o.icon && <o.icon size={15} className="text-[#646A78]" />}<span className="flex-1">{o.label}</span>{o.id === value && <Check size={13} className="text-primary" />}
+          </DropdownMenuItem>
+        ))}
+        {footer && <div className="border-t border-line mt-1 pt-1">{footer}</div>}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function Kbd({ children }: { children: ReactNode }) {
+  return <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-line bg-white text-[11px] text-[#646A78] font-sans">{children}</kbd>;
+}
+
+/* Thin progress bar in primary or green. */
+export function Progress({ value, tone = 'blue', className }: { value: number; tone?: 'blue' | 'green' | 'grey'; className?: string }) {
+  return <div className={cx('h-1.5 rounded-full bg-gray-100 overflow-hidden', className)}><div className="h-full w-full rounded-full origin-left transition-transform duration-300 ease-snappy" style={{ transform: `scaleX(${Math.min(100, Math.max(0, value)) / 100})`, background: tone === 'green' ? '#0B8A4C' : tone === 'grey' ? '#D1D5DB' : '#2563EB' }} /></div>;
+}
+
+export function EditLink({ onClick, children = 'Edit' }: { onClick: () => void; children?: ReactNode }) {
+  return <button type="button" onClick={onClick} className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1">{children}</button>;
+}
+export { PencilSimple };

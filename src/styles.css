@@ -1,0 +1,75 @@
+@font-face { font-family: 'Geist'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('./fonts/geist-latin-wght-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Geist'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('./fonts/geist-latin-ext-wght-normal.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('./fonts/geist-mono-latin-wght-normal.woff2') format('woff2'); }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* shadcn/ui tokens (packages/ui/src/styles/tokens.css names), with the A8 prototype's values. */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71% 4%;            /* ink #030712 */
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+    --primary: 221 83% 53%;              /* #2563EB */
+    --primary-hover: 224 76% 48%;        /* #1D4ED8 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;            /* #F3F4F6 */
+    --secondary-foreground: 221 39% 11%; /* #111827 */
+    --muted: 220 14% 96%;
+    --muted-foreground: 223 8% 43%;      /* #646A78 */
+    --subtle: 210 20% 98%;               /* #F9FAFB */
+    --accent: 220 14% 96%;               /* menu/option hover */
+    --accent-foreground: 221 39% 11%;
+    --destructive: 353 77% 51%;          /* #E0243A */
+    --destructive-foreground: 0 0% 100%;
+    --success: 151 85% 29%;              /* #0B8A4C */
+    --success-foreground: 0 0% 100%;
+    --border: 220 13% 91%;               /* #E5E7EB */
+    --input: 216 12% 84%;                /* #D1D5DB */
+    --ring: 221 83% 53%;
+    --density-data: 2rem;                /* 32px */
+    --density-input: 2rem;               /* the prototype's fields are 32px too */
+    --control-compact: 1.75rem;          /* 28px */
+  }
+  html, body, #root { height: 100%; }
+  body { @apply bg-chrome text-ink font-sans antialiased text-sm; }
+  * { @apply border-line; }
+  :focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
+}
+
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+/* `rise`: bars docked to the bottom edge come up from it. `pop` uses the individual `scale` property, not
+   `transform`, so it never overrides an element's own translate (e.g. -translate-x-1/2 centring). */
+@keyframes rise { from { translate: 0 8px; opacity: 0 } to { translate: 0 0; opacity: 1 } }
+@keyframes pop { from { scale: 0.97; opacity: 0 } to { scale: 1; opacity: 1 } }
+/* `creep`: the "You're in" bar fills while the app loads behind it. */
+@keyframes creep { from { transform: scaleX(0.08) } to { transform: scaleX(1) } }
+
+/* Reduced motion: drop movement and scale, keep short fades (they help people follow what changed). */
+/* Row motion (src/components/rowMotion.ts): a row that arrives fades in with a short blue wash that settles to its
+   normal ground; a row that leaves fades out, then the rows around it slide into place. */
+@keyframes row-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes row-wash { from { background-color: #EFF6FF } to { background-color: transparent } }
+[data-motion=in] { animation: row-in 240ms cubic-bezier(0.23, 1, 0.32, 1), row-wash 1400ms cubic-bezier(0.23, 1, 0.32, 1); }
+[data-motion=out] { opacity: 0; transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1); pointer-events: none; }
+
+@keyframes fade-out { from { opacity: 1 } to { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-property: color, background-color, border-color, opacity !important; }
+  [class*="animate-"]:not(.animate-spin), .nav-ic-on { animation-name: fade !important; animation-duration: 150ms !important; }
+  [data-state=closed][class*="animate-"] { animation-name: fade-out !important; animation-duration: 100ms !important; }
+  .group:active .nav-ic { transform: none; }
+  [data-motion=in] { animation: fade 150ms !important; }
+}
+
+/* Nav icon motion: only press feedback and a quick settle when an item becomes selected. No hover motion:
+   sidebar rows are hovered hundreds of times a day. */
+.nav-ic { display: inline-flex; flex-shrink: 0; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+.group:active .nav-ic { transform: scale(0.92); transition-duration: 80ms; }
+.nav-ic-on { animation: nav-ic-pop 150ms cubic-bezier(0.23, 1, 0.32, 1); }
+@keyframes nav-ic-pop { from { transform: scale(0.94); } to { transform: scale(1); } }

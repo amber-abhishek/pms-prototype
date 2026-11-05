@@ -228,11 +228,11 @@ export const seedFaults = (): Fault[] => {
     f('m10', 'MT-210', 'No hot water in Block C', 'hot', 'Ustinov · Block C', 'Urgent', 'Plumbing', -40, 'New', undefined, {
       hallFull: 'Ustinov College', rooms: 24, reported: '06:40', reporter: 'Night porter', reporterRoom: 'Ustinov reception',
       report: 'Several residents in Block C say there is no hot water in the showers or the kitchens since early this morning.',
-      sub: 'Ustinov · Block C · 24 rooms · reported 06:40 · SLA 4h passed at 10:40',
+      sub: 'Ustinov · Block C · 24 rooms · reported 06:40 · 4h deadline passed at 10:40',
     }),
     f('m1', 'MT-204', 'Radiator leaking onto the floor', 'leak', 'Ustinov · C.2.14', 'Urgent', 'Heating', 22 * 60, 'New', undefined, {
       hallFull: 'Ustinov College', reporter: 'Leo Grant', reporterRoom: 'C.2.14', reported: 'Mon 08:12', report: leo, stage: 1,
-      sub: 'Ustinov College · Block C · C.2.14 · reported by Leo Grant in the resident portal on Mon 21 Sep, 08:12 · SLA 24h · due Tue 22 Sep, 08:12',
+      sub: 'Ustinov College · Block C · C.2.14 · reported by Leo Grant in the resident portal on Mon 21 Sep, 08:12 · 24h deadline · due Tue 22 Sep, 08:12',
     }),
     f('m2', 'MT-203', 'No power in the kitchen sockets', 'power', 'Collingwood · D kitchen', 'Urgent', 'Electrical', 3 * 60, 'In progress', 'Dave Hughes'),
     f('m3', 'MT-201', 'Door fob not opening the room', 'lock', 'Van Mildert · A.1.05', 'High', 'Access', 28 * 60, 'In progress', 'Front desk'),

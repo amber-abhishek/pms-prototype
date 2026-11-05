@@ -70,7 +70,7 @@ export function PropertyDetail() {
     toast.success(`${p.name} is active`);
   };
   const setupRows = [
-    { k: 'Name, campus and structure', v: `${p.campus} · ${p.structure}`, ok: true, go: () => setEditOpen('basics') },
+    { k: 'Name, campus and layout', v: `${p.campus} · ${p.structure}`, ok: true, go: () => setEditOpen('basics') },
     { k: 'Address', v: p.address || 'Not set', ok: !!p.address, go: () => setEditOpen('address') },
     { k: 'Units', v: building ? `Building ${p.build!.done} of ${p.build!.total}` : p.units ? `${p.units} rooms in ${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No rooms yet', ok: hasRooms, go: () => setTab('units') },
     { k: 'Tenancies', v: p.tenancies === false ? 'Rooms have no tenancy yet' : `${templates.length || p.roomTypes.length} templates`, ok: p.tenancies !== false && hasRooms, go: () => setTab('tenancies') },
@@ -101,7 +101,7 @@ export function PropertyDetail() {
             <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-[#646A78]">
               <span className="flex items-center gap-2"><BuildingOffice size={14} className="text-gray-400" />{p.campus} campus</span><span>·</span>
               <span className="flex items-center gap-2"><MapPin size={14} className="text-gray-400" />{p.address || 'No address'}</span><span>·</span>
-              <span className="flex items-center gap-2"><ListDashes size={14} className="text-gray-400" />{p.structure} structure</span>
+              <span className="flex items-center gap-2"><ListDashes size={14} className="text-gray-400" />{p.structure} layout</span>
             </div>
           </div>
         </div>
@@ -546,13 +546,13 @@ function EditSheet({ p, which, onClose }: { p: Property; which: null | 'basics' 
     toast.success('Saved');
   };
   return (
-    <Sheet open={!!which} onClose={onClose} title={which === 'address' ? 'Address' : 'Name, campus and structure'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
+    <Sheet open={!!which} onClose={onClose} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
       {which === 'basics' ? (
         <div className="space-y-4">
           <Field label="Property name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
           <Field label="Inventory number" hint="Optional · your own reference"><Input className="font-mono" value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
           <Field label="Campus"><Input value={p.campus} disabled /></Field>
-          <Note tone="blue" icon={Info} title="The structure can’t change">{p.name} has rooms built from the {p.structure} structure.</Note>
+          <Note tone="blue" icon={Info} title="The layout can’t change">{p.name} has rooms built from the {p.structure} layout.</Note>
         </div>
       ) : (
         <div className="space-y-4">

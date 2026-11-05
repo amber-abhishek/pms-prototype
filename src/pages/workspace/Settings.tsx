@@ -257,7 +257,7 @@ export function SettingsPayments() {
         ))}</div>
       </Section>
       <ODialog open={manage} onClose={() => setManage(false)} title="Stripe" sub="Card payments and payouts to the university account."
-        footer={<><Button variant="ghost" className="mr-auto !text-[#E0243A]" onClick={() => { setManage(false); toast.error('Disconnecting Stripe stops card payments', { description: 'Ask Finance (James Reed) to do this.' }); }}>Disconnect</Button><Button variant="primary" onClick={() => { setManage(false); toast('Opening the Stripe dashboard', { description: 'It opens in a new tab in the real product.' }); }}>Open Stripe</Button></>}>
+        footer={<><Button variant="danger-ghost" className="mr-auto" onClick={() => { setManage(false); toast.error('Disconnecting Stripe stops card payments', { description: 'Ask Finance (James Reed) to do this.' }); }}>Disconnect</Button><Button variant="primary" onClick={() => { setManage(false); toast('Opening the Stripe dashboard', { description: 'It opens in a new tab in the real product.' }); }}>Open Stripe</Button></>}>
         <DL rows={[['Account', 'Durham University Residences'], ['Connected', '2 Aug 2026 by James Reed'], ['Payouts', 'Weekly to ••4410'], ['Last payout', '£184,220 on 11 Sep']]} />
       </ODialog>
     </Layout>
@@ -339,7 +339,7 @@ export function SettingsIntegrations() {
       <ODialog open={!!open} onClose={() => setOpen(null)} title={open?.name ?? ''} sub={open?.desc}
         footer={open?.state === 'available'
           ? <><Button onClick={() => setOpen(null)}>Cancel</Button><Button variant="primary" onClick={() => open && connect(open)}>Connect {open?.name}</Button></>
-          : <><Button variant="ghost" className="mr-auto !text-[#E0243A]" onClick={() => { const x = open!; set('integrations', (xs) => xs.map((y) => (y.id === x.id ? { ...y, state: 'available' as const, meta: '' } : y))); setOpen(null); toast.success(`${x.name} disconnected`); }}>Disconnect</Button>
+          : <><Button variant="danger-ghost" className="mr-auto" onClick={() => { const x = open!; set('integrations', (xs) => xs.map((y) => (y.id === x.id ? { ...y, state: 'available' as const, meta: '' } : y))); setOpen(null); toast.success(`${x.name} disconnected`); }}>Disconnect</Button>
             <Button onClick={() => { const x = open!; set('integrations', (xs) => xs.map((y) => (y.id === x.id ? { ...y, meta: x.id === 'sits' ? 'Synced just now' : y.meta } : y))); setOpen(null); toast.success(`${x.name} synced`); }}>Sync now</Button>
             <Button variant="primary" onClick={() => setOpen(null)}>Done</Button></>}>
         {open?.state === 'available' ? <p className="text-sm text-[#646A78]">You’ll sign in to {open.name} and pick what to share. You can disconnect at any time.</p>

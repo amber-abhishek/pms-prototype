@@ -166,7 +166,7 @@ function BookingSheet({ b, onClose, onSend, onRemind, onSigned, withUndo }: { b:
     <Sheet open onClose={onClose} width={520} title={<span className="flex items-center gap-2.5"><Ini name={b.name} size={28} />{b.name}</span>}
       sub={<span className="pl-[38px] font-mono text-[12px]">{b.ref}</span>}
       footer={b.cancelled ? <Button onClick={onClose}>Close</Button> : <>
-        <Button variant="ghost" icon={Prohibit} className="mr-auto text-[#E0243A]" onClick={() => setCancelling(true)}>Cancel booking</Button>
+        <Button variant="danger-ghost" icon={Prohibit} className="mr-auto" onClick={() => setCancelling(true)}>Cancel booking</Button>
         {b.lease === 'Draft' && <Button variant="primary" icon={PaperPlaneTilt} disabled={b.missing === 'Deposit not paid'} onClick={onSend}>Send lease</Button>}
         {b.lease === 'Sent' && <><Button icon={Bell} onClick={onRemind}>Send reminder</Button><Button variant="primary" icon={Check} onClick={onSigned}>Mark signed</Button></>}
         {b.lease === 'Signed' && <Button onClick={() => toast.success('Lease downloaded', { description: `${b.ref}.pdf` })}>Download lease</Button>}

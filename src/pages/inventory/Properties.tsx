@@ -4,13 +4,13 @@ import { toast } from 'sonner';
 import {
   Archive, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, Tag as TagIcon, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
 } from '../../components/icons';
-import { Button, Check, Empty, Field, Input, PageHeader, SearchInput, Sheet, Table, Tabs, cx } from '../../components/ui';
+import { Button, Check, Empty, Field, PageHeader, SearchInput, Table, Tabs, cx } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
 import { IconTile, Kbd, Menu, Modal, Picker, PropStatus, RadioCard, Tags } from './common';
 
 type Tab = 'all' | 'city' | 'queens';
-const COLS = ['Campus', 'Structure', 'Tags', 'Units', 'Status'] as const;
+const COLS = ['Campus', 'Layout', 'Tags', 'Units', 'Status'] as const;
 
 export function PropertiesPage() {
   const nav = useNavigate();
@@ -20,7 +20,6 @@ export function PropertiesPage() {
   const [tab, setTab] = useState<Tab>('all');
   const [q, setQ] = useState('');
   const [hidden, setHidden] = useState<string[]>([]);
-  const [tagsOpen, setTagsOpen] = useState(false);
   const [archiving, setArchiving] = useState<Property | null>(null);
   const importOpen = sp.get('import') === '1';
   const setImport = (v: boolean) => setSp((p) => { const n = new URLSearchParams(p); if (v) n.set('import', '1'); else n.delete('import'); return n; });
@@ -53,7 +52,7 @@ export function PropertiesPage() {
   const cols = [
     { key: 'name', label: 'Property', render: (p: Property) => <span className="flex items-center gap-2.5"><IconTile icon={Buildings} /><span className="font-medium">{p.name}</span></span> },
     { key: 'Campus', label: 'Campus', render: (p: Property) => <span className="text-[#646A78]">{p.campus}</span> },
-    { key: 'Structure', label: 'Structure', render: (p: Property) => <span className="text-[#646A78]">{p.structure}</span> },
+    { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#646A78]">{p.structure}</span> },
     { key: 'Tags', label: 'Tags', render: (p: Property) => <Tags tags={p.tags} /> },
     { key: 'Units', label: 'Units', className: 'text-right', render: (p: Property) => <span className="tabular-nums">{p.units.toLocaleString('en-GB')}</span> },
     { key: 'Status', label: 'Status', render: (p: Property) => <PropStatus s={p.status} /> },
@@ -68,7 +67,7 @@ export function PropertiesPage() {
   return (
     <>
       <PageHeader icon={Buildings} title="Properties" crumbs={['Inventory']}>
-        <Button icon={TagIcon} onClick={() => setTagsOpen(true)}>Manage tags</Button>
+        <Button icon={TagIcon} onClick={() => nav('/inventory/tags')}>Manage tags</Button>
         {/* While empty, the empty state carries Add and Import; the header doesn't repeat them. */}
         {list.length > 0 && <>
           <Button icon={UploadSimple} onClick={() => setImport(true)}>Import</Button>
@@ -103,7 +102,6 @@ export function PropertiesPage() {
         </>
       )}
       <ImportDialog open={importOpen} onClose={() => setImport(false)} />
-      <TagsSheet open={tagsOpen} onClose={() => setTagsOpen(false)} />
       <LiveTenanciesDialog p={archiving} onClose={() => setArchiving(null)} />
     </>
   );
@@ -174,7 +172,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         footer={<><Button icon={ClockCounterClockwise} onClick={() => { onClose(); nav('/inventory/imports'); }}>View imports</Button><Button variant="primary" onClick={onClose}>Done</Button></>}>
         <div className="mx-auto max-w-[312px] rounded-xl border border-line p-3 flex items-center gap-3">
           <FileCsv size={20} className="text-[#0B8A4C]" />
-          <div className="flex-1 text-center"><div className="text-sm font-medium">st-marys-rooms.csv</div><div className="text-xs text-[#646A78]">144 rows · {structure} structure · uploaded</div></div>
+          <div className="flex-1 text-center"><div className="text-sm font-medium">st-marys-rooms.csv</div><div className="text-xs text-[#646A78]">144 rows · {structure} layout · uploaded</div></div>
           <button type="button" aria-label="Cancel import" onClick={() => { useInv.getState().set('imports', (l) => l.filter((x) => x.name !== 'st-marys-rooms.csv')); onClose(); toast('Import cancelled'); }} className="text-[#646A78] hover:text-ink"><X size={14} /></button>
         </div>
       </Modal>
@@ -185,7 +183,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={UploadSimple} disabled={stage !== 'ok'} onClick={upload}>Upload</Button></>}>
       <p className="text-sm text-[#646A78] -mt-3 ml-11">Each row is one room. The property, blocks, floors and flats are made from the rows.</p>
       <div className="space-y-4 mt-4">
-        <Field label="Structure" hint="The template’s columns come from this structure">
+        <Field label="Property layout" hint="The template’s columns come from this layout">
           <Picker value={structure} onChange={(v) => { setStructure(v); setStage('pick'); tries.current = 0; }} icon={TreeStructure} options={[{ id: 'College', label: 'College' }, { id: 'House', label: 'House' }]} />
         </Field>
         <div className="rounded-xl border border-line p-3.5">
@@ -237,26 +235,6 @@ function FileCard({ bad, sub, onRemove }: { bad?: boolean; sub: string; onRemove
       <div className="flex-1"><div className="text-sm font-medium">st-marys-rooms.csv</div><div className="text-xs text-[#646A78]">{sub}</div></div>
       <button type="button" aria-label="Remove file" onClick={onRemove} className="text-[#646A78] hover:text-ink"><X size={14} /></button>
     </div>
-  );
-}
-
-/* ---------------- Manage tags ---------------- */
-function TagsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const props = useInv((s) => s.properties);
-  const [name, setName] = useState('');
-  const all = new Map<string, { tone: string; n: number }>();
-  props.forEach((p) => p.tags.forEach((t) => all.set(t.label, { tone: t.tone, n: (all.get(t.label)?.n ?? 0) + 1 })));
-  const [extra, setExtra] = useState<string[]>([]);
-  return (
-    <Sheet open={open} onClose={onClose} title="Manage tags" sub="Tags group properties for filters and reports" footer={<Button variant="primary" onClick={onClose}>Done</Button>}>
-      <form className="flex gap-2 mb-4" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; setExtra((x) => [...x, name.trim()]); toast.success(`Tag “${name.trim()}” created`); setName(''); }}>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="New tag name" /><Button type="submit" icon={Plus}>Add</Button>
-      </form>
-      <div className="divide-y divide-line rounded-xl border border-line">
-        {[...all.entries()].map(([label, v]) => <div key={label} className="h-11 px-3 flex items-center justify-between text-sm"><span>{label}</span><span className="text-sm text-[#646A78]">{v.n} {v.n === 1 ? 'property' : 'properties'}</span></div>)}
-        {extra.map((label) => <div key={label} className="h-11 px-3 flex items-center justify-between text-sm"><span>{label}</span><span className="text-sm text-[#646A78]">0 properties</span></div>)}
-      </div>
-    </Sheet>
   );
 }
 

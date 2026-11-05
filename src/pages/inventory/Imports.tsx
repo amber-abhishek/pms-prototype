@@ -79,7 +79,7 @@ export function ImportsPage() {
               {sel.status !== 'Failed' && <Progress value={(sel.done / sel.total) * 100} tone={sel.status === 'Succeeded' ? 'green' : 'blue'} />}
               <dl className="grid grid-cols-[108px_1fr] text-sm leading-5 text-[#111827] [&>dt]:py-[7px] [&>dd]:py-[7px]">
                 <dt className="text-[#646A78]">Kind</dt><dd>{sel.kind === 'Spreadsheet' ? 'Spreadsheet import' : sel.kind}</dd>
-                <dt className="text-[#646A78]">Structure</dt><dd>{sel.structure}</dd>
+                <dt className="text-[#646A78]">Layout</dt><dd>{sel.structure}</dd>
                 <dt className="text-[#646A78]">Creates</dt><dd>{sel.creates}</dd>
                 <dt className="text-[#646A78]">Started by</dt><dd>{sel.by} · {sel.started}</dd>
                 {sel.kind === 'Spreadsheet' && <><dt className="text-[#646A78]">File</dt><dd><button type="button" className="font-medium text-[#2B5CFF] inline-flex items-center gap-1.5" onClick={() => toast.success(`${sel.name} downloaded`)}><DownloadSimple size={14} />Original file</button></dd></>}

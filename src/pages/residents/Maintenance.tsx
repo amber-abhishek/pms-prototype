@@ -59,7 +59,7 @@ export function MaintenanceList() {
   const needle = q.trim().toLowerCase();
   const scoped = faults.filter((x) => (!f.hall || hallOf(x) === f.hall) && (!f.priority || x.priority === f.priority)
     && (!f.assignee || (f.assignee === 'Not assigned' ? !x.assignee : x.assignee === f.assignee))
-    && (!f.sla || (f.sla === 'Past SLA' ? pastSla(x) : !pastSla(x)))
+    && (!f.sla || (f.sla === 'Overdue' ? pastSla(x) : !pastSla(x)))
     && (!needle || [x.ref, x.title, x.where, x.reporter ?? ''].some((v) => v.toLowerCase().includes(needle))));
   const live = scoped.filter((x) => x.status !== 'Fixed');
   const rows = useMemo(() => {
@@ -85,11 +85,11 @@ export function MaintenanceList() {
         <SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" />
         <FilterButton value={f} onChange={setF} defs={[
           { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], chips: true },
+          { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], chips: true },
           { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
           { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
-          { id: 'sla', label: 'SLA', options: ['Past SLA', 'Within SLA'] },
         ]} />
-        {view === 'table' && <Button size="sm" icon={ArrowsDownUp} onClick={() => setSlaFirst((s) => !s)}>{slaFirst ? 'SLA first' : 'Newest first'}</Button>}
+        {view === 'table' && <Button size="sm" icon={ArrowsDownUp} onClick={() => setSlaFirst((s) => !s)}>{slaFirst ? 'Deadline first' : 'Newest first'}</Button>}
         <UITabs value={view} onValueChange={setView}>
           <TabsList aria-label="View">
             {([['table', 'Table', List], ['board', 'Board', Kanban]] as const).map(([id, label, I]) => (
@@ -108,7 +108,7 @@ export function MaintenanceList() {
           { key: 't', label: 'Fault', render: (x) => { const I = faultIcon[x.icon]; return <span className="flex items-center gap-2 font-medium"><I size={14} className="text-gray-500" />{x.title}</span>; } },
           { key: 'w', label: 'Where', render: (x) => <span className="text-gray-500">{x.where}</span> },
           { key: 'p', label: 'Priority', render: (x) => <PriorityPill p={x.priority} /> },
-          { key: 's', label: 'SLA', render: (x) => <Sla f={x} /> },
+          { key: 's', label: 'Deadline', render: (x) => <Sla f={x} /> },
           { key: 'a', label: 'Assigned', render: (x) => <Assignee name={x.assignee} /> },
         ]} />
       )}
@@ -136,7 +136,7 @@ function LogFault({ open, onClose }: { open: boolean; onClose: () => void }) {
     const n = 211 + useRms.getState().faults.filter((x) => x.id.startsWith('mn')).length;
     const id = `mn${n}`;
     patch('faults', (fs) => [{ id, ref: `MT-${n}`, title: title.trim(), icon: 'leak', where: place, priority, category: 'General', slaMins: priority === 'Urgent' ? 1440 : priority === 'High' ? 2880 : 7200, status: 'New', reporter: r?.name ?? 'Priya Shah', reporterRoom: r?.room ?? 'Staff', reported: 'Just now', report: desc.trim() || 'Logged by Priya Shah at the desk.', stage: 1 }, ...fs]);
-    toast.success(`MT-${n} logged`, { description: `${priority} · SLA starts now` });
+    toast.success(`MT-${n} logged`, { description: `${priority} · deadline clock starts now` });
     setTitle(''); setWho(''); setWhere(''); setDesc('');
     onClose();
     nav(`/residents/maintenance/${id}`);
@@ -211,7 +211,7 @@ function useFaultView(f: Fault) {
   const markFixed = () => once(() => {
     const undo = update('faults', f.id, { status: 'Fixed', stage: 6, fixedIn: isRad ? '19h 08m' : '1d 2h' });
     log(`marked ${f.ref} fixed · ${f.title}`, 'Residents');
-    undoToast(isRad ? `${f.ref} fixed within SLA · Leo confirmed · £42 charged to Ustinov repairs` : `${f.ref} fixed · ${f.reporter ? `${first} asked to confirm` : 'logged against the hall'}`, undo);
+    undoToast(isRad ? `${f.ref} fixed on time · Leo confirmed · £42 charged to Ustinov repairs` : `${f.ref} fixed · ${f.reporter ? `${first} asked to confirm` : 'logged against the hall'}`, undo);
   });
   const logUpdate = () => {
     const s = f.stage ?? 2;
@@ -222,20 +222,20 @@ function useFaultView(f: Fault) {
   const primary = !f.assignee
     ? <Button variant="primary" icon={UserPlus} onClick={() => setAssigning(true)}>Assign</Button>
     : f.status === 'Fixed'
-      ? <Button icon={ArrowCounterClockwise} onClick={() => { update('faults', f.id, { status: 'In progress', stage: isRad ? 4 : 2 }); toast(`${f.ref} reopened`, { description: 'The SLA clock carries on from where it stopped.' }); }}>Reopen</Button>
+      ? <Button icon={ArrowCounterClockwise} onClick={() => { update('faults', f.id, { status: 'In progress', stage: isRad ? 4 : 2 }); toast(`${f.ref} reopened`, { description: 'The deadline clock carries on from where it stopped.' }); }}>Reopen</Button>
       : <Button variant="primary" icon={Check} onClick={markFixed}>Mark fixed</Button>;
   /* Only a resident gets a message; staff reports (the porter at reception) don't. */
   const message = f.reporter && f.reporterRoom !== 'Staff' && !f.reporterRoom?.includes('reception') ?<Button icon={Envelope} onClick={() => setMessaging(true)}>Message {first}</Button> : null;
 
   const statusPill = f.status === 'Fixed' ? <Pill tone="green" icon={CheckCircle}>Fixed</Pill>
-    : late && !f.assignee ? <Pill tone="red" icon={Timer}>SLA breached</Pill>
+    : late && !f.assignee ? <Pill tone="red" icon={Timer}>Overdue</Pill>
       : !f.assignee ? <Pill tone="amber" icon={User}>Not assigned</Pill>
         : f.status === 'Waiting on parts' ? <Pill tone="amber" icon={Package}>Waiting on parts</Pill>
           : <Pill tone="blue" icon={SpinnerGap}>In progress</Pill>;
   const pills = <><PriorityPill p={f.priority} />{statusPill}<Pill tone="orange" outline>{f.category}</Pill></>;
   const sub = f.status === 'Fixed' && isRad
-    ? 'Ustinov College · Block C · C.2.14 · reported by Leo Grant in the resident portal on Mon 21 Sep, 08:12 · fixed in 19h, within the 24h SLA'
-    : f.sub ?? `${f.where} · reported by ${f.reporter ?? 'a resident'} in the resident portal · ${f.status === 'Fixed' ? `fixed in ${f.fixedIn}` : f.status === 'Waiting on parts' ? 'waiting on parts' : `SLA due in ${fmtSla(f.slaMins)}`}`;
+    ? 'Ustinov College · Block C · C.2.14 · reported by Leo Grant in the resident portal on Mon 21 Sep, 08:12 · fixed in 19h, within the 24h deadline'
+    : f.sub ?? `${f.where} · reported by ${f.reporter ?? 'a resident'} in the resident portal · ${f.status === 'Fixed' ? `fixed in ${f.fixedIn}` : f.status === 'Waiting on parts' ? 'waiting on parts' : `due in ${fmtSla(f.slaMins)}`}`;
 
   const overlays = (
     <>
@@ -270,7 +270,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
         {isRad && <div className="flex gap-4 mt-3 text-xs text-gray-500"><span className="flex items-center gap-1.5"><Key size={13} className="text-gray-400" />OK to enter when I’m out</span><span className="flex items-center gap-1.5"><PawPrint size={13} className="text-gray-400" />No pets</span></div>}
       </Card>
       {f.assignee && (
-        <Panel title="Progress" right={f.status === 'Fixed' ? (isRad ? 'fixed in 19h 08m' : `fixed in ${f.fixedIn}`) : f.status === 'Waiting on parts' ? 'SLA paused' : `SLA · ${isRad ? '15h' : fmtSla(Math.max(f.slaMins, 0))} left`}>
+        <Panel title="Progress" right={f.status === 'Fixed' ? (isRad ? 'fixed in 19h 08m' : `fixed in ${f.fixedIn}`) : f.status === 'Waiting on parts' ? 'Deadline paused' : `${isRad ? '15h' : fmtSla(Math.max(f.slaMins, 0))} left`}>
           <Timeline steps={steps} />
           {f.status !== 'Fixed' && isRad && (f.stage ?? 2) < 5 && <Button size="sm" className="mt-4" icon={Plus} onClick={logUpdate}>Log an update</Button>}
         </Panel>
@@ -279,8 +279,8 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
   );
   const side = (
     <div className="space-y-4">
-      {isRad && !f.assignee && <Note tone="amber" icon={WarningCircle} title="Water near a socket">Marked urgent automatically: leaks in rooms are 24h, not the 5-day normal SLA.</Note>}
-      {late && !f.assignee && <Note tone="red" icon={Timer} title={`SLA breached ${fmtSla(f.slaMins)} ago`}>Urgent faults affecting a whole block have a 4-hour SLA. It is at the top of Maintenance and My tasks.</Note>}
+      {isRad && !f.assignee && <Note tone="amber" icon={WarningCircle} title="Water near a socket">Marked urgent automatically: leaks in rooms are 24h, not the 5-day normal deadline.</Note>}
+      {late && !f.assignee && <Note tone="red" icon={Timer} title={`Overdue by ${fmtSla(f.slaMins)}`}>Urgent faults affecting a whole block have a 4-hour deadline. It is at the top of Maintenance and My tasks.</Note>}
       <Panel title="Details">
         <KV rows={[
           ['Category', isRad ? 'Heating · radiator' : f.category],
@@ -401,7 +401,7 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
         <>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Visit"><Select value={visit} onChange={(e) => setVisit(e.target.value)}>{['Today, 14:00–16:00', 'Today, 16:00–18:00', 'Tomorrow, 09:00–11:00'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
-            <Field label="SLA"><Select value={sla} onChange={(e) => setSla(e.target.value)}>{['24 hours · urgent', '2 days · high', '5 days · normal'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
+            <Field label="Deadline"><Select value={sla} onChange={(e) => setSla(e.target.value)}>{['24 hours · urgent', '2 days · high', '5 days · normal'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
           </div>
           {f.reporter && <ToggleRow title={`Enter if ${first} is out`} sub={f.id === 'm1' ? 'He allowed it in the report · 24h notice waived for urgent jobs' : '24h notice is sent first'} checked={enter} onChange={setEnter} />}
           {f.reporter && <ToggleRow title={`Tell ${first} the visit time`} sub="Email and the resident portal" checked={tell} onChange={setTell} />}

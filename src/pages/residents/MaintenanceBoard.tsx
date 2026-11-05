@@ -96,7 +96,7 @@ export function MaintenanceBoard({ faults, showResolved, onLog, selected, onOpen
                 <StageGlyph col={c.id} />
                 <h3 className="text-sm leading-5 font-semibold text-ink truncate">{c.label}</h3>
                 <span className="text-xs tabular-nums text-[#646A78]">{items.length}</span>
-                {late > 0 && <span className="h-5 px-1.5 rounded-md bg-[#FDECEE] text-[11px] font-semibold text-[#C81E30] flex items-center whitespace-nowrap">{late} past SLA</span>}
+                {late > 0 && <span className="h-5 px-1.5 rounded-md bg-[#FDECEE] text-[11px] font-semibold text-[#C81E30] flex items-center whitespace-nowrap">{late} overdue</span>}
                 {c.id === 'new' && (
                   <button type="button" aria-label="Log a fault" onClick={onLog}
                     className="ml-auto size-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-ink hover:bg-black/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -131,7 +131,7 @@ function JobCard({ f, col, selected, dragging, onDrag, onOpen }: {
 }) {
   const late = isLate(f);
   const fixed = col === 'fixed';
-  const time = fixed ? `Fixed in ${f.fixedIn ?? '—'}` : col === 'parts' ? 'SLA paused' : late ? `${fmtSla(-f.slaMins)} over` : `${fmtSla(f.slaMins)} left`;
+  const time = fixed ? `Fixed in ${f.fixedIn ?? '—'}` : col === 'parts' ? 'Deadline paused' : late ? `${fmtSla(-f.slaMins)} over` : `${fmtSla(f.slaMins)} left`;
   return (
     <button type="button" draggable aria-pressed={selected}
       onDragStart={(e: DragEvent) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', f.id); onDrag(f.id); }}

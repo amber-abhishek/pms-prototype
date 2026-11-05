@@ -5,7 +5,7 @@ import { OccupancyPage } from './inventory/Occupancy';
 import { PropertiesPage } from './inventory/Properties';
 import { PropertyDetail } from './inventory/PropertyDetail';
 import { RentFeesPage } from './inventory/RentFees';
-import { CustomFieldsPage, StructuresPage } from './inventory/Setup';
+import { CustomFieldsPage, StructuresPage, TagsPage } from './inventory/Setup';
 import { UnitsPage } from './inventory/Units';
 import { AddPropertyWizard } from './inventory/Wizard';
 
@@ -20,6 +20,7 @@ export function InventoryRoutes() {
       <Route path="occupancy" element={<OccupancyPage />} />
       <Route path="structures" element={<StructuresPage />} />
       <Route path="custom-fields" element={<CustomFieldsPage />} />
+      <Route path="tags" element={<TagsPage />} />
       <Route path="rent-fees" element={<RentFeesPage />} />
       <Route path="imports" element={<ImportsPage />} />
       <Route path="*" element={<NotFound />} />

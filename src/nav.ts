@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, CircleCheck, History, Inbox, Wrench, UserCheck, Building, Grid3x3, ChartColumn, Network, TextCursorInput, Wallet,
   FileText, Calendar, Send, CalendarCheck, Users, ArrowsLeftRight, Megaphone, ClipboardCheck, LayoutTemplate, MessageSquare, Settings,
-  Globe, Monitor, Landmark, MapPin, Shield, Mail, Plug, House, Palette, type Icon,
+  Globe, Monitor, Landmark, MapPin, Shield, Mail, Plug, House, Palette, Tag, type Icon,
 } from './components/icons';
 import type { Role } from './data/store';
 import { useHome, myOpenCount } from './data/home';
@@ -72,8 +72,9 @@ export const modules: Module[] = [
         { label: 'Occupancy', to: '/inventory/occupancy', icon: ChartColumn },
       ] },
       { label: 'Setup', items: [
-        { label: 'Structures', to: '/inventory/structures', icon: Network },
+        { label: 'Property layouts', to: '/inventory/structures', icon: Network },
         { label: 'Custom fields', to: '/inventory/custom-fields', icon: TextCursorInput },
+        { label: 'Tags', to: '/inventory/tags', icon: Tag },
         { label: 'Rent and fees', to: '/inventory/rent-fees', icon: Wallet },
         { label: 'Imports', to: '/inventory/imports', icon: FileText },
       ] },

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowsDownUp, ArrowsLeftRight, Bell, CalendarBlank, CalendarX, Check, CheckCircle, Plus, XCircle } from '../../components/icons';
+import { AlarmClock, AlarmClockOff, ArrowsDownUp, ArrowsLeftRight, Bell, CalendarBlank, CalendarX, Check, CheckCircle, Plus, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, Empty, Field, FilterButton, Input, PageHeader, Select, Sheet, Tabs, cx } from '../../components/ui';
 import { useOpen } from '../hooks';
@@ -8,6 +8,7 @@ import { DONE_EARLIER, EXTRAS, ME, PEOPLE, TOM_HIDDEN, useHome, type CaseId, typ
 import { Box, CaughtUp, DuePill, Who, fromIcon } from './parts';
 import { ROW_IN_MS, TaskSheet, useChange, useReturned } from './TaskSheet';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
+import { SnoozeMenu, useSnooze } from './Snooze';
 
 const order: Record<Due, number> = { overdue: 0, today: 1, week: 2 };
 const groupLabel: Record<Due, string> = { overdue: 'Overdue', today: 'Today', week: 'This week' };
@@ -49,7 +50,7 @@ function NewTaskButton({ scope }: { scope: 'main' | CaseId }) {
 }
 
 /* ================= My tasks (Flow 1: 2994–2997, caught-up 3087) ================= */
-type MainTab = 'mine' | 'team' | 'done';
+type MainTab = 'mine' | 'team' | 'snoozed' | 'done';
 export function TasksPage() {
   const [sp] = useSearchParams();
   const c = sp.get('case') as CaseId | null;
@@ -66,15 +67,18 @@ function MyTasks() {
   const [desc, setDesc] = useState(false);
   const [showWeek, setShowWeek] = useState(false);
 
-  const openRows = rows.filter((r) => !r.done);
+  const openRows = rows.filter((r) => !r.done && !r.snoozed);
   const mineRows = openRows.filter((r) => r.owner === ME || r.handedFrom === ME);
   const mineCount = openRows.filter((r) => r.owner === ME).length;
+  /* Snoozing is personal: it hides a task from your list, not the team's. */
+  const snoozedRows = rows.filter((r) => !r.done && r.snoozed && r.owner === ME).sort((a, b) => a.snoozed!.until.localeCompare(b.snoozed!.until));
+  const { wake } = useSnooze('main');
   const doneRows = rows.filter((r) => r.done);
   const areas = [...new Set(rows.map((r) => r.from?.label.split(' · ')[0]).filter(Boolean) as string[])];
   const owners = [...new Set(openRows.map((r) => r.owner))];
 
   const shown = useMemo(() => {
-    let base = tab === 'mine' ? mineRows : tab === 'team' ? openRows : doneRows;
+    let base = tab === 'mine' ? mineRows : tab === 'team' ? openRows : tab === 'snoozed' ? snoozedRows : doneRows;
     if (f.from) base = base.filter((r) => r.from?.label.startsWith(f.from));
     if (f.owner) base = base.filter((r) => r.owner === f.owner);
     return base;
@@ -99,6 +103,7 @@ function MyTasks() {
         <Tabs value={tab} onChange={(v) => { setTab(v); setShowWeek(false); }} tabs={[
           { id: 'mine', label: 'Mine', count: mineCount },
           { id: 'team', label: 'Team', count: openRows.length },
+          { id: 'snoozed', label: 'Snoozed', count: snoozedRows.length },
           { id: 'done', label: 'Done', count: DONE_EARLIER + doneRows.length },
         ]} />
         <div className="ml-auto flex items-center gap-2">
@@ -114,10 +119,13 @@ function MyTasks() {
         </CaughtUp>
       ) : (
         <div className="flex-1 overflow-auto">
-          <div className="grid grid-cols-[48px_minmax(0,1fr)_302px_203px_108px] h-9 items-center text-xs font-medium text-gray-500 border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-3">
-            <span /><span>Task</span><span>From</span><span>{tab === 'done' ? 'Done' : 'Due'}</span><span>Owner</span>
+          <div className="grid grid-cols-[48px_minmax(0,1fr)_302px_203px_108px_48px] h-9 items-center text-xs font-medium text-gray-500 border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-3">
+            <span /><span>Task</span><span>From</span><span>{tab === 'done' ? 'Done' : tab === 'snoozed' ? 'Back' : 'Due'}</span><span>Owner</span><span />
           </div>
-          {tab === 'done' ? (
+          {tab === 'snoozed' ? (
+            shown.length ? shown.map((r) => <MainRow key={r.id} t={r} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} onWake={() => wake(r)} />)
+              : <Empty icon={AlarmClock} title="Nothing snoozed" sub="Snooze a task to hide it from Mine until later. It comes back on its own." />
+          ) : tab === 'done' ? (
             doneRows.length ? doneRows.filter((r) => shown.includes(r)).map((r) => <MainRow key={r.id} t={r} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} />)
               : <Empty icon={CheckCircle} title="Nothing done yet" sub="Tasks you tick off show up here." />
           ) : ordered.length === 0 ? (
@@ -141,7 +149,7 @@ function MyTasks() {
 const HOLD_MS = 550;
 const LEAVE_MS = 200;
 
-function MainRow({ t, handed, onOpen, onCheck }: { t: HTask; handed?: boolean; onOpen: () => void; onCheck: (v: boolean) => void }) {
+function MainRow({ t, handed, onOpen, onCheck, onWake }: { t: HTask; handed?: boolean; onOpen: () => void; onCheck: (v: boolean) => void; onWake?: () => void }) {
   const I = t.from ? fromIcon[t.from.icon] : CheckCircle;
   const [phase, setPhase] = useState<'idle' | 'ticked' | 'leaving'>('idle');
   const check = (v: boolean) => {
@@ -162,13 +170,20 @@ function MainRow({ t, handed, onOpen, onCheck }: { t: HTask; handed?: boolean; o
   return (
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(); }}
       style={{ transitionDuration: `${phase === 'leaving' ? LEAVE_MS : ROW_IN_MS}ms` }}
-      className={cx('grid grid-cols-[48px_minmax(0,1fr)_302px_203px_108px] items-center border-b border-[#F3F4F6] text-sm cursor-pointer hover:bg-[#F9FAFB] focus-visible:bg-[#F9FAFB] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
+      className={cx('group grid grid-cols-[48px_minmax(0,1fr)_302px_203px_108px_48px] items-center border-b border-[#F3F4F6] text-sm cursor-pointer hover:bg-[#F9FAFB] focus-visible:bg-[#F9FAFB] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
         closed ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100')}>
       <span className="pl-5"><Box checked={done} disabled={handed} label={done ? `Mark “${t.title}” not done` : `Mark “${t.title}” done`} onChange={check} /></span>
       <span className={cx('truncate px-3 font-medium transition-colors duration-150', handed || done ? 'text-gray-400' : 'text-ink', done && 'line-through')}>{t.title}</span>
       <span className="flex items-center gap-1.5 px-3 text-gray-500 truncate">{I && <I size={14} className="text-gray-400 shrink-0" />}{t.from?.label}</span>
-      <span className="px-3">{t.done ? <span className="text-xs text-gray-500">{t.doneLabel}</span> : <DuePill t={t} />}</span>
+      <span className="px-3">{t.done ? <span className="text-xs text-gray-500">{t.doneLabel}</span> : t.snoozed ? <span className="inline-flex items-center gap-1.5 text-[#646A78]"><AlarmClock size={14} className="text-gray-400" />{t.snoozed.label}</span> : <DuePill t={t} />}</span>
       <span className="px-3" title={t.owner}><Who name={t.owner} grad /></span>
+      <span className="flex justify-center">
+        {t.snoozed && onWake ? (
+          <RowAction label={`Unsnooze “${t.title}”`} onClick={(e) => { e.stopPropagation(); onWake(); }}><AlarmClockOff size={16} /></RowAction>
+        ) : !t.done && !handed && t.owner === ME ? (
+          <SnoozeMenu t={t} scope="main"><RowAction label={`Snooze “${t.title}”`}><AlarmClock size={16} /></RowAction></SnoozeMenu>
+        ) : null}
+      </span>
     </div>
   );
 }
@@ -307,3 +322,11 @@ function TeamBoard({ scope }: { scope: CaseId }) {
     </div>
   );
 }
+
+/* Shows on row hover or keyboard focus, and stays while its menu is open. */
+const RowAction = ({ label, children, ...p }: { label: string; children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+  <button type="button" aria-label={label} title={label.split(' “')[0]} {...p}
+    className="size-7 rounded-md flex items-center justify-center text-gray-500 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-[#F3F4F6] hover:bg-[#F3F4F6] hover:text-ink outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+    {children}
+  </button>
+);

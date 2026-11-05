@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowSquareOut, ArrowUpRight, ArrowsLeftRight, CalendarBlank, Check, CheckCircle, Info, PlusCircle, Shield, ShieldWarning, User } from '../../components/icons';
+import { AlarmClock, AlarmClockOff, ArrowSquareOut, ArrowUpRight, ArrowsLeftRight, CalendarBlank, Check, CheckCircle, Info, PlusCircle, Shield, ShieldWarning, User } from '../../components/icons';
 import { toast } from 'sonner';
 import { create } from 'zustand';
 import { Button, Note, Pill, Sheet, Textarea, cx } from '../../components/ui';
 import { HALLS, ME, PEOPLE, useHome, type HTask, type Scope } from '../../data/home';
 import { Box, Picker, Who, fromIcon } from './parts';
+import { SnoozeMenu, useSnooze } from './Snooze';
 
 type Mode = 'detail' | 'pick' | 'halls';
 
@@ -52,6 +53,7 @@ export function TaskSheet({ scope, task, onClose }: { scope: Scope; task: HTask 
   const nav = useNavigate();
   const patch = useHome((s) => s.patch);
   const change = useChange(scope);
+  const { wake } = useSnooze(scope);
   const [mode, setMode] = useState<Mode>('detail');
   const [halls, setHalls] = useState<string[]>(['Van Mildert College', 'Collingwood College', 'Josephine Butler College']);
   const busy = useRef(false);
@@ -166,6 +168,9 @@ export function TaskSheet({ scope, task, onClose }: { scope: Scope; task: HTask 
     </>
   ) : (
     <>
+      {main && !task.done && task.owner === ME && mode === 'detail' && (task.snoozed
+        ? <Button className="mr-auto" icon={AlarmClockOff} onClick={() => { wake(task); onClose(); }}>Unsnooze</Button>
+        : <SnoozeMenu t={task} scope={scope} align="start" onDone={onClose}><Button className="mr-auto" icon={AlarmClock}>Snooze</Button></SnoozeMenu>)}
       {!task.done && <Button icon={main ? User : ArrowsLeftRight} onClick={() => setMode(mode === 'pick' ? 'detail' : 'pick')}>Reassign</Button>}
       {dt.primary === 'approve' && !task.done
         ? <Button variant="primary" icon={Check} onClick={() => finish('Swap approved · both residents told')}>Approve</Button>
@@ -180,6 +185,7 @@ export function TaskSheet({ scope, task, onClose }: { scope: Scope; task: HTask 
       <div className="space-y-5 pt-1">
         {!(mode === 'pick' && nobody) && (
           <>
+            {task.snoozed && !task.done && <Note tone="blue" icon={AlarmClock} title={`Snoozed until ${task.snoozed.label}`}>It’s hidden from Mine until then. The due date hasn’t moved.</Note>}
             {pills.length > 0 && (
               <div className="flex gap-2">
                 {task.done ? <Pill tone="green" icon={CheckCircle}>Done{task.doneBy && task.doneBy !== ME ? ` by ${task.doneBy}` : ''}</Pill>

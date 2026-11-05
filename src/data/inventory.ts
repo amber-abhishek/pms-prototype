@@ -30,6 +30,7 @@ export type Unit = { id: string; code: string; type: string; weeks: number | nul
 export type Flat = { id: string; name: string; units: Unit[] };
 export type ArchivedRow = { id: string; name: string; type: string; flat?: boolean; units?: number; who: string; when: string; parent?: string };
 export type Structure = { id: string; name: string; levels: { name: string; bsu: boolean }[]; properties: number; updated: string };
+export type TagDef = { id: string; label: string; tone: Tone };
 export type Field = { id: string; name: string; key: string; type: string; attached: string[] };
 
 /* ---------------- Seed ---------------- */
@@ -112,7 +113,9 @@ export function makeInventorySeed() {
     { id: 'cf5', name: 'Kitchen shared with', key: 'kitchen_shared_with', type: 'Number', attached: ['Halls with flats › Flat'] },
     { id: 'cf6', name: 'Lift access', key: 'lift_access', type: 'Yes / no', attached: ['Halls with flats › Building', 'Halls, rooms only › Building'] },
   ];
-  return { properties, templates, feeTypes, fees, imports, archived, structures, fields, unitEdits: {} as Record<string, Partial<Unit>>, archivedFlats: [] as string[] };
+  const tags: TagDef[] = [];
+  for (const p of properties) for (const t of p.tags) if (!tags.some((x) => x.label === t.label)) tags.push({ id: 'tg' + (tags.length + 1), ...t });
+  return { properties, templates, feeTypes, fees, imports, archived, structures, fields, tags, unitEdits: {} as Record<string, Partial<Unit>>, archivedFlats: [] as string[] };
 }
 export type InvSeed = ReturnType<typeof makeInventorySeed>;
 

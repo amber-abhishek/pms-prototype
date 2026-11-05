@@ -177,6 +177,17 @@ const WEEKS: { label: string; pct: number; res: number; arr: number }[] = [
 ];
 const MAIN = 'occ-main';
 const fmt = (n: number) => n.toLocaleString('en-GB');
+/** Weekly rent per bed and the room type most often empty, per hall (ref 2061:285). */
+const MONEY: Record<string, { rent: number; type: string }> = {
+  p1: { rent: 189, type: 'Ensuite single' }, p2: { rent: 176, type: 'Studio' }, p5: { rent: 182, type: 'Standard single' },
+  p4: { rent: 168, type: 'Ensuite single' }, p3: { rent: 204, type: 'Standard single' },
+};
+/** Weeks left on a 44-week tenancy from mid-September: what an empty bed loses if it stays empty. */
+const WEEKS_LEFT = 42;
+const gbp = (n: number) => `£${Math.round(n).toLocaleString('en-GB')}`;
+const gbpM = (n: number) => `£${(n / 1e6).toFixed(2)}m`;
+const atRisk = (r: HallRow) => r.vac * MONEY[r.id].rent * WEEKS_LEFT;
+const rentRoll = (r: HallRow) => (r.res + r.arr) * MONEY[r.id].rent * 44;
 
 /* 3036:2: filter chips lead with a 14px gray-500 icon (calendar, building, calendar). */
 function Chip({ value, onChange, options, label, icon }: { value: string; onChange: (v: string) => void; options: string[]; label: string; icon?: Icon }) {
@@ -184,8 +195,14 @@ function Chip({ value, onChange, options, label, icon }: { value: string; onChan
     className="h-7 w-auto border-line shadow-tile text-xs font-medium" />;
 }
 
-function Tile({ label, value, color }: { label: string; value: ReactNode; color?: string }) {
-  return <div className="rounded-xl border border-line bg-white px-4 py-3"><div className="text-xs font-medium text-[#646A78]">{label}</div><div className="text-xl font-semibold mt-1 tabular-nums" style={{ color }}>{value}</div></div>;
+function Tile({ label, value, color, sub, subColor }: { label: string; value: ReactNode; color?: string; sub?: ReactNode; subColor?: string }) {
+  return (
+    <div className="rounded-xl border border-line bg-white px-4 py-3">
+      <div className="text-xs font-medium text-[#646A78]">{label}</div>
+      <div className="text-xl font-semibold mt-1 tabular-nums" style={{ color }}>{value}</div>
+      {sub && <div className="text-xs mt-1 truncate" style={{ color: subColor ?? '#646A78' }}>{sub}</div>}
+    </div>
+  );
 }
 
 export function OccupancyReport() {
@@ -197,7 +214,8 @@ export function OccupancyReport() {
   const [by, setBy] = useState('By week');
   const [sheet, setSheet] = useState(false);
   const rows = hall === 'All halls' ? HALL_ROWS : HALL_ROWS.filter((r) => r.hall === hall);
-  const t = rows.reduce((a, r) => ({ beds: a.beds + r.beds, res: a.res + r.res, arr: a.arr + r.arr, vac: a.vac + r.vac }), { beds: 0, res: 0, arr: 0, vac: 0 });
+  const t = rows.reduce((a, r) => ({ beds: a.beds + r.beds, res: a.res + r.res, arr: a.arr + r.arr, vac: a.vac + r.vac, blk: a.blk + r.blk, risk: a.risk + atRisk(r), roll: a.roll + rentRoll(r) }), { beds: 0, res: 0, arr: 0, vac: 0, blk: 0, risk: 0, roll: 0 });
+  const voids = [...rows].filter((r) => r.vac > 0).sort((a, b) => atRisk(b) - atRisk(a));
   const pct = (r: { res: number; beds: number }) => Math.round((r.res / r.beds) * 100);
   const bars = by === 'By week' ? WEEKS : rows.map((r) => ({ label: r.hall, pct: Math.round(((r.res + r.arr) / r.beds) * 100), res: (r.res / r.beds) * 150, arr: (r.arr / r.beds) * 150 }));
 
@@ -208,20 +226,21 @@ export function OccupancyReport() {
         {mine ? <Button icon={Clock} onClick={() => setSheet(true)}>Every {mine.day === '1st' ? '1st of the month' : mine.day} {mine.time}</Button>
           : <Button variant="primary" icon={Clock} onClick={() => setSheet(true)}>Schedule</Button>}
       </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78]">Updated 5 min ago</span>}>
+      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
         <Chip icon={CalendarBlank} label="Academic year" value={year} onChange={(v) => { setYear(v); if (v !== '2026/27') toast(`${v} is archived`, { description: 'Showing its final week. Weekly detail is kept for the current year only.' }); }} options={['2026/27', '2025/26']} />
         <Chip icon={Buildings} label="Halls" value={hall} onChange={setHall} options={['All halls', ...HALL_ROWS.map((r) => r.hall)]} />
         <Chip icon={CalendarBlank} label="Group by" value={by} onChange={setBy} options={['By week', 'By hall']} />
       </Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
         <div className="grid grid-cols-5 gap-3">
-          <Tile label="Beds" value={fmt(t.beds)} />
-          <Tile label="In residence" value={fmt(t.res)} color="#0B8A4C" />
-          <Tile label="Arriving" value={fmt(t.arr)} color="#1F45E0" />
-          <Tile label="Vacant" value={fmt(t.vac)} color="#E5530C" />
-          <Tile label="Occupancy" value={`${pct(t)}%`} />
+          <Tile label="Occupancy" value={`${pct({ res: t.res + t.arr, beds: t.beds })}%`} sub="+1.2 pts vs 2025/26" subColor="#0B8A4C" />
+          <Tile label="Rent roll" value={gbpM(t.roll)} sub={`${fmt(t.res + t.arr)} beds let · ${year}`} />
+          <Tile label="Void beds today" value={fmt(t.vac)} color="#E5530C" sub={`${gbp(t.risk)} rent at risk`} subColor="#B91C1C" />
+          <Tile label="Held units" value={fmt(t.blk)} sub="excluded from occupancy" />
+          <Tile label="Avg days void" value="11.6" sub="from release to re-let" />
         </div>
-        <div className="rounded-xl border border-line bg-white p-4">
+        <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">
+        <div className="rounded-xl border border-line bg-white p-4 min-w-0">
           <div className="flex items-center"><h3 className="text-sm font-semibold">{by === 'By week' ? 'Beds filled by week' : 'Beds filled by hall'}</h3>
             <span className="ml-auto flex items-center gap-4 text-xs text-[#646A78]"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#2563EB]" />In residence</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#93C5FD]" />Arriving</span></span></div>
           <div className="mt-4 h-[180px] border-b border-line flex items-end justify-around px-6">
@@ -235,15 +254,34 @@ export function OccupancyReport() {
           </div>
           <div className="flex justify-around px-6 mt-2">{bars.map((b) => <span key={b.label} className="w-11 text-center text-xs text-[#646A78] whitespace-nowrap">{b.label}</span>)}</div>
         </div>
+        <div className="rounded-xl border border-line bg-white overflow-hidden flex flex-col">
+          <div className="h-12 px-4 flex items-center border-b border-line"><h3 className="text-sm font-semibold">Voids by property</h3><span className="ml-auto text-xs text-[#646A78]">{WEEKS_LEFT} weeks left on the tenancy</span></div>
+          <table className="w-full text-sm">
+            <thead><tr className="text-xs text-[#646A78] border-b border-line bg-[#F9FAFB]">
+              <th className="text-left font-medium h-9 pl-4">Property</th><th className="text-right font-medium px-3">Void beds</th><th className="text-left font-medium px-3">Most void type</th><th className="text-right font-medium pr-4">Rent at risk</th>
+            </tr></thead>
+            <tbody>{voids.map((r) => (
+              <tr key={r.id} className="border-b border-[#F3F4F6] hover:bg-[#FAFAFB] cursor-pointer" onClick={() => nav(`/inventory/properties?open=${r.id}`)}>
+                <td className="h-10 pl-4 font-medium">{r.hall}</td>
+                <td className="text-right px-3 tabular-nums">{r.vac}</td>
+                <td className="px-3 text-[#646A78]">{MONEY[r.id].type}</td>
+                <td className="text-right pr-4 font-semibold tabular-nums">{gbp(atRisk(r))}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        </div>
         <div className="rounded-xl border border-line bg-white overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="text-xs font-medium text-[#646A78] border-b border-line">
-              <th className="text-left font-medium h-9 pl-5">Hall</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked'].map((h) => <th key={h} className="text-right font-medium px-3">{h}</th>)}<th className="text-left font-medium pl-8 pr-5 w-[300px]">Filled</th>
+              <th className="text-left font-medium h-9 pl-5">Hall</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked', 'Rent roll', 'Rent at risk'].map((h) => <th key={h} className="text-right font-medium px-3">{h}</th>)}<th className="text-left font-medium pl-8 pr-5 w-[220px]">Filled</th>
             </tr></thead>
             <tbody>{rows.map((r) => { const p = pct(r); return (
               <tr key={r.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#FAFAFB] cursor-pointer" onClick={() => nav(`/inventory/properties?open=${r.id}`)}>
                 <td className="h-10 pl-5 font-medium">{r.hall}</td>
                 {[r.beds, r.res, r.arr, r.vac, r.blk].map((v, i) => <td key={i} className="text-right px-3 tabular-nums">{fmt(v)}</td>)}
+                <td className="text-right px-3 tabular-nums">{gbpM(rentRoll(r))}</td>
+                <td className="text-right px-3 tabular-nums text-[#B91C1C]">{gbp(atRisk(r))}</td>
                 <td className="pl-8 pr-5"><span className="flex items-center gap-2"><span className="w-[107px] h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden"><span className="block h-full rounded-full bg-[#0B8A4C]" style={{ width: `${p}%` }} /></span><span className="text-xs text-[#646A78]">{p}%</span></span></td>
               </tr>
             ); })}</tbody>
@@ -299,7 +337,7 @@ function ScheduleSheet({ existing, onClose }: { existing?: Schedule; onClose: ()
   return (
     <Sheet open onClose={onClose} width={500}
       title={<span className="flex items-center gap-2.5"><span className="size-8 rounded-lg bg-[#DBEAFE] flex items-center justify-center"><CalendarBlank size={16} className="text-[#2563EB]" /></span><span className="leading-tight"><span className="block text-sm font-semibold">Schedule this report</span><span className="block text-xs font-normal text-[#646A78]">Occupancy · all halls · by week</span></span></span>}
-      footer={<>{existing && <Button variant="ghost" className="mr-auto text-[#E0243A]" onClick={stop}>Stop sending</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{existing ? 'Save' : 'Schedule'}</Button></>}>
+      footer={<>{existing && <Button variant="danger-ghost" className="mr-auto" onClick={stop}>Stop sending</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{existing ? 'Save' : 'Schedule'}</Button></>}>
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-3">
           <div><div className="text-sm font-medium mb-1.5">Every</div><IconSelect ariaLabel="Every" icon={CalendarBlank} value={day} onChange={setDay} options={[...DAYS.map((d) => ({ value: d, label: d })), { value: '1st', label: '1st of the month' }]} /></div>
@@ -352,11 +390,14 @@ export function ApplicationsReport() {
         <Button icon={DownloadSimple} onClick={() => toast.success('Applications funnel.csv downloaded')}>Export CSV</Button>
         <Button icon={ShareNetwork} onClick={() => { void navigator.clipboard?.writeText(location.href).catch(() => {}); toast.success('Link copied', { description: 'People see only the halls they have access to.' }); }}>Share</Button>
       </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78]">Updated 5 min ago</span>}>
+      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
         <Chip label="Cycle" value={cycle} onChange={setCycle} options={['2027/28', '2026/27']} />
       </Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
-        <div className="grid grid-cols-4 gap-3">{stages.map(([l, n, c]) => <Tile key={l} label={l} value={fmt(cycle === '2027/28' ? n : n * 19)} color={c} />)}</div>
+        <div className="grid grid-cols-5 gap-3">
+          {stages.map(([l, n, c]) => <Tile key={l} label={l} value={fmt(cycle === '2027/28' ? n : n * 19)} color={c} />)}
+          <Tile label="Rent booked" value={gbpM((cycle === '2027/28' ? stages[3][1] : stages[3][1] * 19) * 182 * 44)} sub="accepted × 44 weeks" />
+        </div>
         <div className="rounded-xl border border-line bg-white p-5">
           <h3 className="text-sm font-semibold mb-4">From application to booking · {cycle} cycle</h3>
           <div className="space-y-3">
@@ -376,11 +417,11 @@ export function ApplicationsReport() {
 }
 
 /* ======================= The other library reports ======================= */
-type Simple = { title: string; tiles: [string, string, string?][]; cols: string[]; rows: (string | number)[][] };
+type Simple = { title: string; tiles: [string, string, string?, string?][]; cols: string[]; rows: (string | number)[][] };
 const SIMPLE: Record<string, Simple> = {
-  rent: { title: 'Rent and arrears', tiles: [['Billed', '£4.12m'], ['Collected', '£3.86m', '#0B8A4C'], ['Overdue', '£61,240', '#E0243A'], ['Residents in arrears', '38', '#E5530C']], cols: ['Hall', 'Billed', 'Collected', 'Overdue', 'In arrears'],
+  rent: { title: 'Rent and arrears', tiles: [['Billed', '£4.12m', undefined, 'Michaelmas term'], ['Collected', '£3.86m', '#0B8A4C', '94% of billed'], ['Overdue', '£61,240', '#E0243A', '£1,612 average'], ['Residents in arrears', '38', '#E5530C', '9 over 30 days']], cols: ['Hall', 'Billed', 'Collected', 'Overdue', 'In arrears'],
     rows: [['Ustinov', '£1.09m', '£1.01m', '£22,180', 14], ['Collingwood', '£0.92m', '£0.88m', '£9,460', 6], ['Van Mildert', '£1.06m', '£0.99m', '£18,120', 11], ['Josephine Butler', '£0.79m', '£0.74m', '£8,980', 5], ["St Mary’s", '£0.26m', '£0.24m', '£2,500', 2]] },
-  'maintenance-sla': { title: 'Maintenance SLA', tiles: [['Jobs closed', '412'], ['Within SLA', '91%', '#0B8A4C'], ['Open past SLA', '9', '#E0243A'], ['Cost', '£18,640']], cols: ['Hall', 'Jobs', 'Within SLA', 'Median fix', 'Cost'],
+  'maintenance-sla': { title: 'Maintenance deadlines', tiles: [['Jobs closed', '412'], ['On time', '91%', '#0B8A4C', '+3 pts vs last term'], ['Open and overdue', '9', '#E0243A'], ['Cost', '£18,640', undefined, '£45 a job']], cols: ['Hall', 'Jobs', 'On time', 'Median fix', 'Cost'],
     rows: [['Ustinov', 121, '88%', '2.1 days', '£5,980'], ['Collingwood', 84, '94%', '1.4 days', '£3,410'], ['Van Mildert', 97, '90%', '1.9 days', '£4,720'], ['Josephine Butler', 78, '93%', '1.6 days', '£3,220'], ["St Mary’s", 32, '97%', '1.1 days', '£1,310']] },
   requests: { title: 'Requests', tiles: [['Requests', '286'], ['Answered in 2 days', '84%', '#0B8A4C'], ['Waiting', '6', '#E5530C'], ['Most asked', 'Room swap']], cols: ['Kind', 'Requests', 'Approved', 'Median reply'],
     rows: [['Room swap', 112, '61%', '1.8 days'], ['Early arrival', 74, '89%', '0.9 days'], ['Guest stay', 63, '95%', '0.6 days'], ['Lease change', 37, '46%', '3.2 days']] },
@@ -400,9 +441,9 @@ export function SimpleReport() {
         <Button icon={DownloadSimple} onClick={() => toast.success(`${r.title}.csv downloaded`)}>Export CSV</Button>
         <Button variant="primary" icon={CalendarBlank} onClick={() => toast('Scheduling is set up on Occupancy in the prototype', { description: 'Open Occupancy and choose Schedule.' })}>Schedule</Button>
       </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78]">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
+      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
-        <div className="grid grid-cols-4 gap-3">{r.tiles.map(([l, v, c]) => <Tile key={l} label={l} value={v} color={c} />)}</div>
+        <div className="grid grid-cols-4 gap-3">{r.tiles.map(([l, v, c, sub]) => <Tile key={l} label={l} value={v} color={c} sub={sub} />)}</div>
         <div className="rounded-xl border border-line bg-white overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="text-xs text-[#646A78] border-b border-line">{r.cols.map((c, i) => <th key={c} className={cx('font-medium h-9 px-3', i === 0 ? 'text-left pl-5' : 'text-right', i === r.cols.length - 1 && 'pr-5')}>{c}</th>)}</tr></thead>

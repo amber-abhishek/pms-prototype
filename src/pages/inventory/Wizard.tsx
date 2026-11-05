@@ -14,7 +14,7 @@ type Terms = { weeks: string; rent: string; deposit: string };
 const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
 const DEF_TERMS: Record<string, Terms> = { 'Ensuite single': { weeks: '51', rent: '212', deposit: '250' }, 'Standard single': { weeks: '44', rent: '168', deposit: '250' }, Studio: { weeks: '51', rent: '246', deposit: '300' } };
 const STEPS = [
-  { title: 'Basics', sub: 'Name, campus, structure' }, { title: 'Location', sub: 'Address and zone' }, { title: 'Units', sub: 'Blocks, floors and rooms' },
+  { title: 'Basics', sub: 'Name, campus, layout' }, { title: 'Location', sub: 'Address and zone' }, { title: 'Units', sub: 'Blocks, floors and rooms' },
   { title: 'Rent & terms', sub: 'Tenancy per room type' }, { title: 'Review', sub: 'Check and create' },
 ];
 const rooms = (b: WBlock, house: boolean) => (house ? b.rpf : b.floors * b.flats * b.rpf);
@@ -137,7 +137,7 @@ export function AddPropertyWizard() {
                     <p className="text-xs text-[#646A78] mt-1.5">Rent and tenancy length are counted in this unit. You can switch later; existing tenancies convert.</p>
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-700 mb-1.5">Structure</div>
+                    <div className="text-sm font-medium text-gray-700 mb-1.5">Property layout</div>
                     <div className="space-y-2">
                       {([['College', 6, ['Property', 'Block', 'Floor', 'Flat', 'Room']], ['House', 2, ['Property', 'Room']]] as const).map(([s, n, lv]) => (
                         <div key={s} role="radio" aria-checked={structure === s} tabIndex={0} onClick={() => setStructure(s)} onKeyDown={(e) => e.key === ' ' && setStructure(s)}
@@ -148,7 +148,7 @@ export function AddPropertyWizard() {
                         </div>
                       ))}
                     </div>
-                    <button type="button" onClick={() => nav('/inventory/structures')} className="mt-2.5 text-sm text-primary flex items-center gap-1.5"><Plus size={13} />New structure</button>
+                    <button type="button" onClick={() => nav('/inventory/structures')} className="mt-2.5 text-sm text-primary flex items-center gap-1.5"><Plus size={13} />New property layout</button>
                   </div>
                 </div>
               )}
@@ -256,7 +256,7 @@ export function AddPropertyWizard() {
                 <div className="space-y-4">
                   <div className="rounded-xl border border-line divide-y divide-line">
                     {([
-                      ['Basics', name, `${campus} · ${structure} structure · ${letting.toLowerCase()} · Inventory no. ${invNo || '—'}`, 0],
+                      ['Basics', name, `${campus} · ${structure} layout · ${letting.toLowerCase()} · Inventory no. ${invNo || '—'}`, 0],
                       ['Location', 'Elvet Hill Road, Durham DH1 3LR', zone ? `Zone ${zone}` : 'No zone', 1],
                       ['Units', total ? `${total} rooms` : 'No rooms yet', total ? `${blocks.map((b) => `${b.name} ${rooms(b, house)}`).join(' · ')} · Room size set on all` : 'Add them later from the property page', 2],
                       ['Rent & terms', `${types.length} new tenancy templates · ${total} draft tenancies`, types.map((t) => `${t.name} £${t.rent} · ${t.weeks} wk`).join(' · '), 3],

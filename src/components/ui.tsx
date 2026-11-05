@@ -27,13 +27,13 @@ export const cx = clsx;
 /* ---------- Buttons ---------- */
 /* shadcn Button (./shadcn/button) under the prototype's names: `secondary` is shadcn `outline`, `danger` is `destructive`.
    Adds a leading 16px `icon`, and `type="button"` by default so a button inside a form doesn't submit it. */
-type BtnProps = Omit<UIButtonProps, 'variant' | 'size'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'danger-outline'; size?: 'sm' | 'md'; icon?: Icon };
-const btnVariant = { primary: 'default', secondary: 'outline', ghost: 'ghost', danger: 'destructive', success: 'success', 'danger-outline': 'destructive-outline' } as const;
+type BtnProps = Omit<UIButtonProps, 'variant' | 'size'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'danger-outline' | 'danger-ghost'; size?: 'sm' | 'md'; icon?: Icon };
+const btnVariant = { primary: 'default', secondary: 'outline', ghost: 'ghost', danger: 'destructive', success: 'success', 'danger-outline': 'destructive-outline', 'danger-ghost': 'destructive-ghost' } as const;
 export function Button({ variant = 'secondary', size = 'md', icon: I, children, type = 'button', ...p }: BtnProps) {
   const solid = variant === 'primary' || variant === 'danger' || variant === 'success';
   return (
     <UIButton type={type} variant={btnVariant[variant]} size={size === 'sm' ? 'sm' : 'default'} {...p}>
-      {I && <I size={16} weight="regular" className={cx('shrink-0', !solid && variant !== 'danger-outline' && 'text-gray-700')} />}
+      {I && <I size={16} weight="regular" className={cx('shrink-0', !solid && variant !== 'danger-outline' && variant !== 'danger-ghost' && 'text-gray-700')} />}
       {children}
     </UIButton>
   );
@@ -90,7 +90,7 @@ export function PageHeader({ icon: I, title, crumbs, children }: { icon?: Icon; 
 }
 /** The row under the page header: tabs on the left, search/filter/display on the right. 16px sides, #F3F4F6 rule. */
 export function Toolbar({ children, right, className }: { children?: ReactNode; right?: ReactNode; className?: string }) {
-  return <div className={cx('h-14 shrink-0 px-4 flex items-center gap-2 border-b border-[#F3F4F6]', className)}>{children}<div className="ml-auto flex items-center gap-2">{right}</div></div>;
+  return <div className={cx('h-14 shrink-0 px-4 flex items-center gap-2 border-b border-[#F3F4F6]', className)}>{children}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
 }
 /** Large page title + one-line description, as on the off-campus and settings screens. */
 export function PageTitle({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {

@@ -8,7 +8,7 @@ export const REPORTS: ReportDef[] = [
   { id: 'occupancy', name: 'Occupancy', area: 'Inventory', desc: 'Beds in residence, arriving and vacant, by hall and week', to: '/reports' },
   { id: 'applications', name: 'Applications funnel', area: 'Allocations', desc: 'Applied, offered, accepted and booked, by cycle', to: '/reports/applications' },
   { id: 'rent', name: 'Rent and arrears', area: 'Finance', desc: 'Billed, collected and overdue, by hall', to: '/reports/rent' },
-  { id: 'sla', name: 'Maintenance SLA', area: 'Maintenance', desc: 'Jobs fixed within SLA and cost, by hall and category', to: '/reports/maintenance-sla' },
+  { id: 'sla', name: 'Maintenance deadlines', area: 'Maintenance', desc: 'Jobs fixed on time and cost, by hall and category', to: '/reports/maintenance-sla' },
   { id: 'requests', name: 'Requests', area: 'Residents', desc: 'What residents ask for and how fast it’s answered', to: '/reports/requests' },
   { id: 'notices', name: 'Notice reach', area: 'Residents', desc: 'Delivered, opened and clicked, by notice', to: '/reports/notice-reach' },
 ];

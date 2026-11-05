@@ -144,7 +144,7 @@ export function makeSeed() {
     return { id: `e${i}`, student: n, email: email(n), listingId: l.id, received: at, status: st, thread };
   });
   const tasks: Task[] = [
-    { id: 't1', icon: 'alert', title: 'Leaking radiator, Ustinov C.2.14', sub: 'Urgent · reported 2h ago · no one assigned', badge: { label: 'Past SLA', tone: 'red' }, to: '/residents/maintenance?open=m1', done: false },
+    { id: 't1', icon: 'alert', title: 'Leaking radiator, Ustinov C.2.14', sub: 'Urgent · reported 2h ago · no one assigned', badge: { label: 'Overdue', tone: 'red' }, to: '/residents/maintenance?open=m1', done: false },
     { id: 't2', icon: 'swap', title: 'Room swap: Ella Morgan ↔ Josh Patel', sub: 'Collingwood · both residents agreed', badge: { label: 'Due today', tone: 'orange' }, to: '/residents/requests?open=rq1', done: false },
     { id: 't3', icon: 'lease', title: '14 leases not signed', sub: 'Move-in on Saturday · lease needed to collect keys', badge: { label: '5 days', tone: 'amber' }, to: '/allocations/bookings?tab=Lease%20unsigned', done: false },
     { id: 't4', icon: 'inbox', title: '31 applications waiting more than 5 days', sub: '2027/28 · To review', badge: { label: 'Behind', tone: 'orange' }, to: '/allocations/applications?tab=New', done: false },

@@ -1,11 +1,12 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactElement, type ReactNode } from 'react';
 
 /**
  * Solid versions of the rail icons, shown on the active module (Figma `icon/house-fill`, 3327:1363).
  * The house is the frame's own path; the others follow the same Lucide shapes, filled, with details
- * cut out in white (the active rail button is white).
+ * cut out through a mask, so the active button's own background shows through in light and dark mode.
+ * Inside a <mask>, black (#000) hides and white shows; `W` marks the details that become holes.
  */
-const W = '#fff';
+const W = '#000';
 const solid: Record<string, ReactNode> = {
   home: (
     <svg viewBox="0 0 16 16"><path fill="currentColor" d="M7.09109 2.17608C7.6149 1.72831 8.38666 1.72831 8.91047 2.17608L13.7105 6.2793C14.0216 6.54529 14.2008 6.93413 14.2008 7.34347V13.1984C14.2008 13.9716 13.574 14.5984 12.8008 14.5984H11.4008C10.6276 14.5984 10.0008 13.9716 10.0008 13.1984V11.7984C10.0008 11.0252 9.37398 10.3984 8.60078 10.3984H7.40078C6.62758 10.3984 6.00078 11.0252 6.00078 11.7984V13.1984C6.00078 13.9716 5.37398 14.5984 4.60078 14.5984H3.20078C2.42758 14.5984 1.80078 13.9716 1.80078 13.1984V7.34347C1.80078 6.93413 1.97994 6.54529 2.29109 6.2793L7.09109 2.17608Z" /></svg>
@@ -68,8 +69,23 @@ const solid: Record<string, ReactNode> = {
 };
 
 export function RailSolid({ id, size = 16 }: { id: string; size?: number }) {
-  const s = solid[id];
+  const mid = 'rs' + useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const s = solid[id] as ReactElement<{ viewBox: string; children: ReactNode }> | undefined;
   if (!s) return null;
-  return <span aria-hidden className="inline-flex [&>svg]:size-full" style={{ width: size, height: size }}>{s}</span>;
+  const { viewBox, children } = s.props;
+  const vb = viewBox.split(' ').map(Number);
+  const kids = Array.isArray(children) ? children.flat() : [children];
+  const isCut = (k: unknown) => { const p = (k as ReactElement<{ fill?: string; stroke?: string }> | null)?.props; return !!p && (p.fill === W || p.stroke === W); };
+  const flat = kids.flatMap((k) => (Array.isArray(k) ? k : [k]));
+  const cuts = flat.filter(isCut);
+  const body = flat.filter((k) => !isCut(k));
+  return (
+    <span aria-hidden className="inline-flex [&>svg]:size-full" style={{ width: size, height: size }}>
+      <svg viewBox={viewBox}>
+        {cuts.length > 0 && <mask id={mid} maskUnits="userSpaceOnUse" x={vb[0] - 2} y={vb[1] - 2} width={vb[2] + 4} height={vb[3] + 4}><rect x={vb[0] - 2} y={vb[1] - 2} width={vb[2] + 4} height={vb[3] + 4} fill="#fff" />{cuts}</mask>}
+        <g mask={cuts.length ? `url(#${mid})` : undefined}>{body}</g>
+      </svg>
+    </span>
+  );
 }
 export const hasSolid = (id: string) => id in solid;

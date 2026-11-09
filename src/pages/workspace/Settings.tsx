@@ -27,7 +27,7 @@ function Layout({ tab, title, sub, actions, children, wide }: { tab: string; tit
   const t = TABS.find((x) => x.id === tab)!;
   return (
     <>
-      <Header icon={t.icon} crumbs={[{ label: 'Settings', to: '/settings' }]} title={t.label}>{actions}</Header>
+      <Header icon={t.icon} crumbs={[{ label: 'Settings' }]} title={t.label}>{actions}</Header>
       {/* The design's in-page tab rail is the sidebar panel's job in this shell, so it isn't repeated here. */}
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 overflow-auto">
@@ -91,7 +91,7 @@ export function SettingsGeneral() {
           <label><Lbl>Short name</Lbl><Input value={d.short} onChange={(e) => up({ short: e.target.value })} /></label>
         </div>
       </Section>
-      <Section title="Regional" sub="Used for dates, rent and every scheduled send">
+      <Section title="Regional">
         <div className="grid grid-cols-3 gap-3">
           <div><Lbl>Timezone</Lbl><IconSelect icon={Globe} ariaLabel="Timezone" value={d.timezone} onChange={(v) => up({ timezone: v })} options={opts(['Europe/London (GMT+1)', 'Europe/Dublin (GMT+1)', 'UTC'])} /></div>
           <div><Lbl>Currency</Lbl><IconSelect icon={Money} ariaLabel="Currency" value={d.currency} onChange={(v) => up({ currency: v })} options={opts(['GBP · £', 'EUR · €'])} /></div>
@@ -99,11 +99,11 @@ export function SettingsGeneral() {
         </div>
       </Section>
       {cur && (
-        <Section title="Current academic year" sub="Sets what Overview, Occupancy and Reports show by default" action={<Link to="/settings/academic-year" className="text-sm text-primary hover:underline">Manage years</Link>}>
+        <Section title="Current academic year" sub="Default for Overview, Occupancy and Reports" action={<Link to="/settings/academic-year" className="text-sm text-primary hover:underline">Manage years</Link>}>
           <div className="grid grid-cols-3 gap-3">{([['Year', cur.name], ['Starts', cur.starts], ['Ends', cur.ends]] as const).map(([k, v]) => <div key={k}><Lbl>{k}</Lbl><div className="h-8 px-2.5 rounded-lg border border-line bg-gray-50 text-sm flex items-center">{v}</div></div>)}</div>
         </Section>
       )}
-      <Section title="Quiet hours" sub="No notices or reminders go out in this window unless urgent">
+      <Section title="Quiet hours" sub="Only urgent notices go out">
         <div className="grid grid-cols-3 gap-3">
           <div><Lbl>From</Lbl><IconSelect icon={Moon} ariaLabel="Quiet hours from" value={d.quietFrom} onChange={(v) => up({ quietFrom: v })} options={opts(HOURS)} /></div>
           <div><Lbl>To</Lbl><IconSelect icon={Sun} ariaLabel="Quiet hours to" value={d.quietTo} onChange={(v) => up({ quietTo: v })} options={opts(HOURS)} /></div>
@@ -136,7 +136,7 @@ export function SettingsAcademicYear() {
   const yIcon = { Upcoming: CalendarBlank, Current: Check, Ended: Archive } as const;
   const { items: yearRows, bodyRef } = useRowMotion(years);
   return (
-    <Layout tab="academic-year" title="Academic year" sub="Years and terms. Overview, Occupancy and Reports open on the current year; tenancies and cycles hang off a year."
+    <Layout tab="academic-year" title="Academic year" sub="Academic years and terms."
       actions={<Button variant="primary" icon={Plus} onClick={() => { busy.current = false; setAdding(true); }}>New year</Button>}>
       <div className="rounded-xl border border-line overflow-hidden">
         <table className="w-full text-sm">
@@ -151,7 +151,7 @@ export function SettingsAcademicYear() {
           ))}</tbody>
         </table>
       </div>
-      <Section title="Terms in 2026/27" sub="Used for termly rent and for notices that go out at the start of a term"
+      <Section title="Terms in 2026/27"
         action={editing ? <div className="flex gap-2"><Button size="sm" onClick={() => { setDraft(terms); setEditing(false); }}>Cancel</Button><Button size="sm" variant="primary" onClick={() => { set('terms', draft); setEditing(false); toast.success('Terms saved', { description: 'Termly rent and term notices use the new dates.' }); }}>Save terms</Button></div>
           : <Button size="sm" icon={PencilSimple} onClick={() => { setDraft(terms); setEditing(true); }}>Edit terms</Button>}>
         <div className="rounded-xl border border-line overflow-hidden -mt-1">
@@ -169,7 +169,7 @@ export function SettingsAcademicYear() {
         </div>
       </Section>
       <Alert tone="blue" icon={Info} title="2027/28 becomes current on 1 Sep 2027">Until then it is used only by the 2027/28 allocation cycle.</Alert>
-      <ODialog open={adding} onClose={() => setAdding(false)} title="New academic year" sub="Add it before its allocation cycle opens. It becomes current on its start date."
+      <ODialog open={adding} onClose={() => setAdding(false)} title="New academic year" sub="It becomes current on its start date."
         footer={<><Button onClick={() => setAdding(false)}>Cancel</Button><Button variant="primary" onClick={() => {
           if (busy.current) return;
           if (!ny.name.trim()) { toast.error('Name the year'); return; }
@@ -199,7 +199,7 @@ export function SettingsNotifications() {
   });
   const tog = (id: string, k: 'app' | 'email' | 'sms') => setD(d.map((n) => (n.id === id ? { ...n, [k]: !n[k] } : n)));
   return (
-    <Layout tab="notifications" title="Notifications" sub="Your own notifications. Each member sets theirs; quiet hours from General still apply." actions={actions}>
+    <Layout tab="notifications" title="Notifications" sub="Your own notifications." actions={actions}>
       {/* 3056:2: table card (#F9FAFB 40px header), 52px rows, green toggles per channel; blue note with a phone icon below. */}
       <div className="rounded-xl border border-line overflow-hidden bg-white">
         <table className="w-full text-sm">
@@ -229,7 +229,7 @@ export function SettingsPayments() {
   const rules = [['remind', 'Remind 7 days before rent is due', 'Email and the resident portal'], ['arrears', 'Flag arrears after 14 days', 'Shows in Residents and stops room swaps'], ['lateFee', 'Charge a late fee', d.lateFee ? '£25 after 14 days in arrears' : 'Off: Durham doesn’t charge late fees']] as const;
   return (
     <Layout tab="payments" title="Payments" sub="How residents pay rent and deposits, and when it’s due." actions={actions}>
-      <Section title="Provider" sub="Card payments and payouts to the university account">
+      <Section title="Provider">
         <div className="rounded-[10px] border border-line px-3.5 h-[60px] flex items-center gap-3">
           <BrandTile id="stripe" />
           <div className="flex-1"><div className="text-sm font-medium text-[#111827]">Stripe</div><div className="text-xs text-[#646A78] mt-0.5">Connected 2 Aug 2026 · payouts to Durham University ••4410 · weekly</div></div>
@@ -237,14 +237,14 @@ export function SettingsPayments() {
           <Button size="sm" icon={ArrowUpRight} onClick={() => setManage(true)}>Manage</Button>
         </div>
       </Section>
-      <Section title="How residents can pay" sub="Shown at checkout in the resident portal">
+      <Section title="How residents can pay">
         <div className="grid grid-cols-3 gap-2">{methods.map(([k, l, I]) => (
           <div key={k} className="h-10 px-3 rounded-[10px] border border-line flex items-center gap-2.5 text-sm text-[#111827]">
             <I size={16} className="text-gray-500" /><span className="flex-1">{l}</span><Switch checked={d.methods[k]} onChange={(v) => up({ methods: { ...d.methods, [k]: v } })} label={l} />
           </div>
         ))}</div>
       </Section>
-      <Section title="Rent" sub="Defaults for new tenancies; a room type can override them">
+      <Section title="Rent" sub="A room type can override these">
         <div className="grid grid-cols-3 gap-3">
           <div><Lbl>Billed</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Billed" value={d.billed} onChange={(v) => up({ billed: v })} options={opts(['Termly, in advance', 'Monthly', 'Weekly', 'Whole year up front'])} /></div>
           <div><Lbl>Due</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Due" value={d.due} onChange={(v) => up({ due: v })} options={opts(['Before each term starts', 'On the 1st', 'On move-in'])} /></div>
@@ -318,7 +318,7 @@ export function SettingsIntegrations() {
               {on && (x.state === 'failing' ? <Pill tone="red" icon={Warning}>Failing</Pill> : <Pill tone="green" icon={Check}>Connected</Pill>)}
             </div>
             <p className="text-xs leading-4 text-[#646A78] mt-3 flex-1">{x.desc}</p>
-            <div className="mt-3">{x.state === 'failing' ? <Button size="sm" variant="primary" onClick={() => setReconnect(true)}>Reconnect</Button> : on ? <Button size="sm" icon={SlidersHorizontal} onClick={() => setOpen(x)}>Manage</Button> : <Button size="sm" icon={Plug} onClick={() => setOpen(x)}>Connect</Button>}</div>
+            <div className="mt-3">{x.state === 'failing' ? <Button size="sm" variant="primary" className="w-[112px]" onClick={() => setReconnect(true)}>Reconnect</Button> : on ? <Button size="sm" icon={SlidersHorizontal} className="w-[112px]" onClick={() => setOpen(x)}>Manage</Button> : <Button size="sm" icon={Plug} className="w-[112px]" onClick={() => setOpen(x)}>Connect</Button>}</div>
           </div>
         ); })}
       </div>
@@ -326,7 +326,7 @@ export function SettingsIntegrations() {
         <Alert tone="amber" icon={Warning} title="SITS sync skipped 3 students last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their course record has no term address. Open the sync log to see who.</Alert>
       )}
 
-      <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Student records (SITS)" sub="Sign in with a SITS admin account. We get a new token and run the missed syncs."
+      <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Student records (SITS)" sub="Sign in with a SITS admin account to run the missed syncs."
         footer={<><Button disabled={busy} onClick={() => setReconnect(false)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={doReconnect}>{busy ? 'Syncing…' : 'Sign in to SITS'}</Button></>}>
         <DL rows={[['Failed since', '30 Oct, 02:00'], ['Failed syncs', '3'], ['Affects', '41 new students aren’t in Applications']]} />
       </ODialog>
@@ -357,7 +357,7 @@ export function SettingsBranding() {
   const okColour = /^#[0-9a-f]{6}$/i.test(d.colour);
   const c = okColour ? d.colour : '#68246D';
   return (
-    <Layout wide tab="branding" title="Branding" sub="How emails, notices and the resident portal look. The off-campus student site has its own look, in Portals." actions={actions}>
+    <Layout wide tab="branding" title="Branding" sub="How emails, notices and the resident portal look." actions={actions}>
       <div className="grid grid-cols-[1fr_400px] gap-5 items-start">
         {/* 3061:2: plain labelled fields (14px medium label, 16px gaps); 48px logo tile with name + hint; 36px colour swatch beside the hex field; reply-to with a mail icon. */}
         <div className="space-y-4">

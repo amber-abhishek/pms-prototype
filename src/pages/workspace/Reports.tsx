@@ -6,11 +6,18 @@ import {
   ShareNetwork, Info, UsersThree, Warning, Wrench, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Dropdown, FilterButton, Input, Pill, Sheet, Switch, Table, Toolbar, cx, pressCard } from '../../components/ui';
+import { Avatar, Button, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, pressCard, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { useTab } from '../hooks';
 import { useDb } from '../../data/store';
 import { REPORTS, badgeLabel, useWorkspace, whenLabel, wid, type Recipient, type ReportDef, type Schedule } from '../../data/workspace';
 import { Alert, EmptyState, Header, IconSelect, RowMenu } from '../org/parts';
+import { useEmpty } from '../../data/empty';
+import { Empty } from '../../components/ui';
+
+/** Empty-states demo: a report with nothing to count yet. */
+function NoReportData({ icon, title }: { icon: Icon; title: string }) {
+  return <><Header icon={icon} crumbs={crumbs} title={title} /><div className="flex-1 flex items-center justify-center"><Empty icon={icon} title="No data yet" sub="Numbers show here once there are halls, applications and residents." /></div></>;
+}
 
 const AREA_ICON: Record<string, Icon> = { occupancy: Bed, applications: FunnelIcon, rent: CurrencyGbp, sla: Wrench, requests: ChatCircleText, notices: Megaphone };
 const LIB = '/reports/library';
@@ -24,9 +31,8 @@ export function ReportsLibrary() {
   const nav = useNavigate();
   const schedules = useWorkspace((s) => s.schedules);
   const [tab, setTab] = useTab<LibTab>('library');
-  const [f, setF] = useState<Record<string, string>>({});
   const [fix, setFix] = useState<Schedule | null>(null);
-  const list = REPORTS.filter((r) => !f.area || r.area === f.area);
+  const list = REPORTS;
   const [sp, setSp] = useSearchParams();
   // ?demo=empty shows the "Nothing scheduled" state (3130:2).
   useEffect(() => {
@@ -40,7 +46,6 @@ export function ReportsLibrary() {
         <Button icon={Plus} onClick={() => toast('Custom reports are coming soon', { description: 'Start from a library report and schedule it for now.' })}>New report</Button>
       </Header>
       {/* Library, Scheduled and Shared with me are rows in the Reports panel, so the page has no tabs. */}
-      {tab === 'library' && <Toolbar right={<FilterButton value={f} onChange={setF} defs={[{ id: 'area', label: 'Area', options: ['Inventory', 'Allocations', 'Finance', 'Maintenance', 'Residents'] }]} />} />}
       {tab === 'library' && (
         <div className="flex-1 overflow-auto p-5">
           <div className="grid grid-cols-3 gap-4">
@@ -50,20 +55,20 @@ export function ReportsLibrary() {
       )}
       {tab === 'scheduled' && (schedules.length === 0 ? (
         <div className="flex-1 overflow-auto flex items-center justify-center">
-          <EmptyState icon={CalendarBlank} title="Nothing scheduled" sub="Open any report and choose Schedule to email it on a day and time. Recipients don’t need a PMS account.">
+          <EmptyState art="schedule" icon={CalendarBlank} title="Nothing scheduled" sub="Open a report and choose Schedule to email it.">
             <Button variant="primary" onClick={() => setTab('library')}>Browse the library</Button>
           </EmptyState>
         </div>
-      ) : <ScheduledList onFix={setFix} />)}
-      {tab === 'shared' && (
-        <Table rows={[{ id: 'sh1' }]} onRow={() => nav('/reports')} summary="1 report shared with you" cols={[
+      ) : <ScheduledList onFix={setFix} selected={fix?.id} />)}
+      {tab === 'shared' && (<div className="flex-1 min-h-0 flex flex-col pt-6">
+        <Table rows={[{ id: 'sh1' }]} onRow={() => nav('/reports')} cols={[
           { key: 'r', label: 'Report', render: () => <span className="flex items-center gap-2.5"><span className="size-7 rounded-lg bg-[#DBEAFE] flex items-center justify-center"><Bed size={14} className="text-[#2563EB]" /></span><span className="text-sm font-medium">Arrivals this week · Collingwood</span></span> },
           { key: 'b', label: 'Shared by', render: () => <span className="flex items-center gap-2 text-sm"><Avatar name="Tom Baker" size={20} />Tom Baker</span> },
           { key: 'f', label: 'From', render: () => <span className="text-sm text-[#646A78]">Occupancy</span> },
           { key: 'w', label: 'Shared', render: () => <span className="text-sm text-[#646A78]">12 Sep</span> },
         ]} />
-      )}
-      {fix && <RecipientSheet key={fix.id} s={fix} onClose={() => setFix(null)} />}
+      </div>)}
+      {fix && <RecipientSheet key={fix.id} s={fix} nav={listNav(schedules, (x) => x.id === fix.id, (x) => setFix(x))} onClose={() => setFix(null)} />}
     </>
   );
 }
@@ -82,21 +87,21 @@ function ReportCard({ r, badge, onOpen }: { r: ReportDef; badge?: Schedule; onOp
   );
 }
 
-function ScheduledList({ onFix }: { onFix: (s: Schedule) => void }) {
+function ScheduledList({ onFix, selected }: { onFix: (s: Schedule) => void; selected?: string }) {
   const { schedules, set, restore } = useWorkspace();
   const nav = useNavigate();
   const bounced = schedules.filter((s) => s.lastSend === 'Not delivered');
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {bounced.map((s) => (
-        <div key={s.id} className="px-5 pt-4">
+        <div key={s.id} className="px-[var(--tx,16px)] pt-4">
           <Alert tone="red" icon={Warning} title={`${s.sendsTo} bounced on ${s.bounced ?? 'Mon 08:00'}`} action={<Button size="sm" onClick={() => onFix(s)}>Change recipient</Button>}>
-            The mailbox no longer exists. Pick a new recipient; the report is kept in Reports meanwhile.
+            The mailbox no longer exists.
           </Alert>
         </div>
       ))}
-      <div className={cx('flex-1 min-h-0 flex flex-col', bounced.length && 'mt-4 border-t border-line')}>
-        <Table rows={schedules} onRow={onFix} summary={`${schedules.length} scheduled · recipients only see halls they have access to`} cols={[
+      <div className="flex-1 min-h-0 flex flex-col pt-6">
+        <Table rows={schedules} onRow={onFix} selected={selected} cols={[
           { key: 'r', label: 'Report', className: 'w-[26%]', render: (s) => <span className="text-sm font-medium">{s.name}</span> },
           { key: 't', label: 'Sends to', render: (s) => <span className="text-sm text-gray-700">{s.sendsTo}</span> },
           { key: 'w', label: 'When', render: (s) => <span className="text-sm text-gray-700">{whenLabel(s)}</span> },
@@ -114,7 +119,7 @@ function ScheduledList({ onFix }: { onFix: (s: Schedule) => void }) {
 }
 
 /** E4 · 02: change a bounced schedule's recipient and send this week's copy. Also the general schedule editor from the list. */
-function RecipientSheet({ s, onClose }: { s: Schedule; onClose: () => void }) {
+function RecipientSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Schedule; onClose: () => void }) {
   const { set, restore } = useWorkspace();
   const bouncedNow = s.lastSend === 'Not delivered';
   const [to, setTo] = useState(bouncedNow ? 'warden.collingwood@durham.ac.uk' : s.sendsTo);
@@ -138,24 +143,27 @@ function RecipientSheet({ s, onClose }: { s: Schedule; onClose: () => void }) {
     toast.success(now ? `${s.name} sent to ${multi ? s.sendsTo : email}` : `${s.name} · schedule saved`, { action: { label: 'Undo', onClick: () => restore({ schedules: before }) } });
   };
   return (
-    <Sheet open onClose={onClose} width={500} title={<span className="flex items-center gap-2.5"><span className="size-8 rounded-lg bg-[#DBEAFE] flex items-center justify-center"><CalendarBlank size={16} className="text-[#2563EB]" /></span>{s.name} · schedule</span>} sub={whenLabel(s)}
+    <Sheet open onClose={onClose} nav={nav} width={500} title={`${s.name} · schedule`} sub={whenLabel(s)}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{now ? 'Save and send' : 'Save'}</Button></>}>
-      <div className="space-y-5">
-        <div><div className="text-sm font-medium mb-1.5">Send to</div>
+      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <SheetSection title="Send to">
           {multi ? <div className="text-sm text-gray-700">{s.sendsTo}</div> : (
             <label className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-[#646A78]" /><Input value={to} onChange={(e) => setTo(e.target.value)} className="pl-8" /></label>
           )}
           {bouncedNow && <p className="text-xs text-[#E0243A] mt-1.5">{s.sendsTo} bounced: the mailbox no longer exists.</p>}
-        </div>
-        <div><div className="text-sm font-medium mb-1.5">When</div>
+        </SheetSection>
+        <SheetSection title="When">
           <div className="grid grid-cols-2 gap-3">
             <IconSelect ariaLabel="Day" value={day} onChange={setDay} options={[...DAYS.map((d) => ({ value: d, label: `${d}s` })), { value: '1st', label: '1st of the month' }]} />
             <IconSelect ariaLabel="Time" icon={Clock} value={time} onChange={setTime} options={TIMES.map((t) => ({ value: t, label: t }))} />
-          </div></div>
+          </div>
+        </SheetSection>
+        <SheetSection title="This week">
         <div className="rounded-xl border border-line p-3.5 flex items-center gap-3">
           <span className="flex-1"><span className="block text-sm font-medium">Send this week’s now</span><span className="block text-xs text-[#646A78] mt-0.5">{bouncedNow ? 'Monday’s copy never arrived' : 'Sends the latest copy straight away'}</span></span>
           <Switch checked={now} onChange={setNow} label="Send this week’s now" />
         </div>
+        </SheetSection>
       </div>
     </Sheet>
   );
@@ -213,6 +221,7 @@ export function OccupancyReport() {
   const [hall, setHall] = useState('All halls');
   const [by, setBy] = useState('By week');
   const [sheet, setSheet] = useState(false);
+  if (useEmpty.getState().on) return <NoReportData icon={ChartBar} title="Occupancy" />;
   const rows = hall === 'All halls' ? HALL_ROWS : HALL_ROWS.filter((r) => r.hall === hall);
   const t = rows.reduce((a, r) => ({ beds: a.beds + r.beds, res: a.res + r.res, arr: a.arr + r.arr, vac: a.vac + r.vac, blk: a.blk + r.blk, risk: a.risk + atRisk(r), roll: a.roll + rentRoll(r) }), { beds: 0, res: 0, arr: 0, vac: 0, blk: 0, risk: 0, roll: 0 });
   const voids = [...rows].filter((r) => r.vac > 0).sort((a, b) => atRisk(b) - atRisk(a));
@@ -261,7 +270,7 @@ export function OccupancyReport() {
               <th className="text-left font-medium h-9 pl-4">Property</th><th className="text-right font-medium px-3">Void beds</th><th className="text-left font-medium px-3">Most void type</th><th className="text-right font-medium pr-4">Rent at risk</th>
             </tr></thead>
             <tbody>{voids.map((r) => (
-              <tr key={r.id} className="border-b border-[#F3F4F6] hover:bg-[#FAFAFB] cursor-pointer" onClick={() => nav(`/inventory/properties?open=${r.id}`)}>
+              <tr key={r.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#FAFAFB] cursor-pointer" onClick={() => nav(`/inventory/properties?open=${r.id}`)}>
                 <td className="h-10 pl-4 font-medium">{r.hall}</td>
                 <td className="text-right px-3 tabular-nums">{r.vac}</td>
                 <td className="px-3 text-[#646A78]">{MONEY[r.id].type}</td>
@@ -336,14 +345,16 @@ function ScheduleSheet({ existing, onClose }: { existing?: Schedule; onClose: ()
   };
   return (
     <Sheet open onClose={onClose} width={500}
-      title={<span className="flex items-center gap-2.5"><span className="size-8 rounded-lg bg-[#DBEAFE] flex items-center justify-center"><CalendarBlank size={16} className="text-[#2563EB]" /></span><span className="leading-tight"><span className="block text-sm font-semibold">Schedule this report</span><span className="block text-xs font-normal text-[#646A78]">Occupancy · all halls · by week</span></span></span>}
+      title="Schedule this report" sub="Occupancy · all halls · by week"
       footer={<>{existing && <Button variant="danger-ghost" className="mr-auto" onClick={stop}>Stop sending</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{existing ? 'Save' : 'Schedule'}</Button></>}>
-      <div className="space-y-5">
+      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <SheetSection title="When">
         <div className="grid grid-cols-2 gap-3">
           <div><div className="text-sm font-medium mb-1.5">Every</div><IconSelect ariaLabel="Every" icon={CalendarBlank} value={day} onChange={setDay} options={[...DAYS.map((d) => ({ value: d, label: d })), { value: '1st', label: '1st of the month' }]} /></div>
           <div><div className="text-sm font-medium mb-1.5">At</div><IconSelect ariaLabel="At" icon={Clock} value={time} onChange={setTime} options={TIMES.map((t) => ({ value: t, label: t }))} /></div>
         </div>
-        <div><div className="text-sm font-medium mb-1.5">Send to</div>
+        </SheetSection>
+        <SheetSection title="Send to">
           <div className="rounded-[10px] border border-line px-3 py-1">
             {rec.map((r) => (
               <div key={r.id} className="group h-8 flex items-center gap-2.5">
@@ -362,15 +373,17 @@ function ScheduleSheet({ existing, onClose }: { existing?: Schedule; onClose: ()
                 {sugg.length > 0 && <div className="mt-1 rounded-lg border border-line divide-y divide-line">{sugg.map((r) => <button key={r.id} type="button" onClick={() => add(r)} className="w-full h-8 px-2.5 flex items-center gap-2 text-left text-sm hover:bg-gray-50">{r.name}<span className="ml-auto text-xs text-[#646A78]">{r.sub}</span></button>)}</div>}
               </div>
             ) : <button type="button" onClick={() => setAdding(true)} className="h-8 flex items-center gap-2 text-sm text-primary"><Plus size={13} />Add people or a group</button>}
-          </div></div>
-        <div><div className="text-sm font-medium mb-1.5">Format</div>
+          </div>
+          <div className="mt-3 rounded-lg border border-primary/30 p-3 flex gap-2.5"><Info size={16} className="text-primary shrink-0 mt-0.5" />
+            <div><div className="text-sm font-medium text-primary">Recipients only see halls they have access to</div><div className="text-xs text-[#646A78] mt-0.5">Heads of college get their own college’s rows.</div></div></div>
+        </SheetSection>
+        <SheetSection title="Format">
           <div className="grid grid-cols-2 gap-2">
             {([['pdf', 'PDF summary'], ['csv', 'CSV data']] as const).map(([k, l]) => (
               <div key={k} className="h-10 rounded-[10px] border border-line px-3 flex items-center gap-2"><DownloadSimple size={14} className="text-[#646A78]" /><span className="text-sm font-medium flex-1">{l}</span><Switch checked={fmts[k]} onChange={(v) => setFmts({ ...fmts, [k]: v })} label={l} /></div>
             ))}
-          </div></div>
-        <div className="rounded-lg border border-primary p-3 flex gap-2.5"><Info size={16} className="text-primary shrink-0 mt-0.5" />
-          <div><div className="text-sm font-medium text-primary">Recipients only see halls they have access to</div><div className="text-xs text-[#646A78] mt-0.5">Heads of college get their own college’s rows.</div></div></div>
+          </div>
+        </SheetSection>
       </div>
     </Sheet>
   );
@@ -380,6 +393,7 @@ function ScheduleSheet({ existing, onClose }: { existing?: Schedule; onClose: ()
 export function ApplicationsReport() {
   const apps = useDb((s) => s.applications);
   const [cycle, setCycle] = useState('2027/28');
+  if (!apps.length) return <NoReportData icon={FunnelIcon} title="Applications funnel" />;
   const stages = [
     ['Applied', apps.length, '#2563EB'], ['Reviewed', apps.filter((a) => a.status !== 'New').length, '#7E22CE'],
     ['Offered', apps.filter((a) => ['Offered', 'Accepted'].includes(a.status)).length, '#F59E0B'], ['Accepted', apps.filter((a) => a.status === 'Accepted').length, '#0B8A4C'],
@@ -435,6 +449,7 @@ export function SimpleReport() {
   const def = REPORTS.find((x) => x.to === `/reports/${id}`);
   if (!r) return <><Header icon={ChartBar} crumbs={crumbs} title="Report not found" /><div className="p-6 text-sm text-[#646A78]">There’s no report here. Pick one from the library.</div></>;
   const I = (def && AREA_ICON[def.id]) ?? ChartBar;
+  if (useEmpty.getState().on) return <NoReportData icon={I} title={r.title} />;
   return (
     <>
       <Header icon={I} crumbs={crumbs} title={r.title}>

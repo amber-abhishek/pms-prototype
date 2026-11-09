@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CalendarRange, Grid3x3, List } from '../../components/icons';
-import { Button, FilterButton, PageHeader, Pill, Table, Tabs, cx, type Tone } from '../../components/ui';
+import { Buildings, CalendarRange, CaretDown, Grid3x3, List, Stack } from '../../components/icons';
+import { Button, FilterButton, PageHeader, Pill, Table, cx, type Tone, PageHeading } from '../../components/ui';
 import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import { Menu } from './common';
+import { useEmpty } from '../../data/empty';
+import { EmptyArea } from '../allocations/common';
+import { useNavigate } from 'react-router-dom';
 import { DownloadSimple, LayoutGrid } from '../../components/icons';
 
 /* Occupancy, floor plan (frame 3355:105349): hall tabs with bed counts, five stat tiles, then one
@@ -69,40 +72,60 @@ export function OccupancyPage() {
   const [year, setYear] = useState('2026/27');
   const [view, setView] = useState<'plan' | 'list'>('plan');
   const h = HALLS.find((x) => x.id === hid)!;
-  const [filters, setFilters] = useState<Record<string, string>>({ block: 'Block G' });
-  const block = h.blocks.includes(filters.block) ? filters.block : h.blocks[0];
+  /* Block is a picker (the plan shows one block at a time), not a filter, so Filter only holds Status and starts empty. */
+  const [blockSel, setBlock] = useState('Block G');
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const block = h.blocks.includes(blockSel) ? blockSel : h.blocks[0];
   const status = ORDER.find((s) => ST[s].label === filters.status);
   const rooms = useMemo(() => roomsFor(h, block).filter((x) => !status || x.st === status), [h, block, status]);
-  const pickHall = (id: string) => { const nh = HALLS.find((x) => x.id === id)!; setHid(id); setFilters((f) => ({ ...f, block: nh.blocks[0] })); };
+  const empty = useEmpty((s) => s.on);
+  const nav = useNavigate();
+  const pickHall = (id: string) => { const nh = HALLS.find((x) => x.id === id)!; setHid(id); setBlock(nh.blocks[0]); };
 
   const tiles: [string, number, string][] = [
     ['Beds', h.beds, 'text-[#111827]'], ['In residence', h.inRes, 'text-[#0B8A4C]'], ['Arriving this week', h.arriving, 'text-[#1F45E0]'],
     ['Vacant', h.vacant, 'text-[#E5530C]'], ['Blocked', h.blocked, 'text-[#111827]'],
   ];
 
+  /* Empty-states demo: no halls yet, so no plan to show. */
+  if (empty) return (
+    <>
+      <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Inventory']} />
+      <EmptyArea art="rooms" icon={Grid3x3} title="No rooms to show yet" sub="Add a property and its rooms, and who lives where shows here.">
+        <Button variant="primary" onClick={() => nav('/inventory/properties')}>Add a property</Button>
+      </EmptyArea>
+    </>
+  );
   return (
     <>
       <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Inventory']}>
-        <Menu width={140} trigger={(o) => <Button icon={CalendarRange} onClick={o}>{year}</Button>} items={['2025/26', '2026/27', '2027/28'].map((y) => ({ label: y, onClick: () => setYear(y) }))} />
+        <Menu width={140} trigger={(o) => <Button variant="control" icon={CalendarRange} onClick={o}>{year}</Button>} items={['2025/26', '2026/27', '2027/28'].map((y) => ({ label: y, onClick: () => setYear(y) }))} />
         <Button icon={DownloadSimple} onClick={() => toast.success(`${h.name.toLowerCase().replace(/\W+/g, '-')}-occupancy-${year.replace('/', '-')}.csv exported`)}>Export</Button>
       </PageHeader>
 
-      <div className="h-[52px] shrink-0 px-4 flex items-center gap-3 border-b border-[#F3F4F6]">
-        <Tabs value={hid} onChange={pickHall} tabs={HALLS.map((x) => ({ id: x.id, label: x.name, count: x.beds }))} />
-        <div className="ml-auto flex items-center gap-3">
-          <FilterButton defs={[{ id: 'block', label: 'Block', options: h.blocks }, { id: 'status', label: 'Status', options: ORDER.map((s) => ST[s].label) }]} value={filters} onChange={setFilters} />
-          <UITabs value={view} onValueChange={(v) => setView(v as typeof view)}>
-            <TabsList aria-label="View">
-              {([['plan', 'Floor plan', LayoutGrid], ['list', 'List', List]] as const).map(([id, label, I]) => (
-                <TabsTrigger key={id} value={id} className="gap-1.5 text-xs"><I size={12} />{label}</TabsTrigger>
-              ))}
-            </TabsList>
-          </UITabs>
-        </div>
+      <PageHeading right={<>
+        <FilterButton defs={[{ id: 'status', label: 'Status', options: ORDER.map((s) => ST[s].label) }]} value={filters} onChange={setFilters} />
+        <UITabs value={view} onValueChange={(v) => setView(v as typeof view)}>
+        <TabsList aria-label="View">
+        {([['plan', 'Floor plan', LayoutGrid], ['list', 'List', List]] as const).map(([id, label, I]) => (
+        <TabsTrigger key={id} value={id} className="gap-1.5 text-xs"><I size={12} />{label}</TabsTrigger>
+        ))}
+        </TabsList>
+        </UITabs>
+      </>} />
+      <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-3">
+        <Menu align="left" width={240} trigger={() => (
+          <Button variant="control" icon={Buildings}>{h.name}<span className="text-gray-500 tabular-nums">{h.beds}</span><CaretDown size={14} className="text-gray-500" /></Button>
+        )} items={HALLS.map((x) => ({ label: `${x.name} · ${x.beds} beds`, onClick: () => pickHall(x.id) }))} />
+        {h.blocks.length > 1 && (
+          <Menu align="left" width={180} trigger={() => (
+            <Button variant="control" icon={Stack}>{block}<CaretDown size={14} className="text-gray-500" /></Button>
+          )} items={h.blocks.map((b) => ({ label: b, onClick: () => setBlock(b) }))} />
+        )}
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <div className="px-5 pt-4 grid grid-cols-5 gap-3">
+      <div data-fill className="flex-1 overflow-auto">
+        <div className="px-[var(--tx,16px)] pt-4 grid grid-cols-5 gap-3">
           {tiles.map(([label, v, c]) => (
             <div key={label} className="rounded-xl border border-line bg-white px-3.5 py-2.5 flex flex-col gap-0.5">
               <div className="text-xs leading-4 font-medium text-[#646A78]">{label}</div>
@@ -111,7 +134,7 @@ export function OccupancyPage() {
           ))}
         </div>
 
-        <div className="px-5 pt-3.5 flex items-center">
+        <div className="px-[var(--tx,16px)] pt-3.5 flex items-center">
           <div className="text-sm leading-5 font-semibold text-[#111827]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>
           <div className="ml-auto flex items-center gap-4">
             {ORDER.map((s) => <span key={s} className="flex items-center gap-1.5 text-xs leading-4 text-[#646A78]"><span className={cx('size-2.5 rounded-[3px] border', ST[s].swatch)} />{ST[s].label}</span>)}
@@ -119,7 +142,7 @@ export function OccupancyPage() {
         </div>
 
         {view === 'plan' ? (
-          <div className="px-5 py-3 flex flex-col gap-4">
+          <div className="px-[var(--tx,16px)] py-3 flex flex-col gap-4">
             {FLOORS.map(([floor]) => {
               const fr = rooms.filter((x) => x.floor === floor);
               if (!fr.length) return null;
@@ -141,7 +164,7 @@ export function OccupancyPage() {
           </div>
         ) : (
           <div className="pt-3">
-            <Table footer={false} rows={rooms.map((x) => ({ ...x, id: x.code }))} summary={`${rooms.length} rooms`}
+            <Table footer={false} rows={rooms.map((x) => ({ ...x, id: x.code }))}
               cols={[
                 { key: 'code', label: 'Room', render: (x) => <span className="font-medium">{x.code}</span> },
                 { key: 'floor', label: 'Floor', render: (x) => x.floor },

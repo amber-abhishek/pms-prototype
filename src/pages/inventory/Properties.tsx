@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Illustration } from '../../components/Illustration';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Archive, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, Tag as TagIcon, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
 } from '../../components/icons';
-import { Button, Check, Empty, Field, PageHeader, SearchInput, Table, Tabs, cx } from '../../components/ui';
+import { Button, Check, Empty, Field, PageHeader, SearchInput, Table, Tabs, cx, toolbarCls, PageHeading } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
 import { IconTile, Kbd, Menu, Modal, Picker, PropStatus, RadioCard, Tags } from './common';
@@ -27,7 +28,6 @@ export function PropertiesPage() {
 
   const list = useMemo(() => (empty ? [] : props).filter((p) => p.status !== 'Archived'), [props, empty]);
   const rows = list.filter((p) => (tab === 'all' || (tab === 'city' ? p.campus === 'Durham City' : p.campus === 'Queen’s Campus')) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())));
-  const units = rows.reduce((a, p) => a + p.units, 0);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -79,7 +79,7 @@ export function PropertiesPage() {
           <div className="max-w-md text-center">
             <EmptyArt />
             <div className="font-semibold mt-5">No properties yet</div>
-            <p className="text-sm text-[#646A78] mt-1">A property is a hall or building. Build it from a structure step by step, or import its rooms from a spreadsheet.</p>
+            <p className="text-sm text-[#646A78] mt-1">Build one from a layout, or import its rooms from a spreadsheet.</p>
             <div className="flex justify-center gap-2 mt-4">
               <Button variant="primary" icon={Plus} onClick={() => nav('/inventory/properties/new')}>Add a property</Button>
               <Button icon={UploadSimple} onClick={() => setImport(true)}>Import from a spreadsheet</Button>
@@ -88,16 +88,15 @@ export function PropertiesPage() {
         </div>
       ) : (
         <>
-          <div className="h-14 shrink-0 px-4 flex items-center gap-2 border-b border-line">
+          <PageHeading right={<>
+            <SearchInput value={q} onChange={setQ} placeholder="Search properties" />
+            <Display hidden={hidden} setHidden={setHidden} />
+          </>} />
+          <div className={cx(toolbarCls, '!pt-0 empty:hidden')}>
             <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: list.length }, { id: 'city', label: 'Durham City', count: list.filter((p) => p.campus === 'Durham City').length }, { id: 'queens', label: 'Queen’s Campus', count: list.filter((p) => p.campus === 'Queen’s Campus').length }]} />
-            <div className="ml-auto flex items-center gap-2">
-              <SearchInput value={q} onChange={setQ} placeholder="Search properties" />
-              <Display hidden={hidden} setHidden={setHidden} />
-            </div>
           </div>
           <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)}
             empty={<Empty title="No properties match" sub="Try another campus or clear the search." />}
-            summary={`${rows.length} ${rows.length === 1 ? 'property' : 'properties'} · ${units.toLocaleString('en-GB')} units`}
             footerRight={<span className="flex items-center gap-1.5 mr-2"><Kbd>C</Kbd> new property</span>} />
         </>
       )}
@@ -111,7 +110,7 @@ function Display({ hidden, setHidden }: { hidden: string[]; setHidden: (h: strin
   /* shadcn Popover. */
   return (
     <Popover>
-      <PopoverTrigger asChild><Button icon={SlidersHorizontal}>Display</Button></PopoverTrigger>
+      <PopoverTrigger asChild><Button variant="control" icon={SlidersHorizontal}>Display</Button></PopoverTrigger>
       <PopoverContent align="end" className="w-56 space-y-2">
         <div className="text-xs font-semibold text-[#646A78] uppercase tracking-wide">Columns</div>
         {COLS.map((c) => <div key={c}><Check label={c} checked={!hidden.includes(c)} onChange={(v) => setHidden(v ? hidden.filter((h) => h !== c) : [...hidden, c])} /></div>)}
@@ -120,31 +119,9 @@ function Display({ hidden, setHidden }: { hidden: string[]; setHidden: (h: strin
   );
 }
 
-/* Blue tonal "empty" illustration: a building on a soft card, like the IconScout empty states. */
-export function EmptyArt({ kind = 'building' }: { kind?: 'building' | 'search' | 'clipboard' }) {
-  return (
-    <svg width="203" height="160" viewBox="0 0 203 160" className="mx-auto" aria-hidden>
-      <rect x="20" y="22" width="163" height="118" rx="18" fill="#EFF6FF" />
-      {kind === 'building' && (<g>
-        <rect x="70" y="40" width="64" height="86" rx="4" fill="#93C5FD" /><rect x="78" y="30" width="48" height="12" rx="3" fill="#1D4ED8" />
-        {[0, 1, 2, 3].map((r) => [0, 1, 2].map((c) => <rect key={`${r}${c}`} x={80 + c * 16} y={50 + r * 16} width="10" height="10" rx="2" fill="#EFF6FF" />))}
-        <rect x="94" y="108" width="16" height="18" rx="2" fill="#1D4ED8" /><rect x="40" y="96" width="26" height="30" rx="4" fill="#BFDBFE" /><rect x="138" y="88" width="26" height="38" rx="4" fill="#BFDBFE" />
-        <circle cx="54" cy="80" r="8" fill="#86EFAC" /><rect x="52" y="86" width="4" height="12" fill="#16A34A" />
-      </g>)}
-      {kind === 'search' && (<g>
-        <rect x="92" y="44" width="56" height="70" rx="4" fill="#93C5FD" /><rect x="100" y="54" width="40" height="5" rx="2" fill="#EFF6FF" /><rect x="100" y="64" width="32" height="5" rx="2" fill="#EFF6FF" /><rect x="100" y="74" width="36" height="5" rx="2" fill="#EFF6FF" />
-        <rect x="128" y="40" width="10" height="70" rx="3" fill="#1D4ED8" />
-        <circle cx="82" cy="78" r="20" fill="none" stroke="#3B82F6" strokeWidth="7" /><circle cx="82" cy="78" r="16" fill="#DBEAFE" opacity=".8" /><rect x="58" y="96" width="8" height="24" rx="4" transform="rotate(40 62 108)" fill="#1D4ED8" />
-      </g>)}
-      {kind === 'clipboard' && (<g>
-        <rect x="74" y="34" width="62" height="88" rx="4" fill="#93C5FD" /><rect x="80" y="44" width="50" height="72" rx="2" fill="#EFF6FF" /><rect x="90" y="28" width="30" height="12" rx="3" fill="#1D4ED8" />
-        {[0, 1, 2, 3].map((i) => <rect key={i} x="88" y={74 + i * 9} width="34" height="3" rx="1.5" fill="#93C5FD" />)}
-        <path d="M105 52 l8 14 h-16 z" fill="#FCD34D" /><rect x="104" y="57" width="2" height="5" fill="#B45309" />
-        <rect x="46" y="64" width="18" height="12" rx="2" fill="#1D4ED8" /><rect x="146" y="88" width="18" height="12" rx="2" fill="#1D4ED8" />
-        <rect x="52" y="92" width="26" height="30" rx="3" fill="#BFDBFE" transform="rotate(-8 65 107)" />
-      </g>)}
-    </svg>
-  );
+/* Figma empty-state illustrations (Inventory · Empty states): properties for a new tenant, rooms for a property with none. */
+export function EmptyArt({ kind = 'building' }: { kind?: 'building' | 'clipboard' }) {
+  return <Illustration name={kind === 'clipboard' ? 'rooms' : 'properties'} />;
 }
 
 /* ---------------- Flow 2 · Import a property ---------------- */
@@ -181,7 +158,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <Modal open={open} onClose={onClose} icon={FileCsv} tone="green" width={600} title="Import a property"
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={UploadSimple} disabled={stage !== 'ok'} onClick={upload}>Upload</Button></>}>
-      <p className="text-sm text-[#646A78] -mt-3 ml-11">Each row is one room. The property, blocks, floors and flats are made from the rows.</p>
+      <p className="text-sm text-[#646A78] -mt-3 ml-11">One row per room.</p>
       <div className="space-y-4 mt-4">
         <Field label="Property layout" hint="The template’s columns come from this layout">
           <Picker value={structure} onChange={(v) => { setStructure(v); setStage('pick'); tries.current = 0; }} icon={TreeStructure} options={[{ id: 'College', label: 'College' }, { id: 'House', label: 'House' }]} />
@@ -189,7 +166,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         <div className="rounded-xl border border-line p-3.5">
           <div className="flex items-center justify-between"><span className="text-sm font-medium">Template columns</span><Button size="sm" icon={DownloadSimple} onClick={() => toast.success(`${structure.toLowerCase()}-template.csv downloaded`)}>Download template</Button></div>
           <div className="flex flex-wrap gap-1.5 mt-3">{cols.map((c) => <span key={c} className="h-6 px-2 rounded-md border border-line font-mono text-[11px] flex items-center">{c}</span>)}</div>
-          <p className="text-xs text-[#646A78] mt-2.5">One column per level, then one per custom field. * means required. New properties only.</p>
+          <p className="text-xs text-[#646A78] mt-2.5">* means required.</p>
         </div>
         {stage === 'pick' && (
           <div className="rounded-xl border-2 border-dashed border-gray-200 py-8 flex flex-col items-center text-center">

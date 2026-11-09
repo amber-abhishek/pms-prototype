@@ -48,7 +48,7 @@ specs.set(I.House, { body: <path fill={C} transform="scale(1.5)" d="M7.09109 2.1
 export const hasSolidIcon = (icon: Icon) => specs.has(icon);
 
 export function SolidIcon({ icon, size = 16, className }: { icon: Icon; size?: number; className?: string }) {
-  const id = useId();
+  const id = 'si' + useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const s = specs.get(icon);
   if (!s) return null;
   return (

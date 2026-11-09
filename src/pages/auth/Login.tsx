@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CaretRight, Check, CheckCircle, CircleNotch, EnvelopeSimple, UserCircle, X } from '../../components/icons';
-import { Button, Input, Note, cx } from '../../components/ui';
+import { Button, Input, Note, cx, Pill } from '../../components/ui';
 import { EXPIRED_CODE, RESEND_SECONDS, TENANTS, WRONG_CODE, nameFrom, needsPicker, useAuth, type Tenant } from '../../data/auth';
 
 type Step =
@@ -155,7 +155,7 @@ export function Login() {
               className="w-full flex items-center gap-3 rounded-lg p-2 text-left hover:bg-[#F9FAFB] disabled:opacity-60 disabled:cursor-default outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
               <span className="size-8 shrink-0 rounded-full bg-[#EFF6FF] text-[#1D4ED8] text-xs font-semibold flex items-center justify-center">{t.name.replace(/\b(University|of|the)\b/g, '').trim()[0]}</span>
               <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-ink">{t.name}</span><span className="block truncate text-xs text-[#646A78]">{t.host}</span></span>
-              {t.id === saved?.tenantId && <span className="h-5 px-2 rounded-full bg-[#EFF6FF] text-[#1D4ED8] text-xs font-medium flex items-center">Last used</span>}
+              {t.id === saved?.tenantId && <Pill tone="blue">Last used</Pill>}
               <span className="text-gray-400">{busy === t.id ? <Spinner /> : <CaretRight size={16} />}</span>
             </button>
           ))}

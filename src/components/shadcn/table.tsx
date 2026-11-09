@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { cn } from "../../lib/cn"
+import { GhostZone } from '../headerCtx'
 
 // No overflow on the wrapper: the page scroller owns scrolling, so the sticky header keeps working.
 const Table = React.forwardRef<
@@ -29,11 +30,13 @@ const TableBody = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <tbody
-    ref={ref}
-    className={cn("[&_tr:last-child]:border-0", className)}
-    {...props}
-  />
+  <GhostZone.Provider value>
+    <tbody
+      ref={ref}
+      className={cn("[&_tr:last-child]:border-0", className)}
+      {...props}
+    />
+  </GhostZone.Provider>
 ))
 TableBody.displayName = "TableBody"
 
@@ -74,7 +77,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      /* 2820:111: 36px header, 12px medium #646A78 */ "h-9 border-b border-line bg-background px-3 text-left align-middle text-muted-foreground text-xs font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+      /* 2820:111: 36px header, 12px medium #646A78 */ "h-10 bg-background shadow-[inset_0_-1px_0_#E5E7EB] px-4 text-left align-middle text-muted-foreground text-xs font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}
@@ -89,7 +92,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      /* 40px rows */ "h-10 px-3 py-1.5 align-middle [&:has([role=checkbox])]:pr-0",
+      /* 44px rows, 16px cell sides (2026-11-09: "more breathing space") */ "h-11 px-4 py-2 align-middle [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Empty } from '../../components/ui';
 import { toast } from 'sonner';
-import { ArrowLeft, Buildings, CalendarBlank, CurrencyGbp, Globe, Info, PencilSimple, Plus, Receipt, Tag as TagIcon, Warning } from '../../components/icons';
-import { Button, Field, Input, PageHeader, Sheet, Switch, Table, Tabs, cx } from '../../components/ui';
+import { Buildings, CalendarBlank, CurrencyGbp, Globe, Info, PencilSimple, Plus, Receipt, Tag as TagIcon, Warning } from '../../components/icons';
+import { Button, Field, Input, PageHeader, Sheet, SheetSection, Switch, Table, Tabs, cx, listNav, type SheetNav, PageHeading } from '../../components/ui';
 import { invId, money, useInv, type Fee, type FeeType, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { Modal, MoneyInput, Picker, PropStatus, RadioCard, Seg } from './common';
@@ -31,12 +32,12 @@ export function RentFeesPage() {
           <><Button icon={TagIcon} onClick={() => setTypesOpen(true)}>Fee types</Button><Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add fee</Button></>
         )}
       </PageHeader>
-      <div className="h-12 shrink-0 px-4 flex items-center gap-2 border-b border-[#F3F4F6]">
+      <PageHeading right={tab === 'templates' && <div className="w-64"><Picker value={pid} onChange={setPid} icon={Buildings} options={props.map((x) => ({ id: x.id, label: x.name }))} /></div>} />
+      <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-2 empty:hidden">
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'templates', label: 'Tenancy templates', count: tpls.length }, { id: 'fees', label: 'Fees', count: fees.length }]} />
-        {tab === 'templates' && <div className="ml-auto w-64"><Picker value={pid} onChange={setPid} icon={Buildings} options={props.map((x) => ({ id: x.id, label: x.name }))} /></div>}
       </div>
       {tab === 'templates' ? (
-        <Table rows={tpls} onRow={setEditing} summary={`${tpls.length} templates for ${p?.name ?? '—'} · a template belongs to one property`}
+        <Table rows={tpls} onRow={setEditing} selected={editing?.id}
           cols={[
             { key: 'n', label: 'Template', render: (t) => <span className="font-medium">{t.name}</span> },
             { key: 'l', label: 'Length', render: (t) => <span className="text-[#646A78]">{p?.letting === 'Monthly' ? `${Math.round(t.weeks * 12 / 52)} months` : `${t.weeks} weeks`}</span> },
@@ -45,11 +46,11 @@ export function RentFeesPage() {
             { key: 'b', label: 'Billing', render: (t) => <span className="text-[#646A78]">{t.billing}</span> },
             { key: 'k', label: 'Linked tenancies', className: 'text-right', render: (t) => <span className="tabular-nums">{t.linked}{t.own ? <span className="text-[#646A78]"> · {t.own} on own</span> : ''}</span> },
             { key: 's', label: 'Status', className: 'pl-6', render: (t) => <PropStatus s={t.status} /> },
-            { key: 'e', label: '', className: 'w-16 text-right', render: (t) => <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(t); }} className="h-7 px-2.5 rounded-lg border border-line bg-white text-xs font-medium text-[#374151] hover:bg-gray-50 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">Edit</button> },
+            { key: 'e', label: '', className: 'w-16 text-right', render: (t) => <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(t); }} className="h-7 px-2.5 rounded-full border border-transparent text-xs font-medium text-[#111827] hover:bg-[#F3F4F6] hover:border-[#E5E7EB]">Edit</button> },
           ]}
-          empty={<div className="p-10 text-center text-sm text-[#646A78]">No templates for {p?.name}. <button type="button" className="text-primary" onClick={() => newTemplate()}>Make one</button></div>} />
+          empty={!p ? <Empty title="No properties yet" sub="Tenancy templates belong to a property. Add one first." /> : <div className="p-10 text-center text-sm text-[#646A78]">No templates for {p?.name}. <button type="button" className="text-primary" onClick={() => newTemplate()}>Make one</button></div>} />
       ) : (
-        <Table rows={fees} selected={fresh ?? undefined} summary={`${fees.length} fees · organisation-wide fees apply to every property`}
+        <Table rows={fees} selected={fresh ?? undefined}
           cols={[
             { key: 'f', label: 'Fee', render: (f) => <span className="flex items-center gap-2"><Receipt size={16} className="text-gray-500" /><span className="font-medium">{feeTypes.find((t) => t.id === f.typeId)?.name}</span></span> },
             { key: 'c', label: 'Calculation', render: (f) => <span className="text-[#646A78]">{feeTypes.find((t) => t.id === f.typeId)?.calc}</span> },
@@ -60,7 +61,7 @@ export function RentFeesPage() {
             { key: 'm', label: 'Mandatory', render: (f) => (feeTypes.find((t) => t.id === f.typeId)?.mandatory ? 'Yes' : 'No') },
           ]} />
       )}
-      <TemplateSheet t={editing} onClose={() => setEditing(null)} />
+      <TemplateSheet key={editing?.id} t={editing} nav={listNav(tpls, (x) => x.id === editing?.id, (x) => setEditing(x))} onClose={() => setEditing(null)} />
       <AddFeeDialog open={adding} onClose={() => setAdding(false)} onAdded={(id) => { setFresh(id); window.setTimeout(() => setFresh(null), 4000); }} />
       <FeeTypesSheet open={typesOpen} onClose={() => setTypesOpen(false)} types={feeTypes} />
     </>
@@ -74,7 +75,7 @@ export function RentFeesPage() {
 }
 
 /* ---------------- F5: edit a template ---------------- */
-function TemplateSheet({ t, onClose }: { t: Template | null; onClose: () => void }) {
+function TemplateSheet({ t, onClose , nav }: { nav?: SheetNav;  t: Template | null; onClose: () => void }) {
   const [v, setV] = useState({ name: '', weeks: '', rent: '', deposit: '', billing: 'Termly' as Template['billing'], from: '', to: '' });
   const busy = useRef(false);
   useEffect(() => { if (t) { setV({ name: t.name, weeks: String(t.weeks), rent: String(t.rent), deposit: String(t.deposit), billing: t.billing, from: t.from, to: t.to }); busy.current = false; } }, [t]);
@@ -89,28 +90,39 @@ function TemplateSheet({ t, onClose }: { t: Template | null; onClose: () => void
     toast.success(rentChanged && follow ? `${v.name} saved · ${follow} tenancies now ${money(+v.rent)} / wk` : `${v.name} saved`);
   };
   return (
-    <Sheet open onClose={onClose} width={500} title={`Edit ${t.name}`} sub={`Tenancy template · ${t.linked} linked tenancies`}
+    <Sheet open onClose={onClose} nav={nav} width={500} title={`Edit ${t.name}`} sub={`${t.linked} linked tenancies`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{rentChanged && follow ? `Save and update ${follow}` : 'Save'}</Button></>}>
-      <div className="space-y-4">
+      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <SheetSection title="Template">
+        <div className="space-y-4">
         <Field label="Name"><Input value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Length"><label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Weeks" value={v.weeks} onChange={(e) => setV({ ...v, weeks: e.target.value.replace(/\D/g, '') })} className="flex-1 min-w-0 outline-none" /><span className="text-gray-400">weeks</span></label></Field>
+        </div>
+        </div>
+        </SheetSection>
+        <SheetSection title="Money">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Rent"><MoneyInput value={v.rent} onChange={(r) => setV({ ...v, rent: r })} suffix="/ wk" />{rentChanged && <span className="block text-xs text-[#646A78] mt-1">Was {money(t.rent)}</span>}</Field>
           <Field label="Deposit"><MoneyInput value={v.deposit} onChange={(r) => setV({ ...v, deposit: r })} /></Field>
           <Field label="Billing"><Picker value={v.billing} onChange={(b) => setV({ ...v, billing: b })} options={[{ id: 'Termly', label: 'Termly' }, { id: 'Monthly', label: 'Monthly' }, { id: 'Upfront', label: 'Upfront' }]} /></Field>
+        </div>
+        <div className="mt-4 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span className="text-[#646A78]">Sold tenancies never change. Only tenancies nobody has booked yet pick up the new rent.</span></div>
+        </SheetSection>
+        <SheetSection title="Availability">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Available from"><DateBox value={v.from} onChange={(x) => setV({ ...v, from: x })} /></Field>
           <Field label="Available to"><DateBox value={v.to} onChange={(x) => setV({ ...v, to: x })} /></Field>
         </div>
+        </SheetSection>
         {t.linked > 0 && (
-          <div className="rounded-xl border border-line">
-            <div className="h-10 px-3.5 flex items-center border-b border-line text-sm font-medium">Who gets the new rent</div>
-            <div className="p-3.5 space-y-2.5 text-sm">
+          <SheetSection title="Who gets the new rent">
+            <div className="space-y-2.5 text-sm">
               <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-primary" /><b className="font-medium">{follow} linked tenancies</b><span className="text-[#646A78]">follow the template</span></div>
               {t.own > 0 && <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-gray-300" /><b className="font-medium">{t.own} edited on their own</b><span className="text-[#646A78]">keep theirs{t.ownNote ? ` · ${t.ownNote}` : ''}</span></div>}
             </div>
-          </div>
+          </SheetSection>
         )}
-        <div className="rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span className="text-[#646A78]">Sold tenancies never change. Only tenancies nobody has booked yet pick up the new rent.</span></div>
       </div>
     </Sheet>
   );
@@ -158,8 +170,8 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
       title={stage === 'type' ? 'Add a fee' : stage === 'newType' ? 'New fee type' : `Add ${type?.name ?? 'fee'}`}
       sub={stage === 'type' ? 'Pick what kind of fee it is.' : stage === 'newType' ? 'A fee type is reused across properties.' : `${type?.calc} · ${type?.mandatory ? 'mandatory' : 'optional'} · ${type?.refundable ? 'refundable' : 'not refundable'}`}
       footer={stage === 'type' ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!typeId} onClick={() => setStage('config')}>Continue</Button></>
-        : stage === 'newType' ? <><Button icon={ArrowLeft} onClick={() => setStage('type')}>Back</Button><Button variant="primary" disabled={!nt.name.trim()} onClick={createType}>Create fee type</Button></>
-          : <><Button icon={ArrowLeft} onClick={() => setStage('type')}>Back</Button><Button variant="primary" disabled={!amount} onClick={add}>Add fee</Button></>}>
+        : stage === 'newType' ? <><Button onClick={() => setStage('type')}>Back</Button><Button variant="primary" disabled={!nt.name.trim()} onClick={createType}>Create fee type</Button></>
+          : <><Button onClick={() => setStage('type')}>Back</Button><Button variant="primary" disabled={!amount} onClick={add}>Add fee</Button></>}>
       {stage === 'type' && (
         <div className="space-y-2">
           {feeTypes.map((t) => <RadioCard key={t.id} checked={typeId === t.id} onClick={() => setTypeId(t.id)} title={t.name} sub={`${t.calc} · ${t.mandatory ? 'Mandatory' : 'Optional'}${t.refundable ? ' · refundable' : ''}`} />)}
@@ -199,7 +211,7 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
 function FeeTypesSheet({ open, onClose, types }: { open: boolean; onClose: () => void; types: FeeType[] }) {
   const set = useInv((s) => s.set);
   return (
-    <Sheet open={open} onClose={onClose} title="Fee types" sub={`${types.length} types · reused across properties`}>
+    <Sheet open={open} onClose={onClose} title="Fee types" sub={`${types.length} types`}>
       <div className="rounded-xl border border-line divide-y divide-line">
         {types.map((t) => (
           <div key={t.id} className="px-3.5 py-3 flex items-center gap-3">

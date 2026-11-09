@@ -26,6 +26,7 @@ export function useNavCounts() {
     tasks: myOpenCount(tasks),
     properties: props,
     toReview: appCounts(alloc).review,
+    manual: appCounts(alloc).manual,
     offers: offerCounts(alloc).open,
     maintenance: faults.filter((f) => f.status !== 'Fixed').length,
     requests: requests.filter((r) => r.status === 'Open').length,
@@ -39,7 +40,9 @@ export function useNavCounts() {
 }
 export type NavCounts = ReturnType<typeof useNavCounts>;
 
-export type NavItem = { label: string; to: string; icon: Icon; count?: (c: NavCounts) => number; alert?: boolean; soon?: boolean };
+/** A view inside a page (its ?tab=), shown under the row only while that page is open. */
+export type NavSub = { label: string; tab: string; count?: (c: NavCounts) => number };
+export type NavItem = { label: string; to: string; icon: Icon; count?: (c: NavCounts) => number; alert?: boolean; soon?: boolean; sub?: NavSub[]; /** The row itself opens a landing page (no tab); its sub rows are the tabs. */ landing?: boolean };
 export type NavSection = { label?: string; action?: string; pinned?: boolean; items: NavItem[] };
 export type Module = {
   id: string; label: string; icon: Icon; home: string; match: (path: string) => boolean;
@@ -84,10 +87,13 @@ export const modules: Module[] = [
     id: 'allocations', label: 'Allocations', icon: CalendarCheck, home: '/allocations/applications', group: 'modules', roles: ['admin'], subtitle: 'BMS',
     match: starts('/allocations'),
     sections: [{ items: [
-      { label: 'Cycles', to: '/allocations/cycles', icon: Calendar },
-      { label: 'Applications', to: '/allocations/applications', icon: Inbox, count: (c) => c.toReview },
+      { label: 'Applications', to: '/allocations/applications', icon: Inbox, landing: true, count: (c) => c.toReview, sub: [
+        { label: 'To review', tab: 'To review', count: (c) => c.toReview }, { label: 'Manual review', tab: 'Manual review', count: (c) => c.manual },
+        { label: 'Allocated', tab: 'Allocated' }, { label: 'Rejected', tab: 'Rejected' }, { label: 'All', tab: 'All' },
+      ] },
       { label: 'Offers & waitlist', to: '/allocations/offers', icon: Send, count: (c) => c.offers },
       { label: 'Bookings', to: '/allocations/bookings', icon: CalendarCheck },
+      { label: 'Cycles', to: '/allocations/cycles', icon: Calendar },
     ] }],
   },
   {
@@ -108,10 +114,10 @@ export const modules: Module[] = [
         { label: 'Landlord applications', to: '/offcampus/landlords', icon: UserCheck, count: (c) => c.landlords },
         { label: 'Listing reviews', to: '/offcampus/reviews', icon: ClipboardCheck, count: (c) => c.reviews },
       ] },
-      { label: 'Listings', items: [{ label: 'Listings', to: '/offcampus/listings', icon: LayoutTemplate }] },
+      { label: 'Listings', items: [{ label: 'Listings', to: '/offcampus/listings', icon: LayoutTemplate, sub: [{ label: 'HMO', tab: 'hmo' }, { label: 'Amber PBSA', tab: 'pbsa' }] }] },
       { label: 'Portal', items: [
         { label: 'Enquiries', to: '/offcampus/enquiries', icon: MessageSquare, count: (c) => c.enquiries },
-        { label: 'Portal settings', to: '/offcampus/portal', icon: Settings },
+        { label: 'Off-campus portal', to: '/offcampus/portal', icon: Settings },
       ] },
     ],
   },
@@ -126,7 +132,7 @@ export const modules: Module[] = [
     ] }],
   },
   {
-    id: 'site', label: 'Site', icon: Monitor, home: '/site', group: 'modules', roles: ['admin'], subtitle: 'LMS · on-campus booking site',
+    id: 'site', label: 'Booking site', icon: Monitor, home: '/site', group: 'modules', roles: ['admin'], subtitle: 'accommodation.durham.ac.uk',
     match: starts('/site'),
     sections: [{ items: [
       { label: 'Pages', to: '/site', icon: FileText },

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowSquareOut, DownloadSimple, EnvelopeSimple, Tray } from '../../components/icons';
+import { ArrowSquareOut, DownloadSimple, Tray } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, PageHeader, Table, Tabs } from '../../components/ui';
 import { useTab } from '../hooks';
@@ -39,13 +39,13 @@ export function Enquiries() {
         <Button icon={DownloadSimple} onClick={exportCsv}>Export CSV</Button>
       </PageHeader>
       <div className="flex-1 min-h-0 flex flex-col">
-        <Title title="Enquiries" sub="Students who enquired through your off-campus site. HMO enquiries go to the landlord; Amber PBSA enquiries go to the Amber team." />
-        <div className="px-6 pb-3 border-b border-line">
+        <Title title="Enquiries" />
+        <div className="px-[var(--tx,16px)] pb-3 empty:hidden">
           <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: list.length }, { id: 'hmo', label: 'HMO', count: list.filter((e) => e.source === 'HMO').length }, { id: 'pbsa', label: 'Amber PBSA', count: list.filter((e) => e.source === 'Amber PBSA').length }]} />
         </div>
         {!list.length ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
-            <EmptyArt icon={EnvelopeSimple} accent={<span className="size-6 rounded-full bg-[#F59E0B] text-white text-sm font-bold flex items-center justify-center">!</span>} />
+            <EmptyArt art="enquiries" />
             <div className="font-semibold mt-5">No enquiries yet</div>
             <p className="text-sm text-gray-500 mt-1 max-w-[430px]">
               {live ? 'Students’ questions from the site arrive here. Nobody has enquired yet.' : 'Students’ questions from the site arrive here once it’s published. The site is still a draft.'}
@@ -53,7 +53,7 @@ export function Enquiries() {
             <div className="mt-4"><Button icon={ArrowSquareOut} onClick={() => nav('/offcampus/portal/site')}>{live ? 'Open the site' : 'Open the draft site'}</Button></div>
           </div>
         ) : (
-          <Table<Enquiry> rows={rows} summary={`${rows.length} ${rows.length === 1 ? 'enquiry' : 'enquiries'}`}
+          <Table<Enquiry> fill rows={rows}
             empty={<div className="py-16 text-center text-sm text-gray-500">No enquiries from this source yet.</div>}
             cols={[
               { key: 's', label: 'Student', render: (e) => <span className="font-medium">{e.student}</span> },

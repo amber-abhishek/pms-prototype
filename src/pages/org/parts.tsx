@@ -1,25 +1,23 @@
 // Small pieces the Organisation, Reports and Settings screens share that the kit doesn't have.
 import { Fragment, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { CaretRight, DotsThree, type Icon } from '../../components/icons';
-import { Dropdown, cx } from '../../components/ui';
+import { Illustration, type Illo } from '../../components/Illustration';
+import { DotsThree, type Icon } from '../../components/icons';
+import { CrumbLink, Dropdown, cx } from '../../components/ui';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { X } from '../../components/icons';
 import { DialogClose } from '../../components/shadcn/dialog';
+import { GhostZone, headerZone, usePublishTitle } from '../../components/headerCtx';
 
 /** The 52px header row with clickable breadcrumbs ("Organisation › Roles and access › New role"). */
 export function Header({ icon: I, crumbs, title, children }: { icon?: Icon; crumbs: { label: string; to?: string }[]; title: string; children?: ReactNode }) {
+  usePublishTitle(title);
   return (
-    <div className="h-[52px] shrink-0 border-b border-line flex items-center gap-2 px-4">
+    <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
       {I && <I size={16} className="text-[#646A78]" />}
-      {crumbs.map((c) => (
-        <span key={c.label} className="flex items-center gap-2 text-sm text-[#646A78]">
-          {c.to ? <Link to={c.to} className="hover:text-ink">{c.label}</Link> : c.label}<CaretRight size={12} />
-        </span>
-      ))}
-      <h1 className="text-sm font-medium text-ink">{title}</h1>
-      <div className="ml-auto flex items-center gap-2">{children}</div>
+      <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map((c) => <CrumbLink key={c.label} c={c} />)}</div>
+      <h1 className="text-sm font-normal text-ink">{title}</h1>
+      <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
     </div>
   );
 }
@@ -75,13 +73,13 @@ export function Alert({ tone, icon: I, title, children, action }: { tone: 'red' 
 }
 
 /** Centred empty state for a whole page: blue tonal illustration box, title, sub, actions. No card. */
-export function EmptyState({ icon: I, title, sub, children }: { icon: Icon; title: string; sub: string; children?: ReactNode }) {
+export function EmptyState({ icon: I, title, sub, children, art }: { icon: Icon; title: string; sub: string; children?: ReactNode; art?: Illo }) {
   return (
     <div className="flex flex-col items-center text-center py-16 px-6">
-      <div className="relative w-[150px] h-[112px] rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-5">
+      {art ? <Illustration name={art} className="block w-[203px] h-[160px] mb-5" /> : <div className="relative w-[150px] h-[112px] rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-5">
         <span className="absolute left-4 top-5 size-2 rounded-full bg-[#93C5FD]" /><span className="absolute right-5 top-4 size-1.5 rounded-full bg-[#F87171]" /><span className="absolute right-6 bottom-5 size-2 rounded-full bg-[#86EFAC]" />
         <div className="size-16 rounded-full bg-[#BFDBFE] flex items-center justify-center"><I size={34} weight="duotone" className="text-[#2563EB]" /></div>
-      </div>
+      </div>}
       <div className="text-sm font-semibold">{title}</div>
       <p className="text-sm text-[#646A78] mt-1.5 max-w-[420px] leading-5">{sub}</p>
       {children && <div className="mt-4 flex items-center gap-2">{children}</div>}

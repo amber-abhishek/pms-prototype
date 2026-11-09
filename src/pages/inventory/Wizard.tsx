@@ -3,9 +3,9 @@ import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, ArrowRight, ArrowElbowDownRight, Bed, Buildings, BuildingOffice, CalendarBlank, CaretDown, CaretRight, Check, CircleDashed, DotsThree, Door, FileText, Info, MagnifyingGlass, MapPin, Minus, Plus, Stack, Trash, X,
+  ArrowElbowDownRight, Bed, Buildings, BuildingOffice, CalendarBlank, CaretDown, CaretRight, Check, CircleDashed, DotsThree, Door, FileText, Info, MagnifyingGlass, MapPin, Minus, Plus, Stack, Trash, X,
 } from '../../components/icons';
-import { Button, Field, Input, cx } from '../../components/ui';
+import { Button, Field, Input, cx, Pill } from '../../components/ui';
 import { invId, useInv, type Property, type Template } from '../../data/inventory';
 import { Menu, MoneyInput, Picker, Seg, Stepper } from './common';
 
@@ -88,7 +88,7 @@ export function AddPropertyWizard() {
 
   return (
     <>
-      <div className="h-[52px] shrink-0 border-b border-line flex items-center gap-2 px-4">
+      <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
         <Buildings size={16} className="text-[#646A78]" />
         <span className="flex items-center gap-2 text-sm text-[#646A78]">Inventory<CaretRight size={12} /></span>
         <button type="button" onClick={() => nav('/inventory/properties')} className="flex items-center gap-2 text-sm text-[#646A78] hover:text-ink">Properties<CaretRight size={12} /></button>
@@ -118,7 +118,7 @@ export function AddPropertyWizard() {
           <div className="flex-1 overflow-auto px-10 py-7">
             <div className={cx(step === 1 ? 'max-w-[860px]' : 'max-w-[528px]')}>
               <div className="text-sm text-[#646A78]">Step {step + 1} of 5</div>
-              <h2 className="text-[22px] font-semibold tracking-tight mt-1">{STEPS[step].title}</h2>
+              <h2 className="text-[22px] font-medium tracking-tight mt-1">{STEPS[step].title}</h2>
               <p className="text-sm text-[#646A78] mt-1 mb-6">{[
                 'What the property is called and how its units are organised.', 'Pick the place from the search. Its address and pin come from the result.',
                 'Build the blocks, floors and rooms. Each room becomes a unit you can let.', 'Make a tenancy template for each room type. Every room gets a draft tenancy from it.', 'Check everything, then create the property.',
@@ -134,7 +134,7 @@ export function AddPropertyWizard() {
                   <div>
                     <div className="text-sm font-medium text-gray-700 mb-1.5">Letting period</div>
                     <Seg value={letting} onChange={setLetting} options={['Weekly', 'Monthly']} className="w-80" />
-                    <p className="text-xs text-[#646A78] mt-1.5">Rent and tenancy length are counted in this unit. You can switch later; existing tenancies convert.</p>
+                    <p className="text-xs text-[#646A78] mt-1.5">Rent and tenancy length use this unit. You can switch later.</p>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-700 mb-1.5">Property layout</div>
@@ -189,7 +189,7 @@ export function AddPropertyWizard() {
                     <FileText size={16} className="text-[#646A78]" />
                     <span className="flex-1 text-sm">Already have every room in a spreadsheet? Import the whole property from a CSV instead.</span>
                     <button type="button" onClick={() => nav('/inventory/properties?import=1')} className="text-sm text-primary">Import instead</button>
-                    <span className="absolute -top-2.5 right-3 h-5 px-2 rounded-full border border-line bg-white text-[11px] text-[#646A78] flex items-center gap-1"><ArrowElbowDownRight size={11} />Flow 2</span>
+                    <span className="absolute -top-2.5 right-3"><Pill outline icon={ArrowElbowDownRight}>Flow 2</Pill></span>
                   </div>
                   {blocks.map((b) => openBlock === b.key ? (
                     <div key={b.key} className="rounded-xl border border-line bg-white">
@@ -277,9 +277,9 @@ export function AddPropertyWizard() {
             </div>
           </div>
           <div className="h-16 shrink-0 border-t border-line px-10 flex items-center">
-            {step === 0 ? <Button variant="ghost" onClick={() => nav('/inventory/properties')}>Cancel</Button> : <Button variant="ghost" icon={ArrowLeft} onClick={() => setStep(step - 1)}>Back</Button>}
+            {step === 0 ? <Button variant="ghost" onClick={() => nav('/inventory/properties')}>Cancel</Button> : <Button variant="ghost" onClick={() => setStep(step - 1)}>Back</Button>}
             <div className="ml-auto">
-              {step < 4 ? <Button variant="primary" disabled={!canNext} onClick={() => setStep(step + 1)}>Continue <ArrowRight size={14} weight="bold" /></Button>
+              {step < 4 ? <Button variant="primary" disabled={!canNext} onClick={() => setStep(step + 1)}>Continue</Button>
                 : <Button variant="primary" icon={Check} onClick={create}>Create property</Button>}
             </div>
           </div>
@@ -361,7 +361,7 @@ function MapArt({ picked }: { picked: boolean }) {
       <div className="absolute inset-x-0 top-16 h-2 bg-white" /><div className="absolute inset-x-0 top-[176px] h-2 bg-white" />
       <div className="absolute inset-x-0 top-32 h-5 bg-[#DBE6F6]" />
       <div className="absolute left-9 top-4 w-28 h-9 rounded-md bg-[#DDEFD9]" /><div className="absolute left-[440px] top-[84px] w-20 h-8 rounded-md bg-[#DDEFD9]" />
-      <span className="absolute left-[400px] top-5 h-6 px-2 rounded-full bg-white border border-line text-[11px] flex items-center gap-1"><BuildingOffice size={11} />Durham City campus</span>
+      <span className="absolute left-[400px] top-5"><Pill outline icon={BuildingOffice}>Durham City campus</Pill></span>
       {picked && <span className="absolute left-[232px] top-[74px] size-9 rounded-full bg-primary text-white ring-4 ring-primary/20 flex items-center justify-center"><Buildings size={16} /></span>}
       <div className="absolute right-3 bottom-3 rounded-lg bg-white border border-line flex flex-col"><button type="button" aria-label="Zoom in" className="size-7 flex items-center justify-center border-b border-line"><Plus size={12} /></button><button type="button" aria-label="Zoom out" className="size-7 flex items-center justify-center"><Minus size={12} /></button></div>
     </div>

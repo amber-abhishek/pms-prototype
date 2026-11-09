@@ -1,11 +1,12 @@
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowsDownUp, CaretLeft, CaretRight, Check, CheckCircle, DownloadSimple, Flag, FunnelX, MagicWand, ShieldWarning, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, SearchInput, Sheet, Tabs, Toolbar, cx } from '../../components/ui';
+import { Button, PageHeader, Sheet, Toolbar, cx, listNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { appCounts, fmtN, useAlloc, type App, type AppStatus } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
-import { Caption, DisplayButton, EmptyArea, Foot, Grid, Ini, Person, Pop, St, type C } from './common';
+import { DisplayButton, EmptyArea, Foot, Grid, Ini, Person, Pop, St, type C } from './common';
 import { AppDetail, statusLabel, type Pref } from './AppDetail';
 import { AllocateSheet, AutoAllocateDialog, RejectDialog } from './AppSheets';
 import { applyFilters, describe, fieldsFor, FilterPanel, type Filters } from './filters';
@@ -31,6 +32,7 @@ export const filterToCycle = (name: string) => { saved = { vals: { cycle: { v: n
 
 export function Applications() {
   const d = useAlloc();
+  const nav = useNavigate();
   const [sort, setSort] = useState('Oldest first');
   const [raw, setTab] = useTab<TabId>('To review');
   const tab: TabId = LEGACY[raw] ?? (tabStatus[raw] !== undefined ? raw : 'To review');
@@ -40,40 +42,42 @@ export function Applications() {
   const [fs, setFsState] = useState<Filters>(saved ?? defaults);
   const setFs = (f: Filters) => { saved = f; setFsState(f); };
   const fields = useMemo(() => fieldsFor(d.cycles.map((c) => c.name)), [d.cycles]);
-  const [auto, setAuto] = useState(false);
-  const [q, setQ] = useState('');
+  const [auto, setAuto] = useState(() => new URLSearchParams(window.location.hash.split('?')[1]).get('auto') === '1');
   const counts = appCounts(d);
   const status = tabStatus[tab];
-  const base = d.apps.filter((a) => (status ? a.status === status : true) && (!q || (a.name + ' APP-' + a.ref).toLowerCase().includes(q.toLowerCase())));
+  const base = d.apps.filter((a) => (status ? a.status === status : true));
   const rows = applyFilters(base, fs, fields);
-  const isDefault = fs.order.length === 1 && fs.order[0] === 'cycle' && fs.vals.cycle?.v === liveCycle && !q;
+  const isDefault = fs.order.length === 1 && fs.order[0] === 'cycle' && fs.vals.cycle?.v === liveCycle;
   const split = tab === 'To review';
-  const tabs: { id: TabId; label: string; count: number }[] = [
-    { id: 'To review', label: 'To review', count: counts.review }, { id: 'Manual review', label: 'Manual review', count: counts.manual },
-    { id: 'Allocated', label: 'Allocated', count: counts.allocated }, { id: 'Rejected', label: 'Rejected', count: counts.rejected }, { id: 'All', label: 'All', count: counts.all },
-  ];
   const cycleSel = d.cycles.find((c) => c.name === fs.vals.cycle?.v);
   const notOpenYet = cycleSel?.status === 'upcoming';
   return (
     <>
       <PageHeader icon={Tray} title="Applications" crumbs={['Allocations']}>
+        {/* Nothing to export or allocate before the first application. */}
+        {d.apps.length > 0 && <>
         <Button icon={DownloadSimple} onClick={() => toast.success(`Exporting ${fmtN(rows.length)} applications`, { description: 'The CSV downloads when it’s ready · filters are kept' })}>Export</Button>
-        <Button icon={MagicWand} onClick={() => setAuto(true)}>Auto-allocate…</Button>
+        <Button variant="primary" icon={MagicWand} onClick={() => setAuto(true)}>Auto-allocate</Button>
+        </>}
       </PageHeader>
-      <Toolbar right={<>
-        {tab === 'All' && <SearchInput value={q} onChange={setQ} placeholder="Search name or APP-" />}
+      <Toolbar className={cx('!py-3', split && 'border-b border-line')} right={<>
         <FilterPanel rows={base} fs={fs} setFs={setFs} fields={fields} />
         {split ? <SortButton s={sort} setS={setSort} /> : <TableDisplay tab={tab} />}
-      </>}>
-        <Tabs value={tab} onChange={(t) => setTab(t)} tabs={tabs} />
-      </Toolbar>
+      </>} heading={tab} />
       {notOpenYet ? (
-        <EmptyArea icon={Tray} title="No applications yet" sub={`Applications for ${cycleSel!.name} open on ${cycleSel!.opens}. They arrive here once the application form is published on the on-campus portal.`}>
+        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={`Applications for ${cycleSel!.name} open on ${cycleSel!.opens}. They arrive here once the application form is published on the on-campus portal.`}>
           <Button variant="primary" onClick={() => toast('The form builder opens on the on-campus portal', { description: `Application form ${cycleSel!.name} · Draft` })}>Open the form</Button>
           <Button onClick={() => { void navigator.clipboard?.writeText('https://accommodation.durham.ac.uk/apply'); toast.success('Portal link copied'); }}>Copy portal link</Button>
         </EmptyArea>
+      ) : !d.apps.length ? (
+        /* First login: nothing has come in yet, whatever the tab. The next step is a cycle to apply to. */
+        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={d.cycles.length ? 'Applications arrive here once students apply through the on-campus portal.' : 'Open a cycle, and applications arrive here once students apply through the on-campus portal.'}>
+          {d.cycles.length
+            ? <Button onClick={() => { void navigator.clipboard?.writeText('https://accommodation.durham.ac.uk/apply'); toast.success('Portal link copied'); }}>Copy portal link</Button>
+            : <Button variant="primary" onClick={() => nav('/allocations/cycles?new=1')}>Open a cycle</Button>}
+        </EmptyArea>
       ) : tab === 'To review' && counts.review === 0 ? (
-        <EmptyArea icon={CheckCircle} title="Queue clear" sub="Every application has been allocated, rejected or sent for manual review. New ones land here as students apply.">
+        <EmptyArea art="queueClear" icon={CheckCircle} title="Queue clear" sub="New applications land here as students apply.">
           <Button onClick={() => setTab('Manual review')}>Open manual review · {counts.manual}</Button>
         </EmptyArea>
       ) : split ? (
@@ -88,7 +92,7 @@ export function Applications() {
 
 function SortButton({ s, setS }: { s: string; setS: (s: string) => void }) {
   return (
-    <Pop width={180} button={(_, t) => <Button icon={ArrowsDownUp} onClick={t}>{s}</Button>}>
+    <Pop width={180} button={(_, t) => <Button variant="control" icon={ArrowsDownUp} onClick={t}>{s}</Button>}>
       {(close) => <div className="p-1">{['Oldest first', 'Newest first'].map((o) => (
         <button key={o} type="button" onClick={() => { setS(o); close(); }} className="w-full h-8 px-2 rounded-md hover:bg-gray-50 text-left text-sm flex items-center">{o}{o === s && <Check size={13} className="ml-auto text-primary" />}</button>
       ))}</div>}
@@ -110,6 +114,7 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
   const pages = Math.max(1, Math.ceil(sorted.length / PAGE));
   const shown = sorted.slice(page * PAGE, page * PAGE + PAGE);
   const sel = sorted.find((a) => a.id === open) ?? sorted[0];
+  useEffect(() => { const i = sorted.findIndex((a) => a.id === open); if (i >= 0) setPage(Math.floor(i / PAGE)); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const [order, setOrder] = useState<string[]>([]);
   useEffect(() => { setOrder(sorted.map((a) => a.id)); }, [sorted.length, sort]); // eslint-disable-line react-hooks/exhaustive-deps
   const after = (a: App) => {
@@ -144,13 +149,13 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
           </> : <>
             <span>{fmtN(total)} {tab === 'To review' ? (filtered || fs.order.length ? 'to review' : 'applications') : 'applications'}</span>
             <span className="ml-auto">{sorted.length ? `${page * PAGE + 1}–${Math.min(sorted.length, page * PAGE + PAGE)}` : '0'}</span>
-            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretLeft size={12} /></button>
-            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretRight size={12} /></button>
+            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
           </>}
         </div>
         <div className="flex-1 overflow-auto">
           {shown.map((a) => (
-            <button key={a.id} type="button" onClick={() => setOpen(a.id)}
+            <button key={a.id} type="button" onClick={() => setOpen(a.id)} data-selected={sel?.id === a.id || undefined}
               className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F3F4F6] border-l-2', sel?.id === a.id ? 'bg-[#EFF6FF] border-l-primary' : 'border-l-transparent hover:bg-[#F9FAFB]')}>
               <Ini name={a.name} size={24} />
               <div className="min-w-0 flex-1">
@@ -201,12 +206,14 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
   const [rejecting, setRejecting] = useState<App | null>(null);
   const sel = rows.find((a) => a.id === open);
   const [page, setPage] = useState(0);
+  const [newest, setNewest] = useState(false);
   useEffect(() => setPage(0), [rows.length]);
   const applicant: C<App> = { key: 'name', label: 'Applicant', render: (a) => <Person name={a.name} /> };
-  const order = useMemo(() => (tab === 'Manual review' ? [...rows].sort((x, y) => y.waiting - x.waiting) : tab === 'All' ? [...rows].sort((x, y) => +x.ref - +y.ref)
-    : [...rows].sort((x, y) => dayKey(y.cycle, y.allocOn ?? y.rejOn) - dayKey(x.cycle, x.allocOn ?? x.rejOn) || +y.ref - +x.ref)), [rows, tab]);
+  const order = useMemo(() => (tab === 'Manual review' ? [...rows].sort((x, y) => y.waiting - x.waiting) : tab === 'All' ? [...rows].sort((x, y) => (dayKey(x.cycle, x.submitted) - dayKey(y.cycle, y.submitted) || +x.ref - +y.ref) * (newest ? -1 : 1))
+    : [...rows].sort((x, y) => dayKey(y.cycle, y.allocOn ?? y.rejOn) - dayKey(x.cycle, x.allocOn ?? x.rejOn) || +y.ref - +x.ref)), [rows, tab, newest]);
   const pages = Math.max(1, Math.ceil(order.length / PAGE));
   const shown = order.slice(page * PAGE, page * PAGE + PAGE);
+  useEffect(() => { const i = order.findIndex((a) => a.id === open); if (i >= 0) setPage(Math.floor(i / PAGE)); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const cols: C<App>[] = tab === 'Manual review' ? [
     applicant,
     { key: 'why', label: 'Why it’s here', render: (a) => <span className="flex items-center gap-2"><Flag size={14} className="text-[#8B2CF5]" />{a.why}</span> },
@@ -233,26 +240,20 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
     { key: 'emailed', label: 'Emailed', render: (a) => (a.emailed ? <span className="flex items-center gap-1.5"><Check size={14} className="text-[#0B8A4C]" />Yes</span> : <span className="text-gray-400">No</span>) },
   ];
   /* The foot counts the rows in the list (all filters applied), so it always matches what you can page through. */
-  const cat = (k: RegExp) => rows.filter((a) => k.test(a.reason ?? '')).length;
-  const caption = tab === 'All' ? null : tab === 'Manual review' ? 'Applications here are left out of auto-allocate' : tab === 'Rejected' ? 'Reasons are counted in the cycle report' : null;
-  const foot = tab === 'All' ? `${fmtN(rows.length)} applications` : tab === 'Manual review' ? `${rows.length} in manual review`
-    : tab === 'Allocated' ? `${fmtN(rows.length)} allocated${rows.some((a) => a.override) ? ` · ${rows.filter((a) => a.override).length} with an override` : ''}`
-    : `${rows.length} rejected · ${cat(/study/)} no study offer · ${cat(/Duplicate/)} duplicate · ${cat(/Withdrawn/)} withdrawn · ${cat(/eligible|Other/)} other`;
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      {caption && <Caption>{caption}</Caption>}
       <div className="flex-1 overflow-auto">
-        {order.length ? <Grid cols={cols} rows={shown} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()} for these filters`} sub="Clear a filter to see more." />}
+        {order.length ? <Grid cols={cols} rows={shown} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} sort={tab === 'All' ? { key: 'sub', dir: newest ? 'desc' : 'asc', onToggle: () => setNewest((v) => !v) } : undefined} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()} for these filters`} sub="Clear a filter to see more." />}
       </div>
       <Foot right={<>
         {pages > 1 && <span className="flex items-center gap-1 tabular-nums">
           {page * PAGE + 1}–{Math.min(order.length, page * PAGE + PAGE)} of {fmtN(order.length)}
-          <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretLeft size={12} /></button>
-          <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretRight size={12} /></button>
+          <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+          <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
         </span>}
-      </>}>{foot}</Foot>
-      <Sheet open={!!sel && !allocating && !rejecting} onClose={() => setOpen(null)} width={920} title={sel ? `APP-${sel.ref}` : ''} sub={sel ? statusLabel[sel.status] : ''}>
-        {sel && <div className="-m-4 h-[calc(100vh-16px-56px)] flex"><AppDetail a={sel} onAllocate={(p) => setAllocating({ a: sel, p })} onReject={() => setRejecting(sel)} onAfter={() => setOpen(null)} /></div>}
+      </>} />
+      <Sheet open={!!sel && !allocating && !rejecting} onClose={() => setOpen(null)} width={600} title="Application" nav={listNav(order, (a) => a.id === open, (a) => setOpen(a.id))}>
+        {sel && <div className="-m-5 h-[calc(100vh-16px-56px)] flex"><AppDetail a={sel} onAllocate={(p) => setAllocating({ a: sel, p })} onReject={() => setRejecting(sel)} onAfter={() => setOpen(null)} /></div>}
       </Sheet>
       {allocating && <AllocateSheet a={allocating.a} pref={allocating.p} onClose={() => setAllocating(null)} onDone={() => { setAllocating(null); setOpen(null); }} />}
       {rejecting && <RejectDialog a={rejecting} onClose={() => setRejecting(null)} onDone={() => { setRejecting(null); setOpen(null); }} />}

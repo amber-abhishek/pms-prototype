@@ -9,7 +9,8 @@ const Tabs = TabsPrimitive.Root
 
 /* The raised white "selected" pill. With `slide` (the default) it is one element under the tabs that moves to the
    active tab, so switching tabs slides it across instead of jumping. Underline-style lists pass slide={false}. */
-const PILL = "bg-background shadow-[0_1px_2px_rgba(17,24,39,0.08),0_0_0_0.5px_rgba(17,24,39,0.06)]"
+/* 3755:15922: white, 1px #DFE2E7, two soft drops. */
+const PILL = "bg-background border border-[#DFE2E7] shadow-[0_2px_5px_rgba(3,7,18,0.04),0_1px_2px_rgba(3,7,18,0.06)]"
 const SlideCtx = React.createContext(false)
 
 type Pill = { x: number; y: number; w: number; h: number; animate: boolean }
@@ -49,7 +50,7 @@ const TabsList = React.forwardRef<
     <TabsPrimitive.List
       ref={setRefs}
       className={cn(
-        /* 2820:111 segmented track: 32px #F3F4F6, 3px inset, 10px radius */ "relative inline-flex items-center gap-0.5 p-[3px] rounded-[10px] bg-secondary text-muted-foreground",
+        /* 2820:111 segmented track: 32px #F3F4F6, 3px inset, 10px radius */ "relative inline-flex items-center gap-0.5 p-[3px] rounded-[10px] bg-secondary text-muted-foreground shadow-[0_1px_0_#FFFFFF,inset_0_0_0_1px_rgba(3,7,18,0.04),inset_0_1px_2px_rgba(3,7,18,0.07)]",
         className
       )}
       {...props}
@@ -82,8 +83,8 @@ const TabsTrigger = React.forwardRef<
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        /* 26px tabs, 7px radius, 14px medium; the selected one is raised white (the sliding pill, or its own fill) */ "relative group inline-flex h-[26px] items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] px-3 text-sm leading-5 font-medium transition-colors duration-150 hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-[#111827]",
-        !slide && "data-[state=active]:bg-background data-[state=active]:shadow-[0_1px_2px_rgba(17,24,39,0.08),0_0_0_0.5px_rgba(17,24,39,0.06)]",
+        /* 26px tabs, 7px radius, 14px medium; the selected one is raised white (the sliding pill, or its own fill) */ "relative group inline-flex h-[26px] items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] px-3 text-sm leading-5 font-medium transition-colors duration-150 hover:text-[#111827] outline-none [html[data-kbd]_&:focus-visible]:ring-2 [html[data-kbd]_&:focus-visible]:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-[#111827]",
+        !slide && "data-[state=active]:bg-background data-[state=active]:shadow-[inset_0_0_0_1px_#DFE2E7,0_2px_5px_rgba(3,7,18,0.04),0_1px_2px_rgba(3,7,18,0.06)]",
         className
       )}
       {...props}

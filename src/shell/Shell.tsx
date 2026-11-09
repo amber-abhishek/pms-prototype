@@ -1,8 +1,8 @@
-import { Fragment, useEffect, useMemo, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
-import { ArrowCounterClockwise, CaretDown, Moon, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
+import { ArrowCounterClockwise, CaretDown, Moon, Tray, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
 import { modules, moduleFor, pinnable, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
@@ -15,15 +15,25 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Palette } from './Palette';
 import { Switch } from '../components/shadcn/switch';
 import { useTheme } from '../data/theme';
+import { useEmpty } from '../data/empty';
 import { RailSolid, hasSolid } from './railIcons';
 import { SolidIcon, hasSolidIcon } from './solidIcons';
 import { NoAccess } from '../pages/Misc';
 
 export function Shell() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const role = useDb((s) => s.role);
   const [panelOpen, setPanelOpen] = useState(true);
   const [palette, setPalette] = useState(false);
+  /* Mercury page scroll: mark <main> once the table header is stuck under the breadcrumb, so its line runs edge to edge. */
+  const mainRef = useRef<HTMLElement>(null);
+  const onMainScroll = () => {
+    const m = mainRef.current; if (!m) return;
+    const th = m.querySelector('[data-scroller] thead, [data-scroller] [data-head]');
+    const stuck = !!th && m.scrollTop > 0 && th.getBoundingClientRect().top - m.getBoundingClientRect().top <= 52.5;
+    if (stuck !== m.hasAttribute('data-stuck')) m.toggleAttribute('data-stuck', stuck);
+  };
+  useEffect(() => { const m = mainRef.current; if (m) { m.scrollTop = 0; m.removeAttribute('data-stuck'); } }, [pathname]);
   const via = usePins((s) => s.via);
   const pins = usePins((s) => s.pins);
   const path = useNavPath(pathname);
@@ -35,10 +45,11 @@ export function Shell() {
     /* The route has caught up with the click (or the click was to the page you are on): drop the pending target. */
     if (st.pending) usePins.setState({ pending: null });
     if (st.via && !st.pins.some((p) => within(p, pathname))) st.setVia(null);
-  }, [pathname]);
+  }, [pathname, search]); /* search too: in-page tab changes (?tab=) must move the sidebar selection */
   const mod = fromPin ? modules[0] : moduleFor(path);
   const visible = modules.filter((m) => m.roles.includes(role));
   const allowed = moduleFor(pathname).roles.includes(role);
+  const emptyKey = useEmpty((s) => s.on);
   const signedIn = useAuth((s) => s.signedIn);
 
   useEffect(() => {
@@ -58,7 +69,7 @@ export function Shell() {
       <header className="h-12 shrink-0 flex items-center pl-[14px] pr-2">
         <div className="w-[280px] flex items-center justify-between pr-3">
           <button type="button" className="flex items-center gap-2 rounded-lg px-0 py-1 hover:opacity-80" onClick={() => toast('Durham University is the only organisation on this account')}>
-            <span className="size-7 rounded-[7px] bg-gradient-to-br from-[#6366F1] to-[#2563EB] text-white text-sm leading-5 font-bold flex items-center justify-center">D</span>
+            <span className="size-7 rounded-[7px] bg-[#2563EB] text-white text-sm leading-5 font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_1px_2px_rgba(37,99,235,0.35)] flex items-center justify-center">D</span>
             <span className="flex items-center gap-1"><span className="text-sm leading-[18px] font-medium text-ink">Durham University</span><CaretDown size={14} className="text-gray-500" /></span>
           </button>
           <button type="button" aria-label={panelOpen ? 'Hide panel' : 'Show panel'} title="Toggle panel (⌘.)" onClick={() => setPanelOpen((p) => !p)} className="size-7 rounded-md flex items-center justify-center text-gray-500 hover:bg-white hover:text-ink">
@@ -75,7 +86,7 @@ export function Shell() {
         <Rail visible={visible} active={mod} />
         <div className="flex-1 flex min-w-0 rounded-xl border border-line bg-white shadow-card overflow-hidden">
           <Panel mod={mod} collapsed={!panelOpen} />
-          <main className="flex-1 min-w-0 flex flex-col">{allowed ? <Outlet /> : <NoAccess />}</main>
+          <main ref={mainRef} onScroll={onMainScroll} className="pms-main flex-1 min-w-0 flex flex-col">{allowed ? <Outlet key={emptyKey ? 'empty' : 'full'} /> : <NoAccess />}</main>
         </div>
       </div>
       <Palette open={palette} onClose={() => setPalette(false)} />
@@ -107,7 +118,7 @@ function RailItem({ m, on }: { m: Module; on: boolean }) {
     <Tooltip>
     <TooltipTrigger asChild>
       <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)}
-        className={cx('group relative size-10 flex items-center justify-center transition-colors duration-0 hover:duration-150', on ? 'rounded-[10px] bg-white border border-[#EAEBEE] shadow-[0_1px_1px_rgba(0,0,0,0.04)] text-[#2563EB]' : 'rounded-lg text-gray-500 hover:bg-white/70 hover:text-[#111827]')}>
+        className={cx('group relative size-10 flex items-center justify-center transition-colors duration-0 hover:duration-150', /* 3783:48441 RailItem: pressed into the chrome — #E8EAEE, inset drop + hairline ring, white lip below. */ on ? 'rounded-[10px] bg-[#E8EAEE] text-[#111827] shadow-[inset_0_1px_3px_rgba(17,24,39,0.16),inset_0_0_0_1px_rgba(17,24,39,0.08),0_1px_0_#FFFFFF]' : 'rounded-[10px] text-gray-500 hover:bg-[#ECEEF1] hover:text-[#111827]')}>
         <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolid(m.id) ? <RailSolid id={m.id} /> : <I size={16} />}</span>
         {/* Locked module (not in the plan): a small lock badge on the icon's bottom-right corner. */}
         {m.locked && <span className="absolute right-1 bottom-1 size-4 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center"><Lock size={10} weight="fill" className="text-gray-500" /></span>}
@@ -192,18 +203,23 @@ function PanelRow({ it, count, locked, mode, collapsed }: { it: NavItem; count?:
   const on = !disabled && (mode === 'pinned' ? within(it.to, pathname) : isCurrent(it.to, href, ALL_TO));
   /* Only Home's Pinned rows have a hover action (unpin); pinning itself happens from Pinned's + button. */
   const action = !disabled && mode === 'pinned';
+  /* Mercury-style: a page's views open under its row, on a thin guide line, only while the page is open. */
+  const open = !disabled && !collapsed && !!it.sub && within(it.to, pathname);
+  const counts = useNavCounts();
   const I = it.icon;
   const inner = (
     <>
-      <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolidIcon(I) ? <SolidIcon icon={I} className="shrink-0 text-[#2563EB]" /> : <I size={16} className={on ? 'text-[#2563EB]' : 'text-gray-500'} />}</span>
+      <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolidIcon(I) ? <SolidIcon icon={I} className="shrink-0 text-[#111827]" /> : <I size={16} className={on ? 'text-[#111827]' : 'text-gray-500'} />}</span>
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
-      {count !== undefined && count > 0 && <span className={cx('text-xs leading-5 font-medium tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-gray-500')}>{count}</span>}
+      {!open && count !== undefined && count > 0 && <span className={cx('text-xs leading-5 font-medium tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-gray-500')}>{count}</span>}
     </>
   );
-  const cls = cx(!disabled && 'group', 'h-8 shrink-0 px-2 rounded-lg flex items-center gap-2 text-sm leading-5 font-medium transition-colors duration-0 hover:duration-150', on ? 'bg-[#F3F4F6] text-ink shadow-[inset_0_1px_2px_rgba(17,24,39,0.08),inset_0_0_0_1px_rgba(17,24,39,0.06),0_1px_0_#fff]' : 'text-gray-700 hover:bg-[#F9FAFB]', disabled && 'opacity-60 cursor-default');
+  const tabNow = new URLSearchParams(href.split('?')[1] ?? '').get('tab');
+  const rowSel = on && (!open || (!!it.landing && !tabNow));
+  const cls = cx(!disabled && 'group', 'h-8 shrink-0 px-2 rounded-lg flex items-center gap-2 text-sm leading-5 font-medium transition-colors duration-0 hover:duration-150', rowSel ? 'bg-[#F3F4F6] text-ink shadow-[inset_0_1px_2px_rgba(17,24,39,0.08),inset_0_0_0_1px_rgba(17,24,39,0.06),0_1px_0_#fff]' : on ? 'text-ink hover:bg-[#F6F7F8]' : 'text-gray-700 hover:bg-[#F6F7F8]', disabled && 'opacity-60 cursor-default');
   if (collapsed) {
-    const icon = <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolidIcon(I) ? <SolidIcon icon={I} className="shrink-0 text-[#2563EB]" /> : <I size={16} className={on ? 'text-[#2563EB]' : 'text-gray-500'} />}</span>;
+    const icon = <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolidIcon(I) ? <SolidIcon icon={I} className="shrink-0 text-[#111827]" /> : <I size={16} className={on ? 'text-[#111827]' : 'text-gray-500'} />}</span>;
     const dot = count !== undefined && count > 0 && it.alert && <span className="absolute right-1 top-1 size-1.5 rounded-full bg-[#DC2626]" />;
     const ccls = cx(cls, 'relative w-8 px-0 justify-center');
     return (
@@ -220,11 +236,30 @@ function PanelRow({ it, count, locked, mode, collapsed }: { it: NavItem; count?:
     );
   }
   if (disabled) return <div className={cls} aria-disabled>{inner}</div>;
+  const curTab = tabNow ?? (it.landing ? undefined : it.sub?.[0].tab);
   return (
-    <div className="relative group/row">
-      <NavLink to={it.to} end draggable={false} className={cls} onClick={() => usePins.getState().go(it.to, mode === 'pinned' ? it.to : null)}>{inner}</NavLink>
-      {mode === 'pinned' && <RowAction label="Unpin" onClick={() => pinToggle(it)}><PinOff size={14} /></RowAction>}
-    </div>
+    <>
+      <div className="relative group/row">
+        <NavLink to={it.to} end draggable={false} className={cls} onClick={() => usePins.getState().go(it.to, mode === 'pinned' ? it.to : null)}>{inner}</NavLink>
+        {mode === 'pinned' && <RowAction label="Unpin" onClick={() => pinToggle(it)}><PinOff size={14} /></RowAction>}
+      </div>
+      {open && (
+        <div className="relative ml-4 pl-2 py-1 flex flex-col gap-1 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-px before:bg-[#E5E7EB]">
+          {it.sub!.map((v) => {
+            const to = `${it.to}?tab=${encodeURIComponent(v.tab)}`;
+            const sel = curTab === v.tab;
+            const n = v.count?.(counts);
+            return (
+              <NavLink key={v.tab} to={to} draggable={false} aria-current={sel ? 'page' : undefined} onClick={() => usePins.getState().go(to, mode === 'pinned' ? it.to : null)}
+                className={cx('h-8 px-2 rounded-lg flex items-center gap-2 text-sm leading-5 transition-colors duration-0 hover:duration-150', sel ? 'text-ink font-medium bg-[#F3F4F6] shadow-[inset_0_1px_2px_rgba(17,24,39,0.08),inset_0_0_0_1px_rgba(17,24,39,0.06),0_1px_0_#fff]' : 'text-gray-500 hover:text-ink hover:bg-[#F6F7F8]')}>
+                <span className="flex-1 truncate">{v.label}</span>
+                {n !== undefined && n > 0 && <span className="text-xs font-medium tabular-nums text-gray-500">{n}</span>}
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -345,6 +380,7 @@ function UserMenu() {
   const me = useAuth((s) => s.remembered) ?? { name: 'Priya Shah', email: 'priya.shah@durham.ac.uk' };
   const [leaving, setLeaving] = useState<'pending' | 'done'>();
   const { theme, setTheme } = useTheme();
+  const { on: emptyOn, setOn: setEmpty } = useEmpty();
   const signOut = () => {
     setLeaving('pending');
     setTimeout(() => setLeaving('done'), 900);
@@ -373,6 +409,11 @@ function UserMenu() {
         <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
           <Moon size={16} className="text-gray-500" /><span className="flex-1">Dark mode</span>
           <Switch checked={theme === 'dark'} tabIndex={-1} aria-hidden className="pointer-events-none" />
+        </DropdownMenuItem>
+        {/* Demo: every list goes empty so its first-run state (with its Figma illustration) shows. Off brings the data back. */}
+        <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={(e) => { e.preventDefault(); setEmpty(!emptyOn); }}>
+          <Tray size={16} className="text-gray-500" /><span className="flex-1">Empty states</span>
+          <Switch checked={emptyOn} tabIndex={-1} aria-hidden className="pointer-events-none" />
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-line" />
         <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={() => { reset(); nav('/'); toast.success('Demo data reset'); }}>

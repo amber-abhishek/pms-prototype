@@ -1,10 +1,10 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowsDownUp, ArrowsLeftRight, CalendarBlank, Car, Check, CheckCircle, Clock, Envelope, Plus, SignOut, UserPlus, WarningCircle, Wrench, X, XCircle, type Icon } from '../../components/icons';
+import { ArrowsLeftRight, CalendarBlank, Car, Check, CheckCircle, Clock, Envelope, Plus, SignOut, UserPlus, WarningCircle, Wrench, XCircle, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { useRms, type ReqKind, type ReqStatus, type ResRequest } from '../../data/residents';
-import { Button, Card, Check as CheckBox, Empty, Field, FilterButton, Input, Note, Pill, Select, Sheet, Table, Tabs, Textarea, Toolbar, cx, gbp } from '../../components/ui';
+import { Button, Check as CheckBox, Empty, Field, FilterButton, Input, Note, Pill, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, gbp, listNav, type SheetNav } from '../../components/ui';
 import { Modal, Person, RHeader, RoomMove, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 
@@ -31,20 +31,18 @@ export function RequestsList() {
   const count = (t: Tab) => inHall.filter((r) => r.status === tabStatus[t]).length;
   return (
     <>
-      <RHeader icon={ArrowsLeftRight} crumbs={[['Residents', '/residents']]} title="Requests">
+      <RHeader icon={ArrowsLeftRight} crumbs={[['Residents']]} title="Requests">
         <Button icon={Plus} onClick={() => setCreating(true)}>New request</Button>
       </RHeader>
       <Toolbar right={<>
         <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: ['Collingwood', 'Ustinov College'] }, { id: 'kind', label: 'Type', options: Object.keys(kindIcon) }]} />
-        <Button size="sm" icon={ArrowsDownUp} onClick={() => setOldest((o) => !o)}>{oldest ? 'Oldest first' : 'Newest first'}</Button>
       </>}>
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Open', label: 'Open', count: count('Open') }, { id: 'Waiting', label: 'Waiting on resident', count: count('Waiting') }, { id: 'Approved', label: 'Approved', count: count('Approved') }, { id: 'Declined', label: 'Declined', count: count('Declined') }]} />
       </Toolbar>
-      {f.hall && rows.length > 0 && <div className="h-10 shrink-0 px-5 flex items-center text-xs text-[#646A78] border-b border-[#F3F4F6]">Showing {f.hall}, the halls you look after</div>}
-      <Table rows={rows} onRow={(r) => setOpen(r.id)}
-        summary="Residents ask from the resident portal; the PMS checks what it can before anyone looks"
-        empty={<Empty icon={ArrowsLeftRight} title={tab === 'Open' ? 'No open requests' : `No ${tab === 'Waiting' ? 'requests waiting on a resident' : tab.toLowerCase() + ' requests'}`}
-          sub="Room swaps, guests and early arrivals that residents ask for in the portal show here and in My tasks."
+      {f.hall && rows.length > 0 && <div className="h-8 shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] flex items-center text-xs text-[#646A78]">Showing {f.hall}, the halls you look after</div>}
+      <Table rows={rows} onRow={(r) => setOpen(r.id)} selected={open ?? undefined} sort={{ key: 'wt', dir: oldest ? 'desc' : 'asc', onToggle: () => setOldest((o) => !o) }}
+        empty={<Empty art="requests" icon={ArrowsLeftRight} title={tab === 'Open' ? 'No open requests' : `No ${tab === 'Waiting' ? 'requests waiting on a resident' : tab.toLowerCase() + ' requests'}`}
+          sub="Room swaps, guests and early arrivals residents ask for."
           action={tab !== 'Approved' && <Button icon={Check} onClick={() => setTab('Approved')}>See approved</Button>} />}
         cols={[
           { key: 'ref', label: 'Ref', className: 'w-[90px]', render: (r) => <span className="font-mono text-xs text-gray-500">{r.ref}</span> },
@@ -54,7 +52,7 @@ export function RequestsList() {
           { key: 'c', label: 'Checks', render: (r) => <Pill tone={r.check.tone} icon={checkIcon(r.check.tone)}>{r.check.label}</Pill> },
           { key: 'wt', label: 'Waiting', className: 'text-right', render: (r) => <span className="text-gray-500">{r.status === 'Approved' || r.status === 'Declined' ? (r.decidedBy ? `${r.status} by ${r.decidedBy.split(' ')[0]}` : r.status) : r.waiting}</span> },
         ]} />
-      {open && requests.some((x) => x.id === open) && <RequestSheet key={open} id={open} onClose={() => setOpen(null)} />}
+      {open && requests.some((x) => x.id === open) && <RequestSheet key={open} id={open} nav={listNav(rows, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />}
       <NewRequest open={creating} onClose={() => setCreating(false)} onCreate={(r) => { patch('requests', (rs) => [r, ...rs]); toast.success(`${r.ref} logged`, { description: 'It shows in Open and in My tasks.' }); setCreating(false); }} />
     </>
   );
@@ -89,7 +87,7 @@ export function RequestDetail() {
   return <Navigate to={`/residents/requests?open=${id}`} replace />;
 }
 
-function RequestSheet({ id, onClose }: { id: string; onClose: () => void }) {
+function RequestSheet({ id, onClose , nav }: { nav?: SheetNav;  id: string; onClose: () => void }) {
   const { requests, update } = useRms();
   const { patch: patchDb, log } = useDb();
   const r = requests.find((x) => x.id === id);
@@ -150,16 +148,14 @@ function RequestSheet({ id, onClose }: { id: string; onClose: () => void }) {
         : r.due ? <Pill tone="orange" icon={CalendarBlank}>{r.due}</Pill> : <Pill tone="grey" icon={Clock}>Waiting {r.waiting}</Pill>;
   return (
     <>
-      <Sheet open onClose={onClose} width={600} title={title}
-        sub={<span className="flex items-center gap-2 flex-wrap"><span className="font-mono text-xs">{r.ref}</span>{statusPill}</span>}
+      <Sheet open onClose={onClose} nav={nav} width={600} title="Request"
         footer={decided ? <Button onClick={onClose}>Close</Button> : <>
-          <Button variant="danger-ghost" className="mr-auto" icon={X} onClick={() => setDeclining(true)}>Decline</Button>
+          <Button variant="danger-ghost" className="mr-auto" onClick={() => setDeclining(true)}>Decline</Button>
           <Button onClick={onClose}>Close</Button>
           <Button variant="primary" icon={Check} disabled={held} onClick={() => (isSwap ? setApproving(true) : approve())}>Approve</Button>
         </>}>
-        <div className="space-y-5">
-          <Details r={r} />
-
+        <SheetHero avatar={false} name={title} meta={<><span className="font-mono">{r.ref}</span> · {r.hall}</>}>{statusPill}</SheetHero>
+        <div className="space-y-2 empty:hidden mb-5">
           {held && r.arrears && !decided && (
             <Note tone="red" icon={XCircle} title={`Can’t approve while ${r.arrears.first} is in arrears`}>
               Swaps change the tenancy, so the rules hold them until rent is up to date. You can still decline or wait.
@@ -169,11 +165,14 @@ function RequestSheet({ id, onClose }: { id: string; onClose: () => void }) {
           {failing && !held && !decided && (
             <Note tone="amber" icon={WarningCircle} title="Some checks haven’t passed">You can still approve it if you have checked these yourself, or wait for the resident.</Note>
           )}
+        </div>
+        <Details r={r} />
 
           {isSwap && (
-            <div className="space-y-3">
+            <SheetSection title="Swap">
+            <div className="space-y-5">
               {r.sides!.map((s) => (
-                <Card key={s.name} className="p-4">
+                <div key={s.name}>
                   <div className="flex items-center gap-2.5 mb-3">
                     <Person name={s.name} />
                     <div className="flex-1"><div className="text-sm leading-5 font-semibold">{s.name}</div><div className="text-xs text-gray-500">{s.agreed}</div></div>
@@ -185,14 +184,14 @@ function RequestSheet({ id, onClose }: { id: string; onClose: () => void }) {
                     <span>{gbp(s.rentFrom)} → <b className="font-semibold">{gbp(s.rentTo)} / wk</b> {s.rentTo !== s.rentFrom && <span>({s.rentTo > s.rentFrom ? '+' : '−'}{gbp(Math.abs(s.rentTo - s.rentFrom))})</span>}</span>
                     <span className="text-gray-500">Reason</span><span>{s.reason}</span>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
+            </SheetSection>
           )}
 
           {r.checks && (
-            <section>
-              <SectionHead title="Checks" right="Run by the PMS" />
+            <SheetSection title="Checks">
               <div className="rounded-xl border border-line divide-y divide-line">
                 {r.checks.map((c) => (
                   <div key={c.label} className="px-3.5 py-2.5 flex items-start gap-2.5">
@@ -204,12 +203,11 @@ function RequestSheet({ id, onClose }: { id: string; onClose: () => void }) {
                   </div>
                 ))}
               </div>
-            </section>
+            </SheetSection>
           )}
 
           {r.history && (
-            <section>
-              <SectionHead title="History" />
+            <SheetSection title="History">
               <ol className="relative pl-5">
                 <span aria-hidden className="absolute left-[5px] top-2 bottom-2 w-px bg-line" />
                 {r.history.map(([w, t], i) => (
@@ -220,9 +218,8 @@ function RequestSheet({ id, onClose }: { id: string; onClose: () => void }) {
                   </li>
                 ))}
               </ol>
-            </section>
+            </SheetSection>
           )}
-        </div>
       </Sheet>
       {isSwap && <ApproveSwap open={approving} r={r} onClose={() => setApproving(false)} onApprove={approve} />}
       <DeclineDialog open={declining} r={r} onClose={() => setDeclining(false)} onDecline={decline} />
@@ -275,11 +272,7 @@ function MessageDialog({ open, to, owes, onClose, onSend }: { open: boolean; to:
   );
 }
 
-const SectionHead = ({ title, right }: { title: string; right?: string }) => (
-  <div className="flex items-baseline justify-between mb-2"><h3 className="text-sm font-semibold text-[#111827]">{title}</h3>{right && <span className="text-xs text-[#646A78]">{right}</span>}</div>
-);
-
-/** Key facts at the top of the request sheet: who, what, where, when. */
+/** The request sheet's Details section: who, what, where, when. */
 function Details({ r }: { r: ResRequest }) {
   const I = kindIcon[r.kind];
   const asked = r.sub?.match(/ on ((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} \w{3})/)?.[1];
@@ -291,13 +284,5 @@ function Details({ r }: { r: ResRequest }) {
     ['Asked', asked ? `${asked} · waiting ${r.waiting}` : `Waiting ${r.waiting}`],
   ];
   if (decided && r.decidedBy) rows.push([r.status, `by ${r.decidedBy}`]);
-  return (
-    <dl className="rounded-xl border border-line bg-[#F9FAFB] px-4 py-1 divide-y divide-line">
-      {rows.map(([k, v]) => (
-        <div key={k} className="min-h-11 py-2 grid grid-cols-[96px_1fr] items-center gap-3 text-sm">
-          <dt className="text-[#646A78]">{k}</dt><dd className="text-[#111827] min-w-0">{v}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+  return <SheetSection title="Details" rows={rows} />;
 }

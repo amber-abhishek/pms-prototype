@@ -1,8 +1,9 @@
 // Organisation › Teams. No Figma frame; styled like Roles and access (header, toolbar, full-bleed table, sheet).
 import { useRef, useState } from 'react';
+import { Empty } from '../../components/ui';
 import { Buildings, Plus, UsersThree } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Field, Input, SearchInput, Sheet, Table, Toolbar, cx } from '../../components/ui';
+import { Avatar, Button, Field, Input, SearchInput, Sheet, Table, Toolbar, cx, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { HALLS, hallsLabel, oid, useOrg, type Team } from '../../data/org';
 import { Header, IconSelect, RowMenu } from './parts';
@@ -18,10 +19,8 @@ export function TeamsPage() {
       <Header icon={UsersThree} crumbs={[{ label: 'Organisation' }]} title="Teams">
         <Button variant="primary" icon={Plus} onClick={() => setEdit('new')}>New team</Button>
       </Header>
-      <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search teams" />}>
-        <span className="text-sm text-[#646A78]">Group people to assign work and send notices to a whole team. Access still comes from each member’s role.</span>
-      </Toolbar>
-      <Table rows={rows} onRow={(t) => setEdit(t)} summary={`${rows.length} teams · ${new Set(rows.flatMap((t) => t.memberIds)).size} people`} cols={[
+      <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search teams" />} />
+      <Table rows={rows} empty={<Empty art="team" title="No teams yet" sub="Group the people who work together, like a hall’s front desk." />} onRow={(t) => setEdit(t)} selected={edit && edit !== 'new' ? edit.id : undefined} cols={[
         { key: 'n', label: 'Team', className: 'w-[30%]', render: (t) => <div className="leading-tight"><div className="text-sm font-medium">{t.name}</div><div className="text-xs text-[#646A78]">{t.purpose}</div></div> },
         { key: 'l', label: 'Lead', render: (t) => <span className="flex items-center gap-2 text-sm"><Avatar name={name(t.leadId)} size={20} />{name(t.leadId)}</span> },
         { key: 'm', label: 'Members', render: (t) => (
@@ -37,12 +36,12 @@ export function TeamsPage() {
           } },
         ]} /> },
       ]} />
-      {edit && <TeamSheet key={edit === 'new' ? 'new' : edit.id} team={edit === 'new' ? undefined : edit} onClose={() => setEdit(null)} />}
+      {edit && <TeamSheet key={edit === 'new' ? 'new' : edit.id} team={edit === 'new' ? undefined : edit} nav={edit === 'new' ? undefined : listNav(rows, (x) => x.id === edit.id, (x) => setEdit(x))} onClose={() => setEdit(null)} />}
     </>
   );
 }
 
-function TeamSheet({ team, onClose }: { team?: Team; onClose: () => void }) {
+function TeamSheet({ team, onClose , nav }: { nav?: SheetNav;  team?: Team; onClose: () => void }) {
   const { members, set, audit_ } = useOrg();
   const [n, setN] = useState(team?.name ?? '');
   const [purpose, setPurpose] = useState(team?.purpose ?? '');
@@ -62,23 +61,30 @@ function TeamSheet({ team, onClose }: { team?: Team; onClose: () => void }) {
     onClose();
   };
   return (
-    <Sheet open onClose={onClose} title={team ? team.name : 'New team'} sub={team ? `${team.memberIds.length} members` : 'Group people who work together'}
+    <Sheet open onClose={onClose} nav={nav} title={team ? 'Edit team' : 'New team'}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{team ? 'Save' : 'Create team'}</Button></>}>
-      <div className="space-y-4">
-        <Field label="Name"><Input value={n} onChange={(e) => setN(e.target.value)} placeholder="e.g. Van Mildert" /></Field>
-        <Field label="What it’s for"><Input value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="One line" /></Field>
-        <div><div className="text-sm font-medium text-gray-700 mb-1.5">Halls</div>
-          <IconSelect ariaLabel="Halls" icon={Buildings} value={hall} onChange={setHall} options={[{ value: 'all', label: 'All halls' }, ...HALLS.map((h) => ({ value: h.id, label: h.name }))]} /></div>
-        <div><div className="text-sm font-medium text-gray-700 mb-1.5">Members · {ids.length}</div>
-          <div className="rounded-lg border border-line divide-y divide-line">
-            {members.map((m) => { const on = ids.includes(m.id); return (
-              <label key={m.id} className={cx('flex items-center gap-3 px-3 h-11 cursor-pointer', on && 'bg-[#F5F8FF]')}>
-                <Checkbox checked={on} onCheckedChange={(v) => setIds((v === true) ? [...ids, m.id] : ids.filter((x) => x !== m.id))} />
-                <Avatar name={m.name} size={24} /><span className="flex-1 text-sm">{m.name}</span>
-                {on && <button type="button" onClick={(e) => { e.preventDefault(); setLead(m.id); }} className={cx('text-xs', lead === m.id ? 'text-[#0B8A4C] font-medium' : 'text-gray-400 hover:text-primary')}>{lead === m.id ? 'Lead' : 'Make lead'}</button>}
-              </label>
-            ); })}
-          </div></div>
+      {team && <SheetHero avatar={false} name={team.name} meta={`${team.memberIds.length} members`} />}
+      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+      <SheetSection title="Team">
+        <div className="space-y-4">
+          <Field label="Name"><Input value={n} onChange={(e) => setN(e.target.value)} placeholder="e.g. Van Mildert" /></Field>
+          <Field label="What it’s for"><Input value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="One line" /></Field>
+        </div>
+      </SheetSection>
+      <SheetSection title="Halls">
+        <IconSelect ariaLabel="Halls" icon={Buildings} value={hall} onChange={setHall} options={[{ value: 'all', label: 'All halls' }, ...HALLS.map((h) => ({ value: h.id, label: h.name }))]} />
+      </SheetSection>
+      <SheetSection title={`Members · ${ids.length}`}>
+        <div className="divide-y divide-[#F3F4F6]">
+          {members.map((m) => { const on = ids.includes(m.id); return (
+            <label key={m.id} className="flex items-center gap-3 h-11 cursor-pointer">
+              <Checkbox checked={on} onCheckedChange={(v) => setIds((v === true) ? [...ids, m.id] : ids.filter((x) => x !== m.id))} />
+              <Avatar name={m.name} size={24} /><span className="flex-1 text-sm">{m.name}</span>
+              {on && <button type="button" onClick={(e) => { e.preventDefault(); setLead(m.id); }} className={cx('text-xs', lead === m.id ? 'text-[#0B8A4C] font-medium' : 'text-gray-400 hover:text-primary')}>{lead === m.id ? 'Lead' : 'Make lead'}</button>}
+            </label>
+          ); })}
+        </div>
+      </SheetSection>
       </div>
     </Sheet>
   );

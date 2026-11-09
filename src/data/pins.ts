@@ -64,7 +64,14 @@ export function useNavPath(pathname: string) {
  *  a row with a ?tab needs that tab; a row without one is current unless another row claims the current tab. */
 export const tabOf = (to: string) => new URLSearchParams(to.split('?')[1] ?? '').get('tab');
 export function isCurrent(to: string, current: string, all: string[]) {
-  if (pathOf(to) !== pathOf(current)) return false;
+  const tp = pathOf(to), p = pathOf(current);
+  /* A detail page under a row (/org/people/roles/x, /residents/r1, /inventory/properties/col) keeps that row selected:
+     the deepest row whose path contains the page wins, unless a row matches the page exactly. */
+  if (tp !== p) {
+    if (tp === '/' || !p.startsWith(tp + '/') || all.some((t) => pathOf(t) === p)) return false;
+    if (all.some((t) => { const q = pathOf(t); return q.length > tp.length && q !== '/' && p.startsWith(q + '/'); })) return false;
+    return !tabOf(to) || !all.some((t) => pathOf(t) === tp && !tabOf(t));
+  }
   const want = tabOf(to), cur = tabOf(current);
   if (want) return want === cur;
   return !cur || !all.some((t) => pathOf(t) === pathOf(to) && tabOf(t) === cur);

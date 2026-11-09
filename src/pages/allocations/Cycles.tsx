@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Calendar, CalendarCheck, CalendarDots, Lock, Plus, Warning } from '../../components/icons';
+import { Calendar, CalendarCheck, CalendarDots, Lock, Plus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Empty, Field, Input, PageHeader, SearchInput, Sheet, Tabs, Toolbar, cx } from '../../components/ui';
+import { Button, Dialog, Field, Input, PageHeader, Sheet, SheetSection, Tabs, Toolbar, cx } from '../../components/ui';
 import { TODAY, appCounts, fmtN, offerCounts, useAlloc, type Cycle } from '../../data/allocations';
 import { useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Modal, Radio, St } from './common';
@@ -19,11 +19,11 @@ export function Cycles() {
   const nav = useNavigate();
   const [raw, setTab] = useTab<TabId>('All');
   const tab: TabId = raw === 'Live' || raw === 'Closed' ? raw : 'All';
-  const [q, setQ] = useState('');
-  const [creating, setCreating] = useState(false);
+  /* ?new=1 (from the first-login overview's "Open a cycle") opens the new-cycle sheet straight away. */
+  const [creating, setCreating] = useState(() => new URLSearchParams(window.location.hash.split('?')[1]).get('new') === '1');
   const [editing, setEditing] = useState<Cycle | null>(null);
   const [closing, setClosing] = useState<Cycle | null>(null);
-  const cycles = d.cycles.filter((c) => c.name.includes(q.trim()));
+  const cycles = d.cycles;
   const live = cycles.filter(isLive), closed = cycles.filter((c) => !isLive(c));
   const bar = (c: Cycle) => (
     <div className="flex items-center gap-2.5">
@@ -34,36 +34,34 @@ export function Cycles() {
   return (
     <>
       <PageHeader icon={CalendarDots} title="Cycles" crumbs={['Allocations']}>{d.cycles.length > 0 && <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New cycle</Button>}</PageHeader>
-      <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search cycles" />}>
+      <Toolbar>
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'All', label: 'All', count: d.cycles.length }, { id: 'Live', label: 'Live', count: d.cycles.filter(isLive).length }, { id: 'Closed', label: 'Closed', count: d.cycles.filter((c) => !isLive(c)).length }]} />
       </Toolbar>
       {!d.cycles.length ? (
-        <EmptyArea icon={CalendarCheck} title="No cycles yet" sub="A cycle is one academic year: its application form, offers and bookings all belong to it. Make the first one; next year you can duplicate it.">
+        <EmptyArea art="cycles" icon={CalendarCheck} title="No cycles yet" sub="A cycle is one academic year of applications, offers and bookings.">
           <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New cycle</Button>
         </EmptyArea>
       ) : tab === 'All' ? (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
-            <Grid rows={cycles} onRow={(c) => setTab(isLive(c) ? 'Live' : 'Closed')} cols={[
+            <Grid fill rows={cycles} onRow={(c) => setTab(isLive(c) ? 'Live' : 'Closed')} cols={[
               { key: 'n', label: 'Cycle', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
               { key: 'w', label: 'Window', render: (c) => <span className="text-gray-500">{c.opens} – {c.ends}</span> },
               { key: 'a', label: 'Applications', className: 'text-right', render: (c) => fmtN(c.apps) },
               { key: 'b', label: 'Beds allocated', render: bar },
               { key: 's', label: 'Status', render: (c) => <St s={label(c)} /> },
             ]} />
-            {!cycles.length && <Empty title={`No cycle matches “${q}”`} sub="Try another name or clear the search." />}
           </div>
-          <Foot>{d.cycles.length} cycles · a cycle is one academic year of applications, offers and bookings</Foot>
         </div>
       ) : tab === 'Live' ? (
-        <div className="flex-1 overflow-auto p-5 space-y-4">
+        <div className="flex-1 overflow-auto px-[var(--tx,16px)] pt-2 pb-5 space-y-4">
           {live.map((c) => <LiveCard key={c.id} c={c} onEdit={() => setEditing(c)} onClose={() => setClosing(c)} onOpenApps={() => { filterToCycle(c.name); nav('/allocations/applications?tab=To%20review'); }} />)}
-          {!live.length && <EmptyArea icon={CalendarCheck} title="No live cycle" sub="Make a cycle for the next academic year to open applications."><Button icon={Plus} onClick={() => setCreating(true)}>New cycle</Button></EmptyArea>}
+          {!live.length && <EmptyArea art="cycles" icon={CalendarCheck} title="No live cycle" sub="Make a cycle for the next academic year to open applications."><Button icon={Plus} onClick={() => setCreating(true)}>New cycle</Button></EmptyArea>}
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
-            <Grid rows={closed} cols={[
+            <Grid fill rows={closed} cols={[
               { key: 'n', label: 'Cycle', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
               { key: 'w', label: 'Window', render: (c) => <span className="text-gray-500">{c.opens} – {c.ends}</span> },
               { key: 'a', label: 'Applications', className: 'text-right', render: (c) => fmtN(c.apps) },
@@ -105,9 +103,9 @@ function LiveCard({ c, onEdit, onClose, onOpenApps }: { c: Cycle; onEdit: () => 
           <div className="text-xs text-gray-500 mt-0.5">{c.opens} – {c.ends} · {ten ? 'residents in their rooms' : c.from ? `duplicated from ${c.from}` : 'set up by hand'}</div>
         </div>
         <div className="flex gap-2">
-          {open && <Button size="sm" variant="ghost" onClick={onClose}>Close cycle…</Button>}
-          {!ten && <Button size="sm" icon={Calendar} onClick={onEdit}>Edit dates</Button>}
-          {ten ? <Button size="sm" onClick={() => nav('/allocations/bookings')}>Open bookings <ArrowRight size={12} /></Button> : <Button size="sm" onClick={onOpenApps}>Open applications <ArrowRight size={12} /></Button>}
+          {open && <Button size="sm" variant="ghost" onClick={onClose}>Close cycle</Button>}
+          {!ten && <Button size="sm" variant="ghost" icon={Calendar} onClick={onEdit}>Edit dates</Button>}
+          {ten ? <Button size="sm" onClick={() => nav('/allocations/bookings')}>Open bookings</Button> : <Button size="sm" onClick={onOpenApps}>Open applications</Button>}
         </div>
       </div>
       <div className="mt-4 grid grid-cols-5 rounded-[10px] border border-line divide-x divide-line">
@@ -144,31 +142,33 @@ function NewCycleSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
   };
   const bars: [string, number, number, string][] = [['Applications', 0, 6, '#2563EB'], ['Review & allocate', 0.6, 7.5, '#7C3AED'], ['Offers open', 0.65, 10, '#F59E0B'], ['Move-in', 11.4, 12, '#0B8A4C']];
   return (
-    <Sheet open onClose={onClose} title="New cycle" sub="One academic year of applications, offers and bookings" width={560}
+    <Sheet open onClose={onClose} title="New cycle" width={560}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!valid} onClick={create}>Create cycle</Button></>}>
-      <div className="space-y-5">
+      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <SheetSection title="Cycle">
         <Field label="Name" hint={!valid && name.trim() ? (d.cycles.some((c) => c.name === name.trim()) ? 'That cycle already exists' : 'Use the form 2028/29') : undefined}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-        <div>
-          <div className="text-sm font-medium text-gray-700 mb-1.5">Start from</div>
+        </SheetSection>
+        <SheetSection title="Start from">
           <div className="space-y-2">
             {latest && <label className={cx('flex gap-3 rounded-xl border p-3 cursor-pointer', from === 'dup' ? 'border-primary ring-2 ring-primary/15' : 'border-line')}>
               <input type="radio" checked={from === 'dup'} onChange={() => setFrom('dup')} className="mt-0.5 size-4 accent-[#2563EB]" />
-              <span><span className="block text-sm font-medium">Duplicate {latest.name}</span><span className="block text-xs text-gray-500 mt-0.5">Copies the properties, room types, allocation rules, offer emails and the application form</span></span>
+              <span><span className="block text-sm font-medium">Duplicate {latest.name}</span><span className="block text-xs text-gray-500 mt-0.5">Properties, room types, rules, offer emails and form</span></span>
             </label>}
             <label className={cx('flex gap-3 rounded-xl border p-3 cursor-pointer', from === 'empty' ? 'border-primary ring-2 ring-primary/15' : 'border-line')}>
               <input type="radio" checked={from === 'empty'} onChange={() => setFrom('empty')} className="mt-0.5 size-4 accent-[#2563EB]" />
-              <span><span className="block text-sm font-medium">Start empty</span><span className="block text-xs text-gray-500 mt-0.5">Set everything up again by hand</span></span>
+              <span><span className="block text-sm font-medium">Start empty</span></span>
             </label>
           </div>
-        </div>
+        </SheetSection>
+        <SheetSection title="Dates">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Applications open"><Input value={dates.opens} onChange={(e) => setDates({ ...dates, opens: e.target.value })} /></Field>
           <Field label="Applications close"><Input value={dates.closes} onChange={(e) => setDates({ ...dates, closes: e.target.value })} /></Field>
           <Field label="Offers from"><Input value={dates.offers} onChange={(e) => setDates({ ...dates, offers: e.target.value })} /></Field>
           <Field label="Tenancies start"><Input value={dates.starts} onChange={(e) => setDates({ ...dates, starts: e.target.value })} /></Field>
         </div>
-        <div className="rounded-xl border border-line p-4">
-          <div className="flex items-center justify-between text-sm mb-3"><span className="font-medium">Timeline preview</span><span className="text-gray-500">{latest && from === 'dup' ? `${latest.name} dates moved on one year` : 'From the dates above'}</span></div>
+        </SheetSection>
+        <SheetSection title="Timeline">
           <div className="grid grid-cols-12 text-xs text-gray-400 mb-2">{MONTHS.map((m) => <span key={m}>{m}</span>)}</div>
           <div className="space-y-2">
             {bars.map(([l, s, e, c]) => (
@@ -177,7 +177,7 @@ function NewCycleSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
               </div>
             ))}
           </div>
-        </div>
+        </SheetSection>
       </div>
     </Sheet>
   );

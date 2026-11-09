@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { AlarmClock, AlarmClockOff, ArrowSquareOut, ArrowUpRight, ArrowsLeftRight, CalendarBlank, Check, CheckCircle, Info, PlusCircle, Shield, ShieldWarning, User } from '../../components/icons';
 import { toast } from 'sonner';
 import { create } from 'zustand';
-import { Button, Note, Pill, Sheet, Textarea, cx } from '../../components/ui';
+import { Button, Note, Pill, Sheet, SheetHero, SheetSection, Textarea, type SheetNav } from '../../components/ui';
 import { HALLS, ME, PEOPLE, useHome, type HTask, type Scope } from '../../data/home';
-import { Box, Picker, Who, fromIcon } from './parts';
+import { Box, Picker, Who } from './parts';
 import { SnoozeMenu, useSnooze } from './Snooze';
 
 type Mode = 'detail' | 'pick' | 'halls';
@@ -30,26 +30,10 @@ export function useChange(scope: Scope) {
   };
 }
 
-function SheetTitle({ t, tone, title, sub }: { t: HTask; tone: 'purple' | 'blue' | 'green'; title: string; sub: string }) {
-  const I = t.from ? fromIcon[t.from.icon] : ArrowsLeftRight;
-  const cls = { purple: 'bg-[#F3EEFF] text-[#6E3BD8]', blue: 'bg-[#DBEAFE] text-[#2563EB]', green: 'bg-[#E8F7EE] text-[#0B8A4C]' }[tone];
-  return (
-    <span className="flex items-center gap-2.5">
-      <span className={cx('size-8 rounded-lg flex items-center justify-center shrink-0', cls)}><I size={16} /></span>
-      <span className="min-w-0"><span className="block text-sm font-semibold truncate">{title}</span><span className="block text-xs font-normal text-gray-500 truncate">{sub}</span></span>
-    </span>
-  );
-}
+/** Detail rows for a SheetSection: values keep their inline icons/avatars on one line. */
+const factRows = (rows: [string, React.ReactNode][]): [string, React.ReactNode][] => rows.map(([k, v]) => [k, <span key={k} className="flex items-center gap-2">{v}</span>]);
 
-function Facts({ rows }: { rows: [string, React.ReactNode][] }) {
-  return (
-    <dl className="grid grid-cols-[132px_1fr] gap-y-3.5 text-sm leading-5">
-      {rows.map(([k, v]) => <div key={k} className="contents"><dt className="text-gray-500">{k}</dt><dd className="text-ink flex items-center gap-2">{v}</dd></div>)}
-    </dl>
-  );
-}
-
-export function TaskSheet({ scope, task, onClose }: { scope: Scope; task: HTask | undefined; onClose: () => void }) {
+export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: SheetNav; scope: Scope; task: HTask | undefined; onClose: () => void }) {
   const nav = useNavigate();
   const patch = useHome((s) => s.patch);
   const change = useChange(scope);
@@ -112,15 +96,14 @@ export function TaskSheet({ scope, task, onClose }: { scope: Scope; task: HTask 
   /* ---- E2: already done somewhere else ---- */
   if (task.elsewhere) {
     return (
-      <Sheet open onClose={close} width={520} title={<SheetTitle t={task} tone="green" title={title} sub={sub} />}
+      <Sheet open onClose={close} width={520} title="Task" nav={sheetNav}
         footer={<>
           <Button icon={ArrowSquareOut} onClick={() => { close(); nav(task.to ?? '/residents/requests'); }}>Open the request</Button>
           <Button variant="primary" onClick={close}>Close</Button>
         </>}>
-        <div className="space-y-5 pt-1">
-          <Note tone="blue" icon={CheckCircle} title="Already done in Requests">{task.elsewhere.by.split(' ')[0]} approved this swap in Requests {task.elsewhere.ago}, so the task closed itself. Nothing for you to do.</Note>
-          <Facts rows={dt.facts ?? []} />
-        </div>
+        <SheetHero avatar={false} name={title} meta={sub} />
+        <div className="pb-5"><Note tone="blue" icon={CheckCircle} title="Already done in Requests">{task.elsewhere.by.split(' ')[0]} approved this swap {task.elsewhere.ago}, so the task closed itself.</Note></div>
+        <SheetSection title="Details" rows={factRows(dt.facts ?? [])} />
       </Sheet>
     );
   }
@@ -130,12 +113,13 @@ export function TaskSheet({ scope, task, onClose }: { scope: Scope; task: HTask 
     const jb = halls.includes('Josephine Butler College');
     return (
       <Sheet open onClose={() => setMode('pick')} width={520}
-        title={<span className="flex items-center gap-2.5"><span className="size-8 rounded-lg bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center"><Shield size={16} /></span><span><span className="block text-sm font-semibold">Aisha Khan · halls</span><span className="block text-xs font-normal text-gray-500">Hall manager</span></span></span>}
+        title="Aisha Khan’s halls" sub="Hall manager"
         footer={<>
           <Button onClick={() => setMode('pick')}>Cancel</Button>
           <Button variant="primary" icon={Check} onClick={saveHalls}>{jb ? 'Save and hand over the task' : 'Save'}</Button>
         </>}>
-        <p className="text-sm text-gray-600 mb-3">Aisha can do everything a Hall manager can, in these halls</p>
+        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <SheetSection title="Halls">
         <div className="rounded-xl border border-line divide-y divide-line">
           {HALLS.map((h) => {
             const on = halls.includes(h.name);
@@ -147,6 +131,8 @@ export function TaskSheet({ scope, task, onClose }: { scope: Scope; task: HTask 
               </label>
             );
           })}
+        </div>
+        </SheetSection>
         </div>
         {jb && <div className="mt-4"><Note tone="blue" icon={Info} title="Aisha will see Josephine Butler in Residents, Requests and Maintenance">She gets an email saying so.</Note></div>}
       </Sheet>
@@ -181,56 +167,50 @@ export function TaskSheet({ scope, task, onClose }: { scope: Scope; task: HTask 
   );
 
   return (
-    <Sheet open onClose={onClose} width={520} title={<SheetTitle t={task} tone={main ? 'purple' : 'blue'} title={title} sub={sub} />} footer={footer}>
-      <div className="space-y-5 pt-1">
-        {!(mode === 'pick' && nobody) && (
-          <>
-            {task.snoozed && !task.done && <Note tone="blue" icon={AlarmClock} title={`Snoozed until ${task.snoozed.label}`}>It’s hidden from Mine until then. The due date hasn’t moved.</Note>}
-            {pills.length > 0 && (
-              <div className="flex gap-2">
-                {task.done ? <Pill tone="green" icon={CheckCircle}>Done{task.doneBy && task.doneBy !== ME ? ` by ${task.doneBy}` : ''}</Pill>
-                  : pills.map((p) => <Pill key={p.label} tone={p.tone} icon={p.icon === 'check' ? Check : CalendarBlank}>{p.label}</Pill>)}
-              </div>
-            )}
-            <Facts rows={main && mode === 'detail' ? [...facts, ownerRow] : facts} />
-          </>
-        )}
+    <Sheet open onClose={onClose} width={520} title="Task" nav={sheetNav} footer={footer}>
+      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+      {!(mode === 'pick' && nobody) && (
+        <>
+          <SheetHero avatar={false} name={title} meta={sub}>
+            {task.done ? <Pill tone="green" icon={CheckCircle}>Done{task.doneBy && task.doneBy !== ME ? ` by ${task.doneBy}` : ''}</Pill>
+              : pills.length > 0 && pills.map((p) => <Pill key={p.label} tone={p.tone} icon={p.icon === 'check' ? Check : CalendarBlank}>{p.label}</Pill>)}
+          </SheetHero>
+          {task.snoozed && !task.done && <div className="pb-5"><Note tone="blue" icon={AlarmClock} title={`Snoozed until ${task.snoozed.label}`}>Hidden from Mine until then.</Note></div>}
+          {main && mode === 'detail' && dt.decide && task.to && (
+            <button type="button" onClick={() => { onClose(); nav(task.to!); }} className="block w-full mb-5 text-left rounded-xl hover:ring-2 hover:ring-primary/15">
+              <Note tone="blue" icon={Info} title={dt.decide.title}>{dt.decide.sub}</Note>
+            </button>
+          )}
+          <SheetSection title="Details" rows={factRows(main && mode === 'detail' ? [...facts, ownerRow] : facts)} />
+        </>
+      )}
 
-        {mode === 'pick' ? (
-          <div>
-            <div className="text-sm font-medium mb-2.5">Hand it to</div>
-            <Picker title={picker.title} can={picker.can} cant={picker.cant} onPick={handTo} />
-            {nobody && (
-              <div className="mt-4">
-                <Note tone="amber" icon={ShieldWarning} title={`Only you can approve swaps at ${hall}`}>Give someone the hall in Roles and access, or keep the task. The picker never offers someone who couldn’t finish it.</Note>
-              </div>
-            )}
-          </div>
-        ) : main && (
-          <>
-            <div className="border-t border-[#F3F4F6]" />
-            {dt.decide && task.to && (
-              <button type="button" onClick={() => { onClose(); nav(task.to!); }} className="block w-full text-left rounded-xl hover:ring-2 hover:ring-primary/15">
-                <Note tone="blue" icon={Info} title={dt.decide.title}>{dt.decide.sub}</Note>
-              </button>
-            )}
-            <label className="block">
-              <span className="block text-sm font-medium mb-2">Note for the team</span>
-              <Textarea defaultValue={dt.teamNote ?? ''} placeholder="Add context for whoever picks this up" className="text-sm leading-5 min-h-[72px]"
-                onBlur={(e) => { const v = e.target.value; if (v !== (dt.teamNote ?? '')) { patch(scope, (rows) => rows.map((r) => (r.id === task.id ? { ...r, detail: { ...dt, teamNote: v } } : r))); toast.success('Note saved'); } }} />
-            </label>
-            {dt.activity && (
-              <div>
-                <div className="text-xs font-medium text-gray-500 mb-2">Activity</div>
-                <ul className="space-y-2">
-                  {dt.activity.map((a) => (
-                    <li key={a.text} className="flex items-center gap-2 text-xs text-gray-500">{a.icon === 'plus' ? <PlusCircle size={12} className="text-gray-400" /> : <User size={12} className="text-gray-400" />}{a.text}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </>
-        )}
+      {mode === 'pick' ? (
+        <SheetSection title="Hand it to">
+          <Picker title={picker.title} can={picker.can} cant={picker.cant} onPick={handTo} />
+          {nobody && (
+            <div className="mt-4">
+              <Note tone="amber" icon={ShieldWarning} title={`Only you can approve swaps at ${hall}`}>Give someone the hall in Roles and access, or keep the task.</Note>
+            </div>
+          )}
+        </SheetSection>
+      ) : main && (
+        <>
+          <SheetSection title="Note for the team">
+            <Textarea aria-label="Note for the team" defaultValue={dt.teamNote ?? ''} placeholder="Add context for whoever picks this up" className="text-sm leading-5 min-h-[72px]"
+              onBlur={(e) => { const v = e.target.value; if (v !== (dt.teamNote ?? '')) { patch(scope, (rows) => rows.map((r) => (r.id === task.id ? { ...r, detail: { ...dt, teamNote: v } } : r))); toast.success('Note saved'); } }} />
+          </SheetSection>
+          {dt.activity && (
+            <SheetSection title="Activity">
+              <ul className="space-y-2">
+                {dt.activity.map((a) => (
+                  <li key={a.text} className="flex items-center gap-2 text-xs text-gray-500">{a.icon === 'plus' ? <PlusCircle size={12} className="text-gray-400" /> : <User size={12} className="text-gray-400" />}{a.text}</li>
+                ))}
+              </ul>
+            </SheetSection>
+          )}
+        </>
+      )}
       </div>
     </Sheet>
   );

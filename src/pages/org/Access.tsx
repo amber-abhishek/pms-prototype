@@ -4,7 +4,7 @@ import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Buildings, ClockCounterClockwise, EnvelopeSimple, Info, PaperPlaneTilt, Plus, Shield, ShieldCheck, User, UserPlus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Field, FilterButton, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col } from '../../components/ui';
+import { Avatar, Button, Field, FilterButton, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useTab } from '../hooks';
 import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, useOrg, type Member, type Role, type Scenario } from '../../data/org';
@@ -15,7 +15,7 @@ const FOOT = 'Members sign in with their university account; a role sets what th
 
 export function RoleTag({ role }: { role?: Role }) {
   if (!role) return <span className="text-gray-400">—</span>;
-  return <Pill outline tone={role.id === 'admin' ? 'purple' : role.createdByYou ? 'green' : 'blue'}>{role.name}</Pill>;
+  return <Pill tone={role.id === 'admin' ? 'purple' : role.createdByYou ? 'green' : 'blue'}>{role.name}</Pill>;
 }
 
 /** Snapshot for Undo. */
@@ -107,7 +107,6 @@ export function AccessPage() {
   return (
     <>
       <Header icon={ShieldCheck} crumbs={[{ label: 'Organisation' }]} title="Roles and access">
-        <Button icon={Shield} onClick={() => setTab('roles')}>Roles</Button>
         <Button icon={Plus} onClick={() => nav('/org/people/roles/new')}>New role</Button>
         {!(tab === 'members' && onlyYou) && <Button variant="primary" icon={UserPlus} onClick={() => setInvite({ open: true })}>Invite member</Button>}
       </Header>
@@ -121,15 +120,15 @@ export function AccessPage() {
 
       {tab === 'members' && (onlyYou ? (
         <div className="flex-1 overflow-auto">
-          <PlainTable cols={memberCols} rows={members} />
-          <EmptyState icon={User} title="It’s just you so far" sub="Invite wardens, the front desk and estates. Each gets a role and the halls they cover, and only sees those halls.">
+          <div data-inset className="px-[var(--gx,16px)]"><PlainTable cols={memberCols} rows={members} /></div>
+          <EmptyState art="team" icon={User} title="It’s just you so far" sub="Each person gets a role and the halls they cover.">
             <Button variant="primary" icon={UserPlus} onClick={() => setInvite({ open: true })}>Invite member</Button>
             <Button icon={Shield} onClick={() => setTab('roles')}>Review roles</Button>
           </EmptyState>
         </div>
-      ) : <Table cols={memberCols} rows={shown} onRow={(m) => setAccess({ m })} summary={FOOT} pageSize={50} />)}
+      ) : <Table cols={memberCols} rows={shown} onRow={(m) => setAccess({ m })} selected={access?.m.id} summary={FOOT} pageSize={50} />)}
 
-      {tab === 'roles' && <Table cols={roleCols} rows={roles} onRow={(r) => r.id !== 'admin' ? nav(`/org/people/roles/${r.id}`) : toast('Admin can do everything. It can’t be edited.')} summary={`${roles.length} roles · a role sets what someone can do; halls are picked per member`} />}
+      {tab === 'roles' && <Table cols={roleCols} rows={roles} onRow={(r) => r.id !== 'admin' ? nav(`/org/people/roles/${r.id}`) : toast('Admin can do everything. It can’t be edited.')} />}
 
       {tab === 'audit' && <Table cols={[
         { key: 'w', label: 'When', className: 'w-44', render: (a) => <span className="text-sm text-[#646A78]">{a.when}</span> },
@@ -140,7 +139,7 @@ export function AccessPage() {
 
       <InviteDialog open={invite.open} initialRole={invite.roleId} onClose={() => setInvite({ open: false })}
         onExisting={(m, roleId, hall) => { setInvite({ open: false }); setAccess({ m, addHall: hall === 'all' ? undefined : hall, roleId }); }} />
-      {access && <AccessSheet key={access.m.id} m={access.m} addHall={access.addHall} onClose={() => setAccess(null)} />}
+      {access && <AccessSheet key={access.m.id} m={access.m} nav={listNav(shown, (x) => x.id === access.m.id, (x) => setAccess({ m: x }))} addHall={access.addHall} onClose={() => setAccess(null)} />}
       <RemoveDialog m={removing} onClose={() => setRemoving(null)} />
       <DeleteRoleDialog r={deleting} onClose={() => setDeleting(null)} />
     </>
@@ -151,8 +150,8 @@ function PlainTable<T extends { id: string }>({ cols, rows }: { cols: Col<T>[]; 
   const { items, bodyRef } = useRowMotion(rows);
   return (
     <table className="w-full text-sm">
-      <thead><tr className="text-left text-xs text-[#646A78]">{cols.map((c, i) => <th key={c.key} className={cx('font-medium h-9 border-b border-line px-3', i === 0 && 'pl-5', i === cols.length - 1 && 'pr-5', c.className)}>{c.label}</th>)}</tr></thead>
-      <tbody ref={bodyRef}>{items.map(({ row: r, motion }) => <tr key={r.id} {...rowAttrs(r.id, motion)} className="border-b border-line">{cols.map((c, i) => <td key={c.key} className={cx('h-10 px-3 py-1.5', i === 0 && 'pl-5', i === cols.length - 1 && 'pr-5', c.className)}>{c.render(r)}</td>)}</tr>)}</tbody>
+      <thead><tr className="text-left text-xs text-[#646A78]">{cols.map((c, i) => <th key={c.key} className={cx('font-medium h-9 border-b border-line px-3', i === 0 && 'pl-[var(--cx,12px)]', i === cols.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{c.label}</th>)}</tr></thead>
+      <tbody ref={bodyRef}>{items.map(({ row: r, motion }) => <tr key={r.id} {...rowAttrs(r.id, motion)} className="border-b border-line">{cols.map((c, i) => <td key={c.key} className={cx('h-10 px-3 py-1.5', i === 0 && 'pl-[var(--cx,12px)]', i === cols.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{c.render(r)}</td>)}</tr>)}</tbody>
     </table>
   );
 }
@@ -218,7 +217,7 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
 }
 
 /* ---------- Member access sheet (E1 · 03) ---------- */
-function AccessSheet({ m, addHall, onClose }: { m: Member; addHall?: string; onClose: () => void }) {
+function AccessSheet({ m, addHall, onClose , nav }: { nav?: SheetNav;  m: Member; addHall?: string; onClose: () => void }) {
   const { roles, set, audit_ } = useOrg();
   const [roleId, setRoleId] = useState(m.roleId);
   const orig = m.halls === 'all' ? HALLS.map((h) => h.id) : m.halls;
@@ -239,26 +238,27 @@ function AccessSheet({ m, addHall, onClose }: { m: Member; addHall?: string; onC
   };
   const ordered = [...HALLS].sort((a, b) => Number(orig.includes(b.id)) - Number(orig.includes(a.id)));
   return (
-    <Sheet open onClose={onClose} width={440} title={`${m.name} · access`} sub={`${m.email} · ${m.status === 'Active' ? `member since ${m.since}` : m.status.toLowerCase()}`}
+    <Sheet open onClose={onClose} nav={nav} width={480} title="Access"
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
-      <div className="space-y-5">
-        <div><div className="text-sm font-medium text-gray-700 mb-1.5">Role</div>
-          <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} />
-          {role && <p className="text-xs text-[#646A78] mt-1.5">{roleCan(role)}</p>}</div>
-        <div><div className="text-sm font-medium text-gray-700 mb-1.5">Halls</div>
-          {allScope ? <div className="rounded-lg border border-line p-3 text-sm text-[#646A78]">{role?.name} covers every hall in the workspace.</div> : (
-            <div className="rounded-lg border border-line divide-y divide-line">
-              {ordered.map((h) => { const on = halls.includes(h.id); const isNew = on && !orig.includes(h.id); return (
-                <label key={h.id} className={cx('flex items-center gap-3 px-3 h-12 cursor-pointer', isNew && 'bg-[#F0FDF4]')}>
-                  <Checkbox checked={on} onCheckedChange={(v) => setHalls((v === true) ? [...halls, h.id] : halls.filter((x) => x !== h.id))} />
-                  <Buildings size={15} className="text-gray-400" />
-                  <span className="flex-1"><span className="block text-sm font-medium">{h.name}</span><span className={cx('block text-xs', isNew ? 'text-[#0B8A4C]' : 'text-[#646A78]')}>{h.rooms} rooms{isNew ? ' · added' : ''}</span></span>
-                </label>
-              ); })}
-            </div>
-          )}</div>
-        <p className="text-xs text-[#646A78]">Changes apply straight away; we email {m.name.split(' ')[0]} what changed. No second account, no new invite.</p>
-      </div>
+      <SheetHero name={m.name} meta={`${m.email} · ${m.status === 'Active' ? `member since ${m.since}` : m.status.toLowerCase()}`} />
+      <SheetSection title="Role">
+        <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} />
+        {role && <p className="text-xs text-[#646A78] mt-1.5">{roleCan(role)}</p>}
+      </SheetSection>
+      <SheetSection title="Halls">
+        {allScope ? <p className="text-sm text-[#646A78]">{role?.name} covers every hall.</p> : (
+          <div className="divide-y divide-[#F3F4F6]">
+            {ordered.map((h) => { const on = halls.includes(h.id); const isNew = on && !orig.includes(h.id); return (
+              <label key={h.id} className="flex items-center gap-3 h-12 cursor-pointer">
+                <Checkbox checked={on} onCheckedChange={(v) => setHalls((v === true) ? [...halls, h.id] : halls.filter((x) => x !== h.id))} />
+                <Buildings size={15} className="text-gray-400" />
+                <span className="flex-1"><span className="block text-sm font-medium">{h.name}</span><span className={cx('block text-xs', isNew ? 'text-[#0B8A4C]' : 'text-[#646A78]')}>{h.rooms} rooms{isNew ? ' · added' : ''}</span></span>
+              </label>
+            ); })}
+          </div>
+        )}
+        <p className="text-xs text-[#646A78] mt-3">Applies straight away; {m.name.split(' ')[0]} gets an email.</p>
+      </SheetSection>
     </Sheet>
   );
 }

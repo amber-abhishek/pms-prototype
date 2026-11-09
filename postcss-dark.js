@@ -8,13 +8,21 @@
      the same hue; solid brand fills (#2563EB, #0B8A4C) stay as they are.
    - text: neutral greys invert (ink → near white, #646A78 → mid grey); saturated text is lifted so it reads on dark.
    - shadows: dark shadows deepen; white highlights (the 0 1px 0 #fff on inset rows) all but vanish.
-   OVERRIDES pins the few colours the formula gets wrong (the page chrome must sit below the cards). */
+   OVERRIDES pins the few colours the formula gets wrong (the page chrome must sit below the cards).
 
-const NEUTRAL_HUE = 228;
-const NEUTRAL_SAT = 0.07;
+   Tuned on Mercury's dark mode (2026-11-09), in our own hues:
+   - neutrals carry real tint (13% saturation on our 222° grey hue), not flat grey;
+   - elevation is a lightness ladder: chrome 7.5% < card 11.5% < subtle 14% < hover 18% < raised 24%;
+   - lines sit only a few points above the surface they divide, so cards and rows separate quietly;
+   - text is off-white (ink ≈ 88%), secondary ≈ 77%, muted ≈ 63%;
+   - colour is desaturated and lifted: vivid text goes pastel, tints become deep low-chroma washes, brand fills
+     soften a little so white text still reads. */
+
+const NEUTRAL_HUE = 222;
+const NEUTRAL_SAT = 0.13;
 
 const OVERRIDES = {
-  bg: { '#f7f7f8': '#0b0b0d' },
+  bg: { '#f7f7f8': '#101217' },
 };
 
 const KIND = (prop) => {
@@ -56,20 +64,22 @@ function mapColor(kind, r, g, b) {
   const N = (L) => hslToRgb(NEUTRAL_HUE, NEUTRAL_SAT, clamp(L));
   if (kind === 'bg') {
     /* Near-white greys are hover and selected grounds: spread them out so a hover reads against the card. */
-    if (neutral) return l >= 0.9 ? N(0.085 + (1 - l) * 2) : l >= 0.5 ? N(0.285 + (0.9 - l)) : N(0.22 + l * 0.35);
-    if (l >= 0.85) return hslToRgb(h, Math.min(s, 0.6) * 0.75, 0.15);
-    if (l >= 0.7) return hslToRgb(h, Math.min(s, 0.6), 0.25);
+    if (neutral) return l >= 0.9 ? N(0.115 + (1 - l) * 1.4) : l >= 0.5 ? N(0.26 + (0.9 - l) * 0.8) : N(0.22 + l * 0.35);
+    if (l >= 0.85) return hslToRgb(h, Math.min(s, 0.6) * 0.5, 0.155);
+    if (l >= 0.7) return hslToRgb(h, Math.min(s, 0.6) * 0.6, 0.24);
+    /* Brand fills (primary buttons, toggles, bars): a touch softer and lighter, as Mercury's periwinkle. */
+    if (s > 0.45) return hslToRgb(h, Math.min(s, 0.9) * 0.78, clamp(l + 0.06, 0.38, 0.6));
     return null;
   }
   if (kind === 'border') {
-    if (neutral) return l >= 0.5 ? N(0.1 + (1 - l) * 1.3) : N(0.95 - l * 0.8);
-    if (l >= 0.75) return hslToRgb(h, Math.min(s, 0.5), 0.3);
-    if (l < 0.5) return hslToRgb(h, Math.min(s, 0.9), 0.6);
+    if (neutral) return l >= 0.5 ? N(0.13 + (1 - l) * 0.6) : N(0.95 - l * 0.8);
+    if (l >= 0.75) return hslToRgb(h, Math.min(s, 0.5) * 0.6, 0.235);
+    if (l < 0.5) return hslToRgb(h, Math.min(s, 0.9) * 0.7, 0.62);
     return null;
   }
   if (kind === 'text') {
-    if (neutral) return l >= 0.85 ? null : N(0.96 - l * 0.8);
-    if (l < 0.62) return hslToRgb(h, Math.min(s, 0.9), 0.62 + l * 0.15);
+    if (neutral) return l >= 0.85 ? null : N(0.97 - l * 0.75);
+    if (l < 0.62) return hslToRgb(h, Math.min(s, 0.9) * 0.5, 0.67 + l * 0.05);
     return null;
   }
   return null;

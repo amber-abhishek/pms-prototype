@@ -4,7 +4,7 @@ import { Buildings, Camera, CheckCircle, Circle, Clock, DeviceMobile, DotsThree,
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
-import { Avatar, Button, Card, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, cx, gbp } from '../../components/ui';
+import { Avatar, Button, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
 import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 import { kindIcon } from './Requests';
@@ -39,20 +39,20 @@ export function ResidentsList() {
   const checkIn = useCheckIn();
   if (open) return <Navigate to={`/residents/${open}`} replace />;
   const inTab = (r: Resident, t: Tab) => t === 'All' || (t === 'Arriving' ? !!r.arrivingThisWeek : r.status === t);
-  const scoped = residents.filter((r) => (!f.hall || r.hall === f.hall) && (!f.deposit || r.deposit === f.deposit) && (!q.trim() || `${r.name} ${r.email} ${r.room} ${r.hall}`.toLowerCase().includes(q.trim().toLowerCase())));
+  const scoped = residents.filter((r) => (!f.hall || r.hall === f.hall) && (!f.deposit || r.deposit === f.deposit) && (!f.week || (f.week === 'Arriving today' ? r.arrives === 'Today' && !r.checkedIn : f.week === 'Arriving this week' ? !!r.arrivingThisWeek : r.status === 'Leaving')) && (!q.trim() || `${r.name} ${r.email} ${r.room} ${r.hall}`.toLowerCase().includes(q.trim().toLowerCase())));
   const rows = scoped.filter((r) => inTab(r, tab)).sort((a, b) => (tab === 'Arriving' ? Number(b.arrives === 'Today') - Number(a.arrives === 'Today') : 0));
   return (
     <>
       <RHeader icon={Users} crumbs={[]} title="Residents" />
       <Toolbar right={<>
         <SearchInput value={q} onChange={setQ} placeholder="Search name, email or room" />
-        <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: [...new Set(residents.map((r) => r.hall))] }, { id: 'deposit', label: 'Deposit', options: ['Paid', 'Not paid'] }]} />
+        <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: [...new Set(residents.map((r) => r.hall))] }, { id: 'deposit', label: 'Deposit', options: ['Paid', 'Not paid'] }, { id: 'week', label: 'This week', chips: true, options: ['Arriving today', 'Arriving this week', 'Leaving'] }]} />
       </>}>
         <Tabs value={tab} onChange={setTab} tabs={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ id: t, label: t, count: scoped.filter((r) => inTab(r, t)).length }))} />
       </Toolbar>
       <Table rows={rows} paginate={false} footer={false} onRow={(r) => nav(`/residents/${r.id}`)}
         summary={`${rows.length} ${rows.length === 1 ? 'resident' : 'residents'}${tab === 'Arriving' ? ` · ${rows.filter((r) => r.checkedIn).length} checked in so far` : ''}`}
-        empty={<Empty icon={Users} title="No residents match" sub="Try clearing the search or the filters." />}
+        empty={residents.length ? <Empty icon={Users} title="No residents match" sub="Try clearing the search or the filters." /> : <Empty art="team" icon={Users} title="No residents yet" sub="Residents show here once their bookings are confirmed." />}
         cols={[
           { key: 'n', label: 'Resident', render: (r) => <span className="font-medium">{r.name}</span> },
           { key: 'rm', label: 'Room', render: (r) => <span className="text-gray-500">{hallShort(r.hall)} {r.room}</span> },
@@ -100,7 +100,7 @@ export function ResidentDetail() {
           <Avatar name={r.name} size={36} />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-[20px] font-semibold tracking-tight mr-1">{r.name}</h2>
+              <h2 className="text-[20px] font-medium tracking-tight mr-1">{r.name}</h2>
               {arriving ? <Pill tone="blue" outline icon={Buildings}>Arriving {r.arrives}</Pill> : <ResStatusPill r={r} />}
               {r.plan && <Pill tone="purple" outline>Accessibility plan</Pill>}
               <Pill tone="blue" outline>{r.year}</Pill>
@@ -111,7 +111,7 @@ export function ResidentDetail() {
         <div className="px-6 py-3 border-b border-line">
           <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Payments', label: 'Payments' }, { id: 'Requests', label: 'Requests', count: reqs.length }, { id: 'Maintenance', label: 'Maintenance', count: mts.length }, { id: 'Documents', label: 'Documents', count: 4 }, { id: 'Activity', label: 'Activity' }]} />
         </div>
-        <div className="p-6 max-w-[1200px]">
+        <div className={['Payments', 'Requests', 'Maintenance', 'Documents'].includes(tab) ? 'pt-2' : 'p-6 max-w-[1200px]'}>
           {tab === 'Overview' && (
             <div className="grid grid-cols-2 gap-5 items-start">
               <div className="space-y-4">
@@ -136,21 +136,39 @@ export function ResidentDetail() {
           )}
           {tab === 'Tenancy' && <Panel title="Tenancy" className="max-w-[640px]"><KV rows={[['Room', `${r.hall} · ${r.room} ${r.roomType}`], ['Dates', '19 Sep 2026 – 18 Jun 2027 · 39 weeks'], ['Rent', `${gbp(r.rent)} / wk · ${gbp(r.rent * 39)} a year`], ['Lease', r.lease === 'Signed' ? (r.leaseNote ?? 'Signed') : 'Not signed yet'], ['Status', <ResStatusPill r={r} />]]} /></Panel>}
           {tab === 'Payments' && (
-            <Card className="overflow-hidden max-w-[760px]">
-              <table className="w-full text-sm"><thead><tr className="text-left text-sm text-gray-500 border-b border-line">{['Item', 'Due', 'Amount', 'Status'].map((h, i) => <th key={h} className={cx('font-normal h-9 px-3', i === 0 && 'pl-4')}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {[['Deposit', '2 Aug', 250, r.deposit === 'Paid' ? 'Paid' : 'Not paid'], ['Rent · term 1', '19 Sep', r.rent * 12, 'Due'], ['Rent · term 2', '9 Jan', r.rent * 13, 'Upcoming'], ['Rent · term 3', '24 Apr', r.rent * 14, 'Upcoming']].map(([a, b, c, d]) => (
-                    <tr key={a} className="border-b border-line last:border-0"><td className="h-10 pl-4 px-3">{a}</td><td className="px-3 text-gray-500">{b}</td><td className="px-3">{gbp(c as number)}</td><td className="px-3"><Pill tone={d === 'Paid' ? 'green' : d === 'Not paid' ? 'red' : d === 'Due' ? 'amber' : 'grey'}>{d}</Pill></td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+            <Table fill paginate={false} footer={false} rows={[
+              { id: 'dep', item: 'Deposit', due: '2 Aug', amount: 250, status: r.deposit === 'Paid' ? 'Paid' : 'Not paid' },
+              { id: 't1', item: 'Rent · term 1', due: '19 Sep', amount: r.rent * 12, status: 'Due' },
+              { id: 't2', item: 'Rent · term 2', due: '9 Jan', amount: r.rent * 13, status: 'Upcoming' },
+              { id: 't3', item: 'Rent · term 3', due: '24 Apr', amount: r.rent * 14, status: 'Upcoming' },
+            ]} cols={[
+              { key: 'i', label: 'Item', render: (x) => x.item },
+              { key: 'd', label: 'Due', render: (x) => <span className="text-gray-500">{x.due}</span> },
+              { key: 'a', label: 'Amount', className: 'text-right', render: (x) => <span className="tabular-nums">{gbp(x.amount)}</span> },
+              { key: 's', label: 'Status', render: (x) => <Pill tone={x.status === 'Paid' ? 'green' : x.status === 'Not paid' ? 'red' : x.status === 'Due' ? 'amber' : 'grey'}>{x.status}</Pill> },
+            ]} />
           )}
-          {tab === 'Requests' && (reqs.length ? <Card className="divide-y divide-line max-w-[760px]">{reqs.map((q) => { const I = kindIcon[q.kind]; return <button key={q.id} type="button" onClick={() => nav(`/residents/requests?open=${q.id}`)} className="w-full h-11 px-4 flex items-center gap-3 text-sm text-left hover:bg-gray-50"><span className="font-mono text-xs text-gray-500 w-16">{q.ref}</span><I size={16} className="text-gray-500" />{q.kind}<span className="text-gray-500 truncate">{q.detail}</span><span className="ml-auto"><Pill tone={q.status === 'Approved' ? 'green' : q.status === 'Declined' ? 'red' : 'amber'}>{q.status}</Pill></span></button>; })}</Card>
-            : <Empty icon={ListChecks} title="No requests" sub={`Room swaps, guests and early arrivals ${first} asks for in the portal show here.`} />)}
-          {tab === 'Maintenance' && (mts.length ? <Card className="divide-y divide-line max-w-[760px]">{mts.map((m) => <button key={m.id} type="button" onClick={() => nav(`/residents/maintenance?job=${m.id}`)} className="w-full h-11 px-4 flex items-center gap-3 text-sm text-left hover:bg-gray-50"><span className="font-mono text-xs text-gray-500 w-16">{m.ref}</span>{m.title}<span className="ml-auto"><Pill tone={m.status === 'Fixed' ? 'green' : 'amber'}>{m.status === 'New' ? 'Open' : m.status}</Pill></span></button>)}</Card>
-            : <Empty icon={ListChecks} title="No faults reported" sub={`Faults ${first} reports in the portal show here.`} />)}
-          {tab === 'Documents' && <Card className="divide-y divide-line max-w-[760px]">{['Lease · signed 2 Aug', 'Deposit receipt', r.plan ? 'Accessibility plan' : 'Guarantor form', 'Offer letter · 2026/27'].map((d) => <div key={d} className="h-11 px-4 flex items-center gap-3 text-sm"><FileText size={16} className="text-gray-500" />{d}<Button size="sm" variant="ghost" className="ml-auto" onClick={() => toast(`Opening ${d}`)}>View</Button></div>)}</Card>}
+          {tab === 'Requests' && (reqs.length ? (
+            <Table fill paginate={false} footer={false} rows={reqs} onRow={(q) => nav(`/residents/requests?open=${q.id}`)} cols={[
+              { key: 'r', label: 'Ref', className: 'w-28', render: (q) => <span className="font-mono text-xs text-gray-500">{q.ref}</span> },
+              { key: 'k', label: 'Type', render: (q) => { const I = kindIcon[q.kind]; return <span className="flex items-center gap-2"><I size={16} className="text-gray-500" />{q.kind}</span>; } },
+              { key: 'd', label: 'Detail', render: (q) => <span className="text-gray-500 truncate block">{q.detail}</span> },
+              { key: 's', label: 'Status', render: (q) => <Pill tone={q.status === 'Approved' ? 'green' : q.status === 'Declined' ? 'red' : 'amber'}>{q.status}</Pill> },
+            ]} />
+          ) : <Empty art="requests" icon={ListChecks} title="No requests" sub={`Room swaps, guests and early arrivals ${first} asks for in the portal show here.`} />)}
+          {tab === 'Maintenance' && (mts.length ? (
+            <Table fill paginate={false} footer={false} rows={mts} onRow={(m) => nav(`/residents/maintenance?job=${m.id}`)} cols={[
+              { key: 'r', label: 'Ref', className: 'w-28', render: (m) => <span className="font-mono text-xs text-gray-500">{m.ref}</span> },
+              { key: 't', label: 'Fault', render: (m) => m.title },
+              { key: 's', label: 'Status', render: (m) => <Pill tone={m.status === 'Fixed' ? 'green' : 'amber'}>{m.status === 'New' ? 'Open' : m.status}</Pill> },
+            ]} />
+          ) : <Empty art="faults" icon={ListChecks} title="No faults reported" sub={`Faults ${first} reports in the portal show here.`} />)}
+          {tab === 'Documents' && (
+            <Table fill paginate={false} footer={false} rows={['Lease · signed 2 Aug', 'Deposit receipt', r.plan ? 'Accessibility plan' : 'Guarantor form', 'Offer letter · 2026/27'].map((d) => ({ id: d, d }))} cols={[
+              { key: 'd', label: 'Document', render: (x) => <span className="flex items-center gap-2"><FileText size={16} className="text-gray-500" />{x.d}</span> },
+              { key: 'v', label: '', className: 'text-right w-32', render: (x) => <Button size="sm" variant="ghost" icon={null} onClick={() => toast(`Opening ${x.d}`)}>View</Button> },
+            ]} />
+          )}
           {tab === 'Activity' && (
             <ul className="space-y-2 max-w-[760px] text-sm">
               {[...(r.checkedIn ? [[`Checked in by ${r.checkedIn.split(' by ')[1] ?? 'Priya Shah'}`, r.checkedIn.split(' by ')[0]]] : []), ['Deposit ' + (r.deposit === 'Paid' ? 'paid' : 'requested'), '2 Aug'], ['Lease ' + (r.lease === 'Signed' ? 'signed online' : 'sent'), '2 Aug'], ['Offer accepted in Allocations', '28 Jul']].map(([w, t]) => (
@@ -193,28 +211,32 @@ function CheckInSheet({ r, onClose }: { r: Resident; onClose: () => void }) {
     undoToast(isAmira ? 'Amira Rahman checked in · Ustinov is 62% in residence' : `${r.name} checked in to ${r.room}`, undo);
   });
   return (
-    <SideSheet open onClose={onClose} icon={SignIn} tone="green" title={`Check in ${r.name}`} sub={`${r.room} · ${r.hall}`}
+    <SideSheet open onClose={onClose} icon={SignIn} tone="green" title="Check in"
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={SignIn} onClick={submit}>Check in</Button></>}>
-      <Pill tone="amber" icon={ListChecks}>{(r.lease === 'Signed' ? 1 : 0) + (r.deposit === 'Paid' ? 1 : 0) + (r.plan ? 1 : 0)} of {total} done</Pill>
-      <div>
-        <div className="text-sm font-medium text-gray-700 mb-2">ID checked</div>
+      <SheetHero name={r.name} meta={`${r.room} · ${r.hall}`}>
+        <Pill tone="amber" icon={ListChecks}>{(r.lease === 'Signed' ? 1 : 0) + (r.deposit === 'Paid' ? 1 : 0) + (r.plan ? 1 : 0)} of {total} done</Pill>
+      </SheetHero>
+      <SheetSection title="ID checked">
         <div role="radiogroup" className="space-y-2">
           {['Passport', 'BRP', 'Other'].map((t) => <RadioCard key={t} checked={idType === t} onClick={() => setIdType(t)} title={<span className="flex items-center gap-2">{t}{t === 'Passport' && isAmira && <span className="text-xs text-gray-500 font-normal">Number ends 4471 · expires 2031</span>}</span>} />)}
         </div>
-      </div>
+      </SheetSection>
+      <SheetSection title="Keys and meter">
       <div className="grid grid-cols-2 gap-3">
         <Field label="Key fob"><IconInput icon={Key} aria-label="Key fob" value={fob} onChange={(e) => setFob(e.target.value)} /></Field>
         <Field label="Electricity meter"><IconInput icon={Lightning} aria-label="Electricity meter" value={meter} onChange={(e) => setMeter(e.target.value)} /></Field>
       </div>
-      <div>
-        <div className="text-sm font-medium text-gray-700 mb-2">Room condition</div>
+      </SheetSection>
+      <SheetSection title="Room condition">
         <div className="flex gap-2">
           {Array.from({ length: Math.min(photos, 4) }, (_, i) => <Photo key={i} size={64} />)}
           <button type="button" aria-label="Take a photo" onClick={() => setPhotos((p) => p + 1)} className="w-16 h-12 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-gray-500 hover:bg-gray-50"><Camera size={16} /></button>
         </div>
-        <p className="text-xs text-gray-500 mt-2">{photos ? `${photos} photos${isAmira ? ' · matches the move-out record from June' : ''}` : 'Take photos so move-out has something to compare against'}</p>
-      </div>
-      <ToggleRow title="Send the welcome email" sub="House rules, Wi-Fi, how to report a fault" checked={welcome} onChange={setWelcome} />
+        <p className="text-xs text-gray-500 mt-2">{photos ? `${photos} photos${isAmira ? ' · matches the move-out record from June' : ''}` : 'No photos yet'}</p>
+      </SheetSection>
+      <SheetSection title="Welcome">
+        <ToggleRow title="Send the welcome email" sub="House rules, Wi-Fi, how to report a fault" checked={welcome} onChange={setWelcome} />
+      </SheetSection>
     </SideSheet>
   );
 }

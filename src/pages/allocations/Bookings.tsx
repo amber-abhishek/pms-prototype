@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { ArrowsLeftRight, Bell, Check, CircleDashed, DownloadSimple, FileText, PaperPlaneTilt, Plus, Prohibit, Warning, WarningCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, DL, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, Tabs, Toolbar, cx } from '../../components/ui';
+import { Button, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, bookingCounts, fmtN, firstName, hallFull, roomTerms, useAlloc, type Booking, type Conflict, type Data, type Offer } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
-import { Caption, EmptyArea, Foot, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
+import { EmptyArea, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
 import { useAllocActions } from './actions';
 
 type TabId = 'All' | 'Lease sent' | 'Drafts' | 'Conflicts' | 'Cancelled';
@@ -60,7 +60,7 @@ export function Bookings() {
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 't', label: 'Term', render: (b) => <span className="text-gray-500">{b.term}</span> },
       { key: 'l', label: 'Lease', render: (b) => <St s={leaseLabel(b)} /> },
-      { key: 'd', label: 'Deposit', render: (b) => b.deposit.startsWith('Paid') ? <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-full bg-[#E8F7EE] text-xs font-medium text-[#0B8A4C]"><Check size={12} weight="bold" />{b.deposit}</span> : <span className="text-gray-500">{b.deposit}</span> },
+      { key: 'd', label: 'Deposit', render: (b) => b.deposit.startsWith('Paid') ? <span className="inline-flex items-center gap-[5px] h-[22px] px-2 rounded-lg border border-[#DDF3E6] bg-[#E8F7EE] text-xs font-medium text-[#0B8A4C]">{b.deposit}</span> : <span className="text-gray-500">{b.deposit}</span> },
       { key: 'c', label: 'Created', render: (b) => <span className="text-gray-500">{b.created}</span> },
     ],
     'Lease sent': [
@@ -86,14 +86,6 @@ export function Bookings() {
       { key: 'm', label: 'Money', render: (b) => <span className="text-gray-500">{b.cancelled?.money}</span> },
     ],
   };
-  const caption: Record<TabId, string> = {
-    All: '', 'Lease sent': 'Waiting for the resident to sign · longest wait first', Drafts: 'Not sent yet · each one needs something before the lease can go out',
-    Conflicts: '', Cancelled: 'Cancelled bookings stay here for the cycle report',
-  };
-  const foot: Record<TabId, string> = {
-    All: `${fmtN(c.all)} bookings · ${fmtN(c.sent)} waiting to sign`, 'Lease sent': `${fmtN(c.sent)} leases waiting · ${late.length} for more than 7 days`, Drafts: `${c.drafts} drafts · nothing is charged until the lease is sent`,
-    Conflicts: '', Cancelled: `${c.cancelled} cancelled this cycle`,
-  };
   const rows = tab === 'All' ? act : tab === 'Lease sent' ? sent : tab === 'Drafts' ? drafts : tab === 'Cancelled' ? cancelled : [];
   const none = c.all === 0;
 
@@ -108,17 +100,17 @@ export function Bookings() {
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'All', label: 'All', count: c.all }, { id: 'Lease sent', label: 'Lease sent', count: c.sent }, { id: 'Drafts', label: 'Drafts', count: c.drafts }, { id: 'Conflicts', label: 'Conflicts', count: c.conflicts }, { id: 'Cancelled', label: 'Cancelled', count: c.cancelled }]} />
       </Toolbar>
       {none ? (
-        <EmptyArea icon={FileText} title="No bookings yet" sub="A booking is created when an applicant accepts an offer, and the lease goes out straight after. You can also make one by hand.">
+        <EmptyArea art="bookings" icon={FileText} title="No bookings yet" sub="Bookings are made when an applicant accepts an offer.">
           <Button icon={Plus} onClick={() => setCreating(true)}>New booking</Button>
         </EmptyArea>
       ) : tab === 'Conflicts' ? (
         d.conflicts.length === 0 ? (
-          <EmptyArea icon={Check} title="No conflicts" sub="Every unit has one booking for any night. If two bookings ever overlap, they show up here before anything is charged or sent." />
+          <EmptyArea art="conflicts" icon={Check} title="No conflicts" sub="Overlapping bookings show up here before anything is charged." />
         ) : (
           <div className="flex-1 overflow-auto p-5 space-y-4">
             <div className="rounded-lg border border-[#E0243A]/30 bg-white px-3.5 py-2.5 flex gap-2.5">
               <Warning size={16} className="text-[#E0243A] mt-0.5 shrink-0" />
-              <div><div className="text-sm font-medium text-[#E0243A]">{d.conflicts.length} {d.conflicts.length === 1 ? 'unit has' : 'units have'} two bookings for the same nights</div><div className="text-xs text-gray-500 mt-0.5">Nothing is charged or sent for these until you resolve them. Moving one resident keeps their deposit and history.</div></div>
+              <div><div className="text-sm font-medium text-[#E0243A]">{d.conflicts.length} {d.conflicts.length === 1 ? 'unit has' : 'units have'} two bookings for the same nights</div><div className="text-xs text-gray-500 mt-0.5">Nothing is charged or sent until you resolve these.</div></div>
             </div>
             {d.conflicts.map((k) => (
               <div key={k.id} className="rounded-xl border border-line bg-white">
@@ -140,15 +132,13 @@ export function Bookings() {
         )
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
-          {caption[tab] && <Caption>{caption[tab]}</Caption>}
           <div className="flex-1 overflow-auto">
-            {rows.length ? <Grid key={tab} cols={cols[tab]} rows={rows} onRow={(b) => setOpen(b.id)} selected={open} />
-              : <EmptyArea icon={FileText} title={tab === 'Drafts' ? 'No drafts' : tab === 'Lease sent' ? 'Every lease is signed' : `No ${tab.toLowerCase()} bookings`} sub={q || f.hall || f.lease ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
+            {rows.length ? <Grid key={tab} fill cols={cols[tab]} rows={rows} onRow={(b) => setOpen(b.id)} selected={open} />
+              : <EmptyArea art="bookings" icon={FileText} title={tab === 'Drafts' ? 'No drafts' : tab === 'Lease sent' ? 'Every lease is signed' : `No ${tab.toLowerCase()} bookings`} sub={q || f.hall || f.lease ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
-          <Foot>{foot[tab]}</Foot>
         </div>
       )}
-      {sel && <BookingSheet b={sel} onClose={() => setOpen(null)} onSend={() => sendLease(sel)} onRemind={() => remind([sel])} onSigned={() => markSigned(sel)} withUndo={withUndo} />}
+      {sel && <BookingSheet b={sel} nav={listNav(rows, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} onSend={() => sendLease(sel)} onRemind={() => remind([sel])} onSigned={() => markSigned(sel)} withUndo={withUndo} />}
       {creating && <NewBooking onClose={() => setCreating(false)} onMade={(id) => { setCreating(false); setTab('Drafts'); setOpen(id); }} />}
       {resolving && <Resolve k={resolving} onClose={() => setResolving(null)} withUndo={withUndo} />}
     </>
@@ -157,29 +147,31 @@ export function Bookings() {
 
 const STEPS = ['Draft', 'Sent', 'Signed', 'Active'] as const;
 /** F2·09: the booking, its lease stepper and history; cancel with the E4 cooling-off path. */
-function BookingSheet({ b, onClose, onSend, onRemind, onSigned, withUndo }: { b: Booking; onClose: () => void; onSend: () => void; onRemind: () => void; onSigned: () => void; withUndo: () => { label: string; onClick: () => void } }) {
+function BookingSheet({ b, onClose, onSend, onRemind, onSigned, withUndo , nav }: { nav?: SheetNav;  b: Booking; onClose: () => void; onSend: () => void; onRemind: () => void; onSigned: () => void; withUndo: () => { label: string; onClick: () => void } }) {
   const [cancelling, setCancelling] = useState(false);
   const [after, setAfter] = useState<null | { cooling: boolean; who?: string }>(null);
   const { weeks, rate } = roomTerms(b.hall, b.room);
   const step = b.cancelled ? -1 : STEPS.indexOf(b.lease);
   return (
-    <Sheet open onClose={onClose} width={520} title={<span className="flex items-center gap-2.5"><Ini name={b.name} size={28} />{b.name}</span>}
-      sub={<span className="pl-[38px] font-mono text-[12px]">{b.ref}</span>}
+    <Sheet open onClose={onClose} nav={nav} width={520} title="Booking"
       footer={b.cancelled ? <Button onClick={onClose}>Close</Button> : <>
-        <Button variant="danger-ghost" icon={Prohibit} className="mr-auto" onClick={() => setCancelling(true)}>Cancel booking</Button>
+        <Button variant="danger-ghost" className="mr-auto" onClick={() => setCancelling(true)}>Cancel booking</Button>
         {b.lease === 'Draft' && <Button variant="primary" icon={PaperPlaneTilt} disabled={b.missing === 'Deposit not paid'} onClick={onSend}>Send lease</Button>}
         {b.lease === 'Sent' && <><Button icon={Bell} onClick={onRemind}>Send reminder</Button><Button variant="primary" icon={Check} onClick={onSigned}>Mark signed</Button></>}
         {b.lease === 'Signed' && <Button onClick={() => toast.success('Lease downloaded', { description: `${b.ref}.pdf` })}>Download lease</Button>}
       </>}>
-      <div className="space-y-5">
-        {after && (
-          <Note tone="green" icon={Check} title={`Booking cancelled${after.cooling ? ' · deposit refunded £250' : ''}`}>
-            {after.who ? `${b.hall} ${b.unit} was offered to ${after.who}, next on the waitlist.` : `${b.hall} ${b.unit} is back in search.`}
-          </Note>
-        )}
-        {b.cancelled ? (
-          <Note tone="red" icon={Prohibit} title={`Cancelled ${b.cancelled.on}`}>{b.cancelled.reason} · {b.cancelled.money}</Note>
-        ) : (
+      <SheetHero name={b.name} meta={<span className="font-mono text-xs">{b.ref}</span>}>
+        <St s={leaseLabel(b)} />
+      </SheetHero>
+      {after && (
+        <div className="mb-5"><Note tone="green" icon={Check} title={`Booking cancelled${after.cooling ? ' · deposit refunded £250' : ''}`}>
+          {after.who ? `${b.hall} ${b.unit} was offered to ${after.who}, next on the waitlist.` : `${b.hall} ${b.unit} is back in search.`}
+        </Note></div>
+      )}
+      {b.cancelled && <div className="mb-5"><Note tone="red" icon={Prohibit} title={`Cancelled ${b.cancelled.on}`}>{b.cancelled.reason} · {b.cancelled.money}</Note></div>}
+      {b.missing && !b.cancelled && <div className="mb-5"><Note tone="amber" icon={WarningCircle} title={b.missing}>{b.missing === 'Deposit not paid' ? 'The lease goes out once the £250 deposit is paid.' : 'Sort this before you send the lease.'}</Note></div>}
+      {!b.cancelled && (
+        <SheetSection title="Lease">
           <ol className="flex items-center gap-2" aria-label="Lease progress">
             {STEPS.map((s, i) => (
               <li key={s} className="flex items-center gap-2 flex-1 last:flex-none">
@@ -191,18 +183,23 @@ function BookingSheet({ b, onClose, onSend, onRemind, onSigned, withUndo }: { b:
               </li>
             ))}
           </ol>
-        )}
-        {b.missing && !b.cancelled && <Note tone="amber" icon={WarningCircle} title={b.missing}>{b.missing === 'Deposit not paid' ? 'The lease goes out once the £250 deposit is paid.' : 'Sort this before you send the lease.'}</Note>}
-        <DL rows={[['Unit', `${hallFull[b.hall]} · ${b.unit}`], ['Room type', b.room], ['Term', `${b.term} · ${weeks} weeks`], ['Rent', `£${rate}/wk · £${fmtN(rate * weeks)}`], ['Deposit', b.deposit], ['Lease', <St s={leaseLabel(b)} />], ...(b.signedOn ? [['Signed', b.signedOn] as [string, string]] : []), ...(b.leaseSent && b.lease === 'Sent' ? [['Lease sent', `${b.leaseSent} · ${b.reminders ?? 0} reminders`] as [string, string]] : [])]} />
-        <div>
-          <div className="text-sm font-semibold mb-2">History</div>
-          <ol className="space-y-3 border-l border-line ml-1.5 pl-4">
-            {b.history.map((h, i) => (
-              <li key={i} className="relative"><span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-gray-300" /><div className="text-sm">{h.t}</div><div className="text-xs text-gray-500">{h.when}{h.sub ? ` · ${h.sub}` : ''}</div></li>
-            ))}
-          </ol>
-        </div>
-      </div>
+          {(b.signedOn || (b.leaseSent && b.lease === 'Sent')) && (
+            <dl className="mt-4 grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
+              {b.signedOn && <><dt className="text-gray-500">Signed</dt><dd className="text-ink">{b.signedOn}</dd></>}
+              {b.leaseSent && b.lease === 'Sent' && <><dt className="text-gray-500">Lease sent</dt><dd className="text-ink">{b.leaseSent} · {b.reminders ?? 0} reminders</dd></>}
+            </dl>
+          )}
+        </SheetSection>
+      )}
+      <SheetSection title="Room" rows={[['Unit', `${hallFull[b.hall]} · ${b.unit}`], ['Room type', b.room], ['Term', `${b.term} · ${weeks} weeks`]]} />
+      <SheetSection title="Money" rows={[['Rent', `£${rate}/wk · £${fmtN(rate * weeks)}`], ['Deposit', b.deposit]]} />
+      <SheetSection title="History">
+        <ol className="space-y-3 border-l border-line ml-1.5 pl-4">
+          {b.history.map((h, i) => (
+            <li key={i} className="relative"><span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-gray-300" /><div className="text-sm">{h.t}</div><div className="text-xs text-gray-500">{h.when}{h.sub ? ` · ${h.sub}` : ''}</div></li>
+          ))}
+        </ol>
+      </SheetSection>
       {cancelling && <CancelBooking b={b} onClose={() => setCancelling(false)} onDone={(r) => { setCancelling(false); setAfter(r); }} withUndo={withUndo} />}
     </Sheet>
   );
@@ -306,7 +303,7 @@ function NewBooking({ onClose, onMade }: { onClose: () => void; onMade: (id: str
           <Field label="Unit"><Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. 2.4.C" /></Field>
           <Field label="Deposit"><Select value={deposit} onChange={(e) => setDeposit(e.target.value)}>{['Due £250', 'Paid £250', 'Waived'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
         </div>
-        <p className="text-xs text-gray-500">Term 19 Sep 2027 – 9 Sep 2028 · it starts as a draft and nothing is sent until you send the lease.</p>
+        <p className="text-xs text-gray-500">Term 19 Sep 2027 – 9 Sep 2028 · starts as a draft.</p>
       </div>
     </Dialog>
   );

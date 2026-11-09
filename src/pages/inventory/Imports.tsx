@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Empty } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowClockwise, DownloadSimple, FileArrowUp, FileText, Stack, UploadSimple, X } from '../../components/icons';
-import { Button, PageHeader, Table, Tabs } from '../../components/ui';
+import { ArrowClockwise, DownloadSimple, FileArrowUp, FileText, Stack, UploadSimple } from '../../components/icons';
+import { Button, listNav, PageHeader, Sheet, SheetHero, SheetSection, Table, Tabs, PageHeading } from '../../components/ui';
 import { useInv, type ImportJob, type Property } from '../../data/inventory';
 import { useOpen } from '../hooks';
 import { PropStatus, Progress } from './common';
@@ -55,12 +56,13 @@ export function ImportsPage() {
       <PageHeader icon={FileArrowUp} title="Imports" crumbs={['Inventory']}>
         <Button icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
       </PageHeader>
-      <div className="h-12 shrink-0 px-4 flex items-center border-b border-[#F3F4F6]">
+      <PageHeading />
+      <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-2 empty:hidden">
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: jobs.length }, { id: 'Running', label: 'Running', count: cnt('Running') }, { id: 'Queued', label: 'Queued', count: cnt('Queued') }, { id: 'Failed', label: 'Failed', count: cnt('Failed') }]} />
       </div>
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 min-w-0 flex flex-col">
-          <Table rows={rows} onRow={(j) => setOpen(j.id)} selected={open ?? undefined} summary="Latest 100 imports for Durham University"
+          <Table rows={rows} empty={<Empty art="rooms" title="No imports yet" sub="Spreadsheets you import show here with what was added." />} onRow={(j) => setOpen(j.id)} selected={open ?? undefined} summary="Latest 100 imports"
             cols={[
               { key: 'n', label: 'Import', render: (j) => { const ic = open === j.id ? 'text-primary' : 'text-gray-500'; return <span className="flex items-center gap-2.5">{j.kind === 'Spreadsheet' ? <FileText size={16} className={ic} /> : <Stack size={16} className={ic} />}<span className="font-medium">{j.name}</span></span>; } },
               { key: 'k', label: 'Kind', render: (j) => <span className="text-[#646A78]">{j.kind}</span> },
@@ -70,28 +72,26 @@ export function ImportsPage() {
               { key: 't', label: 'Started', render: (j) => <span className="text-[#646A78]">{j.started}</span> },
             ]} />
         </div>
-        {sel && (
-          /* 2821:3169: 360px panel; 48px header (14px semibold); status + "n of N rows"; 34px detail rows; plain "If it fails" note under a #F3F4F6 rule. */
-          <aside className="w-[360px] shrink-0 border-l border-line overflow-auto">
-            <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold text-[#111827] truncate">{sel.name}</span><button type="button" aria-label="Close" onClick={() => setOpen(null)} className="ml-auto size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><X size={14} /></button></div>
-            <div className="p-4 space-y-4">
-              <div className="flex items-center gap-2"><PropStatus s={sel.status} /><span className="ml-auto text-sm font-semibold text-[#111827] tabular-nums">{sel.status === 'Failed' ? `${sel.errors} errors` : `${sel.done} of ${sel.total} rows`}</span></div>
-              {sel.status !== 'Failed' && <Progress value={(sel.done / sel.total) * 100} tone={sel.status === 'Succeeded' ? 'green' : 'blue'} />}
-              <dl className="grid grid-cols-[108px_1fr] text-sm leading-5 text-[#111827] [&>dt]:py-[7px] [&>dd]:py-[7px]">
-                <dt className="text-[#646A78]">Kind</dt><dd>{sel.kind === 'Spreadsheet' ? 'Spreadsheet import' : sel.kind}</dd>
-                <dt className="text-[#646A78]">Layout</dt><dd>{sel.structure}</dd>
-                <dt className="text-[#646A78]">Creates</dt><dd>{sel.creates}</dd>
-                <dt className="text-[#646A78]">Started by</dt><dd>{sel.by} · {sel.started}</dd>
-                {sel.kind === 'Spreadsheet' && <><dt className="text-[#646A78]">File</dt><dd><button type="button" className="font-medium text-[#2B5CFF] inline-flex items-center gap-1.5" onClick={() => toast.success(`${sel.name} downloaded`)}><DownloadSimple size={14} />Original file</button></dd></>}
-                <dt className="text-[#646A78]">Result</dt><dd>Emailed when it ends</dd>
-              </dl>
-              <div className="pt-4 border-t border-[#F3F4F6] text-xs text-[#646A78]"><div className="font-medium mb-2">If it fails</div>Nothing is created: a run is all or nothing. The errors list each row and column, here and in the email.</div>
-              {sel.status === 'Failed' && <div className="flex gap-2"><Button size="sm" icon={DownloadSimple} onClick={() => toast.success('hild-bede-flats-errors.csv downloaded')}>Error file</Button><Button size="sm" icon={ArrowClockwise} onClick={() => { useInv.getState().set('imports', (l) => l.map((j) => (j.id === sel.id ? { ...j, status: 'Queued' as const, errors: undefined } : j))); toast.success(`${sel.name} queued again`); }}>Retry</Button></div>}
-              {sel.status === 'Succeeded' && sel.name === 'st-marys-rooms.csv' && <Button size="sm" onClick={() => nav('/inventory/properties/stm')}>Open St Mary’s College</Button>}
-            </div>
-          </aside>
-        )}
       </div>
+      <Sheet open={!!sel} onClose={() => setOpen(null)} title="Import" nav={listNav(rows, (j) => j.id === open, (j) => setOpen(j.id))}
+        footer={sel?.status === 'Failed' ? <><Button variant="ghost" className="mr-auto" onClick={() => toast.success('hild-bede-flats-errors.csv downloaded')}>Error file</Button><Button variant="primary" icon={ArrowClockwise} onClick={() => { useInv.getState().set('imports', (l) => l.map((j) => (j.id === sel.id ? { ...j, status: 'Queued' as const, errors: undefined } : j))); toast.success(`${sel.name} queued again`); }}>Retry</Button></>
+          : sel?.status === 'Succeeded' && sel.name === 'st-marys-rooms.csv' ? <Button variant="primary" onClick={() => nav('/inventory/properties/stm')}>Open St Mary’s College</Button> : undefined}>
+        {sel && <>
+          <SheetHero avatar={false} name={sel.name} meta={sel.status === 'Failed' ? `${sel.errors} errors` : `${sel.done} of ${sel.total} rows`}>
+            <PropStatus s={sel.status} />
+          </SheetHero>
+          {sel.status !== 'Failed' && <div className="pb-5"><Progress value={(sel.done / sel.total) * 100} tone={sel.status === 'Succeeded' ? 'green' : 'blue'} /></div>}
+          <SheetSection title="Import" rows={[
+            ['Kind', sel.kind === 'Spreadsheet' ? 'Spreadsheet import' : sel.kind],
+            ['Layout', sel.structure],
+            ['Creates', sel.creates],
+            ...(sel.kind === 'Spreadsheet' ? [['File', <button key="f" type="button" className="font-medium text-[#2B5CFF] inline-flex items-center gap-1.5" onClick={() => toast.success(`${sel.name} downloaded`)}><DownloadSimple size={14} />Original file</button>] as [string, ReactNode]] : []),
+          ]} />
+          <SheetSection title="Run" rows={[['Started by', `${sel.by} · ${sel.started}`], ['Result', 'Emailed when it ends']]}>
+            <p className="mt-3 text-xs text-[#646A78]">All or nothing: if any row fails, nothing is created.</p>
+          </SheetSection>
+        </>}
+      </Sheet>
     </>
   );
 }

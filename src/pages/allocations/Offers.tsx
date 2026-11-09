@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarPlus, CaretLeft, CaretRight, CheckCircle, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray, XCircle } from '../../components/icons';
+import { CalendarPlus, CaretLeft, CaretRight, CheckCircle, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, DL, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, Tabs, Toolbar, cx } from '../../components/ui';
+import { Button, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
-import { Caption, EmptyArea, Foot, Grid, Ini, Person, St, type C } from './common';
+import { EmptyArea, Foot, Grid, Ini, Person, St, type C } from './common';
 import { useAllocActions } from './actions';
+import { GhostZone } from '../../components/headerCtx';
 
 type TabId = 'Recent' | 'Open' | 'Accepted' | 'Declined' | 'Lapsed' | 'Waitlist';
 const LEGACY: Record<string, TabId> = { Sent: 'Open', Expired: 'Lapsed' };
@@ -147,23 +148,11 @@ export function Offers() {
       { key: 'a', label: '', className: 'text-right', render: (o) => <Button size="sm" icon={PaperPlaneTilt} onClick={(e) => { e.stopPropagation(); offerAgain(o); }}>Offer again</Button> },
     ],
   };
-  const caption: Record<TabId, string | null> = {
-    Recent: 'Everything that changed in the last 7 days', Open: 'Sorted by time left · lapsed offers go to the waitlist', Accepted: null,
-    Declined: 'The unit is re-offered or goes back into search', Lapsed: 'An offer lapses after its deadline with no reply', Waitlist: 'When a unit frees up it goes to #1 for that room type',
-  };
   const rows = tab === 'Recent' ? recent : tab === 'Open' ? rowsFor('open').sort((a, b) => +isGen(a) - +isGen(b) || (a.leftH ?? 0) - (b.leftH ?? 0)) : tab === 'Waitlist' ? [] : rowsFor(tab.toLowerCase() as Offer['status']);
   useEffect(() => setPage(0), [tab, rows.length]);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const shown = rows.slice(page * PAGE, page * PAGE + PAGE);
-  /* The foot counts the rows in the list (search and filters applied), so it matches what you can page through. */
   const waitRows = d.waitlist.filter(match);
-  const lease = (s: string) => rows.filter((o) => (booking(o.name)?.lease ?? o.lease ?? 'Draft') === s).length;
-  const foot: Record<TabId, string> = {
-    Recent: `${recent.length} offers changed in the last 7 days`, Open: `${rows.length} open · ${rows.filter((o) => (o.leftH ?? 99) < 48).length} expire in the next 48 h`,
-    Accepted: `${fmtN(rows.length)} accepted · ${fmtN(lease('Signed'))} leases signed · ${lease('Sent')} out for signature`,
-    Declined: `${rows.length} declined`, Lapsed: `${rows.length} lapsed · the applicant moves to the waitlist and can be offered again`,
-    Waitlist: `${waitRows.length} waiting across ${new Set(waitRows.map((w) => `${w.hall}|${w.room}`)).size} room types`,
-  };
   const noOffers = c.open + c.accepted + c.declined + c.lapsed === 0;
   return (
     <>
@@ -174,36 +163,35 @@ export function Offers() {
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Recent', label: 'Recent' }, { id: 'Open', label: 'Open', count: c.open }, { id: 'Accepted', label: 'Accepted', count: c.accepted }, { id: 'Declined', label: 'Declined', count: c.declined }, { id: 'Lapsed', label: 'Lapsed', count: c.lapsed }, { id: 'Waitlist', label: 'Waitlist', count: c.waitlist }]} />
       </Toolbar>
       {noOffers && tab !== 'Waitlist' ? (
-        <EmptyArea icon={PaperPlaneTilt} title="No offers yet" sub="An offer is made when you allocate a unit to an application. Start with the review queue.">
-          <Button variant="primary" icon={Tray} onClick={() => nav('/allocations/applications')}>Open applications</Button>
+        <EmptyArea art="offers" icon={PaperPlaneTilt} title="No offers yet" sub="Offers are made when you allocate a unit.">
+          <Button variant="primary" icon={Tray} onClick={() => nav('/allocations/applications?tab=To%20review')}>Open applications</Button>
         </EmptyArea>
       ) : tab === 'Waitlist' ? (
         c.waitlist === 0 ? (
-          <EmptyArea icon={HourglassMedium} title="No one is waiting" sub="When an offer lapses or a hall is full, the applicant can join the waitlist for that room type. The first in line gets the next unit that frees up.">
+          <EmptyArea art="waitlist" icon={HourglassMedium} title="No one is waiting" sub="Applicants join when an offer lapses or a hall is full.">
             <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add to waitlist</Button>
           </EmptyArea>
-        ) : <Waitlist rows={waitRows} onOffer={setOffering} caption={caption.Waitlist!} foot={foot.Waitlist} />
+        ) : <Waitlist rows={waitRows} onOffer={setOffering} />
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
-          {caption[tab] && <Caption>{caption[tab]}</Caption>}
           <div className="flex-1 overflow-auto">
-            {rows.length ? <Grid key={tab} cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || f.cycle !== liveCycle ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
+            {rows.length ? <Grid key={tab} fill cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea art="offers" icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || f.cycle !== liveCycle ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
           <Foot right={pages > 1 && <span className="flex items-center gap-1 tabular-nums">
             {page * PAGE + 1}–{Math.min(rows.length, page * PAGE + PAGE)} of {fmtN(rows.length)}
-            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretLeft size={12} /></button>
-            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-6 rounded hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><CaretRight size={12} /></button>
-          </span>}>{foot[tab]}</Foot>
+            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
+          </span>} />
         </div>
       )}
-      {sel && <OfferSheet o={sel} onClose={() => setOpen(null)} onAccept={() => accept(sel)} onLapse={() => lapse(sel)} onDecline={(r) => decline(sel, r)} onExtend={() => extend(sel)} onBooking={() => openBooking(sel.name)} />}
+      {sel && <OfferSheet o={sel} nav={listNav(shown, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} onAccept={() => accept(sel)} onLapse={() => lapse(sel)} onDecline={(r) => decline(sel, r)} onExtend={() => extend(sel)} onBooking={() => openBooking(sel.name)} />}
       {adding && <AddToWaitlist onClose={() => setAdding(false)} />}
       {offering && <OfferUnit w={offering} onClose={() => setOffering(null)} />}
     </>
   );
 }
 
-function Waitlist({ rows, onOffer, caption, foot }: { rows: Wait[]; onOffer: (w: Wait) => void; caption: string; foot: string }) {
+function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void }) {
   const up = useAlloc((s) => s.up);
   const groups = [...new Set(rows.map((w) => `${w.hall}|${w.room}`))];
   const moveUp = (w: Wait) => up((d) => {
@@ -218,23 +206,22 @@ function Waitlist({ rows, onOffer, caption, foot }: { rows: Wait[]; onOffer: (w:
   });
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <Caption>{caption}</Caption>
-      <div className="flex-1 overflow-auto">
+      <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-white z-[1]"><tr className="text-left text-xs text-gray-500"><th className="w-12 h-9 border-b border-line" /><th className="font-medium border-b border-line px-3">Applicant</th><th className="font-medium border-b border-line px-3">Note</th><th className="font-medium border-b border-line px-3">Joined</th><th className="border-b border-line pr-5" /></tr></thead>
-          <tbody>
+          <thead className="sticky top-0 bg-white z-[1]"><tr className="text-left text-xs text-gray-500"><th className="w-12 h-9 pl-[var(--cx,12px)] font-medium border-b border-line">#</th><th className="font-medium border-b border-line px-3">Applicant</th><th className="font-medium border-b border-line px-3">Note</th><th className="font-medium border-b border-line px-3">Joined</th><th className="border-b border-line pr-[var(--cx,12px)]" /></tr></thead>
+          <GhostZone.Provider value><tbody>
             {groups.map((g) => {
               const [hall, room] = g.split('|');
               const list = rows.filter((w) => w.hall === hall && w.room === room);
               return [
-                <tr key={g} className="bg-[#F9FAFB] border-b border-[#F3F4F6]"><td colSpan={5} className="h-8 px-5 text-xs"><span className="font-medium">{hall} · {room}</span><span className="text-gray-500"> · {list.length} waiting</span></td></tr>,
+                <tr key={g} className="bg-[#F9FAFB] border-b border-[#F3F4F6]"><td colSpan={5} className="h-8 pl-[var(--cx,12px)] pr-3 text-xs"><span className="font-medium">{hall} · {room}</span><span className="text-gray-500"> · {list.length} waiting</span></td></tr>,
                 ...list.map((w, i) => (
                   <tr key={w.id} className="border-b border-[#F3F4F6] text-sm">
-                    <td className="h-10 pl-5 font-semibold">{i + 1}</td>
+                    <td className="h-10 pl-[var(--cx,12px)] font-semibold tabular-nums">{i + 1}</td>
                     <td className="px-3"><span className="flex items-center gap-2 font-medium"><Ini name={w.name} size={24} />{w.name}</span></td>
                     <td className="px-3 text-gray-500">{w.note}</td>
                     <td className="px-3 text-gray-500">{w.joined}</td>
-                    <td className="pr-5 text-right">
+                    <td className="pr-[var(--cx,12px)] text-right">
                       {i === 0 ? <Button size="sm" icon={PaperPlaneTilt} onClick={() => onOffer(w)}>Offer a unit</Button>
                         : <button type="button" aria-label={`Move ${w.name} up`} title="Move up" onClick={() => moveUp(w)} className="size-7 rounded-lg hover:bg-[#F3F4F6] inline-flex items-center justify-center text-gray-400"><DotsSixVertical size={16} /></button>}
                     </td>
@@ -242,35 +229,40 @@ function Waitlist({ rows, onOffer, caption, foot }: { rows: Wait[]; onOffer: (w:
                 )),
               ];
             })}
-          </tbody>
+          </tbody></GhostZone.Provider>
         </table>
       </div>
-      <Foot>{foot}</Foot>
     </div>
   );
 }
 
-function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBooking }: { o: Offer; onClose: () => void; onAccept: () => void; onLapse: () => void; onDecline: (r: string) => void; onExtend: () => void; onBooking: () => void }) {
+function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBooking , nav }: { nav?: SheetNav;  o: Offer; onClose: () => void; onAccept: () => void; onLapse: () => void; onDecline: (r: string) => void; onExtend: () => void; onBooking: () => void }) {
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('Chose another university');
   return (
-    <Sheet open onClose={onClose} width={500} title={<span className="flex items-center gap-2.5"><Ini name={o.name} size={28} />{o.name}</span>} sub={<span className="pl-[38px]">Offer · {o.hall} {o.unit}</span>}
+    <Sheet open onClose={onClose} nav={nav} width={500} title="Offer"
       footer={o.status === 'open' ? (declining ? <><Button onClick={() => setDeclining(false)}>Back</Button><Button variant="danger" onClick={() => onDecline(reason)}>Record decline</Button></> : <>
-        <Button variant="ghost" onClick={onLapse}>Let it lapse now</Button>
-        <Button icon={XCircle} onClick={() => setDeclining(true)}>Declined</Button>
+        <Button variant="danger-ghost" onClick={() => setDeclining(true)}>Declined</Button>
+        <Button variant="ghost" className="mr-auto" onClick={onLapse}>Let it lapse</Button>
         <Button onClick={onExtend}>Extend 2 days</Button>
         <Button variant="success" icon={CheckCircle} onClick={() => { onAccept(); onClose(); }}>Accepted</Button>
       </>) : o.status === 'accepted' ? <Button variant="primary" onClick={onBooking}>Open booking</Button> : <Button onClick={onClose}>Close</Button>}>
-      <div className="space-y-4">
-        {o.status === 'open' && (o.leftH ?? 99) < 24 && <Note tone="red" icon={HourglassMedium} title={`Expires in ${fmtLeft(o.leftH ?? 0)}`}>Reminded at 48h and 24h. If {o.name.split(' ')[0]} doesn’t reply, the offer lapses at {o.expires?.split(' ').slice(-1)[0]} and the unit goes to the next on the waitlist.</Note>}
-        {declining ? (
+      <SheetHero name={o.name} meta={`${hallFull[o.hall]} · ${o.unit}`}>
+        <St s={ST[o.status]} />
+      </SheetHero>
+      {o.status === 'open' && (o.leftH ?? 99) < 24 && <div className="mb-5"><Note tone="red" icon={HourglassMedium} title={`Expires in ${fmtLeft(o.leftH ?? 0)}`}>Lapses at {o.expires?.split(' ').slice(-1)[0]} if {o.name.split(' ')[0]} doesn’t reply; the unit goes to the waitlist.</Note></div>}
+      {declining ? (
+        <SheetSection title="Decline">
           <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another university', 'Too expensive', 'Living at home', 'Wanted a different hall', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
-        ) : (
-          <DL rows={[['Status', <St s={ST[o.status]} />], ['Unit', `${hallFull[o.hall]} · ${o.unit}`], ['Room type', o.room], ['Sent', o.sent], ...(o.status === 'open' ? [['Expires', `${o.expires} · ${fmtLeft(o.leftH ?? 0)} left`] as [string, string], ['Reminders', o.reminders ? `${o.reminders} sent` : 'None yet'] as [string, string]] : []),
+        </SheetSection>
+      ) : (
+        <>
+          <SheetSection title="Room" rows={[['Unit', `${hallFull[o.hall]} · ${o.unit}`], ['Room type', o.room], ...(o.fromWaitlist ? [['From', `Waitlist ${o.fromWaitlist}`] as [string, string]] : [])]} />
+          <SheetSection title="Offer" rows={[['Sent', o.sent], ...(o.status === 'open' ? [['Expires', `${o.expires} · ${fmtLeft(o.leftH ?? 0)} left`] as [string, string], ['Reminders', o.reminders ? `${o.reminders} sent` : 'None yet'] as [string, string]] : []),
             ...(o.accepted ? [['Accepted', `${o.accepted} · deposit ${o.deposit?.toLowerCase()}`] as [string, string]] : []), ...(o.declined ? [['Declined', `${o.declined} · ${o.reason}`] as [string, string], ['The unit now', o.unitNow ?? '—'] as [string, string]] : []),
-            ...(o.lapsed ? [['Lapsed', o.lapsed] as [string, string], ['Unit went to', o.wentTo ?? '—'] as [string, string]] : []), ...(o.fromWaitlist ? [['From', `Waitlist ${o.fromWaitlist}`] as [string, string]] : [])]} />
-        )}
-      </div>
+            ...(o.lapsed ? [['Lapsed', o.lapsed] as [string, string], ['Unit went to', o.wentTo ?? '—'] as [string, string]] : [])]} />
+        </>
+      )}
     </Sheet>
   );
 }

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { Bed, CalendarX, Check, MagicWand, WarningCircle, XCircle } from '../../components/icons';
-import { Button, Input, Note, Pill, Sheet, Switch, Tabs, cx } from '../../components/ui';
+import { CalendarX, Check, MagicWand, WarningCircle, XCircle } from '../../components/icons';
+import { Button, Input, Note, Pill, Sheet, SheetSection, Switch, Tabs, cx } from '../../components/ui';
 import { available, firstName, hallFull, unitsFor, useAlloc, type App } from '../../data/allocations';
 import { Modal, Radio } from './common';
 import { useAllocActions } from './actions';
@@ -36,8 +36,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
   };
   return (
     <Sheet open onClose={onClose} width={520}
-      title={<span className="flex items-center gap-2.5 text-sm font-semibold"><span className="size-8 rounded-lg bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center shrink-0"><Bed size={16} /></span>Allocate {a.name}</span>}
-      sub={<span className="pl-[42px] text-xs">{ordinal(pref.rank)} preference · {hallFull[pref.hall]} · {pref.room} · {pref.weeks} weeks</span>}
+      title={`Allocate ${a.name}`}
       footer={units.length ? <>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="primary" icon={Check} disabled={!u || needReason} onClick={submit}>{taken ? `Allocate ${sel}` : email ? 'Allocate & send offer' : 'Allocate'}</Button>
@@ -50,13 +49,14 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
           Every matching unit is allocated or held. Add {firstName(a.name)} to the waitlist for this room type and they get the next one that frees up, or close this and pick another hall.
         </Note>
       ) : (
-        <div className="space-y-4">
-          {takenUnit?.takenBy && (
+        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          <SheetSection title="Preference" rows={[['Choice', `${ordinal(pref.rank)} preference`], ['Hall', hallFull[pref.hall]], ['Room type', `${pref.room} · ${pref.weeks} weeks`]]} />
+          {takenUnit?.takenBy && (<div className="mb-5">
             <Note tone="red" icon={XCircle} title={`${pref.hall} ${takenUnit.code} is taken`}>
               {takenUnit.takenBy.who} allocated it to {takenUnit.takenBy.to} 4 minutes ago. Pick another room for {firstName(a.name)}.
             </Note>
-          )}
-          <div className="flex items-center justify-between"><span className="text-sm font-semibold">Unit</span><span className="text-xs text-gray-500">{units.length} meet {a.reqs.length ? 'the requirements' : 'the preference'} · best first</span></div>
+          </div>)}
+          <SheetSection title={`Unit · ${units.length} match`}>
           <div className="space-y-2.5" role="radiogroup" aria-label="Unit">
             {units.map((x) => {
               const on = x.code === sel;
@@ -79,7 +79,6 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
                       <label className="block">
                         <span className="block text-sm font-medium mb-1.5">Reason for the override</span>
                         <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Jae Park leaves on 18 Sep · agreed with the Ustinov office" />
-                        <span className="block text-xs text-gray-500 mt-1.5">Kept in the booking’s history and shown to whoever opens it</span>
                       </label>
                     </div>
                   )}
@@ -87,14 +86,17 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
               );
             })}
           </div>
-          <div className="border-t border-line pt-4 flex items-center justify-between">
-            <span className="text-sm font-medium">Offer expires in</span>
-            <Tabs value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} />
-          </div>
+          </SheetSection>
+          <SheetSection title="Offer">
           <div className="flex items-center justify-between">
             <div><div className="text-sm font-medium">Email the offer to {firstName(a.name)}</div><div className="text-xs text-gray-500">Template: Offer · {a.reqs.includes('Step-free access') ? 'accessible room' : 'standard'}</div></div>
             <Switch checked={email} onChange={setEmail} label="Email the offer" />
           </div>
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm font-medium">Offer expires in</span>
+            <Tabs value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} />
+          </div>
+          </SheetSection>
         </div>
       )}
     </Sheet>
@@ -152,7 +154,7 @@ export function AutoAllocateDialog({ open, onClose }: { open: boolean; onClose: 
   const none = queue.length - flagged.length - free.length;
   return (
     <Modal open onClose={onClose} tone="blue" icon={MagicWand} title="Auto-allocate 2027/28" width={520}
-      sub="Gives each application in To review the best free unit in its highest preference, and makes the offer. Anything with a requirement or a flag waits for a person."
+      sub="Offers each application its best free unit. Anything flagged waits for a person."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={MagicWand} disabled={!free.length} onClick={() => {
         if (busy.current) return; busy.current = true;
         act.autoAllocate(+days[0], email); onClose(); busy.current = false;

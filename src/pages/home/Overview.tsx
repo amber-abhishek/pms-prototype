@@ -1,29 +1,15 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AlarmClock, ArrowsLeftRight, Bed, CaretRight, Eye, CalendarBlank, CalendarX, Check, CheckCircle, FileArrowUp, MapPin, Megaphone, NotePencil, Plus, SquaresFour, Tray, TrendDown, UserCheck, Warning, Wrench, type Icon } from '../../components/icons';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CalendarBlank, Check, MapPin, Megaphone, Plus, SquaresFour, Tray, Wrench } from '../../components/icons';
 import { useDb } from '../../data/store';
-import { ME, NEEDS, useHome, type Need } from '../../data/home';
 import { useRms } from '../../data/residents';
-import { Button, Card, CardHead, Empty, PageHeader, Pill, Tabs, cx, pressCard } from '../../components/ui';
-import { toast } from 'sonner';
-import { useSnooze } from './Snooze';
+import { useInv } from '../../data/inventory';
+import { useOrg } from '../../data/org';
+import { useAlloc } from '../../data/allocations';
+import { Button, Card, PageHeader, cx } from '../../components/ui';
+import { OverviewPage, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
 import { MenuButton } from './parts';
-
-const needIcon: Record<Need['icon'], [Icon, string, string]> = {
-  alert: [Warning, '#FDEDED', '#B91C1C'], swap: [ArrowsLeftRight, '#F3EEFF', '#6E3BD8'], lease: [NotePencil, '#EFF6FF', '#1F45E0'],
-  inbox: [Tray, '#E3F6F6', '#0E7A80'], notice: [Megaphone, '#F3F4F6', '#374151'], landlord: [UserCheck, '#FFF0E0', '#E5530C'], conflict: [CalendarX, '#FFF6E0', '#B45309'], import: [FileArrowUp, '#FDEDED', '#B91C1C'],
-};
-
-function Tile({ label, icon: I, value, sub, tone, to }: { label: string; icon?: Icon; value: string; sub: string; tone?: 'green' | 'orange' | 'red'; to?: string }) {
-  const body = (
-    <Card className={cx('px-4 py-3.5 h-full', to && pressCard)}>
-      <div className="flex items-center justify-between text-xs leading-4 font-medium text-gray-500">{label}{I && <I size={14} className="text-gray-400" />}</div>
-      <div className={cx('text-2xl leading-8 font-semibold tracking-[-0.24px] mt-1.5', value === '—' && 'text-gray-300')}>{value}</div>
-      <div className={cx('text-xs leading-4 mt-1.5', tone === 'green' ? 'text-[#0B8A4C]' : tone === 'orange' ? 'text-[#E5530C]' : tone === 'red' ? 'text-[#B91C1C]' : 'text-gray-500')}>{sub}</div>
-    </Card>
-  );
-  return to ? <Link to={to} className="block rounded-xl focus-visible:ring-2 focus-visible:ring-primary/40 outline-none">{body}</Link> : body;
-}
+import { useEmpty } from '../../data/empty';
 
 function Header() {
   const campuses = useDb((s) => s.campuses);
@@ -39,207 +25,133 @@ function Header() {
 
 export function Overview() {
   const [sp] = useSearchParams();
-  if (sp.get('empty') === '1') return <FirstDay />;
+  const empty = useEmpty((s) => s.on);
+  if (empty || sp.get('empty') === '1') return <FirstDay />;
   return <Today />;
 }
 
-/* ---------- 2993:2 · Start the day ---------- */
-function Today() {
-  const open = useRms((st) => st.faults).filter((f) => f.status !== 'Fixed');
-  const tasks = useHome((s) => s.rows.main);
-  const stillMine = (id?: string) => !id || tasks.some((t) => t.id === id && !t.done && !t.snoozed && t.owner === ME);
+/* ---------- 3783:47863 · Start the day: occupancy trend, pre-let, funnel, six summary cards ---------- */
+const DAYS = Array.from({ length: 30 }, (_, i) => new Date(Date.UTC(2026, 7, 16 + i)));
+const dayLabel = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+/* Beds let: slow first week, a block of college offers on 23 Aug, a late-applicant batch on 5 Sep. */
+const LET = DAYS.map((_, i) => Math.round(i < 7 ? 2290 + i * 1.6 : i < 20 ? 2378 + (i - 7) * 3 : i === 20 ? 2453 : 2453 + (i - 20) * 2.8));
+const OCC_POINTS = DAYS.map((d, i) => {
+  const delta = i ? LET[i] - LET[i - 1] : 0;
+  return { label: dayLabel(d), value: LET[i], note: `${LET[i].toLocaleString('en-GB')} beds let · ${delta >= 0 ? '+' : ''}${delta}` };
+});
+const PRELET = [
+  { id: 'p1', name: 'Ustinov College', pct: 94 }, { id: 'p2', name: 'Collingwood College', pct: 88 }, { id: 'p6', name: 'Hild Bede', pct: 86 },
+  { id: 'p4', name: 'Josephine Butler', pct: 83 }, { id: 'p7', name: 'Stephenson College', pct: 91 }, { id: 'p3', name: "St Mary's College", pct: 97 },
+  { id: 'p5', name: 'Van Mildert', pct: 71 },
+];
 
+function Today() {
+  const nav = useNavigate();
+  const open = useRms((st) => st.faults).filter((f) => f.status !== 'Fixed');
+  const urgent = open.filter((f) => f.priority === 'Urgent').length;
+  const overdue = open.filter((f) => f.slaMins < 0).length;
+  /* Empty-states demo: a workspace with no beds, applications or residents yet, so every number reads zero. */
+  const e = useEmpty((s) => s.on);
+  const due = e ? [0, 0, 0] : [2, 2, 4];
   return (
     <>
       <Header />
-      <div className="flex-1 overflow-auto px-6 pt-6 pb-5 flex flex-col">
-        <h2 className="text-xl font-semibold tracking-[-0.24px]">Good morning, Priya</h2>
-        <p className="text-sm text-gray-500 mt-1 mb-5">Monday 14 September · 5 days to move-in weekend</p>
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <Tile label="Occupancy" icon={Bed} value="86%" sub="2,481 of 2,893 beds" tone="green" to="/inventory/occupancy" />
-          <Tile label="Applications to review" icon={Tray} value="128" sub="31 waiting more than 5 days" tone="orange" to="/allocations/applications?tab=To%20review" />
-          <Tile label="Open maintenance" icon={Wrench} value={String(open.length)} sub={`${open.filter((f) => f.priority === 'Urgent').length} urgent · ${open.filter((f) => f.slaMins < 0).length} overdue`} tone="red" to="/residents/maintenance" />
+      <OverviewPage title="Good morning, Priya" sub={e ? 'Monday 14 September' : 'Monday 14 September · 5 days to move-in weekend'} actions={<>
+        <Button variant="primary" icon={Tray} onClick={() => nav('/allocations/applications?tab=To%20review')}>Review applications</Button>
+        <Button variant="tertiary" icon={Wrench} onClick={() => nav('/residents/maintenance?log=1')}>Log a fault</Button>
+        <Button variant="tertiary" icon={Megaphone} onClick={() => nav('/residents/notices')}>Send a notice</Button>
+      </>}>
+        <div className="grid grid-cols-[minmax(0,1fr)_384px] gap-4">
+          <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="−18 released" kind="line" chartOnly
+            points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />
+          <RankCard title="Pre-let by property" note="target 90%" more={2} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/inventory/properties')}>Add a property</Button></>} moreLabel="View all properties" moreTo="/inventory/properties"
+            rows={e ? [] : PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/inventory/properties?open=${h.id}` }))} />
         </div>
-        <div className="shrink-0 grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-4">
-          <div className="flex flex-col gap-4 min-w-0">
-            <PreLet />
-            <Funnel />
-          </div>
-          {/* Sized by the left column; the list scrolls if it runs longer. */}
-          <div className="relative min-h-[420px]"><NeedsCard stillMine={stillMine} /></div>
+        <div className="grid grid-cols-3 gap-4">
+          <SummaryCard title="Needs your action" foot="Oldest" footValue={e ? '—' : '6 days'} footTone={e ? 'ink' : 'red'} action={<Button size="sm" onClick={() => nav('/tasks')}>Open tasks</Button>}>
+            <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} urgent`, due[0], '#EF4444'], [`${due[1]} due today`, due[1], '#F59E0B'], [`${due[2]} this week`, e ? 0 : due[2] || 1, '#D1D5DB']]} />
+          </SummaryCard>
+          <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
+            <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />
+          </SummaryCard>
+          <SummaryCard title="Maintenance" foot="Oldest unassigned" footValue={open.length ? 'Leaking radiator · 2 h' : 'None'} footTone={open.length ? 'red' : 'ink'} action={<ViewLink to="/residents/maintenance" />}>
+            <Stats items={[['Open', String(open.length)], ['Urgent', String(urgent), 'red'], ['Overdue', String(overdue)]]} />
+          </SummaryCard>
+          <SummaryCard title="Arrivals this week" foot="Busiest day" footValue={e ? '—' : 'Sat · 340'} action={<Button size="sm" onClick={() => nav('/residents')}>Check-in</Button>}>
+            <Split value={e ? '0' : '612'} parts={e ? [['0 checked in', 0, '#0B8A4C'], ['0 to come', 0, '#D1D5DB'], ['0 no-shows', 0, '#EF4444']] : [['208 checked in', 208, '#0B8A4C'], ['398 to come', 398, '#D1D5DB'], ['6 no-shows', 6, '#EF4444']]} />
+          </SummaryCard>
+          <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
+            <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'orange'], ['Paid', '1,204']]} />
+          </SummaryCard>
+          <SummaryCard title="Requests" foot="Next notice" footValue={e ? 'None scheduled' : 'Move-in notice · Wed 09:00'} action={<ViewLink to="/residents/requests" />}>
+            <Stats items={e ? [['Open', '0'], ['Room swaps', '0'], ['Draft notices', '0']] : [['Open', '9'], ['Room swaps', '3'], ['Draft notices', '1']]} />
+          </SummaryCard>
         </div>
-      </div>
+      </OverviewPage>
     </>
   );
 }
 
-/* ---------- Needs your action (ref 2926:1415): grouped by when, action and snooze on hover ---------- */
-function NeedsCard({ stillMine }: { stillMine: (id?: string) => boolean }) {
-  const nav = useNavigate();
-  const { snooze } = useSnooze('main');
-  const tasks = useHome((s) => s.rows.main);
-  const [who, setWho] = useState<'all' | 'me'>('all');
-  const [hidden, setHidden] = useState<string[]>([]);
-  const live = NEEDS.filter((n) => stillMine(n.taskId) && !hidden.includes(n.id));
-  const shown = who === 'me' ? live.filter((n) => n.mine) : live;
-  const snoozeNeed = (n: Need) => {
-    const t = n.taskId && tasks.find((x) => x.id === n.taskId);
-    if (t) return snooze(t, '2026-09-15T09:00');
-    setHidden((h) => [...h, n.id]);
-    toast.success(`Snoozed until Tue 15 Sep, 9:00 · ${n.title}`, { action: { label: 'Undo', onClick: () => setHidden((h) => h.filter((x) => x !== n.id)) } });
-  };
-  return (
-    <Card className="absolute inset-0 flex flex-col overflow-hidden">
-      <CardHead title={<span>Needs your action <span className="font-normal text-[#646A78] tabular-nums">{live.length}</span></span>}>
-        <Tabs value={who} onChange={setWho} tabs={[{ id: 'all', label: 'All' }, { id: 'me', label: 'Assigned to me' }]} />
-      </CardHead>
-      <div className="flex-1 min-h-0 overflow-auto py-1">
-        {shown.length === 0 ? (
-          <div className="h-full flex items-center justify-center"><Empty icon={CheckCircle} title="Nothing needs you" sub="New applications, issues and requests show up here." /></div>
-        ) : (['today', 'week'] as const).map((g) => {
-          const list = shown.filter((n) => n.when === g);
-          if (!list.length) return null;
-          return (
-            <div key={g}>
-              <div className="px-4 pt-2.5 pb-1 text-xs text-[#646A78]">{g === 'today' ? 'Today' : 'This week'}</div>
-              {list.map((n) => {
-                const [I, , fg] = needIcon[n.icon];
-                return (
-                  <div key={n.id} role="link" tabIndex={0} onClick={() => nav(n.to)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) nav(n.to); }}
-                    className="group mx-1.5 px-2.5 h-[52px] rounded-lg flex items-center gap-3 cursor-pointer hover:bg-[#F9FAFB] focus-within:bg-[#F9FAFB] outline-none">
-                    <I size={16} className="shrink-0" style={{ color: fg }} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm leading-5 font-medium text-ink truncate">{n.title}</span>
-                      <span className="block text-xs leading-4 text-[#646A78] truncate">{n.sub}</span>
-                    </span>
-                    <CaretRight size={16} className="shrink-0 text-gray-400 group-hover:hidden group-focus-within:hidden" />
-                    <span className="hidden group-hover:flex group-focus-within:flex items-center gap-1.5 shrink-0">
-                      <button type="button" aria-label={`Snooze “${n.title}” until tomorrow 9:00`} title="Snooze until tomorrow 9:00"
-                        onClick={(e) => { e.stopPropagation(); snoozeNeed(n); }}
-                        className="size-8 rounded-md flex items-center justify-center text-gray-500 hover:bg-[#F3F4F6] hover:text-ink outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
-                        <AlarmClock size={16} />
-                      </button>
-                      <Button size="sm" onClick={(e) => { e.stopPropagation(); nav(n.to); }}>{n.action}</Button>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-/* ---------- Pre-let by property (ref 2880:348): next year's beds or rent booked so far, against a target ---------- */
-const PRELET = [
-  { id: 'p1', name: 'Ustinov College', beds: 600, rent: 3.42, pct: 94, rev: 92, target: 95 },
-  { id: 'p2', name: 'Collingwood', beds: 481, rent: 3.05, pct: 88, rev: 90, target: 90 },
-  { id: 'p5', name: 'Van Mildert', beds: 557, rent: 3.38, pct: 71, rev: 69, target: 85 },
-  { id: 'p4', name: 'Josephine Butler', beds: 450, rent: 2.61, pct: 83, rev: 84, target: 90 },
-  { id: 'p3', name: "St Mary's College", beds: 144, rent: 0.94, pct: 97, rev: 98, target: 95 },
-];
-const preletState = (v: number, target: number) =>
-  v >= target ? { tone: 'green' as const, icon: Check, label: 'On track', bar: '#0B8A4C' }
-    : target - v <= 8 ? { tone: 'blue' as const, icon: Eye, label: 'Watch', bar: '#2563EB' }
-      : { tone: 'orange' as const, icon: TrendDown, label: 'Behind', bar: '#E5530C' };
-
-function PreLet() {
-  const [by, setBy] = useState<'beds' | 'revenue'>('beds');
-  return (
-    <Card className="overflow-hidden flex flex-col">
-      <CardHead title="Pre-let by property">
-        <Tabs value={by} onChange={setBy} tabs={[{ id: 'beds', label: 'Beds' }, { id: 'revenue', label: 'Revenue' }]} />
-      </CardHead>
-      <div className="grid grid-cols-[minmax(140px,1fr)_56px_minmax(0,2fr)_56px_100px] items-center gap-x-4 px-4 h-9 text-xs text-[#646A78] border-b border-line">
-        <span>Property</span><span className="text-right">{by === 'beds' ? 'Beds' : 'Rent roll'}</span><span>Pre-let · marker is target</span><span className="text-right">Target</span><span>Status</span>
-      </div>
-      {PRELET.map((h) => {
-        const v = by === 'beds' ? h.pct : h.rev;
-        const st = preletState(v, h.target);
-        return (
-          <Link key={h.id} to={`/inventory/properties?open=${h.id}`} className="grid grid-cols-[minmax(140px,1fr)_56px_minmax(0,2fr)_56px_100px] items-center gap-x-4 px-4 h-11 text-sm border-b border-[#F3F4F6] last:border-0 hover:bg-[#F9FAFB] flex-1 min-h-11 h-auto">
-            <span className="truncate text-ink" title={h.name}>{h.name}</span>
-            <span className="text-right tabular-nums text-[#646A78]">{by === 'beds' ? h.beds.toLocaleString('en-GB') : `£${h.rent.toFixed(2)}m`}</span>
-            <span className="flex items-center gap-3">
-              <span className="relative flex-1 h-1.5 rounded-full bg-[#F3F4F6]" title={`Target ${h.target}%`}>
-                <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${v}%`, background: st.bar }} />
-                <span aria-hidden className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-ink" style={{ left: `calc(${h.target}% - 1px)` }} />
-              </span>
-              <span className="w-10 text-right font-medium tabular-nums text-ink">{v}%</span>
-            </span>
-            <span className="text-right tabular-nums text-[#646A78]">{h.target}%</span>
-            <span><Pill tone={st.tone} icon={st.icon}>{st.label}</Pill></span>
-          </Link>
-        );
-      })}
-    </Card>
-  );
-}
-
-/* ---------- Allocation funnel (ref 2880:348), drawn as bars so it fits the 500px column ---------- */
-const FUNNEL = [['Applied', 3410], ['Allocated', 2480], ['Offer sent', 2390], ['Accepted', 2214], ['Lease approved', 1968]] as const;
-const FUNNEL_FILL = ['#DBE4FF', '#DBE4FF', '#DBE4FF', '#5B8DFF', '#2563EB'];
-function Funnel() {
-  return (
-    <Card>
-      <CardHead title="Allocation funnel"><span className="text-xs text-[#646A78]">2027/28 · conversion from previous step</span></CardHead>
-      <div className="px-4 pt-4 pb-4 grid grid-cols-5 gap-3">
-        {FUNNEL.map(([label, n], i) => (
-          <Link key={label} to="/allocations/applications" className="min-w-0 flex flex-col group">
-            <div className="flex items-baseline justify-between gap-2 text-xs text-[#646A78]">
-              <span className="truncate group-hover:text-primary">{label}</span>
-              {i > 0 && <span className="tabular-nums">{Math.round((n / FUNNEL[i - 1][1]) * 100)}%</span>}
-            </div>
-            <div className="text-xl font-semibold tracking-tight tabular-nums text-ink mt-1">{n.toLocaleString('en-GB')}</div>
-            <div className="mt-3 h-16 flex items-end">
-              <div className="w-full rounded-md transition-opacity group-hover:opacity-85" style={{ height: `${Math.round((n / FUNNEL[0][1]) * 100)}%`, background: FUNNEL_FILL[i] }} />
-            </div>
-          </Link>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-/* ---------- 3088:2 · First day on a new workspace (?empty=1) ---------- */
-const steps = [
-  { id: 's1', title: 'Choose the student site domain', sub: 'Portals · durham.amberstudent.com', done: true },
-  { id: 's2', title: 'Add campuses', sub: 'Organisation · 3 campuses', done: true },
-  { id: 's3', title: 'Add your first property', sub: 'Inventory · guided setup or a spreadsheet', done: false, cta: 'Add a property', to: '/inventory/properties' },
-  { id: 's4', title: 'Invite your team', sub: 'Roles and access · wardens, front desk, estates', done: false, cta: 'Invite', to: '/org/people' },
-  { id: 's5', title: 'Open an allocation cycle', sub: 'Allocations · needs at least one active property', done: false, cta: 'Open a cycle', to: '/allocations/cycles' },
-];
+/* ---------- 3672:12883 · First day on Overview: a new workspace (?empty=1, or the Empty states demo) ---------- */
+const TILES: [string, boolean][] = [['Occupancy', true], ['Applications to review', false], ['Offers expiring in 48 h', false], ['Arriving this week', true], ['Open maintenance', false]];
 function FirstDay() {
   const nav = useNavigate();
+  const campuses = useDb((s) => s.campuses.length);
+  const props = useInv((s) => s.properties.length);
+  const members = useOrg((s) => s.members.length);
+  const cycles = useAlloc((s) => s.cycles.length);
+  const steps = [
+    { id: 's1', title: 'Choose the student site domain', sub: 'Portals · durham.amberstudent.com', done: true },
+    { id: 's2', title: 'Add campuses', sub: `Organisation · ${campuses} campuses`, done: campuses > 0, cta: 'Add campuses', to: '/org/campuses' },
+    { id: 's3', title: 'Add your first property', sub: 'Inventory · guided setup or a spreadsheet', done: props > 0, cta: 'Add a property', to: '/inventory/properties' },
+    { id: 's4', title: 'Invite your team', sub: 'Roles and access · wardens, front desk, estates', done: members > 1, cta: 'Invite', to: '/org/people' },
+    { id: 's5', title: 'Open an allocation cycle', sub: 'Allocations · needs at least one active property', done: cycles > 0, cta: 'Open a cycle', to: '/allocations/cycles' },
+  ];
   const done = steps.filter((s) => s.done).length;
+  const pct = Math.round((done / steps.length) * 100);
   /* Only the first unfinished step gets the primary button; it moves on as steps are done. */
   const next = steps.find((s) => !s.done)?.id;
   return (
     <>
       <Header />
-      <div className="flex-1 overflow-auto px-6 pt-6 pb-5">
-        <h2 className="text-xl font-semibold tracking-[-0.24px]">Welcome, Priya</h2>
-        <p className="text-sm text-gray-500 mt-1 mb-5">Durham’s workspace is new. Once a hall and a cycle are set up, your day’s numbers show here.</p>
-        <Card className="max-w-[820px] overflow-hidden">
-          <div className="px-4 pt-4 pb-3">
-            <h3 className="text-sm font-semibold">Set up your workspace</h3>
-            <p className="text-sm text-gray-500 mt-0.5">{done} of {steps.length} done</p>
+      <div className="flex-1 overflow-auto px-14 pt-8 pb-8">
+        <div className="max-w-[1040px]">
+          <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Priya</h2>
+          <p className="text-sm text-[#646A78] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a cycle exist.</p>
+          {/* Five metric tiles waiting for data: grey dash, empty meter where the tile has one, "No data yet". */}
+          <div className="grid grid-cols-5 gap-3 mt-5">
+            {TILES.map(([label, meter]) => (
+              <Card key={label} className="px-4 py-3.5 flex flex-col gap-2">
+                <div className="text-xs font-medium text-[#374151] truncate">{label}</div>
+                <div className="pt-1 text-[26px] leading-[34px] font-semibold text-[#9CA3AF]">—</div>
+                {meter && <div className="h-1.5 rounded-[3px] bg-[#F3F4F6]" />}
+                <div className="text-xs text-[#9CA3AF]">No data yet</div>
+              </Card>
+            ))}
           </div>
-          {steps.map((s) => (
-            <div key={s.id} className="flex items-center gap-3 px-4 h-16 border-t border-line first-of-type:border-t-0">
-              {s.done
-                ? <span className="size-5 rounded-full bg-[#E8F7EE] text-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" /></span>
-                : <span className="size-5 rounded-full border border-gray-300 shrink-0" />}
+          <Card className="mt-4 max-w-[640px] pt-4 pb-2 overflow-hidden">
+            <div className="flex items-center gap-4 px-5 pb-3">
               <div className="flex-1 min-w-0">
-                <div className={cx('text-sm', s.done ? 'text-gray-500 line-through' : 'text-ink')}>{s.title}</div>
-                <div className="text-xs text-gray-500">{s.sub}</div>
+                <h3 className="text-sm font-medium text-[#374151]">Set up Durham</h3>
+                <p className="text-xs text-[#646A78] mt-0.5">{done} of {steps.length} done · in the order the day-one journey takes</p>
               </div>
-              {!s.done && s.cta && <Button variant={s.id === next ? 'primary' : 'secondary'} icon={s.id === next ? Plus : undefined} onClick={() => nav(s.to!)}>{s.cta}</Button>}
+              <div className="w-[120px] h-1.5 rounded-[3px] bg-[#F3F4F6] overflow-hidden"><div className="h-full rounded-[3px] bg-[#2563EB]" style={{ width: `${pct}%` }} /></div>
+              <span className="text-xs font-medium text-[#374151] tabular-nums w-[26px] text-right">{pct}%</span>
             </div>
-          ))}
-        </Card>
+            {steps.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 px-5 h-14">
+                {s.done
+                  ? <span className="size-5 rounded-full bg-[#E8F7EE] text-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" /></span>
+                  : <span className="size-5 rounded-full border border-[#C4C8D0] shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <div className={cx('text-sm font-medium', s.done ? 'text-[#9CA3AF] line-through' : 'text-ink')}>{s.title}</div>
+                  <div className="text-xs text-[#646A78]">{s.sub}</div>
+                </div>
+                {!s.done && s.cta && <Button variant={s.id === next ? 'primary' : 'secondary'} icon={s.id === next ? Plus : undefined} onClick={() => nav(s.to!)}>{s.cta}</Button>}
+              </div>
+            ))}
+          </Card>
+        </div>
       </div>
     </>
   );

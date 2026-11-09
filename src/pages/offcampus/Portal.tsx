@@ -18,11 +18,11 @@ export function Portal({ sec }: { sec: Sec }) {
   const { search } = useLocation();
   return (
     <>
-      <PageHeader icon={Gear} crumbs={['Off-campus']} title="Portal settings" />
+      <PageHeader icon={Gear} crumbs={['Off-campus']} title="Off-campus portal" />
       <div className="flex-1 min-h-0 flex flex-col">
-        <Title title="Portal settings" sub="Amber inventory, sender identity and your off-campus website." />
+        <Title title="Off-campus portal" />
         <UnderTabs value={sec} onChange={(s) => nav(SECS.find((x) => x.id === s)!.path + search)} tabs={SECS} />
-        <div className="flex-1 overflow-auto bg-[#F9FAFB] p-6">
+        <div className="flex-1 overflow-auto bg-white p-6">
           {sec === 'behaviour' && <Behaviour />}
           {sec === 'appearance' && <Appearance />}
           {sec === 'site' && <SiteDetails />}
@@ -73,7 +73,7 @@ function Behaviour() {
   return (
     <div className="space-y-4 max-w-[1140px]">
       <Box>
-        <div className="px-4 pt-4 pb-3"><Head title="Campuses on this portal" sub="Amber PBSA listings come from the region of each ticked campus." /></div>
+        <div className="px-4 pt-4 pb-3"><Head title="Campuses on this portal" sub="PBSA listings come from each ticked campus’s region." /></div>
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-gray-500 [&>th]:font-medium [&>th]:h-9 [&>th]:border-y [&>th]:border-line [&>th]:px-3">
             <th className="w-12 !pl-4" /><th>Campus</th><th>Amber region</th><th>Match</th><th>Override</th><th />
@@ -92,9 +92,9 @@ function Behaviour() {
           </tbody>
         </table>
       </Box>
-      <Box className="p-4"><Head title="Show Amber PBSA" sub="Amber’s purpose-built student accommodation appears alongside your HMO listings."><Switch checked={portal.showPbsa} onChange={togglePbsa} label="Show Amber PBSA" /></Head></Box>
+      <Box className="p-4"><Head title="Show Amber PBSA" sub="Shown alongside your HMO listings."><Switch checked={portal.showPbsa} onChange={togglePbsa} label="Show Amber PBSA" /></Head></Box>
       <Box className="p-4">
-        <Head title="Default campus" sub="Student accommodation on the home page comes from this campus’s region.">
+        <Head title="Default campus" sub="Sets the listings on the home page.">
           <Select className="!w-[220px]" value={portal.defaultCampus} onChange={(e) => { setPortal({ defaultCampus: e.target.value }); toast.success('Settings saved'); }}>
             {portal.campuses.filter((c) => c.ticked).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </Select>
@@ -105,7 +105,7 @@ function Behaviour() {
         <div className="flex items-end gap-3">
           <label className="flex-1"><Lbl>Sender name</Lbl><input className={inp} value={sender.name} onChange={(e) => setSender({ ...sender, name: e.target.value })} /></label>
           <label className="flex-1"><Lbl>Reply-to email</Lbl><input className={inp} type="email" value={sender.reply} onChange={(e) => setSender({ ...sender, reply: e.target.value })} /></label>
-          <Button className="h-9" onClick={() => {
+          <Button variant="primary" className="h-9" onClick={() => {
             if (!sender.name.trim() || !/^\S+@\S+\.\S+$/.test(sender.reply)) { toast.error('Add a sender name and a valid reply-to email'); return; }
             setPortal({ senderName: sender.name.trim(), replyTo: sender.reply.trim() }); toast.success('Sender identity saved');
           }}>Save</Button>
@@ -325,7 +325,7 @@ function Domain() {
               <input aria-label="Subdomain" value={sub} onChange={(e) => setSub(e.target.value)} className="flex-1 min-w-0 outline-none font-mono text-sm" />
               <span className="text-sm text-gray-500">.pmsoffcampushousing.com</span>
             </label>
-            <Button className="h-9" onClick={saveSub}>Save</Button>
+            <Button variant="primary" className="h-9" onClick={saveSub}>Save</Button>
           </div>
           <p className="text-xs text-gray-500 mt-2.5">Your site: https://{base}</p>
         </Box>

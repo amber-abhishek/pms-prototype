@@ -37,31 +37,31 @@
     --control-compact: 1.75rem;          /* 28px */
   }
   /* Dark mode (src/data/theme.ts puts .dark on <html>). Hard-coded colours get their dark twins from postcss-dark.js;
-     these are the shadcn tokens, set to match it: neutral 228° greys, white card → #141519, brand blue lifted. */
+     these are the shadcn tokens, set to match it: Mercury-style tinted 222° greys, white card → #1A1C21, brand blue softened. */
   .dark {
-    --background: 228 7% 9%;
-    --foreground: 220 14% 93%;
-    --card: 228 7% 9%;
-    --card-foreground: 220 14% 93%;
-    --popover: 228 7% 11%;
-    --popover-foreground: 220 14% 93%;
-    --primary: 217 91% 60%;              /* #3B82F6 */
-    --primary-hover: 213 94% 68%;
+    --background: 222 11% 12%;           /* card #1A1C21 */
+    --foreground: 220 15% 88%;           /* ink #DCDFE4 */
+    --card: 222 11% 12%;
+    --card-foreground: 220 15% 88%;
+    --popover: 222 12% 15%;              /* raised a step */
+    --popover-foreground: 220 15% 88%;
+    --primary: 221 65% 59%;              /* #537EDA, softened brand blue */
+    --primary-hover: 221 70% 66%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 228 7% 14%;
-    --secondary-foreground: 220 14% 93%;
-    --muted: 228 7% 14%;
-    --muted-foreground: 222 7% 62%;
-    --subtle: 228 7% 11%;
-    --accent: 228 7% 16%;
-    --accent-foreground: 220 14% 93%;
-    --destructive: 355 80% 60%;
+    --secondary: 222 13% 18%;            /* hover #272B33 */
+    --secondary-foreground: 220 15% 88%;
+    --muted: 222 13% 18%;
+    --muted-foreground: 223 12% 65%;     /* #99A0B1 */
+    --subtle: 222 13% 14%;               /* #202329 */
+    --accent: 222 13% 18%;
+    --accent-foreground: 220 15% 88%;
+    --destructive: 4 60% 58%;
     --destructive-foreground: 0 0% 100%;
-    --success: 151 70% 36%;
+    --success: 151 55% 38%;
     --success-foreground: 0 0% 100%;
-    --border: 228 7% 21%;
-    --input: 228 7% 30%;
-    --ring: 217 91% 60%;
+    --border: 222 12% 19%;               /* #292C35 */
+    --input: 222 11% 26%;
+    --ring: 221 65% 59%;
     color-scheme: dark;
   }
   html, body, #root { height: 100%; }
@@ -83,10 +83,10 @@
    normal ground; a row that leaves fades out, then the rows around it slide into place. */
 @keyframes row-in { from { opacity: 0 } to { opacity: 1 } }
 @keyframes row-wash { from { background-color: #EFF6FF } to { background-color: transparent } }
-@keyframes row-wash-dark { from { background-color: #172554 } to { background-color: transparent } }
+@keyframes row-wash-dark { from { background-color: #1C2633 } to { background-color: transparent } }
 .dark [data-motion=in] { animation-name: row-in, row-wash-dark; }
 /* Inline-styled tint tiles (Overview's "Needs you today" icons): in dark, a deep wash of the icon colour, icon lifted. */
-.dark .tint { background: color-mix(in srgb, var(--tint) 22%, #141519) !important; color: color-mix(in srgb, var(--tint) 65%, white) !important; }
+.dark .tint { background: color-mix(in srgb, var(--tint) 18%, #1A1C21) !important; color: color-mix(in srgb, var(--tint) 55%, white) !important; }
 [data-motion=in] { animation: row-in 240ms cubic-bezier(0.23, 1, 0.32, 1), row-wash 1400ms cubic-bezier(0.23, 1, 0.32, 1); }
 [data-motion=out] { opacity: 0; transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1); pointer-events: none; }
 
@@ -105,3 +105,57 @@
 .group:active .nav-ic { transform: scale(0.92); transition-duration: 80ms; }
 .nav-ic-on { animation: nav-ic-pop 150ms cubic-bezier(0.23, 1, 0.32, 1); }
 @keyframes nav-ic-pop { from { transform: scale(0.94); } to { transform: scale(1); } }
+
+/* Table modes (pms-inset-tables, Figma 3793:29424, 2026-11-09). Only two:
+   inset — rows sit in a 120px side gutter; edge cells 12px; toolbar 120px.
+   fill  — rows run edge to edge; edge cells 20px so text lines up with the footer; toolbar 20px.
+   Fill is the default (screens with no table too). A screen goes inset when it holds an [data-inset] table
+   (Table/Grid under 6 columns, Tasks, Activity) and nothing marked [data-fill]. */
+.pms-main { --gx: 0px; --cx: 20px; --tx: 20px; }
+.pms-main:has([data-inset]):not(:has([data-fill])) { --gx: 120px; --cx: 12px; --tx: 120px; }
+
+/* Sticky table headers: a collapsed-table border stays behind when the header sticks, so the rule is an inset shadow and every cell is opaque (2026-11-09). */
+thead.sticky th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #E5E7EB; background: #fff; }
+
+/* Overview funnel in dark (Mercury-style): deep, low-chroma steps rising to the softened brand blue. */
+.dark [data-funnel="0"] { background: #222B3D !important; }
+.dark [data-funnel="1"] { background: #28344D !important; }
+.dark [data-funnel="2"] { background: #304063 !important; }
+.dark [data-funnel="3"] { background: #3F5E9E !important; }
+.dark [data-funnel="4"] { background: #537EDA !important; }
+
+/* Mercury-style row actions: the last, unlabelled column (Check in, Pause, ⋯) shows on row hover, keyboard focus or
+   selection. Touch screens have no hover, so they keep it visible. */
+@media (hover: hover) {
+  .row-act > * { opacity: 0; transition: opacity 150ms cubic-bezier(0.23, 1, 0.32, 1); }
+  tr:hover .row-act > *, tr:focus-within .row-act > *, tr[data-state=selected] .row-act > *, .row-act > [data-state=open] { opacity: 1; }
+}
+
+/* Mercury page scroll for long tables: on a page with a table ([data-scroller]) the whole page scrolls, so the
+   title and toolbar move away; the breadcrumb header stays pinned, the column header sticks under it, and the
+   table footer stays pinned at the bottom. Once the header is stuck its line runs edge to edge (data-stuck,
+   set by Shell on scroll). */
+.pms-main:has([data-scroller]) { overflow-y: auto; overflow-x: hidden; }
+.pms-main:has([data-scroller]) [data-page-head] { position: sticky; top: 0; z-index: 20; }
+.pms-main:has([data-scroller]) :is(.overflow-auto, .overflow-y-auto, .overflow-hidden, .min-h-0, .flex-1):has([data-scroller]),
+.pms-main:has([data-scroller]) [data-scroller] { overflow: visible; min-height: auto; flex-shrink: 0; }
+.pms-main:has([data-scroller]) [data-scroller] thead { top: 52px; z-index: 6; }
+.pms-main:has([data-scroller]) [data-scroller] [data-head] { position: sticky; top: 52px; z-index: 6; }
+.pms-main[data-stuck] [data-scroller] [data-head]::after {
+  content: ''; position: absolute; bottom: -1px; left: calc(-1 * var(--gx, 0px)); right: calc(-1 * var(--gx, 0px)); height: 1px; background: #E5E7EB; pointer-events: none;
+}
+.pms-main:has([data-scroller]) [data-foot] { position: sticky; bottom: 0; z-index: 6; }
+.pms-main [data-scroller] thead th { position: relative; }
+.pms-main[data-stuck] [data-scroller] thead th:first-child::before,
+.pms-main[data-stuck] [data-scroller] thead th:last-child::after {
+  content: ''; position: absolute; bottom: 0; height: 1px; width: var(--gx, 0px); background: #E5E7EB; pointer-events: none;
+}
+.pms-main[data-stuck] [data-scroller] thead th:first-child::before { right: 100%; }
+.pms-main[data-stuck] [data-scroller] thead th:last-child::after { left: 100%; }
+
+/* Rows scrolled into view by the sheet chevrons clear the sticky page header + column header. */
+[data-state="selected"], [aria-selected="true"], [data-selected] { scroll-margin-top: 96px; scroll-margin-bottom: 16px; }
+
+/* Avatars in dark mode: the pastel grounds are inline styles, so mute them here (2026-11-09: "mute the colors a touch").
+   Lower saturation and brightness, and drop the white top highlight that glows on dark. */
+.dark [data-avatar] { filter: saturate(0.85) brightness(0.88); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06) !important; }

@@ -5,7 +5,7 @@ import {
   Buildings, ChatCircleText, Check as CheckIco, Copy, CurrencyGbp, DotsSixVertical, EnvelopeSimple, Eye, FileText, Globe,
   Image, Info, Monitor, Plus, UploadSimple, Wheelchair, type Icon,
 } from '../../components/icons';
-import { Button, Check, Field, Input, Note, PageHeader, Select, Switch, Tabs, Textarea, cx } from '../../components/ui';
+import { Button, Check, Field, Input, Note, PageHeader, Select, Switch, Tabs, Textarea, cx, Pill } from '../../components/ui';
 
 /* On-campus booking site builder (Figma 2063:2). The Site panel rows pick the editor (Pages, Theme, Settings);
    the left column edits, the right column is a live preview of the site. Changes count up as "unpublished"
@@ -64,7 +64,7 @@ export function SiteBuilder({ tab }: { tab: 'pages' | 'theme' | 'settings' }) {
   const title = { pages: 'Pages', theme: 'Theme', settings: 'Settings' }[tab];
   return (
     <>
-      <PageHeader icon={Monitor} crumbs={['Site']} title={title}>
+      <PageHeader icon={Monitor} crumbs={['Booking site']} title={title}>
         {changes > 0 && <span className="h-[22px] px-2 rounded-md bg-[#FFF6E0] text-xs font-medium text-[#B45309] flex items-center gap-1.5 whitespace-nowrap"><span className="size-1.5 rounded-full bg-[#F59E0B]" />{changes} unpublished {changes === 1 ? 'change' : 'changes'}</span>}
         <Button size="sm" icon={Eye} onClick={() => toast('Preview opens in a new tab in the real product')}>Preview</Button>
         <Button size="sm" variant="primary" icon={UploadSimple} disabled={!changes}
@@ -114,7 +114,7 @@ function SectionsEditor() {
             </div>
           );
         })}
-        <Button size="sm" icon={Plus} onClick={() => toast('Section library opens in the real product')}>Add section</Button>
+        <Button icon={Plus} onClick={() => toast('Section library opens in the real product')}>Add section</Button>
       </div>
       <div className="border-t border-line p-4">
         <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">{sections.find((s) => s.id === sel)!.label}</div>
@@ -223,7 +223,7 @@ function Preview() {
   const block = (id: SecId, body: ReactNode) => (
     <section key={id} onClick={() => s.set({ sel: id })}
       className={cx('relative px-6 py-5 cursor-pointer', s.sel === id ? 'shadow-[inset_0_0_0_1.5px_#93C5FD]' : 'hover:shadow-[inset_0_0_0_1px_#E5E7EB]')}>
-      {s.sel === id && <span className="absolute right-3 top-3 h-5 px-1.5 rounded-md bg-[#EFF6FF] text-[11px] font-medium text-[#2563EB] flex items-center">Editing</span>}
+      {s.sel === id && <span className="absolute right-3 top-3"><Pill tone="blue">Editing</Pill></span>}
       {body}
     </section>
   );

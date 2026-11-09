@@ -1,14 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AlarmClock, AlarmClockOff, ArrowsDownUp, ArrowsLeftRight, Bell, CalendarBlank, CalendarX, Check, CheckCircle, Plus, XCircle } from '../../components/icons';
+import { AlarmClock, AlarmClockOff, ArrowDown, ArrowUp, ArrowsLeftRight, Bell, CalendarBlank, CalendarX, Check, CheckCircle, Plus, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Empty, Field, FilterButton, Input, PageHeader, Select, Sheet, Tabs, cx } from '../../components/ui';
+import { Button, Empty, Field, FilterButton, Input, PageHeader, Select, Sheet, SheetSection, Tabs, cx, toolbarCls, listNav, PageHeading } from '../../components/ui';
 import { useOpen } from '../hooks';
+import { useEmpty } from '../../data/empty';
 import { DONE_EARLIER, EXTRAS, ME, PEOPLE, TOM_HIDDEN, useHome, type CaseId, type Due, type HTask } from '../../data/home';
 import { Box, CaughtUp, DuePill, Who, fromIcon } from './parts';
 import { ROW_IN_MS, TaskSheet, useChange, useReturned } from './TaskSheet';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { SnoozeMenu, useSnooze } from './Snooze';
+
+/** Sortable column head, same look as `Table sort`: ink label + arrow; click flips the order. */
+function SortHead({ desc, onToggle, children }: { desc: boolean; onToggle: () => void; children: ReactNode }) {
+  const A = desc ? ArrowDown : ArrowUp;
+  return <button type="button" onClick={onToggle} aria-label={`Sorted ${desc ? 'latest' : 'soonest'} first, click to flip`} className="inline-flex items-center gap-1 text-[#111827] font-medium">{children}<A size={12} /></button>;
+}
 
 const order: Record<Due, number> = { overdue: 0, today: 1, week: 2 };
 const groupLabel: Record<Due, string> = { overdue: 'Overdue', today: 'Today', week: 'This week' };
@@ -37,12 +44,18 @@ function NewTaskButton({ scope }: { scope: 'main' | CaseId }) {
   return (
     <>
       <Button variant="primary" icon={Plus} onClick={() => setOpen(true)}>New task</Button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="New task" sub="Tasks made here are not tied to a record" width={480}
+      <Sheet open={open} onClose={() => setOpen(false)} title="New task" width={480}
         footer={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" type="submit" form="new-task" disabled={!title.trim()}>Add task</Button></>}>
-        <form id="new-task" onSubmit={create} className="space-y-4">
-          <Field label="Task"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Call the lift engineer about Ustinov B block" /></Field>
+        <form id="new-task" onSubmit={create} className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          <SheetSection title="Task">
+          <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Call the lift engineer about Ustinov B block" /></Field>
+          </SheetSection>
+          <SheetSection title="Schedule">
+          <div className="space-y-4">
           <Field label="Due"><Select value={due} onChange={(e) => setDue(e.target.value as Due)}><option value="today">Today</option><option value="week">This week</option></Select></Field>
           <Field label="Owner"><Select value={owner} onChange={(e) => setOwner(e.target.value)}>{Object.keys(PEOPLE).map((p) => <option key={p}>{p}</option>)}</Select></Field>
+          </div>
+          </SheetSection>
         </form>
       </Sheet>
     </>
@@ -89,6 +102,8 @@ function MyTasks() {
     return { g, list: desc ? [...list].reverse() : list };
   }).filter((x) => x.list.length);
   const ordered = desc ? [...groups].reverse() : groups;
+  /* Empty-states demo (first login): no tasks were ever done, so the archived count goes too. */
+  const emptyDemo = useEmpty((s) => s.on);
   const caughtUp = tab === 'mine' && !shown.some((r) => r.due !== 'week' && r.owner === ME) && !showWeek;
 
   const toggleDone = (t: HTask, v: boolean) =>
@@ -99,17 +114,16 @@ function MyTasks() {
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <PageHeader icon={CheckCircle} title="My tasks"><NewTaskButton scope="main" /></PageHeader>
-      <div className="h-[52px] shrink-0 px-4 flex items-center gap-2 border-b border-[#F3F4F6]">
+      <PageHeading right={<>
+        <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />
+      </>} />
+      <div className={cx(toolbarCls, '!pt-0 empty:hidden')}>
         <Tabs value={tab} onChange={(v) => { setTab(v); setShowWeek(false); }} tabs={[
           { id: 'mine', label: 'Mine', count: mineCount },
           { id: 'team', label: 'Team', count: openRows.length },
           { id: 'snoozed', label: 'Snoozed', count: snoozedRows.length },
-          { id: 'done', label: 'Done', count: DONE_EARLIER + doneRows.length },
+          { id: 'done', label: 'Done', count: (emptyDemo ? 0 : DONE_EARLIER) + doneRows.length },
         ]} />
-        <div className="ml-auto flex items-center gap-2">
-          <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />
-          <Button size="sm" icon={ArrowsDownUp} onClick={() => setDesc((d) => !d)} aria-label={`Sort by due date, ${desc ? 'latest' : 'soonest'} first`}>Due date</Button>
-        </div>
       </div>
 
       {caughtUp ? (
@@ -118,28 +132,27 @@ function MyTasks() {
           <Button icon={Check} onClick={() => setTab('done')}>See done</Button>
         </CaughtUp>
       ) : (
-        <div className="flex-1 overflow-auto">
-          <div className="grid grid-cols-[48px_minmax(0,1fr)_302px_203px_108px_48px] h-9 items-center text-xs font-medium text-gray-500 border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-3">
-            <span /><span>Task</span><span>From</span><span>{tab === 'done' ? 'Done' : tab === 'snoozed' ? 'Back' : 'Due'}</span><span>Owner</span><span />
+        <div data-inset data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">
+          <div data-head className="grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] h-10 items-center text-xs font-medium text-gray-500 border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-4">
+            <span className="col-span-2 !pl-[var(--cx,12px)]">Task</span><span>From</span><span><SortHead desc={desc} onToggle={() => setDesc((d) => !d)}>{tab === 'done' ? 'Done' : tab === 'snoozed' ? 'Back' : 'Due'}</SortHead></span><span>Owner</span><span />
           </div>
           {tab === 'snoozed' ? (
-            shown.length ? shown.map((r) => <MainRow key={r.id} t={r} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} onWake={() => wake(r)} />)
-              : <Empty icon={AlarmClock} title="Nothing snoozed" sub="Snooze a task to hide it from Mine until later. It comes back on its own." />
+            shown.length ? shown.map((r) => <MainRow key={r.id} t={r} sel={open === r.id} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} onWake={() => wake(r)} />)
+              : <Empty icon={AlarmClock} title="Nothing snoozed" sub="Snoozed tasks come back on their own." />
           ) : tab === 'done' ? (
-            doneRows.length ? doneRows.filter((r) => shown.includes(r)).map((r) => <MainRow key={r.id} t={r} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} />)
-              : <Empty icon={CheckCircle} title="Nothing done yet" sub="Tasks you tick off show up here." />
+            doneRows.length ? doneRows.filter((r) => shown.includes(r)).map((r) => <MainRow key={r.id} t={r} sel={open === r.id} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} />)
+              : <Empty art="caughtUp" icon={CheckCircle} title="Nothing done yet" sub="Tasks you tick off show up here." />
           ) : ordered.length === 0 ? (
             <Empty title="No tasks match these filters" sub="Try another filter or clear them." />
           ) : ordered.map(({ g, list }) => (
             <div key={g}>
-              <div className="h-8 px-5 flex items-center text-xs bg-[#F9FAFB] border-b border-line"><span className="font-medium text-ink">{groupLabel[g]}</span><span className="text-gray-500 ml-1">· {list.length}</span></div>
-              {list.map((r) => <MainRow key={r.id} t={r} handed={tab === 'mine' && r.owner !== ME} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} />)}
+              <div className="h-8 pl-[var(--cx,12px)] pr-[var(--cx,12px)] flex items-center text-xs bg-[#F9FAFB] border-b border-line"><span className="font-medium text-ink">{groupLabel[g]}</span><span className="text-gray-500 ml-1">· {list.length}</span></div>
+              {list.map((r) => <MainRow key={r.id} t={r} sel={open === r.id} handed={tab === 'mine' && r.owner !== ME} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} />)}
             </div>
           ))}
         </div>
       )}
-      <div className="h-10 shrink-0 px-5 flex items-center border-t border-line text-xs text-gray-500">Tasks come from every area of the PMS: anything that waits on you lands here</div>
-      <TaskSheet scope="main" task={task} onClose={() => setOpen(null)} />
+      <TaskSheet scope="main" task={task} nav={listNav(ordered.flatMap((x) => x.list), (x) => x.id === open, (x) => setOpen(x.id)) ?? listNav(shown, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />
     </div>
   );
 }
@@ -149,7 +162,7 @@ function MyTasks() {
 const HOLD_MS = 550;
 const LEAVE_MS = 200;
 
-function MainRow({ t, handed, onOpen, onCheck, onWake }: { t: HTask; handed?: boolean; onOpen: () => void; onCheck: (v: boolean) => void; onWake?: () => void }) {
+function MainRow({ t, handed, sel, onOpen, onCheck, onWake }: { t: HTask; handed?: boolean; sel?: boolean; onOpen: () => void; onCheck: (v: boolean) => void; onWake?: () => void }) {
   const I = t.from ? fromIcon[t.from.icon] : CheckCircle;
   const [phase, setPhase] = useState<'idle' | 'ticked' | 'leaving'>('idle');
   const check = (v: boolean) => {
@@ -170,12 +183,13 @@ function MainRow({ t, handed, onOpen, onCheck, onWake }: { t: HTask; handed?: bo
   return (
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(); }}
       style={{ transitionDuration: `${phase === 'leaving' ? LEAVE_MS : ROW_IN_MS}ms` }}
-      className={cx('group grid grid-cols-[48px_minmax(0,1fr)_302px_203px_108px_48px] items-center border-b border-[#F3F4F6] text-sm cursor-pointer hover:bg-[#F9FAFB] focus-visible:bg-[#F9FAFB] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
+      aria-selected={sel || undefined}
+      className={cx(sel && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', 'group grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] items-center border-b border-[#F3F4F6] last:border-b-transparent text-sm cursor-pointer hover:bg-[#F9FAFB] focus-visible:bg-[#F9FAFB] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
         closed ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100')}>
-      <span className="pl-5"><Box checked={done} disabled={handed} label={done ? `Mark “${t.title}” not done` : `Mark “${t.title}” done`} onChange={check} /></span>
-      <span className={cx('truncate px-3 font-medium transition-colors duration-150', handed || done ? 'text-gray-400' : 'text-ink', done && 'line-through')}>{t.title}</span>
-      <span className="flex items-center gap-1.5 px-3 text-gray-500 truncate">{I && <I size={14} className="text-gray-400 shrink-0" />}{t.from?.label}</span>
-      <span className="px-3">{t.done ? <span className="text-xs text-gray-500">{t.doneLabel}</span> : t.snoozed ? <span className="inline-flex items-center gap-1.5 text-[#646A78]"><AlarmClock size={14} className="text-gray-400" />{t.snoozed.label}</span> : <DuePill t={t} />}</span>
+      <span className="pl-[var(--cx,12px)]"><Box checked={done} disabled={handed} label={done ? `Mark “${t.title}” not done` : `Mark “${t.title}” done`} onChange={check} /></span>
+      <span className={cx('truncate px-4 font-medium transition-colors duration-150', handed || done ? 'text-gray-400' : 'text-ink', done && 'line-through')}>{t.title}</span>
+      <span className="flex items-center gap-1.5 px-4 text-gray-500 truncate">{I && <I size={14} className="text-gray-400 shrink-0" />}{t.from?.label}</span>
+      <span className="px-4">{t.done ? <span className="text-xs text-gray-500">{t.doneLabel}</span> : t.snoozed ? <span className="inline-flex items-center gap-1.5 text-[#646A78]"><AlarmClock size={14} className="text-gray-400" />{t.snoozed.label}</span> : <DuePill t={t} />}</span>
       <span className="px-3" title={t.owner}><Who name={t.owner} grad /></span>
       <span className="flex justify-center">
         {t.snoozed && onWake ? (
@@ -242,25 +256,25 @@ function TeamBoard({ scope }: { scope: CaseId }) {
         <NewTaskButton scope={scope} />
       </PageHeader>
       {showBanner && (
-        <div className="px-5 pt-4">
+        <div className="px-[var(--tx,16px)] pt-4">
           <div className="rounded-lg border border-[#A16207]/35 bg-white px-3 py-2.5 flex items-center gap-3">
             <CalendarX size={16} className="text-[#A16207] shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="text-sm leading-5 font-medium text-[#A16207]">{TOM_HIDDEN + tomOverdue.length} overdue tasks belong to Tom Baker, who is on leave until Monday</div>
-              <div className="text-xs text-gray-500">Tasks don’t move on their own when someone is away. Pick them and hand them on together.</div>
+              <div className="text-xs text-gray-500">Pick tasks to hand them on together.</div>
             </div>
             <Button size="sm" icon={ArrowsLeftRight} disabled={selTom.length === 0} onClick={() => setReassign(true)}>Reassign {pile}</Button>
           </div>
         </div>
       )}
-      <div className="h-[52px] shrink-0 px-4 flex items-center gap-2 border-b border-[#F3F4F6]">
+      <PageHeading />
+      <div className={cx(toolbarCls, '!pt-0')}>
         <Tabs value={tab} onChange={setTab} tabs={[
           { id: 'overdue', label: 'Overdue', count: n('overdue') },
           { id: 'today', label: 'Today', count: n('today') },
           { id: 'week', label: 'This week', count: n('week') },
           { id: 'done', label: 'Done', count: doneCount },
         ]} />
-        <div className="ml-auto"><Button size="sm" icon={ArrowsDownUp} onClick={() => setDesc((d) => !d)}>Due date</Button></div>
       </div>
       {emptyNow ? (
         <CaughtUp>
@@ -268,26 +282,27 @@ function TeamBoard({ scope }: { scope: CaseId }) {
           <Button icon={Check} onClick={() => setTab('done')}>See done</Button>
         </CaughtUp>
       ) : (
-        <div ref={bodyRef} className="flex-1 overflow-auto">
-          <div className="grid grid-cols-[48px_minmax(0,1fr)_263px_271px] h-9 items-center text-xs font-medium text-gray-500 border-b border-line [&>span]:px-3">
-            <span /><span>Task</span><span>{tab === 'done' ? 'Done' : 'Due'}</span><span>Owner</span>
+        <div ref={bodyRef} data-inset data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">
+          <div data-head className="sticky top-0 bg-white z-[1] grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] h-10 items-center text-xs font-medium text-gray-500 border-b border-line [&>span]:px-4">
+            <span className="col-span-2 !pl-[var(--cx,12px)]">Task</span><span><SortHead desc={desc} onToggle={() => setDesc((d) => !d)}>{tab === 'done' ? 'Done' : 'Due'}</SortHead></span><span>Owner</span>
           </div>
           {shown.length === 0 && (tab === 'done'
-            ? <Empty icon={CheckCircle} title="Nothing done in this list yet" sub="Tasks you tick off show up here." />
+            ? <Empty art="caughtUp" icon={CheckCircle} title="Nothing done in this list yet" sub="Tasks you tick off show up here." />
             : <Empty title="Nothing in this list" sub="Try another tab or clear the filters." />)}
           {moving.map(({ row: r, motion }) => (
             <div key={r.id} {...rowAttrs(r.id, motion)} role="button" tabIndex={0} onClick={() => setOpen(r.id)} onKeyDown={(e) => { if (e.key === 'Enter') setOpen(r.id); }}
-              className="grid grid-cols-[48px_minmax(0,1fr)_263px_271px] h-10 items-center border-b border-[#F3F4F6] text-sm cursor-pointer hover:bg-[#F9FAFB] outline-none focus-visible:bg-[#F9FAFB]">
-              <span className="pl-5">
+              aria-selected={open === r.id || undefined}
+              className={cx(open === r.id && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', "grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] h-11 items-center border-b border-[#F3F4F6] last:border-b-0 text-sm cursor-pointer hover:bg-[#F9FAFB] outline-none focus-visible:bg-[#F9FAFB]")}>
+              <span className="pl-[var(--cx,12px)]">
                 <Box checked={sel.includes(r.id) || r.done} disabled={r.done} label={`Select “${r.title}”`}
                   onChange={(v) => setSel((s) => (v ? [...s, r.id] : s.filter((id) => id !== r.id)))} />
               </span>
-              <span className="min-w-0 px-3">
+              <span className="min-w-0 px-4">
                 <span className={cx('block truncate leading-[18px] font-medium', r.done ? 'text-gray-400 line-through' : 'text-ink')}>{r.title}</span>
                 {r.sub && <span className="block truncate text-xs leading-4 text-gray-500">{r.sub}</span>}
               </span>
-              <span className="px-3">{r.done ? <span className="text-xs text-gray-500">by {r.doneBy === ME ? 'you' : r.doneBy}</span> : <DuePill t={r} clock />}</span>
-              <span className="px-3 flex items-center gap-2 font-medium text-ink"><Who name={r.owner} />{r.owner}</span>
+              <span className="px-4">{r.done ? <span className="text-xs text-gray-500">by {r.doneBy === ME ? 'you' : r.doneBy}</span> : <DuePill t={r} clock />}</span>
+              <span className="px-4 flex items-center gap-2 font-medium text-ink"><Who name={r.owner} />{r.owner}</span>
             </div>
           ))}
         </div>
@@ -299,24 +314,29 @@ function TeamBoard({ scope }: { scope: CaseId }) {
           <Button size="sm" variant="ghost" onClick={() => setSel([])}>Clear</Button>
         </div>
       )}
-      <TaskSheet scope={scope} task={task} onClose={() => setOpen(null)} />
+      <TaskSheet scope={scope} task={task} nav={listNav(moving.map((m) => m.row), (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />
 
       {/* E3 step 2: choose who */}
       <Sheet open={reassign} onClose={() => setReassign(false)} width={520}
-        title={<span className="flex items-center gap-2.5"><span className="size-8 rounded-lg bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center"><ArrowsLeftRight size={16} /></span><span><span className="block text-sm font-semibold">Reassign {pile} tasks</span><span className="block text-xs font-normal text-gray-500">From Tom Baker · on leave until Mon 21 Sep</span></span></span>}
+        title={`Reassign ${pile} tasks`} sub="From Tom Baker · on leave until Mon 21 Sep"
         footer={<><Button onClick={() => setReassign(false)}>Cancel</Button><Button variant="primary" icon={Check} onClick={doReassign}>Reassign {pile}</Button></>}>
-        <div className="text-sm font-medium mb-2.5">Hand them to</div>
+        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <SheetSection title="Hand them to">
         <div className="rounded-[10px] border border-primary bg-[#EFF6FF] px-3 py-2.5 flex items-center gap-2.5" aria-selected="true" role="option">
           <Who name="Aisha Khan" size={24} />
           <div className="flex-1"><div className="text-sm leading-5 font-semibold">Aisha Khan</div><div className="text-xs text-gray-500">Hall manager · Van Mildert, Collingwood · 7 tasks today</div></div>
           <Check size={16} className="text-primary" />
         </div>
-        <div className="mt-4 rounded-xl border border-line px-3.5 py-1 divide-y divide-[#F3F4F6]">
+        </SheetSection>
+        <SheetSection title="Where they go">
+        <div className="rounded-xl border border-line px-3.5 py-1 divide-y divide-[#F3F4F6]">
           <div className="flex items-center gap-2.5 py-2 text-sm"><CheckCircle size={16} className="text-[#0B8A4C]" /><span className="flex-1 font-medium">{toAishaN} tasks at Collingwood</span><span className="text-xs text-gray-500">Aisha covers Collingwood</span></div>
           <div className="flex items-center gap-2.5 py-2 text-sm"><XCircle size={16} className="text-[#B91C1C]" /><span className="flex-1 font-medium">{toMeN} tasks at Ustinov</span><span className="text-xs text-[#B91C1C] max-w-[180px]">Aisha doesn’t cover Ustinov · they come to you</span></div>
         </div>
         <div className="mt-4 rounded-lg border border-[#2563EB]/30 px-3 h-10 flex items-center gap-2 text-sm font-medium text-[#2563EB]">
           <Bell size={16} />Tom will see who has his tasks when he’s back
+        </div>
+        </SheetSection>
         </div>
       </Sheet>
     </div>

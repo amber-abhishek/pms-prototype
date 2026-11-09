@@ -1,3 +1,5 @@
+import { Badge } from '../../components/shadcn/badge';
+import { Illustration, type Illo } from '../../components/Illustration';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CaretUpDown, Image, X, type Icon } from '../../components/icons';
 import { Button, cx } from '../../components/ui';
@@ -10,8 +12,9 @@ import type { Tone } from '../../data/seed';
 /** Big title + description used at the top of every off-campus page. */
 export function Title({ title, sub, children }: { title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="px-6 pt-6 pb-3 flex items-start gap-4">
-      <div className="flex-1 min-w-0"><h2 className="text-xl font-semibold">{title}</h2>{sub && <p className="text-sm text-gray-500 mt-1">{sub}</p>}</div>
+    /* Same page heading as every screen (PageHeading): 20px medium ink, lined up with the table's first column. */
+    <div className="px-[var(--tx,16px)] pt-6 pb-3 flex items-center gap-4">
+      <div className="flex-1 min-w-0 ml-[calc(var(--gx,16px)+var(--cx,12px)-var(--tx,16px))]"><h2 className="text-xl leading-7 font-medium text-ink truncate">{title}</h2>{sub && <p className="text-sm text-gray-500 mt-1">{sub}</p>}</div>
       {children}
     </div>
   );
@@ -44,7 +47,7 @@ export const RowLink = ({ onClick, children = 'See details' }: { onClick: () => 
 const toneTile: Record<'blue' | 'green' | 'grey' | 'red', string> = { blue: 'bg-[#D9E3FF] text-primary', green: 'bg-[#E8F7EE] text-[#0B8A4C]', grey: 'bg-[#F3F4F6] text-gray-500', red: 'bg-[#FFE4E8] text-[#E0243A]' };
 
 /** Confirm/compose dialog as drawn in the flows: icon tile, title, description, body, grey footer. */
-export function ODialog({ open, onClose, icon: I, tone = 'blue', title, sub, children, footer, width = 520 }: {
+export function ODialog({ open, onClose, title, sub, children, footer, width = 520 }: {
   open: boolean; onClose: () => void; icon?: Icon; tone?: keyof typeof toneTile; title: string; sub?: ReactNode; children?: ReactNode; footer: ReactNode; width?: number;
 }) {
   /* shadcn Dialog. */
@@ -53,7 +56,6 @@ export function ODialog({ open, onClose, icon: I, tone = 'blue', title, sub, chi
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
         <div className="px-5 pt-5 pb-4 overflow-auto">
           <div className="flex items-center gap-2.5">
-            {I && <span className={cx('size-8 rounded-lg flex items-center justify-center shrink-0', toneTile[tone])}><I size={16} /></span>}
             <DialogTitle>{title}</DialogTitle>
           </div>
           {sub && <DialogDescription className="mt-2">{sub}</DialogDescription>}
@@ -96,11 +98,7 @@ export function NoteDialog({ open, onClose, icon, title, sub, label, optional, p
 
 /** Plain pill without a leading icon, or with one. */
 export function Tag({ tone, icon: I, children, outline }: { tone: Tone; icon?: Icon; children: ReactNode; outline?: boolean }) {
-  const cls: Record<Tone, string> = {
-    green: 'bg-[#E8F7EE] text-[#0B8A4C]', blue: 'bg-[#EFF6FF] text-[#1F45E0]', amber: 'bg-[#FFF6E0] text-[#C47A00]', orange: 'bg-[#FFF0E0] text-[#E5530C]',
-    red: 'bg-[#FFF5F6] text-[#E0243A]', purple: 'bg-[#F1E7FF] text-[#8B2CF5]', grey: 'bg-[#F3F4F6] text-[#4B5563]',
-  };
-  return <span className={cx('inline-flex items-center gap-1 rounded-full px-2 h-[22px] text-xs font-medium whitespace-nowrap', outline ? 'border border-line bg-white text-gray-700 !rounded-lg' : cls[tone])}>{I && <I size={12} weight="bold" />}{children}</span>;
+  return <Badge tone={outline ? 'grey' : tone} look={outline ? 'outline' : 'soft'}>{I && <I size={12} />}{children}</Badge>;
 }
 
 /** Typeahead combobox used for the Amber region override. */
@@ -145,15 +143,9 @@ export function BulkBar({ count, children, onClear }: { count: number; children:
   );
 }
 
-/** Blue tonal illustration box for empty states (kit-style). */
-export function EmptyArt({ icon: I, accent }: { icon: Icon; accent?: ReactNode }) {
-  return (
-    <div className="relative w-[150px] h-[110px] mx-auto">
-      <div className="absolute inset-x-2 inset-y-3 rounded-[28px] bg-[#EFF6FF]" />
-      <div className="absolute inset-0 flex items-center justify-center"><I size={56} weight="duotone" className="text-[#3B82F6]" /></div>
-      {accent && <div className="absolute left-9 top-5">{accent}</div>}
-    </div>
-  );
+/** Figma empty-state illustration (Workspace · Empty states). */
+export function EmptyArt({ art }: { art: Illo }) {
+  return <Illustration name={art} />;
 }
 
 /** Small segmented buttons (Enquiries source): selected is a white bordered button, the rest are ghost. */

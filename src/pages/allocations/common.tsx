@@ -1,17 +1,16 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Check as CheckMark, CheckCircle, Clock, EnvelopeSimple, FileText, Flag, Hourglass, House, MinusCircle, PaperPlaneTilt, PencilSimple, RadioButton, SlidersHorizontal, UserCheck, WarningCircle, XCircle, type Icon } from '../../components/icons';
-import { Button, Check, Pill, cx } from '../../components/ui';
+import { Illustration, type Illo } from '../../components/Illustration';
+import { ArrowDown, ArrowUp, Check as CheckMark, CheckCircle, Clock, EnvelopeSimple, FileText, Flag, Hourglass, House, MinusCircle, PaperPlaneTilt, PencilSimple, RadioButton, SlidersHorizontal, UserCheck, WarningCircle, XCircle, type Icon } from '../../components/icons';
+import { Avatar, Button, Check, Pill, cx } from '../../components/ui';
 import { Popover, PopoverAnchor, PopoverContent } from '../../components/shadcn/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/shadcn/table';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import type { Tone } from '../../data/seed';
-import { initials } from '../../data/allocations';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 
-/** Small grey initials badge, as in the design's tables and lists. */
+/** Initials avatar: the shared toned Avatar (Figma 3770:15786 — soft tone gradient, tone initials). */
 export function Ini({ name, size = 24 }: { name: string; size?: number }) {
-  const fs = size <= 18 ? 9 : size <= 24 ? 10 : Math.round(size * 0.35);
-  return <span className="inline-flex items-center justify-center rounded-full bg-[#F3F4F6] text-gray-700 font-semibold shrink-0" style={{ width: size, height: size, fontSize: fs }}>{initials(name)}</span>;
+  return <Avatar name={name} size={size} />;
 }
 export function Person({ name, sub }: { name: string; sub?: ReactNode }) {
   return <div className="flex items-center gap-2 min-w-0"><Ini name={name} size={24} /><div className="min-w-0"><div className="font-medium truncate">{name}</div>{sub && <div className="text-xs text-gray-500 truncate">{sub}</div>}</div></div>;
@@ -26,14 +25,14 @@ const T: Record<string, [Tone, Icon]> = {
 };
 export function St({ s }: { s: string }) {
   // Closed cycles and rejected applications use the outlined grey tag (frames 2837:394, 2838:2043).
-  if (s === 'Closed' || s === 'Rejected') return <span className="inline-flex items-center h-[22px] px-2 rounded-lg border border-line bg-white text-xs font-medium text-gray-700">{s}</span>;
+  if (s === 'Closed' || s === 'Rejected') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-gray-700">{s}</span>;
   const [tone, I] = T[s] ?? ['grey', MinusCircle];
   return <Pill tone={tone} icon={I}>{s}</Pill>;
 }
 
-/** Thin caption row above a table ("Applications here are left out of auto-allocate"). */
+/** Thin caption row above a table, left-aligned with the first column ("Applications here are left out of auto-allocate"). */
 export const Caption = ({ children, left }: { children?: ReactNode; left?: ReactNode }) => (
-  <div className="h-14 shrink-0 px-5 flex items-center gap-2 border-b border-line text-xs text-gray-500">{left}<div className="ml-auto">{children}</div></div>
+  <div className="h-10 shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] flex items-center gap-2 text-xs text-gray-500">{children}{left && <div className="ml-auto">{left}</div>}</div>
 );
 
 /** Underline tabs for the application detail. */
@@ -65,7 +64,7 @@ export function Pop({ button, children, width = 300, align = 'right' }: { button
 /** "Display" button: show or hide a table's columns. */
 export function DisplayButton({ cols, hidden, onChange }: { cols: { key: string; label: string }[]; hidden: string[]; onChange: (h: string[]) => void }) {
   return (
-    <Pop width={220} button={(_, t) => <Button icon={SlidersHorizontal} onClick={t}>Display</Button>}>
+    <Pop width={220} button={(_, t) => <Button variant="control" icon={SlidersHorizontal} onClick={t}>Display</Button>}>
       {() => (
         <div className="p-3 space-y-2">
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Columns</div>
@@ -88,14 +87,14 @@ export function Radio({ checked, onChange, title, sub, disabled }: { checked: bo
 }
 
 /** Centered empty state in a content area (blue tonal illustration box). */
-export function EmptyArea({ icon: I, title, sub, children }: { icon: Icon; title: string; sub?: ReactNode; children?: ReactNode }) {
+export function EmptyArea({ icon: I, title, sub, children, art }: { icon: Icon; title: string; sub?: ReactNode; children?: ReactNode; art?: Illo }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
-      <div className="w-[203px] h-[160px] rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-5 relative overflow-hidden">
+      {art ? <Illustration name={art} className="block w-[203px] h-[160px] mb-5" /> : <div className="w-[203px] h-[160px] rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-5 relative overflow-hidden">
         <div className="absolute -right-6 -bottom-8 size-28 rounded-full bg-[#DBEAFE]" />
         <div className="absolute left-6 top-6 size-10 rounded-xl bg-white/80" />
         <I size={56} weight="duotone" className="text-[#3B82F6] relative" />
-      </div>
+      </div>}
       <div className="text-base font-semibold">{title}</div>
       {sub && <div className="text-sm text-gray-500 mt-1.5 max-w-md">{sub}</div>}
       {children && <div className="mt-5 flex gap-2">{children}</div>}
@@ -104,27 +103,31 @@ export function EmptyArea({ icon: I, title, sub, children }: { icon: Icon; title
 }
 
 /** Footer bar under a full-bleed list. */
-export const Foot = ({ children, right }: { children: ReactNode; right?: ReactNode }) => (
-  <div className="h-10 shrink-0 px-5 flex items-center gap-2 border-t border-line text-xs text-gray-500 bg-white"><span>{children}</span><div className="ml-auto flex items-center gap-1.5">{right}</div></div>
+/** Table footer. No left-side counts (2026-11-09): pass only real text; with neither text nor pager it renders nothing. */
+export const Foot = ({ children, right }: { children?: ReactNode; right?: ReactNode }) => (!children && !right) ? null : (
+  <div data-foot className="h-10 shrink-0 px-5 flex items-center gap-2 border-t border-line text-xs text-gray-500 bg-white"><span>{children}</span><div className="ml-auto flex items-center gap-1.5">{right}</div></div>
 );
 export const Kbd = ({ children }: { children: ReactNode }) => <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded border border-line text-[11px] text-gray-500 bg-white">{children}</span>;
 
 /** Simple full-bleed table: 36px header, 40px rows. */
 export type C<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
-export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [], selected }: { cols: C<T>[]; rows: T[]; onRow?: (r: T) => void; hidden?: string[]; selected?: string | null }) {
+export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [], selected, fill, sort }: { cols: C<T>[]; rows: T[]; onRow?: (r: T) => void; hidden?: string[]; selected?: string | null; /** edge-to-edge rows; default on for 6+ columns */ fill?: boolean;
+  /** Sorted column: its header goes ink with an arrow, like `Table sort`; click flips it. */ sort?: { key: string; dir: 'asc' | 'desc'; onToggle?: () => void } }) {
   const cs = cols.filter((c) => !hidden.includes(c.key));
   const { items, bodyRef } = useRowMotion(rows);
   return (
+    <div data-scroller {...((fill ?? cs.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="px-[var(--gx,16px)]">
     <Table>
-      <TableHeader className="sticky top-0 z-[1]"><TableRow>{cs.map((c, i) => <TableHead key={c.key} className={cx(i === 0 && 'pl-5', i === cs.length - 1 && 'pr-5', c.className)}>{c.label}</TableHead>)}</TableRow></TableHeader>
+      <TableHeader className="sticky top-0 z-[1]"><TableRow>{cs.map((c, i) => <TableHead key={c.key} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className={cx(i === 0 && 'pl-[var(--cx,12px)]', i === cs.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{sort?.key === c.key ? <button type="button" onClick={sort.onToggle} className="inline-flex items-center gap-1 text-[#111827] font-medium">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button> : c.label}</TableHead>)}</TableRow></TableHeader>
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }) => (
-          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} data-state={selected === r.id ? 'selected' : undefined} className={cx('data-[state=selected]:shadow-none', onRow && 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]')}>
-            {cs.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && 'pl-5', i === cs.length - 1 && 'pr-5', c.className)}>{c.render(r)}</TableCell>)}
+          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow && 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]')}>
+            {cs.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && 'pl-[var(--cx,12px)]', i === cs.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{c.render(r)}</TableCell>)}
           </TableRow>
         ))}
       </TableBody>
     </Table>
+    </div>
   );
 }
 

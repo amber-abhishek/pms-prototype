@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { CaretUpDown, Check, CheckCircle, Clock, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, X, XCircle, Archive, type Icon } from '../../components/icons';
+import { CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, X, XCircle, Archive, type Icon } from '../../components/icons';
 import { Status, cx } from '../../components/ui';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
@@ -8,8 +8,8 @@ import type { PStatus, Tag, UStatus } from '../../data/inventory';
 
 /* Status pills as the CMS frames draw them: Draft is a white outlined chip. */
 export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' | 'Succeeded' | 'Failed' }) {
-  if (s === 'Draft') return <span className="inline-flex items-center h-[22px] px-2 rounded-lg border border-line bg-white text-xs font-medium text-[#374151]">Draft</span>;
-  if (s === 'Queued') return <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-lg border border-line bg-white text-xs font-medium text-[#374151]"><Clock size={12} />Queued</span>;
+  if (s === 'Draft') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-[#374151]">Draft</span>;
+  if (s === 'Queued') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-[#374151]">Queued</span>;
   if (s === 'Active' || s === 'Succeeded') return <Status s={s} tone="green" icon={CheckCircle} />;
   if (s === 'Inactive') return <Status s="Inactive" tone="grey" icon={MinusCircle} />;
   if (s === 'Archived') return <Status s="Archived" tone="grey" icon={Archive} />;
@@ -26,7 +26,7 @@ export function Tags({ tags, max = 2 }: { tags: Tag[]; max?: number }) {
   if (!tags.length) return <span className="text-gray-400">—</span>;
   return (
     <span className="inline-flex items-center gap-1.5">
-      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-[22px] px-2 rounded-lg border bg-white text-xs font-medium whitespace-nowrap" style={{ color: c, borderColor: c + '59' }}>{t.label}</span>; })}
+      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-[22px] px-2 rounded-md border bg-white text-xs font-medium whitespace-nowrap" style={{ color: c, borderColor: c + '59' }}>{t.label}</span>; })}
       {tags.length > max && <span className="text-xs font-medium text-[#646A78]">+{tags.length - max}</span>}
     </span>
   );
@@ -38,8 +38,8 @@ export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; to
   return <span className={cx('inline-flex items-center justify-center shrink-0', c, size >= 36 ? 'rounded-[10px]' : 'rounded-lg')} style={{ width: size, height: size }}><I size={size <= 28 ? 14 : size <= 32 ? 16 : Math.round(size * 0.5)} /></span>;
 }
 
-/* Dialog as in the frames: icon + title, grey sub, body, grey footer bar. */
-export function Modal({ open, onClose, icon, tone = 'blue', title, sub, children, footer, width = 560, center }: {
+/* Dialog: title, grey sub, body, grey footer bar. No header icon (2026-11-09); `icon`/`tone` are ignored. */
+export function Modal({ open, onClose, title, sub, children, footer, width = 560, center }: {
   open: boolean; onClose: () => void; icon?: Icon; tone?: 'grey' | 'blue' | 'red' | 'green' | 'amber'; title?: ReactNode; sub?: ReactNode; children?: ReactNode; footer?: ReactNode; width?: number; center?: boolean;
 }) {
   /* shadcn Dialog. A dialog with no title still needs an accessible name, so it gets a hidden one. */
@@ -49,8 +49,7 @@ export function Modal({ open, onClose, icon, tone = 'blue', title, sub, children
         <div className="flex-1 overflow-auto p-5">
           {title ? (
             <div className={cx('flex gap-3', center ? 'flex-col items-center text-center' : 'items-start')}>
-              {icon && <IconTile icon={icon} tone={tone} size={center ? 48 : 32} />}
-              <DialogTitle className={cx(!center && icon ? 'leading-8' : 'leading-6')}>{title}</DialogTitle>
+              <DialogTitle className="leading-6">{title}</DialogTitle>
               {!center && <DialogClose aria-label="Close" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center shrink-0"><X size={16} /></DialogClose>}
             </div>
           ) : <DialogTitle className="sr-only">Dialog</DialogTitle>}

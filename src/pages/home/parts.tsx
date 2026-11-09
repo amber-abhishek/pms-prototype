@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowsLeftRight, Buildings, CalendarBlank, ChartBar, Check, CheckCircle, Clock, FileText, Gear, Lock, MagnifyingGlass, Megaphone, ShieldCheck, Tray, UserMinus, Wrench, type Icon } from '../../components/icons';
-import { Button, cx } from '../../components/ui';
+import { ArrowsLeftRight, Buildings, ChartBar, Check, CheckCircle, FileText, Gear, Lock, MagnifyingGlass, Megaphone, ShieldCheck, Tray, UserMinus, Wrench, type Icon } from '../../components/icons';
+import { Avatar, Button, cx } from '../../components/ui';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
-import caughtUpArt from './caught-up.svg';
+import { Illustration } from '../../components/Illustration';
 import { PEOPLE, type DueTone, type FromIcon, type HTask } from '../../data/home';
 
 export const fromIcon: Record<FromIcon, Icon> = {
@@ -11,23 +11,17 @@ export const fromIcon: Record<FromIcon, Icon> = {
 };
 
 const dueCls: Record<DueTone, string> = {
-  red: 'bg-[#FDEDED] text-[#B91C1C]', orange: 'bg-[#FFF0E0] text-[#E5530C]', amber: 'bg-[#FFF6E0] text-[#C47A00]', grey: 'bg-[#F3F4F6] text-[#374151]', plain: '',
+  red: 'bg-[#FEEFEE] text-[#D92D20] border-[#FCE1E0]', orange: 'bg-[#FFF0E0] text-[#E5530C] border-[#FFE9D2]', amber: 'bg-[#FFF6E0] text-[#C47A00] border-[#FFF2D1]', grey: 'bg-[#F3F4F6] text-[#374151] border-[#ECEDF0]', plain: '',
 };
 /** Due pill: calendar icon on My tasks, clock icon on the team board. "This week" is plain text. */
-export function DuePill({ t, clock }: { t: Pick<HTask, 'dueLabel' | 'dueTone'>; clock?: boolean }) {
+export function DuePill({ t }: { t: Pick<HTask, 'dueLabel' | 'dueTone'>; clock?: boolean }) {
   if (t.dueTone === 'plain') return <span className="text-xs text-gray-500">{t.dueLabel}</span>;
-  const I = clock ? Clock : CalendarBlank;
-  return <span className={cx('inline-flex items-center gap-1 h-[22px] px-2 rounded-lg text-xs font-medium whitespace-nowrap', dueCls[t.dueTone])}><I size={12} />{t.dueLabel}</span>;
+  return <span className={cx('inline-flex items-center gap-[5px] h-[22px] px-2 rounded-lg border text-xs font-medium whitespace-nowrap', dueCls[t.dueTone])}>{t.dueLabel}</span>;
 }
 
-/** Person avatar in the colours the designs use (PS orange, TB teal, AK purple). `grad` draws Priya's orange-pink gradient (My tasks table and task sheet, 2994:2). */
-export function Who({ name, size = 22, muted, grad }: { name: string; size?: number; muted?: boolean; grad?: boolean }) {
-  const ini = name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-  const bg = PEOPLE[name]?.color ?? '#6B7280';
-  return (
-    <span className={cx('inline-flex items-center justify-center rounded-full font-semibold shrink-0', muted ? 'bg-gray-100 text-gray-400' : 'text-white')}
-      style={{ width: size, height: size, fontSize: size >= 24 ? 11 : size >= 22 ? 10 : 9, background: muted ? undefined : grad && name === 'Priya Shah' ? 'linear-gradient(135deg,#F97316,#EC4899)' : bg }}>{ini}</span>
-  );
+/** Person avatar: the shared toned Avatar (Figma 3770:15786) in each person's colour (PS orange, TB teal, AK purple); muted is grey. `grad` is kept for callers. */
+export function Who({ name, size = 22, muted }: { name: string; size?: number; muted?: boolean; grad?: boolean }) {
+  return <Avatar name={name} size={size} color={muted ? '#9CA3AF' : PEOPLE[name]?.color} />;
 }
 
 /** Square checkbox drawn to the design (16px, blue when on). */
@@ -46,7 +40,7 @@ export function MenuButton({ icon, value, options, onChange }: { icon: Icon; val
   /* shadcn DropdownMenu. */
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild><Button icon={icon}>{value}</Button></DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button variant="control" icon={icon}>{value}</Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44">
         {options.map((o) => (
           <DropdownMenuItem key={o} onSelect={() => onChange(o)} className="px-2.5 justify-between gap-3 focus:bg-gray-50">
@@ -61,8 +55,9 @@ export function MenuButton({ icon, value, options, onChange }: { icon: Icon; val
 /** Blue tonal illustration for "all caught up". */
 export function CaughtUp({ children }: { children?: ReactNode }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center py-16 px-6">
-      <img src={caughtUpArt} width={203} height={160} alt="" className="mb-6" />
+    /* data-inset: same 120px gutter as the task table on the other tabs, so the heading and tabs don’t jump when switching. */
+    <div data-inset className="flex-1 flex flex-col items-center justify-center text-center py-16 px-6">
+      <Illustration name="caughtUp" className="block w-[203px] h-[160px] mb-6" />
       <div className="text-sm font-semibold">You’re all caught up</div>
       <p className="text-sm leading-5 text-gray-500 mt-1.5 max-w-[440px]">Nothing is overdue or due today. New tasks arrive here from Applications, Requests, Maintenance and Bookings.</p>
       {children && <div className="mt-5 flex gap-2">{children}</div>}

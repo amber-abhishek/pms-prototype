@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AirplaneLanding, ArrowLeft, Buildings, CalendarBlank, CaretRight, Check, Clock, Funnel, GraduationCap, MagnifyingGlass, ShieldCheck, Wallet, Wheelchair, X, type Icon } from '../../components/icons';
-import { Button, Dropdown, cx } from '../../components/ui';
+import { Button, Dropdown, FilterIcon, cx } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { HALLS, hallFull, type App } from '../../data/allocations';
 import { Pop } from './common';
@@ -49,8 +49,9 @@ export function FilterPanel({ rows, fs, setFs, fields }: { rows: App[]; fs: Filt
   const n = fs.order.length;
   return (
     <Pop width={300} button={(open, t) => (
-      <Button icon={Funnel} onClick={t} className={cx(open && 'bg-gray-50')}>
-        Filter{n > 0 && <span className="ml-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-semibold inline-flex items-center justify-center">{n}</span>}
+      <Button variant="control" onClick={t} className={cx(open && 'bg-gray-50')}>
+        <FilterIcon on={n > 0} size={16} icon={Funnel} />
+        Filter{n > 0 && <span className="sr-only">, {n} applied</span>}
       </Button>
     )}>
       {(close) => <Panel rows={rows} fs={fs} setFs={setFs} fields={fields} close={close} />}

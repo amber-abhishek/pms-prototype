@@ -5,12 +5,13 @@ import {
   ArrowsLeftRight, Bed, Buildings, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
   DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, Info, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, Tag as TagIcon, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Avatar, Button, Card, Empty, Field, Input, Note, PageHeader, Sheet, Textarea, cx } from '../../components/ui';
+import { Avatar, Button, Card, Empty, Field, Input, Note, PageHeader, Sheet, Textarea, cx, Pill, SheetSection } from '../../components/ui';
 import { allUnits, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
 import { EditLink, LineTabs, Menu, Modal, MoneyInput, PropStatus, Progress, RadioCard, Tags } from './common';
 import { EmptyArt } from './Properties';
+import { GhostZone } from '../../components/headerCtx';
 
 type TabId = 'overview' | 'units' | 'tenancies' | 'photos' | 'activity';
 const AMENITIES = ['Laundry', 'Bike store', 'Gym', 'Library', 'Common room', 'Parking', 'Catered option'];
@@ -97,7 +98,7 @@ export function PropertyDetail() {
         <div className="px-7 pt-6 pb-5 flex items-center gap-4">
           <div className="size-16 rounded-xl bg-[#F3F4F6] border border-line flex items-center justify-center"><Image size={24} className="text-[#94A3B8]" /></div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2.5"><h2 className="text-xl leading-7 font-semibold tracking-[-0.2px] text-[#111827]">{p.name}</h2><PropStatus s={p.status} /></div>
+            <div className="flex items-center gap-2.5"><h2 className="text-xl leading-7 font-medium tracking-[-0.2px] text-[#111827]">{p.name}</h2><PropStatus s={p.status} /></div>
             <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-[#646A78]">
               <span className="flex items-center gap-2"><BuildingOffice size={14} className="text-gray-400" />{p.campus} campus</span><span>·</span>
               <span className="flex items-center gap-2"><MapPin size={14} className="text-gray-400" />{p.address || 'No address'}</span><span>·</span>
@@ -110,19 +111,19 @@ export function PropertyDetail() {
         ]} />
 
         {tab === 'overview' && (
-          <div className="p-7 pt-5 grid grid-cols-[1fr_340px] gap-5 items-start bg-[#F9FAFB] min-h-full">
+          <div className="p-7 pt-5 grid grid-cols-[1fr_340px] gap-5 items-start bg-white min-h-full">
             <div className="space-y-5 min-w-0">
               {building && (
                 <Card className="p-4">
                   <div className="flex items-center gap-3">
                     <CircleNotch size={18} className="text-primary animate-spin" />
-                    <div className="flex-1"><div className="text-sm font-medium">Creating {p.build!.total} rooms and their tenancies</div><div className="text-xs text-[#646A78]">All or nothing. You can leave this page; we’ll email you when it ends.</div></div>
+                    <div className="flex-1"><div className="text-sm font-medium">Creating {p.build!.total} rooms and their tenancies</div><div className="text-xs text-[#646A78]">You can leave this page; we’ll email you when it’s done.</div></div>
                     <span className="text-sm tabular-nums">{p.build!.done} / {p.build!.total}</span>
                   </div>
                   <Progress value={(p.build!.done / p.build!.total) * 100} className="mt-3" />
                 </Card>
               )}
-              {p.pendingRows ? <Note tone="amber" icon={Warning} title={`${p.pendingRows} rows still to add`}>They had problems in the spreadsheet. Fix them and import again from the Units tab.</Note> : null}
+              {p.pendingRows ? <Note tone="amber" icon={Warning} title={`${p.pendingRows} rows still to add`}>Fix them and import again from the Units tab.</Note> : null}
               <Card>
                 <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Set-up</span><span className="ml-auto text-xs text-[#646A78]">{doneCount} of 5 done</span><Progress value={doneCount * 20} className="w-24 ml-2" /></div>
                 {/* 2822:71: 56px rows, 20px green circle with a white tick (dashed grey circle when not done), two-line label. */}
@@ -151,7 +152,7 @@ export function PropertyDetail() {
                       );
                     })}</tbody>
                   </table>
-                ) : <Empty icon={Bed} title="No rooms yet" sub="Build them here or import a spreadsheet." action={<Button size="sm" onClick={() => setTab('units')}>Build or import rooms</Button>} />}
+                ) : <Empty art="beds" icon={Bed} title="No rooms yet" sub="Build them here or import a spreadsheet." action={<Button size="sm" onClick={() => setTab('units')}>Build or import rooms</Button>} />}
               </Card>
             </div>
             <Card>
@@ -179,22 +180,22 @@ export function PropertyDetail() {
         {tab === 'units' && <UnitsTab p={p} onImport={() => setImportOpen(true)} />}
         {tab === 'tenancies' && (
           <div className="p-6 space-y-5">
-            {p.tenancies === false && <Note tone="amber" icon={WarningCircle} title="These rooms have no tenancy yet">They came from a spreadsheet. Apply a tenancy template to each room type before the property can go active.</Note>}
+            {p.tenancies === false && <Note tone="amber" icon={WarningCircle} title="These rooms have no tenancy yet">Apply a tenancy template to each room type before the property can go active.</Note>}
             <Card className="overflow-hidden">
               <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Room types</span><span className="ml-2 text-sm text-[#646A78]">Rent applies to every room of that type</span></div>
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-xs text-[#646A78] border-b border-line"><th className="font-medium h-9 px-4">Room type</th><th className="font-medium text-right">Rooms</th><th className="font-medium pl-8">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="pr-4" /></tr></thead>
-                <tbody>
+                <GhostZone.Provider value><tbody>
                   {p.roomTypes.map((r) => (
                     <tr key={r.name} className="border-b border-[#F3F4F6] last:border-0 h-12">
                       <td className="px-4"><span className="flex items-center gap-2 text-sm font-medium"><Bed size={15} className="text-[#646A78]" />{r.name}</span></td>
                       <td className="text-right tabular-nums">{r.rooms}</td>
                       <td className="pl-8">{r.rent == null ? <span className="text-[#E0243A]">No rent</span> : r.next ? <span>{money(r.rent)} / {per(p) === 'wk' ? 'week' : 'month'} <span className="text-gray-400">→</span> <b className="font-medium">{money(r.next.rent)}</b> <span className="text-[#646A78]">from {r.next.from} for new tenancies</span></span> : `${money(r.rent)} / ${per(p) === 'wk' ? 'week' : 'month'}`}</td>
-                      <td className="pr-4 text-right"><Button size="sm" onClick={() => setRentFor(r)}>Change rent</Button></td>
+                      <td className="pr-4 text-right"><Button size="sm" icon={null} onClick={() => setRentFor(r)}>Change rent</Button></td>
                     </tr>
                   ))}
                   {!p.roomTypes.length && <tr><td colSpan={4} className="h-16 text-center text-[#646A78]">No room types yet</td></tr>}
-                </tbody>
+                </tbody></GhostZone.Provider>
               </table>
             </Card>
             <Card className="overflow-hidden">
@@ -223,7 +224,7 @@ export function PropertyDetail() {
       </div>
 
       {/* E2: not ready to go active */}
-      <Modal open={checks} onClose={() => setChecks(false)} icon={WarningCircle} tone="amber" title={`${short} can’t go active yet`} sub="Everything below has to be done first. Nothing has changed." width={520}
+      <Modal open={checks} onClose={() => setChecks(false)} icon={WarningCircle} tone="amber" title={`${short} can’t go active yet`} sub="Do everything below first." width={520}
         footer={<><Button onClick={() => setChecks(false)}>Later</Button>{(() => { const f = problems.find((x) => !x.ok); return f ? <Button variant="primary" onClick={() => { setChecks(false); setTab(f.tab); }}>Fix the {f.title.toLowerCase()}</Button> : null; })()}</>}>
         <div className="rounded-xl border border-line divide-y divide-line">
           {problems.map((x) => (
@@ -262,7 +263,7 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
         <div className="max-w-md text-center">
           <EmptyArt kind="clipboard" />
           <div className="font-semibold mt-5">No rooms in {short} yet</div>
-          <p className="text-sm text-[#646A78] mt-1">Build them block by block, or import every room from a spreadsheet. Either way they start as Draft.</p>
+          <p className="text-sm text-[#646A78] mt-1">Build them block by block, or import a spreadsheet.</p>
           <div className="flex justify-center gap-2 mt-4">
             <Button variant="primary" icon={Plus} onClick={build}>Build rooms</Button>
             <Button icon={DownloadSimple} onClick={() => toast.success('rooms-template.csv downloaded')}>Download template</Button>
@@ -282,7 +283,7 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
       ) : null}
       <Card className="overflow-hidden">
         <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Rooms</span><span className="ml-2 text-sm text-[#646A78]">{p.units} in {p.blocks.length} {p.blocks.length === 1 ? 'block' : 'blocks'}</span>
-          <div className="ml-auto flex gap-2"><Button size="sm" icon={UploadSimple} onClick={onImport}>Import</Button><Button size="sm" icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button></div></div>
+          <div className="ml-auto flex gap-2"><Button size="sm" variant="ghost" icon={UploadSimple} onClick={onImport}>Import</Button><Button size="sm" variant="ghost" icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button></div></div>
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-[#646A78] border-b border-line"><th className="font-medium h-9 px-4">Room</th><th className="font-medium">Block · flat</th><th className="font-medium">Room type</th><th className="font-medium">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="font-medium pr-4">Status</th></tr></thead>
           <tbody>{units.map((u) => (
@@ -327,25 +328,33 @@ function ImportRoomsSheet({ p, open, onClose }: { p: Property; open: boolean; on
     <Sheet open={open} onClose={onClose} width={640} title={`Import ${short} rooms`} sub="One row per room · st-marys-rooms.csv"
       footer={stage === 'pick' ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => setStage('check')}>Check the file</Button></> : <><Button onClick={() => setStage('pick')}>Choose another file</Button><Button variant="primary" onClick={run}>Import 141 rooms</Button></>}>
       {stage === 'pick' ? (
-        <div className="space-y-4">
+        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          <SheetSection title="File">
           <button type="button" onClick={() => setStage('check')} className="w-full rounded-xl border-[1.5px] border-dashed border-gray-300 py-10 flex flex-col items-center gap-2 hover:bg-gray-50">
             <FileCsv size={28} className="text-primary" /><span className="text-sm font-medium">st-marys-rooms.csv</span><span className="text-xs text-[#646A78]">146 rows · 18 KB · click to check it</span>
           </button>
-          <Note tone="blue" icon={Info} title="Columns">Block, Floor, Flat, Room, Room type, Room size (m²). Rooms come in as Draft with no tenancy.</Note>
+          </SheetSection>
+          <SheetSection title="Columns">
+          <Note tone="blue" icon={Info} title="One row per room">Block, Floor, Flat, Room, Room type, Room size (m²). Rooms come in as Draft with no tenancy.</Note>
+          </SheetSection>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          <SheetSection title="Check">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-line p-3.5"><div className="text-[22px] font-semibold text-[#0B8A4C]">141</div><div className="text-sm text-[#646A78]">rooms ready to import</div></div>
             <div className="rounded-xl border border-[#F59E0B4D] p-3.5"><div className="text-[22px] font-semibold text-[#B45309]">5</div><div className="text-sm text-[#646A78]">rows need fixing · left out</div></div>
           </div>
+          </SheetSection>
+          <SheetSection title="Rows to fix">
           <div className="rounded-xl border border-line overflow-hidden">
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-[#646A78] bg-[#F9FAFB] border-b border-line"><th className="font-medium h-9 px-3">Row</th><th className="font-medium">Room</th><th className="font-medium">Problem</th><th className="font-medium pr-3">Fix</th></tr></thead>
               <tbody>{BAD_ROWS.map((r) => <tr key={r.row} className="border-b border-[#F3F4F6] last:border-0"><td className="px-3 h-11 tabular-nums">{r.row}</td><td className="font-mono">{r.room}</td><td className="text-[#E0243A]">{r.problem}</td><td className="pr-3 text-[#646A78]">{r.fix}</td></tr>)}</tbody>
             </table>
           </div>
-          <p className="text-xs text-[#646A78]">The 5 rows are kept aside. Download them after the import, fix them and import again.</p>
+          <p className="mt-3 text-xs text-[#646A78]">Download the 5 rows after the import, fix them and import again.</p>
+          </SheetSection>
         </div>
       )}
     </Sheet>
@@ -379,7 +388,7 @@ function PhotosTab({ p }: { p: Property }) {
                   {Array.from({ length: Math.min(photos, 8) }, (_, i) => (
                     <div key={i} className={cx('relative rounded-lg bg-[#EFF6FF] border border-line flex items-center justify-center', i === 0 ? 'col-span-2 row-span-2 aspect-[4/3]' : 'aspect-[4/3]')}>
                       <Image size={i === 0 ? 32 : 20} className="text-[#93C5FD]" />
-                      {i === 0 && <span className="absolute left-2 top-2 h-5 px-1.5 rounded bg-white text-[11px] font-medium border border-line flex items-center">Cover</span>}
+                      {i === 0 && <span className="absolute left-2 top-2"><Pill outline>Cover</Pill></span>}
                     </div>
                   ))}
                 </div>
@@ -428,7 +437,7 @@ function WardenPhoneDialog({ p, open, onClose, onDone }: { p: Property; open: bo
     onDone();
   };
   return (
-    <Modal open={open} onClose={onClose} icon={WarningCircle} tone="amber" title={`${p.name} can’t be active yet`} sub="A required field is empty. Fill it in and the property goes active straight away." width={520}
+    <Modal open={open} onClose={onClose} icon={WarningCircle} tone="amber" title={`${p.name} can’t be active yet`} sub="Fill in the required field to make it active." width={520}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!v.trim()} onClick={save}>Save and make active</Button></>}>
       <div className="rounded-xl border border-line">
         <div className="h-10 px-3.5 flex items-center border-b border-line text-sm font-medium">1 thing to fix</div>
@@ -480,7 +489,7 @@ function LettingDialog({ p, open, onClose }: { p: Property; open: boolean; onClo
             <li>Converts {templates.length} templates and {n} tenancies: rent × 52 ÷ 12 to the penny, length to whole months.</li>
             <li>Deposits and billing frequency stay as they are.</li>
           </ul>
-          <div className="mt-3"><Note tone="amber" icon={Warning} title="Switching back won’t undo it exactly">Rounding to whole months means a switch back can change a tenancy’s length by a week.</Note></div>
+          <div className="mt-3"><Note tone="amber" icon={Warning} title="Switching back won’t undo it exactly">A tenancy’s length can shift by a week.</Note></div>
         </>
       )}
     </Modal>
@@ -514,19 +523,20 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
   return (
     <Sheet open onClose={onClose} title={`Change rent · ${rt.name}`} sub={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`} width={480}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!rent} onClick={save}>{apply === 'new' ? `Save ${money(+rent || 0)} for new tenancies` : `Save ${money(+rent || 0)} for all`}</Button></>}>
-      <div className="space-y-5">
+      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <SheetSection title="New rent">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="New rent"><MoneyInput value={rent} onChange={setRent} suffix={`/ ${unit}`} /></Field>
+          <Field label="Rent"><MoneyInput value={rent} onChange={setRent} suffix={`/ ${unit}`} /></Field>
           <Field label="From"><label className="h-8 flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 text-sm"><CalendarBlank size={14} className="text-gray-400" /><input aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1 min-w-0 outline-none" /></label></Field>
         </div>
-        <div>
-          <div className="text-sm font-medium text-gray-700 mb-1.5">Apply to</div>
+        </SheetSection>
+        <SheetSection title="Apply to">
           <div className="space-y-2">
             <RadioCard checked={apply === 'new'} onClick={() => setApply('new')} title="New tenancies only" sub={`${signed} signed tenancies stay at ${rt.rent != null ? money(rt.rent) : '—'}`} />
             <RadioCard checked={apply === 'all'} onClick={() => setApply('all')} title="Also signed tenancies" sub={`Changes ${signed} signed contracts · each student is emailed`} />
           </div>
-        </div>
-        {apply === 'all' && <Note tone="amber" icon={Warning} title={`${signed} students have signed at ${rt.rent != null ? money(rt.rent) : '—'}`}>Raising rent on a signed contract needs their agreement. They’re each emailed the change and can object.</Note>}
+          {apply === 'all' && <div className="mt-4"><Note tone="amber" icon={Warning} title={`${signed} students have signed at ${rt.rent != null ? money(rt.rent) : '—'}`}>Raising rent on a signed contract needs their agreement. They’re each emailed the change and can object.</Note></div>}
+        </SheetSection>
       </div>
     </Sheet>
   );
@@ -548,16 +558,26 @@ function EditSheet({ p, which, onClose }: { p: Property; which: null | 'basics' 
   return (
     <Sheet open={!!which} onClose={onClose} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
       {which === 'basics' ? (
-        <div className="space-y-4">
+        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          <SheetSection title="Details">
+          <div className="space-y-4">
           <Field label="Property name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
           <Field label="Inventory number" hint="Optional · your own reference"><Input className="font-mono" value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
           <Field label="Campus"><Input value={p.campus} disabled /></Field>
+          </div>
+          </SheetSection>
+          <SheetSection title="Layout">
           <Note tone="blue" icon={Info} title="The layout can’t change">{p.name} has rooms built from the {p.structure} layout.</Note>
+          </SheetSection>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          <SheetSection title="Location">
+          <div className="space-y-4">
           <Field label="Address"><Input value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
           <Field label="Zone" hint="Optional · groups nearby properties"><Input value={zone} onChange={(e) => setZone(e.target.value)} /></Field>
+          </div>
+          </SheetSection>
         </div>
       )}
     </Sheet>

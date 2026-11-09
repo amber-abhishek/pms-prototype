@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ImageSquare, MagnifyingGlass, MapPin, Plus } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Input, Pill, Status, Table, Toolbar, SearchInput, cx } from '../../components/ui';
+import { Button, Input, Pill, Status, Table, Toolbar, cx } from '../../components/ui';
 import { useDb } from '../../data/store';
 import { oid, useOrg, type Campus } from '../../data/org';
 import { EmptyState, Header, IconSelect, ODialog } from './parts';
@@ -36,12 +36,11 @@ export function CampusesPage() {
   const properties = useDb((s) => s.properties);
   const nav = useNavigate();
   const [sp, setSp] = useSearchParams();
-  const [q, setQ] = useState('');
   const [how, setHow] = useState(false);
   useEffect(() => {
     if (sp.get('demo') === 'empty') { emptyCampuses(); setSp((p) => { const n = new URLSearchParams(p); n.delete('demo'); return n; }, { replace: true }); }
   }, [sp, setSp, emptyCampuses]);
-  const rows = campuses.filter((c) => `${c.name} ${c.address}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const rows = campuses;
   const props = (id: string) => properties.filter((p) => p.campusId === id);
 
   return (
@@ -51,17 +50,15 @@ export function CampusesPage() {
       </Header>
       {campuses.length === 0 ? (
         <div className="flex-1 overflow-auto flex items-center justify-center">
-          <EmptyState icon={MapPin} title="No campuses yet" sub="A campus groups halls by place. Properties belong to one, and the student site lets students browse by campus.">
+          <EmptyState art="campuses" icon={MapPin} title="No campuses yet" sub="A campus groups halls by place.">
             <Button variant="primary" icon={Plus} onClick={() => nav('/org/campuses/new')}>Add a campus</Button>
             <Button icon={BookOpen} onClick={() => setHow(true)}>How campuses work</Button>
           </EmptyState>
         </div>
       ) : (
         <>
-          <Toolbar right={<><SearchInput value={q} onChange={setQ} placeholder="Search campuses" /><Button icon={BookOpen} onClick={() => setHow(true)}>How campuses work</Button></>}>
-            <span className="text-sm text-[#646A78]">Your university’s campuses. Each is matched to an Amber region by its address.</span>
-          </Toolbar>
-          <Table rows={rows} onRow={(c) => nav(`/org/campuses/${c.id}`)} summary={`${rows.length} ${rows.length === 1 ? 'campus' : 'campuses'} · ${rows.reduce((a, c) => a + props(c.id).length, 0)} properties`} cols={[
+          <Toolbar right={<><Button variant="ghost" icon={BookOpen} onClick={() => setHow(true)}>How campuses work</Button></>} />
+          <Table rows={rows} onRow={(c) => nav(`/org/campuses/${c.id}`)} cols={[
             { key: 'n', label: 'Campus', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#646A78]">{c.address || 'No address yet'}</div></div> },
             { key: 's', label: 'Status', render: (c) => <Status s={c.status} /> },
             { key: 'c', label: 'City', render: (c) => <span className="text-sm">{c.city || '—'}</span> },
@@ -118,7 +115,7 @@ export function CampusForm() {
       <div className="flex-1 overflow-auto px-6 py-5">
         <Link to="/org/campuses" className="inline-flex items-center gap-1.5 text-sm text-[#646A78] hover:text-ink"><ArrowLeft size={13} />All campuses</Link>
         <div className="flex items-start gap-4 mt-4 mb-4">
-          <div className="flex-1"><h2 className="text-xl font-semibold tracking-tight">{existing ? 'Edit campus' : 'Add campus'}</h2><p className="text-sm text-[#646A78] mt-1">Only active campuses appear on the student site.</p></div>
+          <div className="flex-1"><h2 className="text-xl font-medium tracking-tight">{existing ? 'Edit campus' : 'Add campus'}</h2></div>
           <Button variant="primary" onClick={save}>{existing ? 'Save campus' : 'Add campus'}</Button>
         </div>
         <div className="max-w-[768px] space-y-6 pb-10">
@@ -126,9 +123,9 @@ export function CampusForm() {
             <label className="block"><span className="block text-sm font-medium text-gray-700 mb-1.5">Name</span><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Durham City" /></label>
             <div className="mt-4"><span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
               <IconSelect ariaLabel="Status" className="w-48" value={status} onChange={(v) => setStatus(v as Campus['status'])} options={['Draft', 'Active', 'Inactive'].map((s) => ({ value: s, label: s }))} /></div>
-            <p className="text-sm text-[#646A78] mt-4 leading-5">Draft while you fill it in. Active shows it on the student site and needs an address. Inactive takes it off the site but keeps it ticked on your portal.</p>
+            <p className="text-sm text-[#646A78] mt-4 leading-5">Only active campuses show on the student site. Active needs an address.</p>
           </Section>
-          <Section title="Address" sub="Its address decides which Amber region supplies PBSA listings for it.">
+          <Section title="Address" sub="Sets the Amber region for PBSA listings.">
             <span className="block text-sm font-medium text-gray-700 mb-1.5">Address</span>
             <div className="relative">
               <label className="relative flex items-center">
@@ -150,7 +147,7 @@ export function CampusForm() {
             </div>
             {place && <p className="text-xs text-[#646A78] mt-4">Amber region: <span className="text-ink font-medium">{place.amberRegion}</span></p>}
           </Section>
-          <Section title="Images" sub="Tile image and gallery, optional for now.">
+          <Section title="Images" sub="Optional.">
             <button type="button" onClick={() => toast('Image upload is off in the prototype')} className="h-24 w-full rounded-lg border border-dashed border-gray-300 text-sm text-[#646A78] flex flex-col items-center justify-center gap-1 hover:bg-gray-50"><ImageSquare size={20} />Drop images or click to upload</button>
           </Section>
         </div>

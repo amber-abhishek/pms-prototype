@@ -1,22 +1,21 @@
 import { useRef, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, CaretRight, CheckCircle, Circle, Image as ImageIcon, XCircle, type Icon } from '../../components/icons';
+import { ArrowRight, CheckCircle, Circle, Image as ImageIcon, XCircle, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Card, Switch, cx } from '../../components/ui';
+import { Avatar, Card, CrumbLink, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '../../components/shadcn/sheet';
+import { GhostZone, headerZone, usePublishTitle } from '../../components/headerCtx';
 
 /** The 52px header row, with breadcrumbs that link back. */
-export function RHeader({ icon: I, crumbs, title, meta, children }: { icon: Icon; crumbs: [string, string][]; title: string; meta?: ReactNode; children?: ReactNode }) {
+export function RHeader({ icon: I, crumbs, title, meta, children }: { icon: Icon; crumbs: [string, string?][]; title: string; meta?: ReactNode; children?: ReactNode }) {
+  usePublishTitle(title);
   return (
-    <div className="h-[52px] shrink-0 border-b border-line flex items-center gap-2 px-4">
+    <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
       <I size={16} className="text-gray-500" />
-      {crumbs.map(([c, to]) => (
-        <span key={c} className="flex items-center gap-2 text-sm text-[#646A78]"><Link to={to} className="hover:text-ink">{c}</Link><CaretRight size={12} className="text-gray-400" /></span>
-      ))}
-      <h1 className="text-sm font-semibold text-[#111827]">{title}</h1>
+      <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map(([label, to]) => <CrumbLink key={label} c={{ label, to }} />)}</div>
+      <h1 className="text-sm font-normal text-[#111827]">{title}</h1>
       {meta}
-      <div className="ml-auto flex items-center gap-2">{children}</div>
+      <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
     </div>
   );
 }
@@ -25,9 +24,7 @@ export function RHeader({ icon: I, crumbs, title, meta, children }: { icon: Icon
 const PERSON_BG: Record<string, string> = { 'Ella Morgan': '#C0266D', 'Josh Patel': '#0E7A80', 'Leo Grant': '#0E7A80' };
 /** Round initials avatar: the frame's colour when the person has one, else the kit Avatar. */
 export function Person({ name, size = 28 }: { name: string; size?: number }) {
-  const bg = PERSON_BG[name];
-  if (!bg) return <Avatar name={name} size={size} />;
-  return <span className="rounded-full text-white font-semibold flex items-center justify-center shrink-0" style={{ width: size, height: size, background: bg, fontSize: size <= 28 ? 11 : 12 }}>{name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('')}</span>;
+  return <Avatar name={name} size={size} color={PERSON_BG[name]} />;
 }
 
 /** Guards a submit handler against a fast double click. */
@@ -58,16 +55,17 @@ export function Modal({ open, onClose, title, sub, children, footer, width = 500
   );
 }
 
-/** Right side sheet (shadcn Sheet) with an icon tile in the header (Assign, Check in). */
-export function SideSheet({ open, onClose, icon: I, tone = 'blue', title, sub, children, footer, width = 520 }: { open: boolean; onClose: () => void; icon: Icon; tone?: 'blue' | 'green'; title: string; sub?: string; children: ReactNode; footer: ReactNode; width?: number }) {
+/** Right side sheet (shadcn Sheet) for Assign and Check in. No header icon (2026-11-09); `icon`/`tone` are ignored.
+    Bodies are SheetHero / SheetSection blocks (a leading section drops its rule); give a note before them mb-5. */
+export function SideSheet({ open, onClose, title, sub, children, footer, width = 520, nav }: { nav?: SheetNav; open: boolean; onClose: () => void; icon: Icon; tone?: 'blue' | 'green'; title: string; sub?: string; children: ReactNode; footer: ReactNode; width?: number }) {
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent style={{ width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
         <SheetHeader className="gap-3">
-          <span className={cx('size-8 shrink-0 rounded-lg flex items-center justify-center', tone === 'green' ? 'bg-[#E8F7EE] text-[#0B8A4C]' : 'bg-[#EAF2FF] text-primary')}><I size={16} /></span>
-          <div className="min-w-0"><SheetTitle>{title}</SheetTitle>{sub && <SheetDescription>{sub}</SheetDescription>}</div>
+          <div className="min-w-0 flex-1"><SheetTitle>{title}</SheetTitle>{sub && <SheetDescription>{sub}</SheetDescription>}</div>
+          <SheetNavButtons nav={nav} />
         </SheetHeader>
-        <SheetBody className="space-y-5">{children}</SheetBody>
+        <SheetBody className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">{children}</SheetBody>
         <SheetFooter>{footer}</SheetFooter>
       </SheetContent>
     </Sheet>

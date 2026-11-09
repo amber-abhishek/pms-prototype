@@ -28,7 +28,7 @@ export function Palette({ open, onClose }: { open: boolean; onClose: () => void 
     return [
       ...pages.slice(0, 6),
       ...(admin ? inv.properties.filter((p) => has(p.name)).slice(0, 4).map((p) => ({ group: 'Properties', label: p.name, sub: p.address, to: `/inventory/properties/${p.id}`, icon: Buildings })) : []),
-      ...(admin ? alloc.apps.filter((a) => has(a.name) || has(a.ref)).slice(0, 5).map((a) => ({ group: 'Applications', label: a.name, sub: `${a.ref} · ${a.hall}`, to: `/allocations/applications?open=${a.id}`, icon: Tray })) : []),
+      ...(admin ? alloc.apps.filter((a) => has(a.name) || has(a.ref)).slice(0, 5).map((a) => ({ group: 'Applications', label: a.name, sub: `${a.ref} · ${a.hall}`, to: `/allocations/applications?tab=All&open=${a.id}`, icon: Tray })) : []),
       ...(admin ? rms.residents.filter((r) => has(r.name)).slice(0, 4).map((r) => ({ group: 'Residents', label: r.name, sub: `${r.hall} · ${r.room}`, to: `/residents/${r.id}`, icon: User })) : []),
       ...oc.reviews.filter((l) => l.status === 'Under review' && (has(l.title) || has(l.landlord))).slice(0, 3).map((l) => ({ group: 'Listings', label: l.title, sub: `${l.landlord} · Under review`, to: `/offcampus/reviews?open=${l.id}`, icon: Storefront })),
       ...oc.hmos.filter((l) => has(l.title) || has(l.landlord)).slice(0, 3).map((l) => ({ group: 'Listings', label: l.title, sub: `${l.landlord} · ${l.status}`, to: `/offcampus/listings?tab=hmo`, icon: Storefront })),

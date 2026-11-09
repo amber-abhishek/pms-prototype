@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  ArrowUp, ArrowsDownUp, Bell, Check, CheckCircle, Drop, Envelope, FileText, Fan, HardHat, Key, Lamp, LightbulbFilament, LightningSlash, Lock,
+  ArrowUp, Bell, Check, CheckCircle, Drop, Envelope, FileText, Fan, HardHat, Key, Lamp, LightbulbFilament, LightningSlash, Lock,
   Minus, PaperPlaneTilt, PawPrint, Plus, ArrowCounterClockwise, Shower, Siren, Snowflake, SpinnerGap, Thermometer, Timer, Toilet, User, UserMinus, UserPlus, WarningCircle, WashingMachine, WifiSlash, Wind, Wrench, Door, Package, Fire, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { fmtSla, useRms, type Fault, type FaultIcon, type Priority } from '../../data/residents';
-import { Avatar, Button, Card, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Select, Sheet, Table, Tabs, Textarea, Toolbar, cx } from '../../components/ui';
+import { Avatar, Button, Card, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import { Kanban, List } from '../../components/icons';
@@ -20,10 +20,9 @@ const faultIcon: Record<FaultIcon, Icon> = {
   light: LightbulbFilament, laundry: WashingMachine, mould: Drop, wardrobe: Door, fridge: Snowflake, blind: Wind, alarm: Bell, hot: Fire,
 };
 export const PriorityPill = ({ p }: { p: Priority }) => (p === 'Urgent' ? <Pill tone="red" icon={Siren}>Urgent</Pill> : p === 'High' ? <Pill tone="orange" icon={ArrowUp}>High</Pill> : <Pill tone="grey" icon={Minus}>Normal</Pill>);
-const ini = (n: string) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase().replace(/^F(D)$/, 'Fd');
 function Assignee({ name }: { name?: string }) {
   if (!name) return <span className="text-xs text-gray-400">Not assigned</span>;
-  return <span className="flex items-center gap-2"><span className="h-5 min-w-5 px-1 rounded bg-[#F3F4F6] text-[11px] font-semibold text-gray-600 flex items-center justify-center">{name === 'Front desk' ? 'Fd' : ini(name)}</span>{name}</span>;
+  return <span className="flex items-center gap-2"><Avatar name={name} size={20} />{name}</span>;
 }
 function Sla({ f }: { f: Fault }) {
   if (f.status === 'Fixed') return <span className="text-xs font-medium text-gray-500 flex items-center gap-1.5"><CheckCircle size={13} className="text-[#0B8A4C]" />Fixed in {f.fixedIn}</span>;
@@ -53,7 +52,7 @@ export function MaintenanceList() {
   const [tab, setTab] = useTab<Tab>('Open');
   const [f, setF] = useState<Record<string, string>>({});
   const [slaFirst, setSlaFirst] = useState(true);
-  const [logging, setLogging] = useState(false);
+  const [logging, setLogging] = useState(() => sp.get('log') === '1');
   const [contractors, setContractors] = useState(false);
   const hallOf = (x: Fault) => x.where.split(' · ')[0];
   const needle = q.trim().toLowerCase();
@@ -72,7 +71,7 @@ export function MaintenanceList() {
   const statusCount = (t: Tab) => (t === 'Open' ? live.length : scoped.filter((x) => x.status === t).length);
   return (
     <>
-      <RHeader icon={Wrench} crumbs={[['Residents', '/residents']]} title="Maintenance">
+      <RHeader icon={Wrench} crumbs={[['Residents']]} title="Maintenance">
         <Button icon={HardHat} onClick={() => setContractors(true)}>Contractors</Button>
         <Button variant="primary" icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>
       </RHeader>
@@ -89,7 +88,6 @@ export function MaintenanceList() {
           { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
           { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
         ]} />
-        {view === 'table' && <Button size="sm" icon={ArrowsDownUp} onClick={() => setSlaFirst((s) => !s)}>{slaFirst ? 'Deadline first' : 'Newest first'}</Button>}
         <UITabs value={view} onValueChange={setView}>
           <TabsList aria-label="View">
             {([['table', 'Table', List], ['board', 'Board', Kanban]] as const).map(([id, label, I]) => (
@@ -101,8 +99,8 @@ export function MaintenanceList() {
         {view === 'table' && <Tabs value={tab} onChange={setTab} tabs={STATUSES.map((t) => ({ id: t, label: t, count: statusCount(t) }))} />}
       </Toolbar>
       {view === 'board' ? <MaintenanceBoard faults={scoped} showResolved={showResolved} onLog={() => setLogging(true)} selected={job} onOpen={setJob} /> : (
-      <Table rows={rows} onRow={(x) => setJob(x.id)} summary="Residents report faults in the resident portal; staff can log one for them"
-        empty={<Empty icon={Wrench} title={tab === 'Open' ? 'No open faults' : `Nothing ${tab.toLowerCase()}`} sub="Everything reported has been fixed. Residents report faults in the portal; you can log one for them." action={<Button icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>} />}
+      <Table rows={rows} onRow={(x) => setJob(x.id)} selected={job ?? undefined} sort={slaFirst ? { key: 's', dir: 'asc', onToggle: () => setSlaFirst(false) } : { key: 'r', dir: 'desc', onToggle: () => setSlaFirst(true) }} footer={false}
+        empty={<Empty art="faults" icon={Wrench} title={tab === 'Open' ? 'No open faults' : `Nothing ${tab.toLowerCase()}`} sub="Everything reported has been fixed." action={<Button icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>} />}
         cols={[
           { key: 'r', label: 'Ref', className: 'w-[90px]', render: (x) => <span className="font-mono text-xs text-gray-500">{x.ref}</span> },
           { key: 't', label: 'Fault', render: (x) => { const I = faultIcon[x.icon]; return <span className="flex items-center gap-2 font-medium"><I size={14} className="text-gray-500" />{x.title}</span>; } },
@@ -114,7 +112,7 @@ export function MaintenanceList() {
       )}
       <LogFault open={logging} onClose={() => setLogging(false)} />
       <ContractorsSheet open={contractors} onClose={() => setContractors(false)} />
-      <FaultPeek id={job} onClose={() => setJob(null)} />
+      <FaultPeek id={job} nav={listNav(rows, (x) => x.id === job, (x) => setJob(x.id))} onClose={() => setJob(null)} />
     </>
   );
 }
@@ -142,7 +140,7 @@ function LogFault({ open, onClose }: { open: boolean; onClose: () => void }) {
     nav(`/residents/maintenance/${id}`);
   });
   return (
-    <Modal open={open} onClose={onClose} title="Log a fault" sub="For a resident who called or came to the desk. They’ll get updates in the portal."
+    <Modal open={open} onClose={onClose} title="Log a fault" sub="For a resident who called or came to the desk."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Plus} onClick={submit}>Log fault</Button></>}>
       <Field label="Fault"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Shower drains slowly" /></Field>
       <div className="grid grid-cols-2 gap-3">
@@ -157,10 +155,12 @@ function LogFault({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 function ContractorsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <SideSheet open={open} onClose={onClose} icon={HardHat} title="Contractors" sub="Who fixes what, and what they cost" footer={<Button onClick={onClose}>Close</Button>}>
+    <SideSheet open={open} onClose={onClose} icon={HardHat} title="Contractors" footer={<Button onClick={onClose}>Close</Button>}>
+      <SheetSection title="In-house and contract">
       {[['Dave Hughes', 'In-house plumber · 2 jobs today', 'In-house'], ['Kim Lowe', 'In-house electrician · off today', 'In-house'], ['Northern Heating Ltd', 'Heating and plumbing · £85 call-out · £120 out of hours', 'Contract'], ['Estates helpdesk', 'University estates team · 3–5 days', 'University'], ['Campus IT', 'Wi-Fi and network', 'University']].map(([n, s, t]) => (
         <div key={n} className="flex items-center gap-3 py-1"><Avatar name={n} size={28} /><div className="flex-1"><div className="text-sm font-medium">{n}</div><div className="text-xs text-gray-500">{s}</div></div><Pill tone="grey" outline>{t}</Pill></div>
       ))}
+      </SheetSection>
     </SideSheet>
   );
 }
@@ -279,8 +279,8 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
   );
   const side = (
     <div className="space-y-4">
-      {isRad && !f.assignee && <Note tone="amber" icon={WarningCircle} title="Water near a socket">Marked urgent automatically: leaks in rooms are 24h, not the 5-day normal deadline.</Note>}
-      {late && !f.assignee && <Note tone="red" icon={Timer} title={`Overdue by ${fmtSla(f.slaMins)}`}>Urgent faults affecting a whole block have a 4-hour deadline. It is at the top of Maintenance and My tasks.</Note>}
+      {isRad && !f.assignee && <Note tone="amber" icon={WarningCircle} title="Water near a socket">Marked urgent: 24-hour deadline.</Note>}
+      {late && !f.assignee && <Note tone="red" icon={Timer} title={`Overdue by ${fmtSla(f.slaMins)}`}>Whole-block urgent faults have a 4-hour deadline.</Note>}
       <Panel title="Details">
         <KV rows={[
           ['Category', isRad ? 'Heating · radiator' : f.category],
@@ -291,8 +291,42 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
       </Panel>
     </div>
   );
-  /* In the side panel the warnings and details come before the report. */
-  return stacked ? <div className="space-y-4">{side}{main}</div> : <>{main}{side}</>;
+  if (!stacked) return <>{main}{side}</>;
+  /* Side panel (Mercury hierarchy): notes, then Details, Report and Progress as titled sections. */
+  const deadline = f.status === 'Fixed' ? (isRad ? 'Fixed in 19h 08m' : `Fixed in ${f.fixedIn}`) : f.status === 'Waiting on parts' ? 'Paused · waiting on parts' : `${isRad ? '15h' : fmtSla(Math.max(f.slaMins, 0))} left`;
+  const notes = [
+    f.approvedNote && <Note key="ok" tone="green" icon={CheckCircle} title={f.approvedNote}>Out-of-hours call-out · charged to Ustinov repairs.</Note>,
+    isRad && !f.assignee && <Note key="rad" tone="amber" icon={WarningCircle} title="Water near a socket">Marked urgent: 24-hour deadline.</Note>,
+    late && !f.assignee && <Note key="late" tone="red" icon={Timer} title={`Overdue by ${fmtSla(f.slaMins)}`}>Whole-block urgent faults have a 4-hour deadline.</Note>,
+  ].filter(Boolean);
+  return (
+    <>
+      {notes.length > 0 && <div className="space-y-2 mb-5">{notes}</div>}
+      <SheetSection title="Details" rows={[
+        ['Category', isRad ? 'Heating · radiator' : f.category],
+        ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
+        ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
+        ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-gray-400">Nobody yet</span>],
+        ['Deadline', deadline],
+      ]} />
+      <SheetSection title="Report">
+        <div className="flex items-center gap-2.5">
+          <Person name={f.reporter ?? 'Resident'} />
+          <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium">{f.reporter ?? 'A resident'}</div><div className="text-xs text-gray-500">{f.reporterRoom ? (f.reporterRoom.includes('reception') ? f.reporterRoom : `Resident · ${f.reporterRoom}`) : `Resident · ${f.where.split(' · ')[1] ?? ''}`}</div></div>
+          <span className="text-xs text-gray-500">{f.reported ?? 'Earlier'}</span>
+        </div>
+        <p className="text-sm leading-5 text-[#374151] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
+        {isRad && <div className="flex gap-2 mt-3"><Photo /><Photo /><Photo /></div>}
+        {isRad && <div className="flex gap-4 mt-3 text-xs text-gray-500"><span className="flex items-center gap-1.5"><Key size={13} className="text-gray-400" />OK to enter when I’m out</span><span className="flex items-center gap-1.5"><PawPrint size={13} className="text-gray-400" />No pets</span></div>}
+      </SheetSection>
+      {f.assignee && (
+        <SheetSection title="Progress">
+          <Timeline steps={steps} />
+          {f.status !== 'Fixed' && isRad && (f.stage ?? 2) < 5 && <Button size="sm" className="mt-4" icon={Plus} onClick={logUpdate}>Log an update</Button>}
+        </SheetSection>
+      )}
+    </>
+  );
 }
 
 function FaultPage({ f }: { f: Fault }) {
@@ -304,7 +338,7 @@ function FaultPage({ f }: { f: Fault }) {
       </RHeader>
       <div className="flex-1 overflow-auto">
         <div className="px-6 pt-6 pb-5 border-b border-[#F3F4F6]">
-          <div className="flex items-center gap-2 flex-wrap"><h2 className="text-[20px] font-semibold tracking-tight mr-1">{f.title}</h2>{v.pills}</div>
+          <div className="flex items-center gap-2 flex-wrap"><h2 className="text-[20px] font-medium tracking-tight mr-1">{f.title}</h2>{v.pills}</div>
           <p className="text-sm text-gray-500 mt-1">{v.sub}</p>
         </div>
         <div className="p-6 grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-5 items-start max-w-[1200px]">
@@ -317,27 +351,22 @@ function FaultPage({ f }: { f: Fault }) {
 }
 
 /** A job opened from the board or the table: the job page's content in a side sheet, so the board stays put. */
-export function FaultPeek({ id, onClose }: { id: string | null; onClose: () => void }) {
+export function FaultPeek({ id, onClose , nav }: { nav?: SheetNav;  id: string | null; onClose: () => void }) {
   const f = useRms((s) => s.faults.find((x) => x.id === id));
   /* Keep the last job on screen while the sheet animates out. */
   const last = useRef<Fault | undefined>(undefined);
   if (f) last.current = f;
   const shown = f ?? last.current;
-  return shown ? <PeekSheet key={shown.id} f={shown} open={!!f} onClose={onClose} /> : null;
+  return shown ? <PeekSheet key={shown.id} f={shown} open={!!f} nav={nav} onClose={onClose} /> : null;
 }
-function PeekSheet({ f, open, onClose }: { f: Fault; open: boolean; onClose: () => void }) {
+function PeekSheet({ f, open, onClose , nav }: { nav?: SheetNav;  f: Fault; open: boolean; onClose: () => void }) {
   const v = useFaultView(f);
   return (
     <>
-      <Sheet open={open} onClose={onClose} width={560} icon={faultIcon[f.icon]} title={f.title} sub={<><span className="font-mono">{f.ref}</span> · {f.where}</>}
+      <Sheet open={open} onClose={onClose} nav={nav} width={560} title="Fault"
         footer={<>{v.message}{v.primary}</>}>
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center gap-1.5 flex-wrap">{v.pills}</div>
-            <p className="text-xs leading-[18px] text-gray-500 mt-2">{v.sub}</p>
-          </div>
-          <FaultSections f={f} v={v} stacked />
-        </div>
+        <SheetHero avatar={false} name={f.title} meta={<><span className="font-mono">{f.ref}</span> · {f.where}</>}>{v.pills}</SheetHero>
+        <FaultSections f={f} v={v} stacked />
       </Sheet>
       {v.overlays}
     </>
@@ -390,22 +419,31 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
   return (
     <SideSheet open={open} onClose={onClose} icon={UserPlus} title={`Assign ${f.ref}`} sub={`${f.title.replace(' onto the floor', '')} · ${f.where.replace(' · ', ' ')}`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={needsOk ? PaperPlaneTilt : Check} onClick={submit}>{needsOk ? 'Ask Aisha and assign' : `Assign to ${who === 'Estates helpdesk' ? 'Estates' : short.split(' ')[0]}`}</Button></>}>
-      {breached && <Note tone="red" icon={UserMinus} title="No in-house plumber free before 18:00">Dave is on MT-204 and Kim is off today. The contractor can come in 2 hours at the out-of-hours rate.</Note>}
-      <div>
-        {!breached && <div className="text-sm font-medium text-gray-700 mb-2">Who fixes it</div>}
+      {breached && <div className="mb-5"><Note tone="red" icon={UserMinus} title="No in-house plumber free before 18:00">Dave is on MT-204 and Kim is off today. The contractor can come in 2 hours at the out-of-hours rate.</Note></div>}
+      <SheetSection title="Who fixes it">
         <div role="radiogroup" className="space-y-2">{opts.map((o) => <RadioCard key={o.id} checked={who === o.id} onClick={() => setWho(o.id)} title={o.title} sub={o.sub} avatar={o.avatar} right={o.right} />)}</div>
-      </div>
+      </SheetSection>
       {breached ? (
-        <Field label="Approval"><Select defaultValue="Aisha Khan · Hall manager"><option>Aisha Khan · Hall manager</option><option>Mark Dunn · Deputy hall manager</option></Select></Field>
+        <SheetSection title="Approval">
+          <Select aria-label="Approver" defaultValue="Aisha Khan · Hall manager"><option>Aisha Khan · Hall manager</option><option>Mark Dunn · Deputy hall manager</option></Select>
+        </SheetSection>
       ) : (
         <>
+          <SheetSection title="Visit">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Visit"><Select value={visit} onChange={(e) => setVisit(e.target.value)}>{['Today, 14:00–16:00', 'Today, 16:00–18:00', 'Tomorrow, 09:00–11:00'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
             <Field label="Deadline"><Select value={sla} onChange={(e) => setSla(e.target.value)}>{['24 hours · urgent', '2 days · high', '5 days · normal'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
           </div>
-          {f.reporter && <ToggleRow title={`Enter if ${first} is out`} sub={f.id === 'm1' ? 'He allowed it in the report · 24h notice waived for urgent jobs' : '24h notice is sent first'} checked={enter} onChange={setEnter} />}
-          {f.reporter && <ToggleRow title={`Tell ${first} the visit time`} sub="Email and the resident portal" checked={tell} onChange={setTell} />}
-          <Field label={`Note for ${who === 'Estates helpdesk' ? 'Estates' : short.split(' ')[0]}`}><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+          </SheetSection>
+          {f.reporter && <SheetSection title="Resident">
+          <div className="space-y-3">
+          <ToggleRow title={`Enter if ${first} is out`} sub={f.id === 'm1' ? 'He allowed it in the report · 24h notice waived for urgent jobs' : '24h notice is sent first'} checked={enter} onChange={setEnter} />
+          <ToggleRow title={`Tell ${first} the visit time`} sub="Email and the resident portal" checked={tell} onChange={setTell} />
+          </div>
+          </SheetSection>}
+          <SheetSection title={`Note for ${who === 'Estates helpdesk' ? 'Estates' : short.split(' ')[0]}`}>
+            <Textarea aria-label="Note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+          </SheetSection>
         </>
       )}
     </SideSheet>

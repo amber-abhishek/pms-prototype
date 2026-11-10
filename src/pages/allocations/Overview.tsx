@@ -7,6 +7,7 @@ import { useDb } from '../../data/store';
 import { MenuButton } from '../home/parts';
 import { useEmpty } from '../../data/empty';
 import { useInv } from '../../data/inventory';
+import { appCounts, available, bookingCounts, fmtN, offerCounts, useAlloc } from '../../data/allocations';
 import { Plus } from '../../components/icons';
 
 /* 3783:43143 · Where the 2027/28 cycle stands: beds allocated per day, halls with beds free, three queues. */
@@ -35,13 +36,25 @@ export function AllocOverview() {
   /* Empty-states demo: nothing allocated yet, so the chart, halls and queues read zero. */
   const e = useEmpty((s) => s.on);
   const hasProps = useInv((s) => s.properties.length > 0);
+  /* Every number comes from the same data the queues, tabs and Cycles read, so they always agree. */
+  const d = useAlloc();
+  const ac = appCounts(d), oc = offerCounts(d), bc = bookingCounts(d);
+  const cyc = d.cycles.find((c) => c.name === '2027/28');
+  const queue = d.apps.filter((a) => a.status === 'review' && a.cycle === '2027/28');
+  const flagged = queue.filter((a) => a.tag || a.reqs.length).length;
+  const ready = queue.filter((a) => !a.tag && !a.reqs.length && a.prefs.some(([h, r]) => available(d, h, r) > 0)).length;
+  const noUnit = queue.length - flagged - ready;
+  const oldest = Math.max(0, ...queue.map((a) => a.waiting));
+  const expiring = d.offers.filter((o) => o.status === 'open' && (o.leftH ?? 99) <= 48).length;
+  const signed = bc.all - bc.sent - bc.drafts;
+  const points = POINTS.map((p, i) => (i === POINTS.length - 1 ? { ...p, value: ac.allocated, note: `${fmtN(ac.allocated)} beds allocated` } : p));
   return (
     <>
       <PageHeader icon={Tray} title="Applications" crumbs={['Allocations']}>
         <MenuButton icon={CalendarBlank} value={year} options={['2025/26', '2026/27', '2027/28']} onChange={setYear} />
         <MenuButton icon={MapPin} value={campus} options={['All campuses', ...campuses.map((c) => c.name)]} onChange={setCampus} />
       </PageHeader>
-      <OverviewPage title={`${year} allocations`} sub={e ? (hasProps ? 'Open a cycle to start taking applications' : 'Add a property, then open a cycle to start taking applications') : 'Offers go out until 30 Nov · 128 applications waiting'} actions={e ? (
+      <OverviewPage title={`${year} allocations`} sub={e ? (hasProps ? 'Open a cycle to start taking applications' : 'Add a property, then open a cycle to start taking applications') : `Offers go out until 30 Nov · ${fmtN(ac.review)} ${ac.review === 1 ? 'application' : 'applications'} waiting`} actions={e ? (
         /* First login: the next real steps, in order. A cycle needs an active property, so that comes first. */
         hasProps ? <Button variant="primary" icon={Plus} onClick={() => nav('/allocations/cycles?new=1')}>Open a cycle</Button> : <>
           <Button variant="primary" icon={Plus} onClick={() => nav('/inventory/properties')}>Add a property</Button>
@@ -53,20 +66,20 @@ export function AllocOverview() {
         <Button variant="tertiary" icon={PaperPlaneTilt} onClick={() => nav('/allocations/offers')}>Send offers</Button>
       </>}>
         <div className="grid grid-cols-[minmax(0,1fr)_384px] gap-4">
-          <TrendCard title="Beds allocated" badge={year} value={e ? '0' : '2,480'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds allocated yet' : undefined} up="870 allocated" down="−64 released" kind="line" chartOnly
-            points={POINTS} ticks={['28 Sep', '5 Oct', '12 Oct', '19 Oct', '27 Oct']} axis={AXIS} />
+          <TrendCard title="Beds allocated" badge={year} value={e ? '0' : fmtN(ac.allocated)} of={e ? 'of 0 beds' : `of ${fmtN(cyc?.beds ?? 2893)} beds`} empty={e ? 'No beds allocated yet' : undefined} up="870 allocated" down="−64 released" kind="line" chartOnly
+            points={points} ticks={['28 Sep', '5 Oct', '12 Oct', '19 Oct', '27 Oct']} axis={AXIS} />
           <RankCard title="Halls" note="beds free" more={2} empty={<span>No halls yet</span>} moreLabel="View all halls" moreTo="/inventory/occupancy"
             rows={e ? [] : HALLS.map((h) => ({ id: h.id, name: h.name, value: String(h.free), pct: h.pct, warn: h.warn, to: `/inventory/properties?open=${h.id}` }))} />
         </div>
         <div className="grid grid-cols-3 gap-4">
-          <SummaryCard title="To review" foot="Oldest" footValue={e ? '—' : '9 days'} footTone={e ? 'ink' : 'orange'} action={e ? null : <Button size="sm" onClick={() => nav(review)}>Review</Button>}>
-            <Split value={e ? '0' : '128'} parts={e ? [['0 ready', 0, '#2563EB'], ['0 need a person', 0, '#F59E0B'], ['0 no unit', 0, '#D1D5DB']] : [['81 ready', 81, '#2563EB'], ['35 need a person', 35, '#F59E0B'], ['12 no unit', 12, '#D1D5DB']]} />
+          <SummaryCard title="To review" foot="Oldest" footValue={e || !queue.length ? '—' : `${oldest} ${oldest === 1 ? 'day' : 'days'}`} footTone={e || oldest < 7 ? 'ink' : 'orange'} action={e ? null : <Button size="sm" onClick={() => nav(review)}>Review</Button>}>
+            <Split value={e ? '0' : fmtN(queue.length)} parts={[[`${e ? 0 : ready} ready`, e ? 0 : ready, '#2563EB'], [`${e ? 0 : flagged} need a person`, e ? 0 : flagged, '#F59E0B'], [`${e ? 0 : noUnit} no unit`, e ? 0 : noUnit, '#D1D5DB']]} />
           </SummaryCard>
-          <SummaryCard title="Offers out" foot="Waitlist" footValue={e ? 'No one waiting' : '58 waiting · 9 matches'} action={e ? null : <ViewLink to="/allocations/offers" />}>
-            <Stats items={e ? [['Open', '0'], ['Expiring in 48 h', '0'], ['Accepted', '0']] : [['Open', '46'], ['Expiring in 48 h', '12', 'orange'], ['Accepted', '2,212']]} />
+          <SummaryCard title="Offers out" foot="Waitlist" footValue={e || !oc.waitlist ? 'No one waiting' : `${fmtN(oc.waitlist)} waiting`} action={e ? null : <ViewLink to="/allocations/offers" />}>
+            <Stats items={e ? [['Open', '0'], ['Expiring in 48 h', '0'], ['Accepted', '0']] : [['Open', fmtN(oc.open)], ['Expiring in 48 h', String(expiring), expiring ? 'orange' : undefined], ['Accepted', fmtN(oc.accepted)]]} />
           </SummaryCard>
-          <SummaryCard title="Bookings" foot="Conflicts" footValue={e ? 'None' : '2 double bookings'} footTone={e ? 'ink' : 'red'} action={e ? null : <ViewLink to="/allocations/bookings" />}>
-            <Stats items={e ? [['Leases signed', '0'], ['Sent', '0'], ['Drafts', '0']] : [['Leases signed', '1,904'], ['Sent', '280'], ['Drafts', '28']]} />
+          <SummaryCard title="Bookings" foot="Conflicts" footValue={e || !bc.conflicts ? 'None' : `${bc.conflicts} double ${bc.conflicts === 1 ? 'booking' : 'bookings'}`} footTone={e || !bc.conflicts ? 'ink' : 'red'} action={e ? null : <ViewLink to="/allocations/bookings" />}>
+            <Stats items={e ? [['Leases signed', '0'], ['Sent', '0'], ['Drafts', '0']] : [['Leases signed', fmtN(signed)], ['Sent', fmtN(bc.sent)], ['Drafts', fmtN(bc.drafts)]]} />
           </SummaryCard>
         </div>
       </OverviewPage>

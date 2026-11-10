@@ -1,19 +1,29 @@
 import { toast } from 'sonner';
-import { ME, NOW, TODAY, addDays, available, firstName, hallFull, type App, type Data, type Offer, useAlloc } from '../../data/allocations';
+import { ME, NOW, TODAY, addDays, available, firstName, freeCode, hallFull, heldUnits, revertData, type App, type Data, type Offer, useAlloc } from '../../data/allocations';
 
 /** Mutations shared by the Applications, Offers and Bookings screens. Each returns nothing and toasts with Undo. */
 export function useAllocActions() {
   const up = useAlloc((s) => s.up);
   const snap = useAlloc((s) => s.snap);
   const restore = useAlloc((s) => s.restore);
-  const withUndo = () => { const s = snap(); return { label: 'Undo', onClick: () => restore(s) }; };
+  /* Call before a change. Undo puts back only what that one change did (caught on the store's next update),
+     so undoing an earlier action never wipes out a later one. */
+  const withUndo = () => {
+    const before = snap();
+    let after: Data | null = null;
+    const stop = useAlloc.subscribe((st) => { after = st.snap(); stop(); });
+    return { label: 'Undo', onClick: () => { if (after) restore(revertData(before, after, snap())); } };
+  };
+  /* A second click lands before the screen updates; read the store, not the stale row, and do nothing twice. */
+  const now = (a: App) => useAlloc.getState().apps.find((x) => x.id === a.id) ?? a;
 
   const setApp = (d: Data, id: string, p: Partial<App>) => d.apps.map((a) => (a.id === id ? { ...a, ...p, log: [...(p.log ?? []), ...(a.log ?? [])] } : a));
 
   /** Allocate a unit and send the offer (unless email is off, then the offer waits). */
   function allocate(a: App, hall: string, room: string, code: string, opt: { days: number; email: boolean; override?: string; by?: string }) {
-    const undo = withUndo();
     const unit = `${hall} · ${code}`;
+    if (now(a).status === 'allocated' && now(a).unit === unit) return;
+    const undo = withUndo();
     const by = opt.by ?? ME;
     up((d) => {
       const offer: Offer = { id: `o${Date.now()}${a.ref}`, name: a.name, appId: a.id, hall, room, unit: code, status: 'open', sent: TODAY, expires: addDays(NOW.replace(' 10:42', ' 17:00'), opt.days), leftH: opt.days * 24, reminders: 0, next: opt.email ? 'Offer emailed · reminder at 48h' : 'Offer ready · not emailed yet', recent: true };
@@ -30,12 +40,14 @@ export function useAllocActions() {
   }
 
   function reject(a: App, reason: string, email: boolean) {
+    if (now(a).status === 'rejected') return;
     const undo = withUndo();
     up((d) => ({ apps: setApp(d, a.id, { status: 'rejected', reason, rejBy: ME, rejOn: TODAY, emailed: email, log: [{ t: `Rejected by ${ME}`, when: '27 Oct, 10:44', sub: reason }] }) }));
     toast(`${a.name}’s application rejected`, { description: `${reason}${email ? ` · ${firstName(a.name)} has been emailed` : ''}`, action: undo });
   }
 
   function manual(a: App) {
+    if (now(a).status === 'manual') return;
     const undo = withUndo();
     const why = a.tag === 'Manual review' || a.toCheck?.length ? 'Medical evidence to check' : a.tag === 'Requirements' ? 'Requirements to match by hand' : a.tag === 'No study offer' ? 'Study offer to confirm' : 'Sent by Priya Shah';
     up((d) => ({ apps: setApp(d, a.id, { status: 'manual', why, assignee: ME, log: [{ t: `Sent to manual review by ${ME}`, when: '27 Oct, 10:44', sub: why }] }) }));
@@ -43,11 +55,13 @@ export function useAllocActions() {
   }
 
   function toQueue(a: App) {
+    if (now(a).status === 'review') return;
     up((d) => ({ apps: setApp(d, a.id, { status: 'review', reason: undefined, why: undefined, log: [{ t: `Moved back to To review by ${ME}`, when: '27 Oct, 10:45' }] }) }));
     toast.success(`${a.name} is back in To review`);
   }
 
   function waitlist(a: App, hall: string, room: string) {
+    if (now(a).status === 'waitlist') return;
     const undo = withUndo();
     up((d) => ({
       apps: setApp(d, a.id, { status: 'waitlist', log: [{ t: `Added to the ${hall} · ${room} waitlist`, when: '27 Oct, 10:44' }] }),
@@ -68,14 +82,17 @@ export function useAllocActions() {
     up((d) => {
       const used = { ...d.used };
       const usedUnits = [...d.usedUnits];
+      /* Rooms already held in 2027/28; each pick is added so two applicants never share one. */
+      const held = heldUnits(d);
       const offers: Offer[] = [];
       const apps = d.apps.map((a) => {
         if (a.status !== 'review' || a.tag || a.reqs.length) return a;
-        const p = a.prefs.find(([h, r]) => available({ ...d, used }, h, r) > 0);
+        const p = a.prefs.find(([h, r]) => available({ ...d, used }, h, r) > 0 && freeCode(held, h, +a.ref) !== null);
         if (!p) return a;
         const k = `${p[0]}|${p[1]}`;
         used[k] = (used[k] ?? 0) + 1;
-        const unit = `${p[0]} · ${(+a.ref % 5) + 1}.${(+a.ref % 4) + 1}.${'ABCD'[+a.ref % 4]}`;
+        const unit = `${p[0]} · ${freeCode(held, p[0], +a.ref)}`;
+        held.add(unit);
         usedUnits.push(unit);
         n++;
         offers.push({ id: `o${Date.now()}${a.ref}`, name: a.name, appId: a.id, hall: p[0], room: p[1], unit: unit.split(' · ')[1], status: 'open', sent: TODAY, expires: addDays(NOW.replace(' 10:42', ' 17:00'), days), leftH: days * 24, reminders: 0, next: email ? 'Offer emailed by auto-allocate' : 'Offer saved by auto-allocate · not emailed yet' });

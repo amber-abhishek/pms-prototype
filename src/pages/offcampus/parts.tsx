@@ -2,7 +2,7 @@ import { Badge } from '../../components/shadcn/badge';
 import { Illustration, type Illo } from '../../components/Illustration';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CaretUpDown, Image, X, type Icon } from '../../components/icons';
-import { Button, cx } from '../../components/ui';
+import { Button, TitleH1, cx } from '../../components/ui';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
@@ -14,7 +14,7 @@ export function Title({ title, sub, children }: { title: ReactNode; sub?: ReactN
   return (
     /* Same page heading as every screen (PageHeading): 20px medium ink, lined up with the table's first column. */
     <div className="px-[var(--tx,16px)] pt-6 pb-3 flex items-center gap-4">
-      <div className="flex-1 min-w-0 ml-[calc(var(--gx,16px)+var(--cx,12px)-var(--tx,16px))]"><h2 className="text-xl leading-7 font-medium text-ink truncate">{title}</h2>{sub && <p className="text-sm text-gray-500 mt-1">{sub}</p>}</div>
+      <div className="flex-1 min-w-0 ml-[calc(var(--gx,16px)+var(--cx,12px)-var(--tx,16px))]"><TitleH1 className="text-xl leading-7 font-medium text-ink truncate">{title}</TitleH1>{sub && <p className="text-sm text-gray-500 mt-1">{sub}</p>}</div>
       {children}
     </div>
   );
@@ -88,7 +88,7 @@ export function NoteDialog({ open, onClose, icon, title, sub, label, optional, p
     <ODialog open={open} onClose={onClose} icon={icon} tone={danger ? 'red' : optional ? 'grey' : 'blue'} title={title} sub={sub}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant={danger ? 'danger' : 'primary'} onClick={go}>{submit}</Button></>}>
       <label className="block">
-        <span className="block text-sm font-medium text-ink mb-1.5">{label}{optional && <span className="ml-1.5 text-xs font-normal text-gray-400">(optional)</span>}</span>
+        <span className="block text-sm font-medium text-ink mb-1.5">{label}{optional && <span className="ml-1.5 text-xs font-normal text-[#646A78]">(optional)</span>}</span>
         <textarea ref={ref} rows={4} value={text} placeholder={placeholder} onChange={(e) => { setText(e.target.value); setErr(false); }} className={cx('w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/25 placeholder:text-gray-400 min-h-[88px]', err && 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/25')} />
         {err && <span className="block text-xs text-[#E0243A] mt-1">A message is required.</span>}
       </label>
@@ -116,7 +116,7 @@ export function Combo({ value, options, onPick, noneLabel = 'None', icon: I }: {
         <Command>
           <CommandInput placeholder="Find a region" />
           <CommandList className="p-1">
-            <CommandEmpty className="px-2 h-8 flex items-center text-sm text-gray-400">No region matches</CommandEmpty>
+            <CommandEmpty className="px-2 h-8 flex items-center text-sm text-[#646A78]">No region matches</CommandEmpty>
             <CommandItem value={`__none ${noneLabel}`} onSelect={() => pick(null)}><X size={14} className="text-gray-400" />{noneLabel}</CommandItem>
             {options.map((o) => (
               <CommandItem key={o} value={o} onSelect={() => pick(o)} className={cx(value === o && 'bg-gray-50')}>

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CalendarX, Check, MagicWand, WarningCircle, XCircle } from '../../components/icons';
 import { Button, Input, Note, Pill, Sheet, SheetSection, Switch, Tabs, cx } from '../../components/ui';
 import { available, firstName, hallFull, unitsFor, useAlloc, type App } from '../../data/allocations';
@@ -36,7 +36,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
   };
   return (
     <Sheet open onClose={onClose} width={520}
-      title={`Allocate ${a.name}`}
+      title="Allocate"
       footer={units.length ? <>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="primary" icon={Check} disabled={!u || needReason} onClick={submit}>{taken ? `Allocate ${sel}` : email ? 'Allocate & send offer' : 'Allocate'}</Button>
@@ -50,7 +50,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
         </Note>
       ) : (
         <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
-          <SheetSection title="Preference" rows={[['Choice', `${ordinal(pref.rank)} preference`], ['Hall', hallFull[pref.hall]], ['Room type', `${pref.room} · ${pref.weeks} weeks`]]} />
+          <SheetSection title="Preference" rows={[['Applicant', a.name], ['Choice', `${ordinal(pref.rank)} preference`], ['Hall', hallFull[pref.hall]], ['Room type', `${pref.room} · ${pref.weeks} weeks`]]} />
           {takenUnit?.takenBy && (<div className="mb-5">
             <Note tone="red" icon={XCircle} title={`${pref.hall} ${takenUnit.code} is taken`}>
               {takenUnit.takenBy.who} allocated it to {takenUnit.takenBy.to} 4 minutes ago. Pick another room for {firstName(a.name)}.
@@ -74,7 +74,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
                     <div className="mt-3 space-y-3">
                       <div className="rounded-lg border border-[#C47A00]/35 bg-white p-3 flex gap-2.5">
                         <CalendarX size={16} className="text-[#C47A00] shrink-0 mt-0.5" />
-                        <div><div className="text-sm font-medium text-[#C47A00]">{x.overlap.title}</div><div className="text-xs text-gray-500 mt-0.5">{x.overlap.body}</div></div>
+                        <div><div className="text-sm font-medium text-[#9A5B00]">{x.overlap.title}</div><div className="text-xs text-gray-500 mt-0.5">{x.overlap.body}</div></div>
                       </div>
                       <label className="block">
                         <span className="block text-sm font-medium mb-1.5">Reason for the override</span>
@@ -147,6 +147,8 @@ export function AutoAllocateDialog({ open, onClose }: { open: boolean; onClose: 
   const [days, setDays] = useState<(typeof DAYS)[number]>('5 days');
   const [email, setEmail] = useState(true);
   const busy = useRef(false);
+  /* Re-arm only when the dialog opens again, so a double click can't run a second, empty pass. */
+  useEffect(() => { if (open) busy.current = false; }, [open]);
   if (!open) return null;
   const queue = d.apps.filter((a) => a.status === 'review' && a.cycle === '2027/28'); // the dialog is for 2027/28 only
   const flagged = queue.filter((a) => a.tag || a.reqs.length);
@@ -157,7 +159,7 @@ export function AutoAllocateDialog({ open, onClose }: { open: boolean; onClose: 
       sub="Offers each application its best free unit. Anything flagged waits for a person."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={MagicWand} disabled={!free.length} onClick={() => {
         if (busy.current) return; busy.current = true;
-        act.autoAllocate(+days[0], email); onClose(); busy.current = false;
+        act.autoAllocate(+days[0], email); onClose();
       }}>Auto-allocate {free.length}</Button></>}>
       <div className="grid grid-cols-3 gap-2 mt-1">
         {[[free.length, 'can be allocated now', 'text-[#0B8A4C]'], [flagged.length, 'need a person', 'text-[#B45309]'], [none, 'have no free unit', 'text-gray-500']].map(([n, l, c]) => (

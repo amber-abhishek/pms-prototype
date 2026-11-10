@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowDownRight, ArrowUpRight, Building, CaretDown, CaretRight, ChartColumnIcon, ChartLine, TableIcon, type Icon } from './icons';
-import { Card, cx, Pill } from './ui';
+import { Card, cx, Pill, TitleH1 } from './ui';
 
 /* Overview kit (Home 3783:47863, Allocations 3783:43143): a 1040px column of cards, 16px apart, 20px inside. */
 
@@ -9,7 +9,7 @@ export function OverviewPage({ title, sub, actions, children }: { title: string;
   return (
     <div className="flex-1 overflow-auto">
       <div className="max-w-[1088px] mx-auto px-6 pt-6 pb-8">
-        <h2 className="text-xl leading-7 font-medium tracking-[-0.24px] text-ink">{title}</h2>
+        <TitleH1 className="text-xl leading-7 font-medium tracking-[-0.24px] text-ink">{title}</TitleH1>
         <p className="text-sm text-[#646A78] mt-0.5">{sub}</p>
         {actions && <div className="flex flex-wrap items-center gap-2 mt-4">{actions}</div>}
         <div className="mt-4 flex flex-col gap-4">{children}</div>
@@ -18,7 +18,7 @@ export function OverviewPage({ title, sub, actions, children }: { title: string;
   );
 }
 
-const tone = { green: 'text-[#0B8A4C]', orange: 'text-[#E5530C]', red: 'text-[#B91C1C]', ink: 'text-ink' } as const;
+const tone = { green: 'text-[#087A43]', orange: 'text-[#C2410C]', red: 'text-[#B91C1C]', ink: 'text-ink' } as const;
 type ToneKey = keyof typeof tone;
 
 /** Two-icon segmented switch: raised white tab on the #F3F4F6 track (pms-filter-tabs-style). */
@@ -71,12 +71,12 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
       </div>
       <div className="flex items-baseline gap-1.5 mt-1">
         <span className="text-[32px] leading-10 font-semibold tracking-[-0.64px] tabular-nums text-ink">{value}</span>
-        <span className="text-base text-[#646A78]">{of}</span>
+        <span className="text-sm text-[#646A78]">{of}</span>
       </div>
       <div className="flex items-center gap-4 mt-2 text-xs">
         <button type="button" className="flex items-center gap-1 text-[#374151] hover:text-ink">Last 30 days<CaretDown size={12} className="text-gray-400" /></button>
-        {!empty && <><span className="ml-auto flex items-center gap-1 text-[#0B8A4C]"><ArrowUpRight size={14} />{up}</span>
-        <span className="flex items-center gap-1 text-[#E5530C]"><ArrowDownRight size={14} />{down}</span></>}
+        {!empty && <><span className="ml-auto flex items-center gap-1 text-[#087A43]"><ArrowUpRight size={14} />{up}</span>
+        <span className="flex items-center gap-1 text-[#C2410C]"><ArrowDownRight size={14} />{down}</span></>}
       </div>
       {empty ? (
         <div className="mt-4 flex-1 min-h-0 relative">
@@ -94,7 +94,7 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
         </div>
       ) : (
         <div className="mt-4 flex-1 min-h-0 grid grid-cols-[40px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)_20px]">
-          <div className="relative text-[11px] text-[#9CA3AF] tabular-nums">
+          <div className="relative text-xs text-[#646A78] tabular-nums">
             {axis.map((a) => <span key={a} className="absolute right-2 -translate-y-1/2" style={{ top: `${y(a)}%` }}>{a.toLocaleString('en-GB')}</span>)}
           </div>
           <div ref={box} className="relative" onMouseMove={(e) => pick(e.clientX)} onMouseLeave={() => setHover(null)}>
@@ -126,7 +126,7 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
             </>}
           </div>
           <div />
-          <div className="relative text-[11px] text-[#646A78]">
+          <div className="relative text-xs text-[#646A78]">
             {ticks.map((t, i) => <span key={t} className={cx('absolute top-1 whitespace-nowrap', i === 0 ? '' : i === ticks.length - 1 ? '-translate-x-full' : '-translate-x-1/2')} style={{ left: `${(i / (ticks.length - 1)) * 100}%` }}>{t}</span>)}
           </div>
         </div>
@@ -148,11 +148,11 @@ export function RankCard({ title, note, rows, more, moreLabel, moreTo, empty }: 
             <Building size={16} className="shrink-0" style={{ color: HALL_TONES[i % HALL_TONES.length] }} />
             <span className="flex-1 min-w-0 truncate text-ink">{r.name}</span>
             <span className="w-[60px] h-1 rounded-full bg-[#EEF0F3] overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${r.pct}%`, background: r.warn ? '#F59E0B' : '#2563EB' }} /></span>
-            <span className={cx('w-9 text-right tabular-nums', r.warn ? 'text-[#E5530C]' : 'text-ink')}>{r.value}</span>
+            <span className={cx('w-9 text-right tabular-nums', r.warn ? 'text-[#C2410C]' : 'text-ink')}>{r.value}</span>
           </Link>
         ))}
         <Link to={moreTo} className="h-9 px-2 rounded-lg flex items-center gap-3 text-sm text-[#374151] hover:bg-[#F9FAFB]">
-          <span className="size-5 -mx-0.5 rounded-full border border-line text-[11px] text-[#646A78] flex items-center justify-center">+{more}</span>{moreLabel}
+          <span className="size-5 -mx-0.5 rounded-full border border-line text-xs text-[#646A78] flex items-center justify-center">+{more}</span>{moreLabel}
         </Link>
       </div>}
     </Card>

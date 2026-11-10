@@ -6,7 +6,7 @@ import { Buildings, CaretRight, Info, Lock, Plus, Tag, Textbox, Trash, TreeStruc
 import { Button, PageHeading, Field, Input, Note, PageHeader, Toolbar, Pill, SearchInput, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { invId, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
-import { Picker } from './common';
+import { FieldErr, Modal, Picker } from './common';
 
 /* ---------------- Property layouts (code: /cms/structures; Figma 3057:2) ---------------- */
 export function StructuresPage() {
@@ -118,7 +118,7 @@ export function CustomFieldsPage() {
       <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search fields" />} />
       <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
-              { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#111827] leading-[18px]">{f.name}</span><span className="block text-[11px] leading-4 text-[#646A78] font-mono">{f.key}</span></span> },
+              { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#111827] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#646A78] font-mono">{f.key}</span></span> },
               { key: 't', label: 'Type', render: (f) => <span className="text-[#646A78]">{f.type}</span> },
               { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <span key={a} className="h-[22px] px-2 rounded-md border border-line bg-white text-xs text-[#111827] flex items-center">{a}</span>)}</span> },
             ]} />
@@ -133,6 +133,8 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
   const [type, setType] = useState('Text');
   const [attached, setAttached] = useState<string[]>([]);
   const [required, setRequired] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const fields = useInv((s) => s.fields);
   const busy = useRef(false);
   useEffect(() => {
     if (!f) return;
@@ -143,8 +145,10 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
   const isNew = f === 'new';
   const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   const targets = structures.flatMap((s) => s.levels.filter((l) => l.name !== 'Tenancy').map((l) => `${s.name} › ${l.name}`));
+  const nameErr = !name.trim() ? '' : !key ? 'Use letters or numbers in the name.' : fields.some((x) => (isNew || x.id !== f.id) && (x.name.trim().toLowerCase() === name.trim().toLowerCase() || x.key === key)) ? `A field called ${name.trim()} already exists.` : '';
+  const del = () => { useInv.getState().set('fields', (l) => l.filter((x) => x.id !== (f as CField).id)); setAsking(false); onClose(); toast.success(`${(f as CField).name} field deleted`); };
   const save = () => {
-    if (busy.current || !name.trim()) return;
+    if (busy.current || !name.trim() || nameErr) return;
     busy.current = true;
     const t = type === 'Pick one' ? 'Pick one · 3' : type;
     useInv.getState().set('fields', (l) => (isNew ? [...l, { id: invId('cf'), name: name.trim(), key, type: t, attached }] : l.map((x) => (x.id === f.id ? { ...x, name: name.trim(), type: t, attached } : x))));
@@ -153,11 +157,14 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
   };
   return (
     <Sheet open onClose={onClose} nav={nav} title={isNew ? 'New field' : f.name} sub={isNew ? undefined : <span className="font-mono">{f.key}</span>} width={480}
-      footer={<>{!isNew && <Button variant="danger-ghost" className="mr-auto" onClick={() => { useInv.getState().set('fields', (l) => l.filter((x) => x.id !== f.id)); onClose(); toast.success(`${f.name} deleted`); }}>Delete</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim()} onClick={save}>{isNew ? 'Create field' : 'Save'}</Button></>}>
+      footer={<>{!isNew && <Button variant="danger-ghost" className="mr-auto" onClick={() => setAsking(true)}>Delete</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim() || !!nameErr} onClick={save}>{isNew ? 'Create field' : 'Save'}</Button></>}>
+      {!isNew && <Modal open={asking} onClose={() => setAsking(false)} icon={Trash} width={440} title={`Delete ${f.name}?`}
+        sub={f.attached.length ? `It’s on ${f.attached.join(', ')}. Every value already entered for it is deleted too.` : 'It isn’t attached to anything yet.'}
+        footer={<><Button onClick={() => setAsking(false)}>Keep</Button><Button variant="danger" icon={null} onClick={del}>Delete field</Button></>}>{null}</Modal>}
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="Field">
         <div className="space-y-4">
-        <Field label="Name" hint={key ? `Key: ${isNew ? key : f.key}` : undefined}><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Warden phone" /></Field>
+        <Field label="Name" hint={key ? `Key: ${isNew ? key : f.key}` : undefined}><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Warden phone" /><FieldErr>{nameErr}</FieldErr></Field>
         <Field label="Type"><Picker value={type} onChange={setType} options={TYPES.map((t) => ({ id: t, label: t }))} /></Field>
         </div>
         </SheetSection>
@@ -205,6 +212,7 @@ function TagSheet({ t, usedOn, onClose , nav }: { nav?: SheetNav;  t: TagDef | '
   const tags = useInv((s) => s.tags);
   const [label, setLabel] = useState('');
   const [tone, setTone] = useState<TagDef['tone']>('blue');
+  const [asking, setAsking] = useState(false);
   const busy = useRef(false);
   useEffect(() => {
     if (!t) return;
@@ -231,15 +239,19 @@ function TagSheet({ t, usedOn, onClose , nav }: { nav?: SheetNav;  t: TagDef | '
     if (isNew) return;
     inv.set('tags', (l) => l.filter((x) => x.id !== t.id));
     inv.set('properties', (l) => l.map((p) => ({ ...p, tags: p.tags.filter((x) => x.label !== t.label) })));
+    setAsking(false);
     onClose();
-    toast.success(`${t.label} deleted`);
+    toast.success(usedOn.length ? `${t.label} deleted and removed from ${usedOn.length} ${usedOn.length === 1 ? 'property' : 'properties'}` : `${t.label} deleted`);
   };
   return (
     <Sheet open onClose={onClose} nav={nav} title={isNew ? 'New tag' : t.label} sub={isNew ? undefined : usedOn.length ? `On ${usedOn.length} ${usedOn.length === 1 ? 'property' : 'properties'}` : 'Not on any property yet'} width={480}
-      footer={<>{!isNew && <Button variant="danger-ghost" className="mr-auto" onClick={remove}>Delete</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name || clash} onClick={save}>{isNew ? 'Create tag' : 'Save'}</Button></>}>
+      footer={<>{!isNew && <Button variant="danger-ghost" className="mr-auto" onClick={() => setAsking(true)}>Delete</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name || clash} onClick={save}>{isNew ? 'Create tag' : 'Save'}</Button></>}>
+      {!isNew && <Modal open={asking} onClose={() => setAsking(false)} icon={Trash} width={440} title={`Delete ${t.label}?`}
+        sub={usedOn.length ? `It comes off ${usedOn.length} ${usedOn.length === 1 ? 'property' : 'properties'}: ${usedOn.map((x) => x.name).join(', ')}.` : 'It isn’t on any property.'}
+        footer={<><Button onClick={() => setAsking(false)}>Keep</Button><Button variant="danger" icon={null} onClick={remove}>Delete tag</Button></>}>{null}</Modal>}
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="Tag">
-        <Field label="Name" hint={clash ? 'A tag with this name already exists' : undefined}><Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Catered" /></Field>
+        <Field label="Name"><Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Catered" /><FieldErr>{clash ? `A tag called ${name} already exists.` : ''}</FieldErr></Field>
         </SheetSection>
         <SheetSection title="Colour">
           <div role="radiogroup" aria-label="Colour" className="flex flex-wrap gap-2">

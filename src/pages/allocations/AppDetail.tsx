@@ -86,7 +86,7 @@ function Row({ lead, title, sub, children }: { lead?: ReactNode; title: ReactNod
     </div>
   );
 }
-const Rank = ({ n, on }: { n: number; on?: boolean }) => <span className={cx('size-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0', on ? 'bg-primary text-white' : 'bg-[#F3F4F6] text-gray-500')}>{n}</span>;
+const Rank = ({ n, on }: { n: number; on?: boolean }) => <span className={cx('size-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0', on ? 'bg-primary text-white' : 'bg-[#F3F4F6] text-[#646A78]')}>{n}</span>;
 
 function AppNote({ a }: { a: App }) {
   if (stepFree(a)) return <Callout icon={Wheelchair} title="Needs a ground-floor or lift-access room" sub="Verified by Disability Support, 20 Oct" />;
@@ -99,7 +99,7 @@ function Callout({ icon: I, title, sub }: { icon: Icon; title: string; sub: stri
   return (
     <div className="rounded-lg border border-[#C47A00]/35 bg-white px-3.5 py-2.5 flex gap-2.5 mb-5">
       <I size={16} className="shrink-0 mt-0.5 text-[#C47A00]" />
-      <div><div className="text-sm font-medium text-[#C47A00]">{title}</div><div className="text-xs text-gray-500 mt-0.5">{sub}</div></div>
+      <div><div className="text-sm font-medium text-[#9A5B00]">{title}</div><div className="text-xs text-gray-500 mt-0.5">{sub}</div></div>
     </div>
   );
 }
@@ -113,7 +113,7 @@ function Preferences({ a, ps, best, canAct, onAllocate }: { a: App; ps: Pref[]; 
           <Row key={p.rank} lead={<Rank n={p.rank} on={isBest} />} title={hallFull[p.hall]} sub={p.sub}>
             {stepFree(a) && (p.hall === 'Hild Bede' ? <Pill tone="amber">No lift</Pill> : <Pill tone="green">Step-free</Pill>)}
             <span className={cx('text-xs whitespace-nowrap', p.avail ? 'text-[#0B8A4C]' : 'text-gray-500')}>{p.avail ? `${p.avail} free` : 'Full'}</span>
-            {canAct && (isBest ? <Button size="sm" variant="primary" className="w-[104px]" onClick={() => onAllocate(p)}>Allocate</Button> : <Button size="sm" variant="ghost" className="w-[104px]" onClick={() => onAllocate(p)}>Pick unit</Button>)}
+            {canAct && (isBest ? <Button size="sm" variant="secondary" className="w-[104px]" onClick={() => onAllocate(p)}>Allocate</Button> : <Button size="sm" variant="ghost" className="w-[104px]" onClick={() => onAllocate(p)}>Pick unit</Button>)}
           </Row>
         );
       })}

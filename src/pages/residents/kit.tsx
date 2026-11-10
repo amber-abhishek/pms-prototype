@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from 'react';
 import { ArrowRight, CheckCircle, Circle, Image as ImageIcon, XCircle, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Card, CrumbLink, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
+import { Avatar, Card, CrumbLink, CrumbTitle, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '../../components/shadcn/sheet';
 import { GhostZone, headerZone, usePublishTitle } from '../../components/headerCtx';
@@ -13,7 +13,7 @@ export function RHeader({ icon: I, crumbs, title, meta, children }: { icon: Icon
     <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
       <I size={16} className="text-gray-500" />
       <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map(([label, to]) => <CrumbLink key={label} c={{ label, to }} />)}</div>
-      <h1 className="text-sm font-normal text-[#111827]">{title}</h1>
+      <CrumbTitle className="text-sm font-normal text-[#111827]">{title}</CrumbTitle>
       {meta}
       <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
     </div>

@@ -30,7 +30,7 @@
     --success: 151 85% 29%;              /* #0B8A4C */
     --success-foreground: 0 0% 100%;
     --border: 220 13% 91%;               /* #E5E7EB */
-    --input: 216 12% 84%;                /* #D1D5DB */
+    --input: 220 8% 58%;                 /* #8B919D: 3.2:1 on white, so fields read as fields (molades-attack, 2026-11-10) */
     --ring: 221 83% 53%;
     --density-data: 2rem;                /* 32px */
     --density-input: 2rem;               /* the prototype's fields are 32px too */
@@ -159,3 +159,8 @@ thead.sticky th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #E5E7EB; ba
 /* Avatars in dark mode: the pastel grounds are inline styles, so mute them here (2026-11-09: "mute the colors a touch").
    Lower saturation and brightness, and drop the white top highlight that glows on dark. */
 .dark [data-avatar] { filter: saturate(0.85) brightness(0.88); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06) !important; }
+
+/* Field outlines at 3:1 on white (molades-attack, 2026-11-10). shadcn inputs use the --input token above; the
+   hand-built fields (a <label> wrapping an <input>: money, dates, steppers, weeks) get the same colour here.
+   Decorative dashed boxes keep #D1D5DB. Light mode only; dark mode has its own --input. */
+html:not(.dark) label.border-gray-300 { border-color: #8B919D; }

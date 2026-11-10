@@ -5,7 +5,7 @@ import { Buildings, Plus, UsersThree } from '../../components/icons';
 import { toast } from 'sonner';
 import { Avatar, Button, Field, Input, SearchInput, Sheet, Table, Toolbar, cx, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
-import { HALLS, hallsLabel, oid, useOrg, type Team } from '../../data/org';
+import { HALLS, hallsLabel, oid, snapOrg, undoSince, useOrg, type Team } from '../../data/org';
 import { Header, IconSelect, RowMenu } from './parts';
 
 export function TeamsPage() {
@@ -22,7 +22,7 @@ export function TeamsPage() {
       <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search teams" />} />
       <Table rows={rows} empty={<Empty art="team" title="No teams yet" sub="Group the people who work together, like a hall’s front desk." />} onRow={(t) => setEdit(t)} selected={edit && edit !== 'new' ? edit.id : undefined} cols={[
         { key: 'n', label: 'Team', className: 'w-[30%]', render: (t) => <div className="leading-tight"><div className="text-sm font-medium">{t.name}</div><div className="text-xs text-[#646A78]">{t.purpose}</div></div> },
-        { key: 'l', label: 'Lead', render: (t) => <span className="flex items-center gap-2 text-sm"><Avatar name={name(t.leadId)} size={20} />{name(t.leadId)}</span> },
+        { key: 'l', label: 'Lead', render: (t) => t.leadId && members.some((m) => m.id === t.leadId) ? <span className="flex items-center gap-2 text-sm"><Avatar name={name(t.leadId)} size={20} />{name(t.leadId)}</span> : <span className="text-sm text-[#C2410C]">No lead</span> },
         { key: 'm', label: 'Members', render: (t) => (
           <span className="flex items-center gap-2"><span className="flex -space-x-1.5">{t.memberIds.slice(0, 5).map((id) => <span key={id} className="ring-2 ring-white rounded-full"><Avatar name={name(id)} size={24} /></span>)}</span><span className="text-sm text-[#646A78]">{t.memberIds.length}</span></span>
         ) },
@@ -30,9 +30,9 @@ export function TeamsPage() {
         { key: 'x', label: '', className: 'w-12 text-right', render: (t) => <RowMenu items={[
           { label: 'Edit team', onClick: () => setEdit(t) },
           { label: 'Delete team', danger: true, onClick: () => {
-            const before = useOrg.getState().teams;
+            const before = snapOrg();
             set('teams', (ts) => ts.filter((x) => x.id !== t.id)); audit_(`deleted the team ${t.name}`, 'Teams');
-            toast.success(`${t.name} deleted`, { action: { label: 'Undo', onClick: () => useOrg.getState().restore({ teams: before }) } });
+            toast.success(`${t.name} deleted`, { action: { label: 'Undo', onClick: undoSince(before, `deleted the team ${t.name}`, 'Teams') } });
           } },
         ]} /> },
       ]} />
@@ -52,6 +52,8 @@ function TeamSheet({ team, onClose , nav }: { nav?: SheetNav;  team?: Team; onCl
   const save = () => {
     if (busy.current) return;
     if (!n.trim()) { toast.error('Name the team'); return; }
+    const twin = useOrg.getState().teams.find((t) => t.id !== team?.id && t.name.trim().toLowerCase() === n.trim().toLowerCase());
+    if (twin) { toast.error(`There’s already a team called ${twin.name}`); return; }
     if (!ids.length) { toast.error('Add at least one member'); return; }
     busy.current = true;
     const rec: Team = { id: team?.id ?? oid('t'), name: n.trim(), purpose: purpose.trim(), leadId: ids.includes(lead) ? lead : ids[0], memberIds: ids, halls: hall === 'all' ? 'all' : [hall] };

@@ -20,11 +20,16 @@ export function useChange(scope: Scope) {
   return (fn: (rows: HTask[]) => HTask[], msg: React.ReactNode) => {
     const prev = useHome.getState().rows[scope];
     patch(scope, fn);
+    const next = useHome.getState().rows[scope];
+    /* Undo puts back only the rows this change touched, so undoing one tick never reopens a task ticked after it. */
+    const before = new Map(prev.map((r) => [r.id, r]));
+    const nextIds = new Set(next.map((r) => r.id));
+    const touched = next.filter((r) => before.get(r.id) !== r).map((r) => r.id);
+    const removed = prev.filter((r) => !nextIds.has(r.id));
+    if (!touched.length && !removed.length) return;
     toast.success(msg, { action: { label: 'Undo', onClick: () => {
-      const cur = useHome.getState().rows[scope];
-      const ids = prev.filter((p) => cur.find((c) => c.id === p.id) !== p).map((p) => p.id);
-      useReturned.setState({ ids });
-      patch(scope, () => prev);
+      useReturned.setState({ ids: [...touched.filter((id) => before.has(id)), ...removed.map((r) => r.id)] });
+      patch(scope, (cur) => [...removed, ...cur.flatMap((r) => (touched.includes(r.id) ? (before.has(r.id) ? [before.get(r.id)!] : []) : [r]))]);
       window.setTimeout(() => useReturned.setState({ ids: [] }), ROW_IN_MS + 50);
     } } });
   };
@@ -47,7 +52,7 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
   const dt = task.detail ?? {};
   const main = scope === 'main';
   const title = dt.title ?? task.title;
-  const sub = dt.sub ?? task.sub ?? (task.from ? `Task from ${task.from.label}` : '');
+  const sub = dt.sub ?? task.sub ?? (task.from ? (task.from.icon === 'task' ? task.from.label : `Task from ${task.from.label}`) : '');
   const short = dt.short ?? 'Task';
   const others = ['Priya Shah', 'Tom Baker', 'Aisha Khan'].filter((n) => n !== task.owner);
   const loads: Record<string, string> = { 'Priya Shah': '9 tasks today', 'Tom Baker': '3 tasks today', 'Aisha Khan': '7 tasks today', 'Grace Evans': '5 tasks today' };

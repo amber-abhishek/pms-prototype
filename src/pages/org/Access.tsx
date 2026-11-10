@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Avatar, Button, Field, FilterButton, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useTab } from '../hooks';
-import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, useOrg, type Member, type Role, type Scenario } from '../../data/org';
+import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, snapOrg, undoSince, useOrg, type Member, type Role, type Scenario } from '../../data/org';
 import { Alert, EmptyState, Header, IconSelect, ODialog, RowMenu } from './parts';
 
 type TabId = 'members' | 'roles' | 'audit';
@@ -19,9 +19,10 @@ export function RoleTag({ role }: { role?: Role }) {
 }
 
 /** Snapshot for Undo. */
-const snap = () => { const s = useOrg.getState(); return { roles: s.roles, members: s.members, audit: s.audit }; };
-const undoable = (msg: string, before: ReturnType<typeof snap>, extra?: { description?: string }) =>
-  toast.success(msg, { ...extra, action: { label: 'Undo', onClick: () => { useOrg.getState().restore(before); } } });
+const snap = snapOrg;
+/* Undo reverts only this action's records, so a later invite or change survives it. */
+const undoable = (msg: string, before: ReturnType<typeof snap>, extra?: { description?: string; area?: 'Members' | 'Roles' }) =>
+  toast.success(msg, { description: extra?.description, action: { label: 'Undo', onClick: undoSince(before, msg.split(' · ')[0], extra?.area ?? 'Members') } });
 
 export function AccessPage() {
   const { members, roles, audit, load, set, audit_ } = useOrg();
@@ -96,7 +97,7 @@ export function AccessPage() {
         { label: 'Duplicate', onClick: () => {
           const before = snap(); const id = oid('r');
           set('roles', (rs) => [...rs, { ...r, id, name: `${r.name} copy`, builtIn: false, createdByYou: true }]);
-          audit_(`duplicated the role ${r.name}`, 'Roles'); undoable(`${r.name} duplicated`, before);
+          audit_(`duplicated the role ${r.name}`, 'Roles'); undoable(`${r.name} duplicated`, before, { area: 'Roles' });
         } },
         { label: 'Delete role', danger: true, disabled: r.id === 'admin', onClick: () => setDeleting(r) },
       ]} />
@@ -197,7 +198,7 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@durham.ac.uk" className="pl-8" onKeyDown={(e) => e.key === 'Enter' && !existing && send()} />
           </label>
         </Field>
-        {existing && <Alert tone="amber" icon={Info} title={<>{existing.name} is already a member: {exRole?.name} {existing.halls === 'all' ? 'in all halls' : `at ${hallsLabel(existing.halls).replace(/, ([^,]*)$/, ' and $1')}`}.</>}>Change her access instead; she keeps one account.</Alert>}
+        {existing && <Alert tone="amber" icon={Info} title={<>{existing.name} is already a member: {exRole?.name} {existing.halls === 'all' ? 'in all halls' : `at ${hallsLabel(existing.halls).replace(/, ([^,]*)$/, ' and $1')}`}.</>}>Change their access instead; they keep one account.</Alert>}
         <div className="grid grid-cols-2 gap-3">
           <div><div className="text-sm font-medium text-gray-700 mb-1.5">Role</div>
             <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} /></div>
@@ -265,8 +266,10 @@ function AccessSheet({ m, addHall, onClose , nav }: { nav?: SheetNav;  m: Member
 
 /* ---------- Remove, and the last-admin block (E2) ---------- */
 function RemoveDialog({ m, onClose }: { m: Member | null; onClose: () => void }) {
-  const { members, roles, set, audit_ } = useOrg();
+  const { members, roles, teams, set, audit_ } = useOrg();
   const admins = members.filter((x) => x.roleId === 'admin' && x.status === 'Active');
+  const leads = m ? teams.filter((t) => t.leadId === m.id) : [];
+  const inTeams = m ? teams.filter((t) => t.memberIds.includes(m.id)) : [];
   const lastAdmin = !!m && m.roleId === 'admin' && admins.length <= 1;
   const candidates = members.filter((x) => x.id !== m?.id && x.status === 'Active');
   const [pick, setPick] = useState('');
@@ -284,7 +287,7 @@ function RemoveDialog({ m, onClose }: { m: Member | null; onClose: () => void })
           undoable(`${n.name} is now an Admin · you can remove yourself`, before);
         }}>Make {n?.name.split(' ')[0] ?? 'them'} Admin</Button></>}>
         <div className="space-y-4">
-          <Alert tone="amber" icon={ShieldCheck} title="Make someone else Admin first">Then you can change {first}’s role or remove her.</Alert>
+          <Alert tone="amber" icon={ShieldCheck} title="Make someone else Admin first">Then you can change {first}’s role or remove them.</Alert>
           <div><div className="text-sm font-medium text-gray-700 mb-1.5">New admin</div>
             <IconSelect ariaLabel="New admin" icon={User} value={pick} onChange={setPick} options={candidates.map((c) => ({ value: c.id, label: `${c.name} · ${roles.find((r) => r.id === c.roleId)?.name ?? ''}` }))} /></div>
         </div>
@@ -296,9 +299,21 @@ function RemoveDialog({ m, onClose }: { m: Member | null; onClose: () => void })
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" onClick={() => {
         const before = snap();
         set('members', (ms) => ms.filter((x) => x.id !== m.id));
+        /* They come off every team; a team they led passes to its next member, or has no lead. */
+        if (inTeams.length) set('teams', (ts) => ts.map((t) => {
+          if (!t.memberIds.includes(m.id)) return t;
+          const ids = t.memberIds.filter((x) => x !== m.id);
+          return { ...t, memberIds: ids, leadId: t.leadId === m.id ? (ids[0] ?? '') : t.leadId };
+        }));
         audit_(`removed ${m.name} from the workspace`, 'Members'); onClose();
         undoable(`${m.name} removed from the workspace`, before);
-      }}>Remove</Button></>} />
+      }}>Remove</Button></>}>
+      {inTeams.length > 0 && (
+        <Alert tone="amber" icon={Warning} title={leads.length ? `${m.name.split(' ')[0]} leads ${leads.map((t) => t.name).join(' and ')}` : `${m.name.split(' ')[0]} is in ${inTeams.length === 1 ? 'a team' : `${inTeams.length} teams`}`}>
+          {`They come off ${inTeams.map((t) => t.name).join(', ')}.`}{leads.length ? ` ${leads.map((t) => { const next = t.memberIds.find((x) => x !== m.id); return next ? `${members.find((x) => x.id === next)?.name} leads ${t.name}` : `${t.name} has no lead`; }).join('; ')}.` : ''}
+        </Alert>
+      )}
+    </ODialog>
   );
 }
 
@@ -320,7 +335,7 @@ function DeleteRoleDialog({ r, onClose }: { r: Role | null; onClose: () => void 
     set('roles', (rs) => rs.filter((x) => x.id !== r.id));
     audit_(users.length ? `moved ${users.length} members to ${target?.name} and deleted the role ${r.name}` : `deleted the role ${r.name}`, 'Roles');
     onClose();
-    undoable(users.length ? `${users.length} ${users.length === 1 ? 'member' : 'members'} moved to ${target?.name} · ${r.name} deleted` : `${r.name} deleted`, before, { description: 'Undo lasts 10 seconds.' });
+    undoable(users.length ? `${users.length} ${users.length === 1 ? 'member' : 'members'} moved to ${target?.name} · ${r.name} deleted` : `${r.name} deleted`, before, { area: 'Roles', description: 'Undo lasts 10 seconds.' });
   };
   return (
     <ODialog open onClose={onClose} title={`Delete ${r.name}?`}

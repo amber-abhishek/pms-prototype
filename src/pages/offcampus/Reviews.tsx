@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Alert } from '../org/parts';
 import { Empty } from '../../components/ui';
-import { ChatCenteredText, CheckCircle, FileMagnifyingGlass, Hourglass, Warning, XCircle } from '../../components/icons';
+import { ChatCenteredText, CheckCircle, FileMagnifyingGlass, Hourglass, Image as ImageIcon, Warning, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, listNav, PageHeader, Pill, Sheet, SheetHero, SheetSection, Tabs, cx } from '../../components/ui';
 import type { Tone } from '../../data/seed';
@@ -8,6 +10,8 @@ import { Checkbox } from '../../components/shadcn/checkbox';
 import { useOpen, useTab } from '../hooks';
 import { useOc, type Review, type ReviewStatus } from '../../data/offcampus';
 import { BulkBar, NoteDialog, ODialog, RowLink, Tag, Thumb, Title } from './parts';
+import { LStatus } from './Landlords';
+import { revertList } from '../../data/revert';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 
 type TabId = 'all' | 'review' | 'changes' | 'rejected';
@@ -40,6 +44,10 @@ export function Reviews() {
   useEffect(() => setTicked([]), [tab]);
 
   const guard = (fn: () => void) => { if (busy.current) return; busy.current = true; fn(); setTimeout(() => { busy.current = false; }, 400); };
+  const nav = useNavigate();
+  const blockOf = (r: Review) => blockFor(r, useOc.getState());
+  const block = sel ? blockOf(sel) : null;
+  const noPhotos = sel ? sel.rooms.filter((x) => !x.photos).map((x) => x.name) : [];
   const goLive = (ids: string[]) => {
     const st0 = useOc.getState();
     const picked = st0.reviews.filter((r) => ids.includes(r.id));
@@ -49,21 +57,48 @@ export function Reviews() {
       ...hs.map((h) => (picked.some((r) => r.title === h.title) ? { ...h, status: 'Active' as const, pausedBy: undefined, reason: undefined } : h)),
     ]);
   };
+  /* Undo puts back only the reviews and listings this action touched; later changes stay. */
+  const snap = () => { const s = useOc.getState(); return { reviews: s.reviews, hmos: s.hmos }; };
+  const undoSince = (before: ReturnType<typeof snap>) => {
+    const after = snap();
+    return () => { set('reviews', (rs) => revertList(before.reviews, after.reviews, rs)); set('hmos', (hs) => revertList(before.hmos, after.hmos, hs)); };
+  };
+  /* Bulk approve takes only listings that could go live on their own and have a photo of every room. */
+  const whyNot = (r: Review) => { const b = blockOf(r); return b ? b.kind : r.rooms.some((x) => !x.photos) ? 'photos' : null; };
   const bulkApprove = () => guard(() => {
-    const n = ticked.length;
-    goLive(ticked); setTicked([]);
-    toast.success(`${n} ${n === 1 ? 'listing' : 'listings'} approved`, { description: 'They are live on the student site.' });
+    const picked = ticked.map((id) => all.find((x) => x.id === id)).filter((r): r is Review => !!r);
+    const ok = picked.filter((r) => !whyNot(r)).map((r) => r.id);
+    const held = picked.filter((r) => whyNot(r));
+    const count = (k: string) => held.filter((r) => whyNot(r) === k).length;
+    const reasons = [
+      count('landlord') && `${count('landlord')} ${count('landlord') === 1 ? 'needs' : 'need'} an approved landlord`,
+      count('duplicate') && `${count('duplicate')} ${count('duplicate') === 1 ? 'is a duplicate address' : 'are duplicate addresses'}`,
+      count('photos') && `${count('photos')} ${count('photos') === 1 ? 'has rooms' : 'have rooms'} without photos`,
+    ].filter(Boolean).join(' · ');
+    setTicked(held.map((r) => r.id));
+    if (!ok.length) { toast.error('None approved', { description: `Left ticked: ${reasons}.` }); return; }
+    const before = snap();
+    goLive(ok);
+    const n = ok.length;
+    toast.success(`${n} ${n === 1 ? 'listing' : 'listings'} approved`, { description: held.length ? `Left ticked: ${reasons}.` : 'They are live on the student site.', duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
   });
-  const approveOne = (r: Review) => guard(() => { goLive([r.id]); setDlg(null); setOpen(null); toast.success('Listing approved', { description: `${r.title} is live on the student site.` }); });
+  const approveOne = (r: Review) => guard(() => {
+    if (blockOf(r)) return;
+    const before = snap();
+    goLive([r.id]); setDlg(null); setOpen(null);
+    toast.success('Listing approved', { description: `${r.title} is live on the student site.`, duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
+  });
   const requestChanges = (r: Review, note: string) => guard(() => {
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Changes requested' as const, note } : x)));
     setDlg(null); setOpen(null); setTab('changes');
     toast.success('Changes requested', { description: `${r.landlord} was emailed your note.` });
   });
   const reject = (r: Review, note: string) => guard(() => {
+    const before = snap();
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Rejected' as const, note } : x)));
     setDlg(null); setOpen(null); setTab('rejected');
-    toast.success('Listing rejected', { description: 'The reason was emailed to the landlord.' });
+    const undo = undoSince(before);
+    toast.success('Listing rejected', { description: 'Your reason is emailed to the landlord when this closes.', duration: 8000, action: { label: 'Undo', onClick: () => { undo(); setTab('review'); } } });
   });
   const resubmit = (r: Review) => {
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Under review' as const, received: '5 min ago', resubmission: true, rooms: x.rooms.map((rm) => ({ ...rm, photos: true })) } : x)));
@@ -140,15 +175,26 @@ export function Reviews() {
         submit="Request changes" onSubmit={(n) => sel && requestChanges(sel, n)} />
       <NoteDialog open={dlg === 'reject' && !!sel} onClose={() => setDlg(null)} icon={XCircle} danger title="Reject this listing"
         sub="Your reason is emailed to the landlord. The listing won't go live." label="Why are you rejecting it?" placeholder="e.g. The property is outside the area we cover."
+        initial={block?.kind === 'duplicate' ? 'This address is already listed on the site by another landlord.' : ''}
         submit="Reject" onSubmit={(n) => sel && reject(sel, n)} />
-      <ODialog open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title="Approve this listing"
-        sub="It goes live on your off-campus site straight away."
-        footer={<><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => sel && approveOne(sel)}>Approve</Button></>} />
+      <ODialog open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title={block ? 'This listing can’t go live yet' : 'Approve this listing'}
+        sub={block ? undefined : 'It goes live on your off-campus site straight away.'}
+        footer={block?.kind === 'landlord'
+          ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => { setDlg(null); nav(block.id ? `/offcampus/landlords?tab=all&open=${block.id}` : '/offcampus/landlords?tab=all'); }}>Open their application</Button></>
+          : block?.kind === 'duplicate'
+            ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => setDlg('reject')}>Reject as duplicate</Button></>
+            : noPhotos.length
+              ? <><Button onClick={() => setDlg('changes')}>Request changes</Button><Button variant="primary" onClick={() => sel && approveOne(sel)}>Approve anyway</Button></>
+              : <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => sel && approveOne(sel)}>Approve</Button></>}>
+        {block ? <Alert tone="red" icon={XCircle} title={block.title}>{block.sub}</Alert>
+          : noPhotos.length ? <Alert tone="amber" icon={ImageIcon} title={`${noPhotos.join(', ')} ${noPhotos.length === 1 ? 'has' : 'have'} no photos`}>Students see a blank tile for {noPhotos.length === 1 ? 'that room' : 'those rooms'}.</Alert> : null}
+      </ODialog>
     </>
   );
 }
 
 function ListingDetail({ r }: { r: Review }) {
+  const ll = useOc((s) => s.landlords.find((l) => l.name === r.landlord));
   const tagTones: Tone[] = ['blue', 'green', 'purple', 'green', 'red'];
   return (
     <>
@@ -169,7 +215,7 @@ function ListingDetail({ r }: { r: Review }) {
       <SheetSection title="Property" rows={[
         ['Address', r.address], ['Type', `${r.type} · ${r.beds} bed`], ['Let as', r.letAs], ['Size', `${r.size} m²`], ['From', `£${r.from} per week`],
       ]} />
-      <SheetSection title="Landlord" rows={[['Name', r.landlord], ['Status', <Tag key="s" tone="green">Active</Tag>]]} />
+      <SheetSection title="Landlord" rows={[['Name', r.landlord], ['Status', ll ? <LStatus key="s" s={ll.status} /> : <Tag key="s" tone="grey">Not registered</Tag>]]} />
       <SheetSection title="Amenities">
         <div className="flex flex-wrap gap-1.5">{r.amenities.map((a, i) => <Pill key={a} tone={tagTones[i % tagTones.length]} outline>{a}</Pill>)}</div>
       </SheetSection>
@@ -179,7 +225,7 @@ function ListingDetail({ r }: { r: Review }) {
           {r.rooms.map((rm, i) => (
             <div key={rm.name} className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3">
               {rm.photos ? <Thumb tint={['#EFEBE3', '#E6EEE8', '#ECE6EE', '#EAECEF'][i % 4]} w={56} h={40} size={16} />
-                : <span className="w-14 h-10 rounded-md border border-dashed border-gray-300 text-[11px] leading-tight text-gray-400 flex items-center px-1">No photos</span>}
+                : <span className="w-14 h-10 rounded-md border border-dashed border-[#8A909C] text-xs leading-tight text-[#646A78] flex items-center px-1">No photos</span>}
               <div className="flex-1 leading-tight">
                 <div className="flex items-center gap-2 text-sm font-medium">{rm.name}<Tag tone="green">Active</Tag></div>
                 <div className="text-xs text-gray-500 mt-0.5">{rm.kind} · {rm.size} m² · {rm.bath}</div>
@@ -191,4 +237,16 @@ function ListingDetail({ r }: { r: Review }) {
       </SheetSection>
     </>
   );
+}
+
+/** Why a listing can't go live: its landlord isn't approved, or another landlord already lists the address. */
+function blockFor(r: Review, st: { landlords: { id: string; name: string; status: string }[]; hmos: { title: string; landlord: string; status: string }[] }):
+  { kind: 'landlord' | 'duplicate'; id?: string; title: string; sub: string } | null {
+  const l = st.landlords.find((x) => x.name === r.landlord);
+  if (!l) return { kind: 'landlord', title: `${r.landlord} isn’t an approved landlord`, sub: 'Only approved landlords can list here.' };
+  if (l.status !== 'Approved') return { kind: 'landlord', id: l.id, title: `${r.landlord} ${({ Submitted: 'isn’t approved yet', 'Awaiting info': 'owes you more information', Rejected: 'was rejected', Suspended: 'is suspended' } as Record<string, string>)[l.status] ?? 'isn’t approved'}`, sub: 'Approve the landlord first, then their listings.' };
+  const key = (t: string) => t.trim().toLowerCase().replace(/\s+/g, ' ');
+  const twin = st.hmos.find((h) => key(h.title) === key(r.title) && h.landlord !== r.landlord && h.status !== 'Archived');
+  if (twin) return { kind: 'duplicate', title: `${twin.title} is already listed by ${twin.landlord}`, sub: 'Two landlords can’t list the same address.' };
+  return null;
 }

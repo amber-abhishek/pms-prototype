@@ -1,4 +1,4 @@
-import { HashRouter, Route, Routes } from 'react-router-dom';
+import { Route, RouterProvider, Routes, createHashRouter } from 'react-router-dom';
 import { Toaster } from './components/shadcn/sonner';
 import { Shell } from './shell/Shell';
 import { ActivityFeed, Overview, Tasks } from './pages/Home';
@@ -13,9 +13,15 @@ import { SiteBuilder } from './pages/site/Builder';
 import { Invite, Login } from './pages/auth/Login';
 
 /** Each module owns its own sub-routes, so a module can add detail pages and wizards without touching this file. */
+/* A data router (not <HashRouter>) so Settings can hold navigation with useBlocker while a draft is unsaved. */
+const router = createHashRouter([{ path: '*', element: <AppRoutes /> }]);
 export function App() {
+  return <RouterProvider router={router} />;
+}
+
+function AppRoutes() {
   return (
-    <HashRouter>
+    <>
       <Routes>
         <Route path="login" element={<Login />} />
         <Route path="invite" element={<Invite />} />
@@ -37,6 +43,6 @@ export function App() {
         </Route>
       </Routes>
       <Toaster />
-    </HashRouter>
+    </>
   );
 }

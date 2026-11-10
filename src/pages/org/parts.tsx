@@ -2,7 +2,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { Illustration, type Illo } from '../../components/Illustration';
 import { DotsThree, type Icon } from '../../components/icons';
-import { CrumbLink, Dropdown, cx } from '../../components/ui';
+import { CrumbLink, CrumbTitle, Dropdown, cx } from '../../components/ui';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { X } from '../../components/icons';
@@ -16,7 +16,7 @@ export function Header({ icon: I, crumbs, title, children }: { icon?: Icon; crum
     <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
       {I && <I size={16} className="text-[#646A78]" />}
       <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map((c) => <CrumbLink key={c.label} c={c} />)}</div>
-      <h1 className="text-sm font-normal text-ink">{title}</h1>
+      <CrumbTitle className="text-sm font-normal text-ink">{title}</CrumbTitle>
       <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
     </div>
   );
@@ -51,7 +51,7 @@ export function ODialog({ open, onClose, title, sub, children, footer, width = 5
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
         <DialogClose aria-label="Close" className="absolute right-3 top-3 size-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-[#646A78]"><X size={14} /></DialogClose>
-        <div className="px-5 pt-5 pr-12"><DialogTitle className="text-[15px] leading-5">{title}</DialogTitle>{sub && <DialogDescription>{sub}</DialogDescription>}</div>
+        <div className="px-5 pt-5 pr-12"><DialogTitle className="text-base leading-6">{title}</DialogTitle>{sub && <DialogDescription>{sub}</DialogDescription>}</div>
         <DialogBody>{children}</DialogBody>
         {footer && <DialogFooter>{footer}</DialogFooter>}
       </DialogContent>

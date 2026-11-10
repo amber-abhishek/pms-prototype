@@ -11,12 +11,12 @@ export const fromIcon: Record<FromIcon, Icon> = {
 };
 
 const dueCls: Record<DueTone, string> = {
-  red: 'bg-[#FEEFEE] text-[#D92D20] border-[#FCE1E0]', orange: 'bg-[#FFF0E0] text-[#E5530C] border-[#FFE9D2]', amber: 'bg-[#FFF6E0] text-[#C47A00] border-[#FFF2D1]', grey: 'bg-[#F3F4F6] text-[#374151] border-[#ECEDF0]', plain: '',
+  red: 'bg-[#FEEFEE] text-[#C11F14] border-[#FCE1E0]', orange: 'bg-[#FFF0E0] text-[#C2410C] border-[#FFE9D2]', amber: 'bg-[#FFF6E0] text-[#9A5B00] border-[#FFF2D1]', grey: 'bg-[#F3F4F6] text-[#374151] border-[#ECEDF0]', plain: '',
 };
 /** Due pill: calendar icon on My tasks, clock icon on the team board. "This week" is plain text. */
 export function DuePill({ t }: { t: Pick<HTask, 'dueLabel' | 'dueTone'>; clock?: boolean }) {
   if (t.dueTone === 'plain') return <span className="text-xs text-gray-500">{t.dueLabel}</span>;
-  return <span className={cx('inline-flex items-center gap-[5px] h-[22px] px-2 rounded-lg border text-xs font-medium whitespace-nowrap', dueCls[t.dueTone])}>{t.dueLabel}</span>;
+  return <span className={cx('inline-flex items-center gap-1 h-[22px] px-2 rounded-lg border text-xs font-medium whitespace-nowrap', dueCls[t.dueTone])}>{t.dueLabel}</span>;
 }
 
 /** Person avatar: the shared toned Avatar (Figma 3770:15786) in each person's colour (PS orange, TB teal, AK purple); muted is grey. `grad` is kept for callers. */
@@ -24,13 +24,15 @@ export function Who({ name, size = 22, muted }: { name: string; size?: number; m
   return <Avatar name={name} size={size} color={muted ? '#9CA3AF' : PEOPLE[name]?.color} />;
 }
 
-/** Square checkbox drawn to the design (16px, blue when on). */
+/** Square checkbox drawn to the design (16px, blue when on), inside a 24px hit area that doesn't move the layout. */
 export function Box({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
   return (
     <button type="button" role="checkbox" aria-checked={checked} aria-label={label} disabled={disabled}
       onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
-      className={cx('size-4 rounded-[4px] border flex items-center justify-center shrink-0 transition-colors disabled:opacity-40', checked ? 'bg-primary border-primary text-white' : 'bg-white border-gray-300 hover:border-gray-400')}>
-      {checked && <Check size={12} weight="bold" className="animate-[pop_.15s_cubic-bezier(0.23,1,0.32,1)]" />}
+      className="group/box size-6 -m-1 flex items-center justify-center shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-40">
+      <span className={cx('size-4 rounded-[4px] border flex items-center justify-center transition-colors', checked ? 'bg-primary border-primary text-white' : 'bg-white border-input group-hover/box:border-gray-500')}>
+        {checked && <Check size={12} weight="bold" className="animate-[pop_.15s_cubic-bezier(0.23,1,0.32,1)]" />}
+      </span>
     </button>
   );
 }

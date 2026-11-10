@@ -9,7 +9,7 @@ import { Avatar, Button, Card, Empty, Field, Input, Note, PageHeader, Sheet, Tex
 import { allUnits, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
-import { EditLink, LineTabs, Menu, Modal, MoneyInput, PropStatus, Progress, RadioCard, Tags } from './common';
+import { EditLink, FieldErr, LineTabs, Menu, Modal, MoneyInput, PropStatus, Progress, RadioCard, Tags, moneyErr, parseDay } from './common';
 import { EmptyArt } from './Properties';
 import { GhostZone } from '../../components/headerCtx';
 
@@ -32,6 +32,8 @@ export function PropertyDetail() {
   const [editOpen, setEditOpen] = useState<null | 'basics' | 'address'>(null);
   const [rentFor, setRentFor] = useState<RoomType | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [archiveAsk, setArchiveAsk] = useState(false);
+  const fees = useInv((s) => s.fees);
 
   // Rooms build in the background after Create property; tick the progress until done.
   const building = !!p?.build && p.build.done < p.build.total;
@@ -54,12 +56,16 @@ export function PropertyDetail() {
   if (!p) return <NotFound />;
   const short = shortName(p);
   const hasRooms = p.units > 0 && !p.build;
+  const feeCount = fees.filter((f) => f.appliesTo == null || f.appliesTo === p.id).length;
+  const hasFees = feeCount > 0;
+  const rentless = p.roomTypes.filter((r) => r.rent == null);
+  const tenanciesOk = p.tenancies !== false && hasRooms && templates.length > 0 && rentless.length === 0;
   const problems = [
     { ok: hasRooms, title: 'Rooms built', fail: building ? 'Still building' : 'No rooms yet', okText: `${p.units} rooms`, tab: 'units' as TabId },
     { ok: p.photos > 0, title: 'Photos', fail: 'No photos', okText: `${p.photos} photos`, tab: 'photos' as TabId },
     { ok: !!p.description.trim(), title: 'Description', fail: 'Empty', okText: 'Written', tab: 'photos' as TabId },
     { ok: p.roomTypes.every((r) => r.rent != null), title: 'Rent on every room type', fail: `${p.roomTypes.filter((r) => r.rent == null).map((r) => r.name).join(', ')} has no rent`, okText: `${p.roomTypes.length} room types`, tab: 'tenancies' as TabId },
-    { ok: true, title: 'Fees', fail: '', okText: 'Deposit £250', tab: 'tenancies' as TabId },
+    { ok: hasFees, title: 'Fees', fail: 'No fees apply', okText: `${feeCount} ${feeCount === 1 ? 'fee applies' : 'fees apply'}`, tab: 'tenancies' as TabId },
   ];
   const activate = () => {
     if (problems.some((x) => !x.ok)) return setChecks(true);
@@ -70,11 +76,18 @@ export function PropertyDetail() {
     patchProp(p.id, (x) => ({ status: 'Active', counts: { ...x.counts, active: x.counts.all - x.counts.archived - x.counts.inactive, draft: 0 }, activity: logAct(x, `${x.name} made active`) }));
     toast.success(`${p.name} is active`);
   };
+  const archiveNow = () => {
+    const was = p.status;
+    patchProp(p.id, (x) => ({ status: 'Archived', activity: logAct(x, `${x.name} archived`) }));
+    setArchiveAsk(false);
+    nav('/inventory/properties');
+    toast.success(`${p.name} archived`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: was })) } });
+  };
   const setupRows = [
     { k: 'Name, campus and layout', v: `${p.campus} · ${p.structure}`, ok: true, go: () => setEditOpen('basics') },
     { k: 'Address', v: p.address || 'Not set', ok: !!p.address, go: () => setEditOpen('address') },
     { k: 'Units', v: building ? `Building ${p.build!.done} of ${p.build!.total}` : p.units ? `${p.units} rooms in ${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No rooms yet', ok: hasRooms, go: () => setTab('units') },
-    { k: 'Tenancies', v: p.tenancies === false ? 'Rooms have no tenancy yet' : `${templates.length || p.roomTypes.length} templates`, ok: p.tenancies !== false && hasRooms, go: () => setTab('tenancies') },
+    { k: 'Tenancies', v: p.tenancies === false ? 'Rooms have no tenancy yet' : !templates.length ? 'No tenancy templates yet' : rentless.length ? `${rentless.map((r) => r.name).join(', ')} has no rent` : `${templates.length} ${templates.length === 1 ? 'template' : 'templates'}`, ok: tenanciesOk, go: () => setTab('tenancies') },
     { k: 'Photos and description', v: p.photos ? `${p.photos} photos${p.description ? ' · description' : ''}${p.amenities.length ? ` · ${p.amenities.length} amenities` : ''}` : 'Not added', ok: p.photos > 0 && !!p.description, go: () => setTab('photos') },
   ];
   const doneCount = setupRows.filter((r) => r.ok).length;
@@ -87,12 +100,16 @@ export function PropertyDetail() {
           { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
           { label: 'Rent and fees', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
           'sep',
-          { label: 'Archive', icon: Archive, danger: true, onClick: () => nav('/inventory/properties') },
+          { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
         ]} />
         <Button icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>
         {p.status === 'Draft' && <Button variant="primary" icon={CheckCircle} onClick={activate}>Make active…</Button>}
       </PageHeader>
 
+      <Modal open={archiveAsk} onClose={() => setArchiveAsk(false)} icon={Archive} width={440} title={`Archive ${p.name}?`}
+        sub={p.liveTenancies > 0 ? `${p.liveTenancies} tenancies are live, so it can’t be archived yet. Close it to allocations first, from the Properties list.` : 'It leaves Inventory and can’t be booked. You can undo straight after.'}
+        footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations…</Button></>
+          : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
       <div className="flex-1 overflow-auto">
         {/* 2822:71: 64px grey photo tile, 20px semibold title, 14px #646A78 meta with 14px grey-400 icons and · separators. */}
         <div className="px-7 pt-6 pb-5 flex items-center gap-4">
@@ -508,8 +525,10 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
   const signed = Math.round(rt.rooms * 0.92);
   const unit = per(p) === 'wk' ? 'week' : 'month';
   const fromShort = from.replace(/^(\d+) (\w{3})\w* \d{4}$/, '$1 $2');
+  const rentErr = moneyErr(rent, 'a rent');
+  const fromErr = parseDay(from) ? '' : 'Enter a date, e.g. 1 January 2027.';
   const save = () => {
-    if (busy.current || !rent) return;
+    if (busy.current || rentErr || fromErr) return;
     busy.current = true;
     const old = p.roomTypes;
     patchProp(p.id, (x) => ({
@@ -522,12 +541,12 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
   };
   return (
     <Sheet open onClose={onClose} title={`Change rent · ${rt.name}`} sub={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`} width={480}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!rent} onClick={save}>{apply === 'new' ? `Save ${money(+rent || 0)} for new tenancies` : `Save ${money(+rent || 0)} for all`}</Button></>}>
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!rentErr || !!fromErr} onClick={save}>{apply === 'new' ? `Save ${money(+rent || 0)} for new tenancies` : `Save ${money(+rent || 0)} for all`}</Button></>}>
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="New rent">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Rent"><MoneyInput value={rent} onChange={setRent} suffix={`/ ${unit}`} /></Field>
-          <Field label="From"><label className="h-8 flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 text-sm"><CalendarBlank size={14} className="text-gray-400" /><input aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1 min-w-0 outline-none" /></label></Field>
+          <Field label="Rent"><MoneyInput value={rent} onChange={setRent} suffix={`/ ${unit}`} /><FieldErr>{rentErr}</FieldErr></Field>
+          <Field label="From"><label className="h-8 flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 text-sm"><CalendarBlank size={14} className="text-[#646A78]" /><input aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1 min-w-0 outline-none" /></label><FieldErr>{fromErr}</FieldErr></Field>
         </div>
         </SheetSection>
         <SheetSection title="Apply to">
@@ -550,18 +569,21 @@ function EditSheet({ p, which, onClose }: { p: Property; which: null | 'basics' 
   const [address, setAddress] = useState(p.address);
   const [zone, setZone] = useState(p.zone);
   useEffect(() => { if (which) { setName(p.name); setInvNo(p.invNo); setAddress(p.address); setZone(p.zone); } }, [which, p]);
+  const others = useInv((s) => s.properties);
+  const nameErr = !name.trim() ? 'Enter a property name.' : others.some((x) => x.id !== p.id && x.name.trim().toLowerCase() === name.trim().toLowerCase()) ? `A property called ${name.trim()} already exists.` : '';
   const save = () => {
-    patchProp(p.id, (x) => ({ name: name.trim() || x.name, invNo, address, zone, activity: logAct(x, which === 'basics' ? 'Details edited' : 'Address edited') }));
+    if (nameErr) return;
+    patchProp(p.id, (x) => ({ name: name.trim(), invNo, address, zone, activity: logAct(x, which === 'basics' ? 'Details edited' : 'Address edited') }));
     onClose();
-    toast.success('Saved');
+    toast.success(which === 'address' ? `${name.trim()} address saved` : `${name.trim()} details saved`);
   };
   return (
-    <Sheet open={!!which} onClose={onClose} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
+    <Sheet open={!!which} onClose={onClose} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!nameErr} onClick={save}>Save</Button></>}>
       {which === 'basics' ? (
         <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
           <SheetSection title="Details">
           <div className="space-y-4">
-          <Field label="Property name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+          <Field label="Property name"><Input value={name} onChange={(e) => setName(e.target.value)} /><FieldErr>{nameErr}</FieldErr></Field>
           <Field label="Inventory number" hint="Optional · your own reference"><Input className="font-mono" value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
           <Field label="Campus"><Input value={p.campus} disabled /></Field>
           </div>

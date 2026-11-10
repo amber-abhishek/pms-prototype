@@ -10,6 +10,7 @@ import { Button, Card, PageHeader, cx } from '../../components/ui';
 import { OverviewPage, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
 import { MenuButton } from './parts';
 import { useEmpty } from '../../data/empty';
+import { ME, useHome } from '../../data/home';
 
 function Header() {
   const campuses = useDb((s) => s.campuses);
@@ -52,7 +53,10 @@ function Today() {
   const overdue = open.filter((f) => f.slaMins < 0).length;
   /* Empty-states demo: a workspace with no beds, applications or residents yet, so every number reads zero. */
   const e = useEmpty((s) => s.on);
-  const due = e ? [0, 0, 0] : [2, 2, 4];
+  /* The same open tasks My tasks counts: Priya's, not done, not snoozed. */
+  const mine = useHome((s) => s.rows.main).filter((r) => !r.done && !r.snoozed && r.owner === ME);
+  const due = (['overdue', 'today', 'week'] as const).map((d) => mine.filter((r) => r.due === d).length);
+  const first = mine.find((r) => r.due === 'overdue') ?? mine.find((r) => r.due === 'today');
   return (
     <>
       <Header />
@@ -68,8 +72,8 @@ function Today() {
             rows={e ? [] : PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/inventory/properties?open=${h.id}` }))} />
         </div>
         <div className="grid grid-cols-3 gap-4">
-          <SummaryCard title="Needs your action" foot="Oldest" footValue={e ? '—' : '6 days'} footTone={e ? 'ink' : 'red'} action={<Button size="sm" onClick={() => nav('/tasks')}>Open tasks</Button>}>
-            <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} urgent`, due[0], '#EF4444'], [`${due[1]} due today`, due[1], '#F59E0B'], [`${due[2]} this week`, e ? 0 : due[2] || 1, '#D1D5DB']]} />
+          <SummaryCard title="Needs your action" foot={first?.due === 'overdue' ? 'Overdue' : 'Due first'} footValue={first ? first.title : 'Nothing due today'} footTone={first?.due === 'overdue' ? 'red' : 'ink'} action={<Button size="sm" onClick={() => nav('/tasks')}>Open tasks</Button>}>
+            <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} overdue`, due[0], '#EF4444'], [`${due[1]} due today`, due[1], '#F59E0B'], [`${due[2]} this week`, due[2], '#D1D5DB']]} />
           </SummaryCard>
           <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
             <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />

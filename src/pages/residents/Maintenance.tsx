@@ -21,7 +21,7 @@ const faultIcon: Record<FaultIcon, Icon> = {
 };
 export const PriorityPill = ({ p }: { p: Priority }) => (p === 'Urgent' ? <Pill tone="red" icon={Siren}>Urgent</Pill> : p === 'High' ? <Pill tone="orange" icon={ArrowUp}>High</Pill> : <Pill tone="grey" icon={Minus}>Normal</Pill>);
 function Assignee({ name }: { name?: string }) {
-  if (!name) return <span className="text-xs text-gray-400">Not assigned</span>;
+  if (!name) return <span className="text-xs text-[#646A78]">Not assigned</span>;
   return <span className="flex items-center gap-2"><Avatar name={name} size={20} />{name}</span>;
 }
 function Sla({ f }: { f: Fault }) {
@@ -29,7 +29,7 @@ function Sla({ f }: { f: Fault }) {
   if (f.status === 'Waiting on parts') return <span className="text-xs font-medium text-gray-500 flex items-center gap-1.5"><Timer size={13} />Waiting on parts</span>;
   const late = f.slaMins < 0;
   const hot = late || f.priority === 'Urgent';
-  return <span className={cx('text-xs font-medium flex items-center gap-1.5', hot ? (late || f.slaMins < 360 ? 'text-[#B91C1C]' : 'text-[#E5530C]') : 'text-gray-500')}><Timer size={13} />{late ? `Breached ${fmtSla(f.slaMins)} ago` : `Due in ${fmtSla(f.slaMins)}`}</span>;
+  return <span className={cx('text-xs font-medium flex items-center gap-1.5', hot ? (late || f.slaMins < 360 ? 'text-[#B91C1C]' : 'text-[#C2410C]') : 'text-gray-500')}><Timer size={13} />{late ? `Breached ${fmtSla(f.slaMins)} ago` : `Due in ${fmtSla(f.slaMins)}`}</span>;
 }
 
 /* ---------------- List: 3022, 3121 (empty), 3214 ---------------- */
@@ -286,7 +286,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
           ['Category', isRad ? 'Heating · radiator' : f.category],
           ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
           ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
-          ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-gray-400">Nobody yet</span>],
+          ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#646A78]">Nobody yet</span>],
         ]} />
       </Panel>
     </div>
@@ -306,7 +306,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
         ['Category', isRad ? 'Heating · radiator' : f.category],
         ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
         ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
-        ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-gray-400">Nobody yet</span>],
+        ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#646A78]">Nobody yet</span>],
         ['Deadline', deadline],
       ]} />
       <SheetSection title="Report">

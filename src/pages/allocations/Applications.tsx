@@ -159,12 +159,12 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
               className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F3F4F6] border-l-2', sel?.id === a.id ? 'bg-[#EFF6FF] border-l-primary' : 'border-l-transparent hover:bg-[#F9FAFB]')}>
               <Ini name={a.name} size={24} />
               <div className="min-w-0 flex-1">
-                <div className="text-sm truncate"><span className="font-semibold">{a.name}</span>{a.tag && <span className={cx('text-xs font-medium', a.tag === 'No study offer' ? 'text-[#C47A00]' : 'text-[#8B2CF5]')}> · {a.tag}</span>}</div>
+                <div className="text-sm truncate"><span className="font-semibold">{a.name}</span>{a.tag && <span className={cx('text-xs font-medium', a.tag === 'No study offer' ? 'text-[#9A5B00]' : 'text-[#8B2CF5]')}> · {a.tag}</span>}</div>
                 <div className="text-xs text-gray-500 truncate">{a.hall} · {a.room}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className={cx('text-xs', a.waiting >= 7 ? 'font-semibold text-[#E0243A]' : a.waiting >= 5 ? 'font-semibold text-[#E5530C]' : 'font-medium text-gray-500')}>{a.waiting} d</div>
-                <div className="text-xs text-gray-400 font-mono mt-0.5">{a.ref}</div>
+                <div className={cx('text-xs', a.waiting >= 7 ? 'font-semibold text-[#C11F14]' : a.waiting >= 5 ? 'font-semibold text-[#C2410C]' : 'font-medium text-gray-500')}>{a.waiting} d</div>
+                <div className="text-xs text-[#646A78] font-mono mt-0.5">{a.ref}</div>
               </div>
             </button>
           ))}
@@ -218,7 +218,7 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
     applicant,
     { key: 'why', label: 'Why it’s here', render: (a) => <span className="flex items-center gap-2"><Flag size={14} className="text-[#8B2CF5]" />{a.why}</span> },
     { key: 'pref', label: '1st preference', render: (a) => <span className="text-gray-500">{a.hall} · {a.room}</span> },
-    { key: 'wait', label: 'Waiting', render: (a) => <span className={cx(a.waiting >= 7 ? 'font-semibold text-[#E0243A]' : a.waiting >= 5 ? 'font-semibold text-[#E5530C]' : 'font-medium text-gray-500')}>{a.waiting} d</span> },
+    { key: 'wait', label: 'Waiting', render: (a) => <span className={cx(a.waiting >= 7 ? 'font-semibold text-[#C11F14]' : a.waiting >= 5 ? 'font-semibold text-[#C2410C]' : 'font-medium text-gray-500')}>{a.waiting} d</span> },
     { key: 'who', label: 'Assigned to', render: (a) => (a.assignee ? <span className="flex items-center gap-2 font-medium"><Ini name={a.assignee} size={24} />{a.assignee}</span> : <span className="text-gray-500">Unassigned</span>) },
   ] : tab === 'All' ? [
     applicant,

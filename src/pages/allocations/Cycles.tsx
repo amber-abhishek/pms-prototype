@@ -23,7 +23,9 @@ export function Cycles() {
   const [creating, setCreating] = useState(() => new URLSearchParams(window.location.hash.split('?')[1]).get('new') === '1');
   const [editing, setEditing] = useState<Cycle | null>(null);
   const [closing, setClosing] = useState<Cycle | null>(null);
-  const cycles = d.cycles;
+  /* The open cycle's counts come from its applications, the same numbers the Applications tabs and overview show. */
+  const ac = appCounts(d);
+  const cycles = d.cycles.map((c) => (c.status === 'open' ? { ...c, apps: ac.all, allocated: ac.allocated } : c));
   const live = cycles.filter(isLive), closed = cycles.filter((c) => !isLive(c));
   const bar = (c: Cycle) => (
     <div className="flex items-center gap-2.5">
@@ -86,7 +88,7 @@ function LiveCard({ c, onEdit, onClose, onOpenApps }: { c: Cycle; onEdit: () => 
   const ac = appCounts(d), oc = offerCounts(d);
   const open = c.status === 'open', ten = c.status === 'tenancy';
   const tiles: [string, string, string?][] = open ? [
-    ['Applications', fmtN(c.apps), `${ac.review} to review`], ['Allocated', fmtN(c.allocated), `of ${fmtN(c.beds)} beds`], ['Offers open', fmtN(oc.open), '12 expire in 48h'],
+    ['Applications', fmtN(ac.all), `${ac.review} to review`], ['Allocated', fmtN(ac.allocated), `of ${fmtN(c.beds)} beds`], ['Offers open', fmtN(oc.open), '12 expire in 48h'],
     ['Accepted', fmtN(c.accepted ?? 0), `£${fmtN((c.accepted ?? 0) * 250)} deposits`], ['Leases signed', fmtN(c.signed ?? 0), `${(c.accepted ?? 0) - (c.signed ?? 0)} waiting`],
   ] : ten ? [
     ['Applications', fmtN(c.apps), 'closed'], ['Allocated', fmtN(c.allocated), `of ${fmtN(c.beds)} beds`], ['Offers open', '0'], ['Accepted', fmtN(c.accepted ?? 0)], ['Leases signed', fmtN(c.signed ?? 0), '25 ended early'],

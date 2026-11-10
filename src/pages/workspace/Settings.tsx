@@ -1,16 +1,17 @@
 // Workspace › Settings. Figma Flow 9 (3040–3042), tabs 3054/3055/3056/3059/3060/3061, E3 integration stops syncing (3232–3234).
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useBeforeUnload, useBlocker, useSearchParams } from 'react-router-dom';
 import {
-  Archive, EnvelopeSimple, PencilSimple, DotsThree, ArrowUpRight, Calculator, ChatCenteredText, Key, SlidersHorizontal, ArrowsLeftRight, DeviceMobile, Bank, Bell, CalendarBlank, Check, Globe, Money, Moon, Sun, CreditCard, DoorOpen, Gear, GraduationCap, Info, Palette, Plug, Plus, Textbox, TreeStructure,
+  Archive, EnvelopeSimple, PencilSimple, ArrowUpRight, Calculator, ChatCenteredText, Key, SlidersHorizontal, ArrowsLeftRight, DeviceMobile, Bank, Bell, CalendarBlank, Check, Globe, Money, Moon, Sun, CreditCard, DoorOpen, Gear, GraduationCap, Info, Palette, Plug, Plus, Textbox, TreeStructure,
   UploadSimple, Warning, WarningCircle, WebhooksLogo, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, DL, Input, Pill, Switch, Textarea, cx } from '../../components/ui';
+import { Button, DL, Input, Pill, Switch, Textarea, TitleH1, cx } from '../../components/ui';
 import { BRAND, BrandTile } from '../../components/brandLogos';
-import { useWorkspace, type Branding, type General, type Integration, type NotifRow, type Payments } from '../../data/workspace';
-import { Alert, Header, IconSelect, ODialog } from '../org/parts';
+import { usePins } from '../../data/pins';
+import { useWorkspace, type Branding, type General, type Integration, type NotifRow, type Payments, type Term, type Year } from '../../data/workspace';
+import { Alert, Header, IconSelect, ODialog, RowMenu } from '../org/parts';
 
 const TABS: { id: string; label: string; to: string; icon: Icon; external?: boolean }[] = [
   { id: 'general', label: 'General', to: '/settings', icon: Gear },
@@ -32,7 +33,7 @@ function Layout({ tab, title, sub, actions, children, wide }: { tab: string; tit
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 overflow-auto">
           <div className={cx('px-8 py-6 pb-12', wide ? 'max-w-[1080px]' : 'max-w-[820px]')}>
-            <h2 className="text-base leading-6 font-semibold text-[#111827]">{title}</h2>
+            <TitleH1 className="text-base leading-6 font-semibold text-[#111827]">{title}</TitleH1>
             <p className="text-sm leading-5 text-[#646A78] mt-1">{sub}</p>
             <div className="mt-6 space-y-7">{children}</div>
           </div>
@@ -47,7 +48,7 @@ function Section({ title, sub, children, action, tone }: { title: string; sub?: 
     /* 3054:2: no card; 14px semibold title, 12px #646A78 sub, fields 16px below. `tone` kept for callers; the frame's Danger zone title is ink too. */
     <section data-tone={tone}>
       <div className="flex items-start gap-3">
-        <div className="flex-1"><h3 className="text-sm leading-5 font-semibold text-[#111827]">{title}</h3>{sub && <p className="text-xs leading-4 text-[#646A78] mt-0.5">{sub}</p>}</div>{action}
+        <div className="flex-1"><h2 className="text-sm leading-5 font-semibold text-[#111827]">{title}</h2>{sub && <p className="text-xs leading-4 text-[#646A78] mt-0.5">{sub}</p>}</div>{action}
       </div>
       {children && <div className="pt-4">{children}</div>}
     </section>
@@ -55,31 +56,176 @@ function Section({ title, sub, children, action, tone }: { title: string; sub?: 
 }
 const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm leading-5 font-medium text-[#111827] mb-1.5">{children}</div>;
 const opts = (xs: string[]) => xs.map((x) => ({ value: x, label: x }));
+/** Inline field error. */
+const Err = ({ children }: { children?: ReactNode }) => (children ? <p role="alert" className="text-xs leading-4 text-[#E0243A] mt-1.5">{children}</p> : null);
+const bad = (e?: string) => (e ? 'border-[#E0243A] focus-visible:ring-[#E0243A]/25' : undefined);
+
+/* Dates are written "16 Sep 2028"; only a day that exists on the calendar parses. */
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function parseDay(s: string): Date | null {
+  const m = s.trim().match(/^(\d{1,2}) ([A-Za-z]{3}) (\d{4})$/);
+  if (!m) return null;
+  const mo = MON.findIndex((x) => x.toLowerCase() === m[2].toLowerCase());
+  if (mo < 0) return null;
+  const d = new Date(+m[3], mo, +m[1]);
+  return d.getMonth() === mo && d.getDate() === +m[1] ? d : null;
+}
+const NOT_A_DATE = 'Use a real date like 16 Sep 2028';
+
+/* WCAG contrast of white text on a hex colour. */
+function whiteOn(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => { const v = parseInt(hex.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 1.05 / (0.2126 * r + 0.7152 * g + 0.0722 * b + 0.05);
+}
 const HOURS = ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '06:00', '07:00', '08:00', '09:00'];
 
-/** Draft of a settings slice with Discard / Save in the header. */
-function useDraft<T>(value: T, save: (v: T) => void, msg: (prev: T, next: T) => string) {
+type DraftKey = 'general' | 'notifs' | 'payments' | 'branding';
+const TAB_NAME: Record<DraftKey, string> = { general: 'General', notifs: 'Notifications', payments: 'Payments', branding: 'Branding' };
+const FIELD: Record<string, string> = {
+  name: 'Name', short: 'Short name', timezone: 'Timezone', currency: 'Currency', weekStarts: 'Week starts', quietFrom: 'Quiet hours from', quietTo: 'Quiet hours to',
+  methods: 'How residents can pay', billed: 'Billed', due: 'Due', deposit: 'Deposit', remind: 'Rent reminder', arrears: 'Arrears flag', lateFee: 'Late fee',
+  logo: 'Logo', colour: 'Brand colour', sender: 'Email sender name', replyTo: 'Reply-to', footer: 'Email footer', all: 'Notification choices',
+};
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+/* Field-level diff. A list (notifications) counts as one field. */
+const parts = (v: unknown): Record<string, unknown> => (Array.isArray(v) ? { all: v } : (v as Record<string, unknown>));
+const changed = (a: unknown, b: unknown) => { const A = parts(a), B = parts(b); return Object.keys({ ...A, ...B }).filter((k) => !same(A[k], B[k])); };
+const shown = (v: unknown) => (typeof v === 'boolean' ? (v ? 'On' : 'Off') : v && typeof v === 'object' ? 'Changed' : String(v));
+/* Their saved value with my fields laid over it. */
+function merge<T>(theirs: T, mine: T, keys: string[]): T {
+  if (Array.isArray(mine)) return mine;
+  const m = mine as Record<string, unknown>;
+  return { ...(theirs as Record<string, unknown>), ...Object.fromEntries(keys.map((k) => [k, m[k]])) } as T;
+}
+
+/* Prototype demos (?demo=…): `save-fails` makes the next save fail once; `other-admin` has James Reed save this tab 3 seconds later. */
+let FAIL_NEXT = false;
+const SAVED_BY = new Map<DraftKey, string>();
+function theirEdit(k: DraftKey) {
+  const s = useWorkspace.getState();
+  SAVED_BY.set(k, 'James Reed');
+  if (k === 'general') s.set('general', { ...s.general, name: 'Durham University Accommodation' });
+  if (k === 'payments') s.set('payments', { ...s.payments, deposit: 300 });
+  if (k === 'branding') s.set('branding', { ...s.branding, sender: 'Durham Residences Office' });
+  if (k === 'notifs') s.set('notifs', s.notifs.map((n, i) => (i === 0 ? { ...n, email: !n.email } : n)));
+  toast(`James Reed saved ${TAB_NAME[k]}`, { description: 'Their change shows here. Anything you were editing is kept.' });
+}
+
+/**
+ * Draft of a settings slice with Discard / Save in the header.
+ * `check` returns field errors; any error blocks Save. Saves can fail (draft kept, Retry). If another admin saved since
+ * the draft started, fields only they changed are kept, and a field both changed asks whose to keep. Leaving with
+ * unsaved changes asks first.
+ */
+function useDraft<T>(key: DraftKey, value: T, save: (v: T) => void, msg: (prev: T, next: T) => string, check: (v: T) => Record<string, string | undefined> = () => ({})) {
   const [d, setD] = useState<T>(value);
-  const dirty = JSON.stringify(d) !== JSON.stringify(value);
-  const busy = useRef(false);
+  const [base, setBase] = useState<T>(value);
+  const [tried, setTried] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [clash, setClash] = useState<{ keys: string[]; ours: string[]; by: string; theirs: T } | null>(null);
+  const savingRef = useRef(false);
+  const mine = !same(d, base);
+  const live = useRef({ d, base, value });
+  live.current = { d, base, value };
+  /* Untouched, the form follows the saved settings, so another admin's save shows straight away. */
+  /* Mid-edit, fields only they changed come in too; a field we both changed stays mine until Save asks. */
+  useEffect(() => {
+    const { d: cur, base: from } = live.current;
+    if (same(cur, from)) { setD(value); setBase(value); return; }
+    if (Array.isArray(value)) return;
+    const ours = changed(from, cur);
+    const take = changed(from, value).filter((k) => !ours.includes(k));
+    if (take.length) { setD(merge(cur, value, take)); setBase(merge(from, value, take)); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(value)]);
+
+  const [sp, setSp] = useSearchParams();
+  useEffect(() => {
+    const demo = sp.get('demo');
+    if (demo !== 'save-fails' && demo !== 'other-admin') return;
+    if (demo === 'save-fails') FAIL_NEXT = true; else window.setTimeout(() => theirEdit(key), 3000);
+    setSp((p) => { const n = new URLSearchParams(p); n.delete('demo'); return n; }, { replace: true });
+  }, [sp, setSp, key]);
+
+  const all = Object.fromEntries(Object.entries(check(d)).filter(([, v]) => v)) as Record<string, string>;
+  const err = mine || tried ? all : {};
+
+  const write = (next: T, note?: string, done?: () => void, fail?: () => void) => {
+    savingRef.current = true; setSaving(true);
+    window.setTimeout(() => {
+      savingRef.current = false; setSaving(false);
+      if (FAIL_NEXT) {
+        FAIL_NEXT = false; fail?.();
+        toast.error('Couldn’t save · your changes are still here', { description: 'The connection dropped before it reached the server. Nothing changed.', duration: 10000, action: { label: 'Retry', onClick: () => { attempt(); } } });
+        return;
+      }
+      const prev = live.current.value;
+      save(next); setD(next); setBase(next); setTried(false); SAVED_BY.delete(key);
+      toast.success(msg(prev, next), { description: note, action: { label: 'Undo', onClick: () => { save(prev); setD(prev); setBase(prev); } } });
+      done?.();
+    }, 700);
+  };
+  /** Starts a save; false when it was refused (errors, a clash, or already saving). */
+  const attempt = (done?: () => void, fail?: () => void): boolean => {
+    if (savingRef.current) return false;
+    const { d: cur, base: from, value: saved } = live.current;
+    const msgs = Object.values(check(cur)).filter(Boolean) as string[];
+    if (msgs.length) { setTried(true); toast.error(msgs.length === 1 ? 'Fix this before saving' : `Fix ${msgs.length} things before saving`, { description: msgs[0] }); return false; }
+    const theirs = changed(from, saved);
+    const ours = changed(from, cur);
+    const by = SAVED_BY.get(key) ?? 'Another admin';
+    if (!theirs.length) { write(cur, undefined, done, fail); return true; }
+    const both = ours.filter((k) => theirs.includes(k));
+    if (both.length) { setClash({ keys: both, ours, by, theirs: saved }); return false; }
+    write(merge(saved, cur, ours), `Kept ${by}’s change to ${theirs.map((k) => FIELD[k] ?? k).join(', ')}.`, done, fail);
+    return true;
+  };
+
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => mine && currentLocation.pathname !== nextLocation.pathname);
+  /* The sidebar lights the clicked row before the route moves; a held navigation never moves, so put the light back. */
+  useEffect(() => { if (blocker.state !== 'blocked') return; const t = window.setTimeout(() => usePins.setState({ pending: null }), 0); return () => window.clearTimeout(t); }, [blocker.state]);
+  useBeforeUnload((e) => { if (!same(live.current.d, live.current.base)) e.preventDefault(); });
+  const discard = () => { setD(value); setBase(value); setTried(false); };
+
   const actions = (
     <>
-      <Button disabled={!dirty} onClick={() => setD(value)}>Discard</Button>
-      <Button variant="primary" icon={Check} disabled={!dirty} onClick={() => {
-        if (busy.current) return; busy.current = true;
-        const prev = value; save(d);
-        toast.success(msg(prev, d), { action: { label: 'Undo', onClick: () => { save(prev); setD(prev); } } });
-        window.setTimeout(() => { busy.current = false; }, 300);
-      }}>Save</Button>
+      {mine && <Button disabled={saving} onClick={discard}>Discard</Button>}
+      <Button variant="primary" icon={Check} disabled={!mine || saving} onClick={() => { attempt(); }}>{saving ? 'Saving…' : 'Save'}</Button>
     </>
   );
-  return { d, setD, actions };
+  const dialogs = (
+    <>
+      <ODialog open={blocker.state === 'blocked'} onClose={() => !saving && blocker.reset?.()} title="Leave without saving?" sub={`Your changes to ${TAB_NAME[key]} aren’t saved.`}
+        footer={<>
+          <Button variant="danger-ghost" className="mr-auto" disabled={saving} onClick={() => { discard(); blocker.proceed?.(); }}>Discard changes</Button>
+          <Button disabled={saving} onClick={() => blocker.reset?.()}>Stay</Button>
+          <Button variant="primary" disabled={saving} onClick={() => { const b = blocker; if (!attempt(() => b.proceed?.(), () => b.reset?.())) b.reset?.(); }}>{saving ? 'Saving…' : 'Save and leave'}</Button>
+        </>} />
+      <ODialog open={!!clash} onClose={() => setClash(null)} title={clash ? `${clash.by} changed ${clash.keys.map((k) => FIELD[k] ?? k).join(', ')} while you were editing` : ''} sub="Pick which to keep. Your other changes stay in the form either way."
+        footer={clash && <>
+          <Button onClick={() => { const c = clash; setClash(null); setD(Array.isArray(c.theirs) ? c.theirs : merge(d, c.theirs, c.keys)); setBase(c.theirs); }}>Keep theirs</Button>
+          <Button variant="primary" onClick={() => { const c = clash; setClash(null); write(merge(c.theirs, live.current.d, c.ours), `Replaced ${c.by}’s ${c.keys.map((k) => FIELD[k] ?? k).join(', ')}.`); }}>Save mine</Button>
+        </>}>
+        {clash && <div className="rounded-lg border border-line divide-y divide-line">{clash.keys.map((k) => (
+          <div key={k} className="px-3 py-2.5 text-sm">
+            <div className="font-medium text-[#111827]">{FIELD[k] ?? k}</div>
+            <div className="mt-1 grid grid-cols-[64px_1fr] gap-x-2 gap-y-0.5 text-[#374151]"><span className="text-[#646A78]">{clash.by.split(' ')[0]}</span><span className="truncate">{shown(parts(clash.theirs)[k])}</span><span className="text-[#646A78]">You</span><span className="truncate">{shown(parts(d)[k])}</span></div>
+          </div>
+        ))}</div>}
+      </ODialog>
+    </>
+  );
+  return { d, setD, actions, dialogs, err };
 }
 
 /* ---------------- General (3054, 3040) ---------------- */
 export function SettingsGeneral() {
   const { general, years, set } = useWorkspace();
-  const { d, setD, actions } = useDraft<General>(general, (v) => set('general', v), () => 'Settings saved · every screen and scheduled send uses them now');
+  const { d, setD, actions, dialogs, err } = useDraft<General>('general', general, (v) => set('general', v), () => 'Settings saved · every screen and scheduled send uses them now', (v) => ({
+    name: v.name.trim() ? undefined : 'Name the organisation; residents see it on every email',
+    short: v.short.trim() ? undefined : 'Add a short name for SMS and tight spaces',
+    quiet: v.quietFrom === v.quietTo ? 'Quiet hours need different start and end times' : undefined,
+  }));
   const cur = years.find((y) => y.status === 'Current');
   const [archive, setArchive] = useState(false);
   const up = (p: Partial<General>) => setD({ ...d, ...p });
@@ -87,8 +233,8 @@ export function SettingsGeneral() {
     <Layout tab="general" title="General" sub="What applies to the whole workspace." actions={actions}>
       <Section title="Organisation" sub="Shown to residents in emails and the portal">
         <div className="grid grid-cols-2 gap-3">
-          <label><Lbl>Name</Lbl><Input value={d.name} onChange={(e) => up({ name: e.target.value })} /></label>
-          <label><Lbl>Short name</Lbl><Input value={d.short} onChange={(e) => up({ short: e.target.value })} /></label>
+          <label><Lbl>Name</Lbl><Input aria-invalid={!!err.name} className={bad(err.name)} value={d.name} onChange={(e) => up({ name: e.target.value })} /><Err>{err.name}</Err></label>
+          <label><Lbl>Short name</Lbl><Input aria-invalid={!!err.short} className={bad(err.short)} value={d.short} onChange={(e) => up({ short: e.target.value })} /><Err>{err.short}</Err></label>
         </div>
       </Section>
       <Section title="Regional">
@@ -99,7 +245,7 @@ export function SettingsGeneral() {
         </div>
       </Section>
       {cur && (
-        <Section title="Current academic year" sub="Default for Overview, Occupancy and Reports" action={<Link to="/settings/academic-year" className="text-sm text-primary hover:underline">Manage years</Link>}>
+        <Section title="Current academic year" sub="Default for Overview, Occupancy and Reports" action={<Link to="/settings/academic-year" className="inline-flex items-center h-6 text-sm text-primary hover:underline">Manage years</Link>}>
           <div className="grid grid-cols-3 gap-3">{([['Year', cur.name], ['Starts', cur.starts], ['Ends', cur.ends]] as const).map(([k, v]) => <div key={k}><Lbl>{k}</Lbl><div className="h-8 px-2.5 rounded-lg border border-line bg-gray-50 text-sm flex items-center">{v}</div></div>)}</div>
         </Section>
       )}
@@ -108,6 +254,7 @@ export function SettingsGeneral() {
           <div><Lbl>From</Lbl><IconSelect icon={Moon} ariaLabel="Quiet hours from" value={d.quietFrom} onChange={(v) => up({ quietFrom: v })} options={opts(HOURS)} /></div>
           <div><Lbl>To</Lbl><IconSelect icon={Sun} ariaLabel="Quiet hours to" value={d.quietTo} onChange={(v) => up({ quietTo: v })} options={opts(HOURS)} /></div>
         </div>
+        <Err>{err.quiet}</Err>
       </Section>
       <Section tone="red" title="Danger zone" sub="Only the workspace owner can do these">
         <div className="flex items-center gap-4 rounded-[10px] border border-line px-3.5 py-3">
@@ -115,76 +262,135 @@ export function SettingsGeneral() {
           <Button variant="danger-outline" icon={Archive} onClick={() => setArchive(true)}>Archive</Button>
         </div>
       </Section>
-      <ODialog open={archive} onClose={() => setArchive(false)} title="Archive Durham University Residences?" sub="Everyone is signed out and the student and resident portals go offline. Data is kept for 7 years."
+      <ODialog open={archive} onClose={() => setArchive(false)} title={`Archive ${general.name}?`} sub="Everyone is signed out and the student and resident portals go offline. Data is kept for 7 years."
         footer={<><Button onClick={() => setArchive(false)}>Cancel</Button><Button variant="danger" onClick={() => { setArchive(false); toast.error('Only the workspace owner can archive it', { description: 'Ask Amber support to transfer ownership first.' }); }}>Archive workspace</Button></>}>
         <Alert tone="red" icon={WarningCircle} title="This can’t be undone from here">Only Amber support can restore an archived workspace.</Alert>
       </ODialog>
+      {dialogs}
     </Layout>
   );
 }
 
 /* ---------------- Academic year (3055) ---------------- */
 export function SettingsAcademicYear() {
-  const { years, terms, set } = useWorkspace();
+  const { years, terms, set, restore } = useWorkspace();
+  type TermDraft = Omit<Term, 'weeks'> & { weeks: string };
+  const toDraft = (ts: Term[]): TermDraft[] => ts.map((t) => ({ ...t, weeks: String(t.weeks) }));
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(terms);
-  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<TermDraft[]>(toDraft(terms));
+  const [termTried, setTermTried] = useState(false);
+  /* null = closed; '' = adding; otherwise the id of the year being edited. */
+  const [yearDlg, setYearDlg] = useState<string | null>(null);
+  const [yTried, setYTried] = useState(false);
   const [ny, setNy] = useState({ name: '2028/29', starts: '16 Sep 2028', ends: '15 Jun 2029' });
   const busy = useRef(false);
+
+  /* Every problem with one term, keyed by field. */
+  const termErrs = (t: TermDraft) => {
+    const s = parseDay(t.starts), e = parseDay(t.ends);
+    return {
+      starts: s ? undefined : `${t.name} start: ${NOT_A_DATE}`,
+      ends: !e ? `${t.name} end: ${NOT_A_DATE}` : s && e <= s ? `${t.name} ends before it starts` : undefined,
+      weeks: /^\d{1,2}$/.test(t.weeks.trim()) && +t.weeks >= 1 && +t.weeks <= 52 ? undefined : `${t.name} weeks: use a number from 1 to 52`,
+      due: parseDay(`${t.due} 2027`) ? undefined : `${t.name} rent due: use a day like 1 Oct`,
+    } as Record<'starts' | 'ends' | 'weeks' | 'due', string | undefined>;
+  };
+  const termMsgs = draft.flatMap((t) => Object.values(termErrs(t)).filter(Boolean) as string[]);
+  const saveTerms = () => {
+    if (termMsgs.length) { setTermTried(true); toast.error(termMsgs.length === 1 ? 'Fix this before saving' : `Fix ${termMsgs.length} things before saving`, { description: termMsgs[0] }); return; }
+    const before = terms;
+    set('terms', draft.map((t) => ({ ...t, weeks: +t.weeks }))); setEditing(false); setTermTried(false);
+    toast.success('Terms saved', { description: 'Termly rent and term notices use the new dates.', action: { label: 'Undo', onClick: () => restore({ terms: before }) } });
+  };
+
+  /* The year dialog's problems: a name, real dates in order, and no overlap with another year. */
+  const editingYear = yearDlg ? years.find((y) => y.id === yearDlg) : undefined;
+  const yErr = (() => {
+    const s = parseDay(ny.starts), e = parseDay(ny.ends);
+    const others = years.filter((y) => y.id !== yearDlg);
+    const clash = s && e ? others.find((y) => { const a = parseDay(y.starts), b = parseDay(y.ends); return a && b && s <= b && e >= a; }) : undefined;
+    return {
+      name: !ny.name.trim() ? 'Name the year, like 2028/29' : others.some((y) => y.name === ny.name.trim()) ? `${ny.name.trim()} already exists` : undefined,
+      starts: s ? undefined : NOT_A_DATE,
+      ends: !e ? NOT_A_DATE : s && e <= s ? 'It has to end after it starts' : clash ? `Overlaps ${clash.name} (${clash.starts} – ${clash.ends})` : undefined,
+    };
+  })();
+  const yShow = yTried ? yErr : { name: undefined, starts: undefined, ends: undefined };
+  const openYear = (y?: Year) => { busy.current = false; setYTried(false); setNy(y ? { name: y.name, starts: y.starts, ends: y.ends } : { name: '2028/29', starts: '16 Sep 2028', ends: '15 Jun 2029' }); setYearDlg(y ? y.id : ''); };
+  const saveYear = () => {
+    if (busy.current) return;
+    if (yErr.name || yErr.starts || yErr.ends) { setYTried(true); return; }
+    busy.current = true;
+    const before = years;
+    const v = { name: ny.name.trim(), starts: ny.starts.trim(), ends: ny.ends.trim() };
+    if (editingYear) {
+      set('years', (ys) => ys.map((y) => (y.id === editingYear.id ? { ...y, ...v } : y)));
+      toast.success(`${v.name} updated`, { action: { label: 'Undo', onClick: () => restore({ years: before }) } });
+    } else {
+      set('years', (ys) => [{ id: `y${Date.now()}`, ...v, cycle: 'No cycle yet', status: 'Upcoming' }, ...ys]);
+      toast.success(`${v.name} added`, { description: 'Set its terms, then open its allocation cycle.', action: { label: 'Undo', onClick: () => restore({ years: before }) } });
+    }
+    setYearDlg(null);
+  };
+  const deleteYear = (y: Year) => {
+    const before = years;
+    set('years', (ys) => ys.filter((x) => x.id !== y.id));
+    toast.success(`${y.name} deleted`, { duration: 8000, action: { label: 'Undo', onClick: () => restore({ years: before }) } });
+  };
+  /* Only an upcoming year with no allocation cycle can go; the others carry bookings and reports. */
+  const whyKeep = (y: Year) => (y.status !== 'Upcoming' ? `${y.status} years stay for reports` : y.cycle !== 'No cycle yet' ? 'It has an allocation cycle' : null);
   /* 3055:2: Upcoming blue + calendar, Current green + check, Ended grey + archive. */
   const tone = { Upcoming: 'blue', Current: 'green', Ended: 'grey' } as const;
   const yIcon = { Upcoming: CalendarBlank, Current: Check, Ended: Archive } as const;
   const { items: yearRows, bodyRef } = useRowMotion(years);
   return (
     <Layout tab="academic-year" title="Academic year" sub="Academic years and terms."
-      actions={<Button variant="primary" icon={Plus} onClick={() => { busy.current = false; setAdding(true); }}>New year</Button>}>
+      actions={<Button variant="primary" icon={Plus} onClick={() => openYear()}>New year</Button>}>
       <div className="rounded-xl border border-line overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#646A78] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation cycle', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 px-3', i === 0 && 'pl-5', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#646A78] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation cycle', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
           <tbody ref={bodyRef}>{yearRows.map(({ row: y, motion }) => (
             <tr key={y.id} {...rowAttrs(y.id, motion)} className="border-b border-[#F3F4F6] last:border-0 text-[#374151]">
               <td className="h-10 pl-5 font-semibold text-[#111827]">{y.name}</td><td className="px-3">{y.starts}</td><td className="px-3">{y.ends}</td>
               <td className="px-3"><Pill tone={tone[y.status]} icon={yIcon[y.status]}>{y.status}</Pill></td>
-              <td className="px-3">{y.cycle.includes('open') ? <Link to="/allocations/cycles" className="hover:underline">{y.cycle}</Link> : y.cycle}</td>
-              <td className="pr-3 text-right"><button type="button" aria-label={`More for ${y.name}`} onClick={() => toast(`${y.name}`, { description: `${y.starts} – ${y.ends}` })} className="size-7 rounded-lg text-gray-500 hover:bg-gray-100 inline-flex items-center justify-center"><DotsThree size={16} weight="bold" /></button></td>
+              <td className="px-3">{y.cycle.includes('open') ? <Link to="/allocations/cycles" className="inline-flex items-center h-6 hover:underline">{y.cycle}</Link> : y.cycle}</td>
+              <td className="pr-3 text-right"><RowMenu label={`More for ${y.name}`} items={[
+                { label: 'Edit dates', icon: PencilSimple, onClick: () => openYear(y) },
+                { label: whyKeep(y) ? `Delete · ${whyKeep(y)}` : 'Delete year', danger: true, disabled: !!whyKeep(y), onClick: () => deleteYear(y) },
+              ]} /></td>
             </tr>
           ))}</tbody>
         </table>
       </div>
       <Section title="Terms in 2026/27"
-        action={editing ? <div className="flex gap-2"><Button size="sm" onClick={() => { setDraft(terms); setEditing(false); }}>Cancel</Button><Button size="sm" variant="primary" onClick={() => { set('terms', draft); setEditing(false); toast.success('Terms saved', { description: 'Termly rent and term notices use the new dates.' }); }}>Save terms</Button></div>
-          : <Button size="sm" icon={PencilSimple} onClick={() => { setDraft(terms); setEditing(true); }}>Edit terms</Button>}>
+        action={editing ? <div className="flex gap-2"><Button size="sm" onClick={() => { setDraft(toDraft(terms)); setEditing(false); setTermTried(false); }}>Cancel</Button><Button size="sm" variant="primary" onClick={saveTerms}>Save terms</Button></div>
+          : <Button size="sm" icon={PencilSimple} onClick={() => { setDraft(toDraft(terms)); setEditing(true); }}>Edit terms</Button>}>
         <div className="rounded-xl border border-line overflow-hidden -mt-1">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#646A78] border-b border-line">{['Term', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 px-3', i === 0 && 'pl-5', i === 3 ? 'text-right' : 'text-left')}>{h}</th>)}</tr></thead>
-          <tbody>{(editing ? draft : terms).map((t, i) => (
+          <thead><tr className="text-xs text-[#646A78] border-b border-line">{['Term', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 3 ? 'text-right' : 'text-left')}>{h}</th>)}</tr></thead>
+          <tbody>{(editing ? draft : toDraft(terms)).map((t, i) => { const te = editing && termTried ? termErrs(t) : undefined; return (
             <tr key={t.id} className="border-b border-[#F3F4F6] last:border-0 text-[#374151]">
               <td className="h-10 pl-5 pr-3 font-medium text-[#111827]">{t.name}</td>
               {(['starts', 'ends', 'weeks', 'due'] as const).map((k) => (
-                <td key={k} className={cx('px-3', k === 'weeks' && 'text-right tabular-nums')}>{editing ? <Input aria-label={`${t.name} ${k}`} className="h-8 w-32" value={String(t[k])} onChange={(e) => setDraft(draft.map((x, j) => (j === i ? { ...x, [k]: k === 'weeks' ? Number(e.target.value) || 0 : e.target.value } : x)))} /> : t[k]}</td>
+                <td key={k} className={cx('px-3', k === 'weeks' && 'text-right tabular-nums')}>{editing ? <Input aria-label={`${t.name} ${k}`} aria-invalid={!!te?.[k]} className={cx('h-8 w-32', bad(te?.[k]))} value={t[k]} onChange={(e) => setDraft(draft.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))} /> : t[k]}</td>
               ))}
             </tr>
-          ))}</tbody>
+          ); })}</tbody>
         </table>
         </div>
+        {editing && termTried && termMsgs.length > 0 && <div role="alert" className="mt-2 space-y-1">{termMsgs.map((m) => <p key={m} className="text-xs leading-4 text-[#E0243A]">{m}</p>)}</div>}
       </Section>
       <Alert tone="blue" icon={Info} title="2027/28 becomes current on 1 Sep 2027">Until then it is used only by the 2027/28 allocation cycle.</Alert>
-      <ODialog open={adding} onClose={() => setAdding(false)} title="New academic year" sub="It becomes current on its start date."
-        footer={<><Button onClick={() => setAdding(false)}>Cancel</Button><Button variant="primary" onClick={() => {
-          if (busy.current) return;
-          if (!ny.name.trim()) { toast.error('Name the year'); return; }
-          if (years.some((y) => y.name === ny.name.trim())) { toast.error(`${ny.name} already exists`); return; }
-          busy.current = true;
-          set('years', (ys) => [{ id: `y${Date.now()}`, name: ny.name.trim(), starts: ny.starts, ends: ny.ends, cycle: 'No cycle yet', status: 'Upcoming' }, ...ys]);
-          setAdding(false); toast.success(`${ny.name} added`, { description: 'Set its terms, then open its allocation cycle.' });
-        }}>Add year</Button></>}>
-        <div className="space-y-3">
-          <label className="block"><Lbl>Year</Lbl><Input value={ny.name} onChange={(e) => setNy({ ...ny, name: e.target.value })} /></label>
-          <div className="grid grid-cols-2 gap-3">
-            <label><Lbl>Starts</Lbl><Input value={ny.starts} onChange={(e) => setNy({ ...ny, starts: e.target.value })} /></label>
-            <label><Lbl>Ends</Lbl><Input value={ny.ends} onChange={(e) => setNy({ ...ny, ends: e.target.value })} /></label>
+      <ODialog open={yearDlg !== null} onClose={() => setYearDlg(null)} title={editingYear ? `Edit ${editingYear.name}` : 'New academic year'} sub={editingYear ? 'Reports and Occupancy use the new dates.' : 'It becomes current on its start date.'}
+        footer={<><Button onClick={() => setYearDlg(null)}>Cancel</Button><Button variant="primary" onClick={saveYear}>{editingYear ? 'Save year' : 'Add year'}</Button></>}>
+        <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); saveYear(); }}>
+          <label className="block"><Lbl>Year</Lbl><Input aria-invalid={!!yShow.name} className={bad(yShow.name)} value={ny.name} onChange={(e) => setNy({ ...ny, name: e.target.value })} /><Err>{yShow.name}</Err></label>
+          <div className="grid grid-cols-2 gap-3 items-start">
+            <label><Lbl>Starts</Lbl><Input aria-invalid={!!yShow.starts} className={bad(yShow.starts)} value={ny.starts} placeholder="16 Sep 2028" onChange={(e) => setNy({ ...ny, starts: e.target.value })} /><Err>{yShow.starts}</Err></label>
+            <label><Lbl>Ends</Lbl><Input aria-invalid={!!yShow.ends} className={bad(yShow.ends)} value={ny.ends} placeholder="15 Jun 2029" onChange={(e) => setNy({ ...ny, ends: e.target.value })} /><Err>{yShow.ends}</Err></label>
           </div>
-        </div>
+          <button type="submit" hidden />
+        </form>
       </ODialog>
     </Layout>
   );
@@ -193,7 +399,7 @@ export function SettingsAcademicYear() {
 /* ---------------- Notifications (3056, 3041, 3042) ---------------- */
 export function SettingsNotifications() {
   const { notifs, set } = useWorkspace();
-  const { d, setD, actions } = useDraft<NotifRow[]>(notifs, (v) => set('notifs', v), (prev, next) => {
+  const { d, setD, actions, dialogs } = useDraft<NotifRow[]>('notifs', notifs, (v) => set('notifs', v), (prev, next) => {
     const added = next.filter((n) => n.sms && !prev.find((p) => p.id === n.id)?.sms).map((n) => n.event.toLowerCase());
     return added.length ? `Notifications saved · ${added.join(', ')} now also by SMS` : 'Notifications saved';
   });
@@ -203,7 +409,7 @@ export function SettingsNotifications() {
       {/* 3056:2: table card (#F9FAFB 40px header), 52px rows, green toggles per channel; blue note with a phone icon below. */}
       <div className="rounded-xl border border-line overflow-hidden bg-white">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#646A78] border-b border-line bg-[#F9FAFB]"><th className="text-left font-medium h-10 pl-4">Event</th>{['In the app', 'Email', 'SMS'].map((h) => <th key={h} className="font-medium w-[90px] text-center">{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#646A78] border-b border-line bg-[#F9FAFB]"><th className="text-left font-medium h-10 py-0 pl-4">Event</th>{['In the app', 'Email', 'SMS'].map((h) => <th key={h} className="font-medium w-[90px] py-0 text-center">{h}</th>)}</tr></thead>
           <tbody>{d.map((n) => (
             <tr key={n.id} className="border-b border-[#F3F4F6] last:border-0">
               <td className="h-[52px] pl-4"><div className="font-medium text-[#111827] leading-[18px]">{n.event}</div><div className="text-xs leading-4 text-[#646A78]">{n.sub}</div></td>
@@ -215,6 +421,7 @@ export function SettingsNotifications() {
         </table>
       </div>
       <Alert tone="blue" icon={DeviceMobile} title="SMS goes to +44 7700 900118">Only urgent maintenance can send SMS during quiet hours.</Alert>
+      {dialogs}
     </Layout>
   );
 }
@@ -222,7 +429,10 @@ export function SettingsNotifications() {
 /* ---------------- Payments (3059) ---------------- */
 export function SettingsPayments() {
   const { payments, set } = useWorkspace();
-  const { d, setD, actions } = useDraft<Payments>(payments, (v) => set('payments', v), () => 'Payment settings saved · new tenancies use them');
+  const { d, setD, actions, dialogs, err } = useDraft<Payments>('payments', payments, (v) => set('payments', v), () => 'Payment settings saved · new tenancies use them', (v) => ({
+    methods: v.methods.card || v.methods.bank || v.methods.dd ? undefined : 'Residents need at least one way to pay',
+    deposit: v.deposit > 5000 ? `£${v.deposit.toLocaleString('en-GB')} is above the £5,000 limit. Check the amount.` : undefined,
+  }));
   const [manage, setManage] = useState(false);
   const up = (p: Partial<Payments>) => setD({ ...d, ...p });
   const methods = [['card', 'Card', CreditCard], ['bank', 'Bank transfer', Bank], ['dd', 'Direct Debit', ArrowsLeftRight]] as const;
@@ -243,12 +453,13 @@ export function SettingsPayments() {
             <I size={16} className="text-gray-500" /><span className="flex-1">{l}</span><Switch checked={d.methods[k]} onChange={(v) => up({ methods: { ...d.methods, [k]: v } })} label={l} />
           </div>
         ))}</div>
+        <Err>{err.methods}</Err>
       </Section>
       <Section title="Rent" sub="A room type can override these">
         <div className="grid grid-cols-3 gap-3">
           <div><Lbl>Billed</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Billed" value={d.billed} onChange={(v) => up({ billed: v })} options={opts(['Termly, in advance', 'Monthly', 'Weekly', 'Whole year up front'])} /></div>
           <div><Lbl>Due</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Due" value={d.due} onChange={(v) => up({ due: v })} options={opts(['Before each term starts', 'On the 1st', 'On move-in'])} /></div>
-          <label><Lbl>Deposit</Lbl><span className="relative flex items-center"><Money size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><span className="absolute left-8 text-sm text-[#111827] pointer-events-none">£</span><Input className="pl-[42px]" inputMode="numeric" value={String(d.deposit)} onChange={(e) => up({ deposit: Number(e.target.value.replace(/\D/g, '')) || 0 })} /></span></label>
+          <label><Lbl>Deposit</Lbl><span className="relative flex items-center"><Money size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><span className="absolute left-8 text-sm text-[#111827] pointer-events-none">£</span><Input aria-invalid={!!err.deposit} className={cx('pl-[42px]', bad(err.deposit))} inputMode="numeric" value={String(d.deposit)} onChange={(e) => up({ deposit: Number(e.target.value.replace(/\D/g, '').slice(0, 9)) || 0 })} /></span><Err>{err.deposit}</Err></label>
         </div>
       </Section>
       <Section title="Reminders and arrears" sub="Sent outside quiet hours">
@@ -260,6 +471,7 @@ export function SettingsPayments() {
         footer={<><Button variant="danger-ghost" className="mr-auto" onClick={() => { setManage(false); toast.error('Disconnecting Stripe stops card payments', { description: 'Ask Finance (James Reed) to do this.' }); }}>Disconnect</Button><Button variant="primary" onClick={() => { setManage(false); toast('Opening the Stripe dashboard', { description: 'It opens in a new tab in the real product.' }); }}>Open Stripe</Button></>}>
         <DL rows={[['Account', 'Durham University Residences'], ['Connected', '2 Aug 2026 by James Reed'], ['Payouts', 'Weekly to ••4410'], ['Last payout', '£184,220 on 11 Sep']]} />
       </ODialog>
+      {dialogs}
     </Layout>
   );
 }
@@ -276,7 +488,14 @@ export function SettingsIntegrations() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState(false);
   const [open, setOpen] = useState<Integration | null>(null);
+  const [off, setOff] = useState<Integration | null>(null);
   const guard = useRef(false);
+  const disconnect = (x: Integration) => {
+    const before = useWorkspace.getState().integrations;
+    set('integrations', (xs) => xs.map((y) => (y.id === x.id ? { ...y, state: 'available' as const, meta: '' } : y)));
+    setOff(null);
+    toast.success(`${x.name} disconnected`, { duration: 8000, action: { label: 'Undo', onClick: () => restore({ integrations: before }) } });
+  };
   useEffect(() => {
     if (sp.get('demo') === 'sits-failing') {
       set('integrations', (xs) => xs.map((x) => (x.id === 'sits' ? { ...x, state: 'failing' as const, meta: 'Last synced 30 Oct, 02:00' } : x)));
@@ -285,8 +504,6 @@ export function SettingsIntegrations() {
   }, [sp, setSp, set]);
   const sits = integrations.find((x) => x.id === 'sits');
   const failing = sits?.state === 'failing';
-  const connected = integrations.filter((x) => x.state !== 'available');
-  const available = integrations.filter((x) => x.state === 'available');
   const doReconnect = () => {
     if (guard.current) return; guard.current = true; setBusy(true);
     const before = useWorkspace.getState().integrations;
@@ -310,7 +527,7 @@ export function SettingsIntegrations() {
       {/* 3060:2: one grid of six cards (connected first), each with a tinted 32px icon tile, title + meta, Connected pill top right,
           13px description and a sm Manage (sliders) or Connect (plug) button; the amber sync note sits under the grid. */}
       <div className="grid grid-cols-3 gap-4">
-        {[...connected, ...available].map((x) => { const I = INT_ICON[x.id] ?? Plug; const t = INT_TINT[x.id] ?? INT_TINT.webhooks; const on = x.state !== 'available'; return (
+        {integrations.map((x) => { const I = INT_ICON[x.id] ?? Plug; const t = INT_TINT[x.id] ?? INT_TINT.webhooks; const on = x.state !== 'available'; return (
           <div key={x.id} className={cx('rounded-xl border bg-white p-4 flex flex-col', x.state === 'failing' ? 'border-[#E0243A4D]' : 'border-line')}>
             <div className="flex items-start gap-3">
               {BRAND[x.id] ? <BrandTile id={x.id} /> : <span className="size-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t[0] }}><I size={16} style={{ color: t[1] }} /></span>}
@@ -339,12 +556,14 @@ export function SettingsIntegrations() {
       <ODialog open={!!open} onClose={() => setOpen(null)} title={open?.name ?? ''} sub={open?.desc}
         footer={open?.state === 'available'
           ? <><Button onClick={() => setOpen(null)}>Cancel</Button><Button variant="primary" onClick={() => open && connect(open)}>Connect {open?.name}</Button></>
-          : <><Button variant="danger-ghost" className="mr-auto" onClick={() => { const x = open!; set('integrations', (xs) => xs.map((y) => (y.id === x.id ? { ...y, state: 'available' as const, meta: '' } : y))); setOpen(null); toast.success(`${x.name} disconnected`); }}>Disconnect</Button>
+          : <><Button variant="danger-ghost" className="mr-auto" onClick={() => { setOff(open); setOpen(null); }}>Disconnect</Button>
             <Button onClick={() => { const x = open!; set('integrations', (xs) => xs.map((y) => (y.id === x.id ? { ...y, meta: x.id === 'sits' ? 'Synced just now' : y.meta } : y))); setOpen(null); toast.success(`${x.name} synced`); }}>Sync now</Button>
             <Button variant="primary" onClick={() => setOpen(null)}>Done</Button></>}>
         {open?.state === 'available' ? <p className="text-sm text-[#646A78]">You’ll sign in to {open.name} and pick what to share. You can disconnect at any time.</p>
           : open && <DL rows={[['Status', 'Connected'], ['Last activity', open.meta], ['Connected by', 'Priya Shah']]} />}
       </ODialog>
+      <ODialog open={!!off} onClose={() => setOff(null)} title={`Disconnect ${off?.name ?? ''}?`} sub={off ? `What stops: ${off.desc.charAt(0).toLowerCase()}${off.desc.slice(1)}. Reconnecting needs an admin sign-in.` : undefined}
+        footer={<><Button onClick={() => setOff(null)}>Cancel</Button><Button variant="danger" onClick={() => off && disconnect(off)}>Disconnect</Button></>} />
     </Layout>
   );
 }
@@ -352,10 +571,17 @@ export function SettingsIntegrations() {
 /* ---------------- Branding (3061) ---------------- */
 export function SettingsBranding() {
   const { branding, general, set } = useWorkspace();
-  const { d, setD, actions } = useDraft<Branding>(branding, (v) => set('branding', v), () => 'Branding saved · emails and the resident portal use it now');
+  const okHex = (x: string) => /^#[0-9a-f]{6}$/i.test(x);
+  const { d, setD, actions, dialogs, err } = useDraft<Branding>('branding', branding, (v) => set('branding', v), () => 'Branding saved · emails and the resident portal use it now', (v) => ({
+    colour: okHex(v.colour) ? undefined : 'Use a hex colour like #68246D',
+    sender: v.sender.trim() ? undefined : 'Add the name residents see in their inbox',
+    replyTo: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.replyTo.trim()) ? undefined : 'Use a full email like residences@durham.ac.uk',
+  }));
   const up = (p: Partial<Branding>) => setD({ ...d, ...p });
-  const okColour = /^#[0-9a-f]{6}$/i.test(d.colour);
-  const c = okColour ? d.colour : '#68246D';
+  const okColour = okHex(d.colour);
+  const c = okColour ? d.colour : branding.colour;
+  /* A pale colour is allowed, but the admin is told white text on it will be hard to read. */
+  const ratio = okColour ? whiteOn(d.colour) : 21;
   return (
     <Layout wide tab="branding" title="Branding" sub="How emails, notices and the resident portal look." actions={actions}>
       <div className="grid grid-cols-[1fr_400px] gap-5 items-start">
@@ -371,12 +597,14 @@ export function SettingsBranding() {
           <div><Lbl>Brand colour</Lbl>
             <div className="flex items-center gap-2">
               <label className="relative size-9 rounded-lg shrink-0 cursor-pointer" style={{ background: c }}><input type="color" aria-label="Pick brand colour" value={c} onChange={(e) => up({ colour: e.target.value.toUpperCase() })} className="absolute inset-0 opacity-0 cursor-pointer" /></label>
-              <Input className={cx('flex-1', !okColour && 'border-[#E0243A]')} value={d.colour} onChange={(e) => up({ colour: e.target.value })} />
+              <Input aria-label="Brand colour" aria-invalid={!!err.colour} className={cx('flex-1', bad(err.colour))} value={d.colour} onChange={(e) => up({ colour: e.target.value })} />
             </div>
-            <p className={cx('text-xs mt-1.5', okColour ? 'text-[#646A78]' : 'text-[#E0243A]')}>{okColour ? 'Buttons and headers in emails and the portal' : 'Use a hex colour like #68246D'}</p>
+            {err.colour ? <Err>{err.colour}</Err>
+              : ratio < 4.5 ? <p role="status" className="flex items-start gap-1.5 text-xs leading-4 mt-1.5 text-[#B45309]"><Warning size={14} className="shrink-0" />White text on {d.colour.toUpperCase()} is {ratio.toFixed(1)}:1, under the 4.5:1 emails need. Residents may struggle to read the header and Pay now.</p>
+              : <p className="text-xs leading-4 mt-1.5 text-[#646A78]">Buttons and headers in emails and the portal</p>}
           </div>
-          <label className="block"><Lbl>Email sender name</Lbl><Input value={d.sender} onChange={(e) => up({ sender: e.target.value })} /></label>
-          <label className="block"><Lbl>Reply-to</Lbl><span className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><Input className="pl-8" type="email" value={d.replyTo} onChange={(e) => up({ replyTo: e.target.value })} /></span></label>
+          <label className="block"><Lbl>Email sender name</Lbl><Input aria-invalid={!!err.sender} className={bad(err.sender)} value={d.sender} onChange={(e) => up({ sender: e.target.value })} /><Err>{err.sender}</Err></label>
+          <label className="block"><Lbl>Reply-to</Lbl><span className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><Input aria-invalid={!!err.replyTo} className={cx('pl-8', bad(err.replyTo))} type="email" value={d.replyTo} onChange={(e) => up({ replyTo: e.target.value })} /></span><Err>{err.replyTo}</Err></label>
           <label className="block"><Lbl>Email footer</Lbl><Textarea value={d.footer} onChange={(e) => up({ footer: e.target.value })} /></label>
         </div>
         <div className="rounded-xl border border-line bg-[#F9FAFB] p-4 sticky top-0">
@@ -392,6 +620,7 @@ export function SettingsBranding() {
           </div>
         </div>
       </div>
+      {dialogs}
     </Layout>
   );
 }

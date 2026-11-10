@@ -38,19 +38,21 @@ export function Landlords() {
     setDlg(null); setOpen(null); setTab('awaiting');
     toast.success('Request sent', { description: `${l.name} was emailed your note.` });
   });
+  /* Undo puts back this one application as it was; the email waits until the toast closes. */
+  const undoFor = (l: LandlordApp) => () => { set('landlords', (ls) => ls.map((x) => (x.id === l.id ? l : x))); setTab(TABS.find((x) => x.status === l.status)?.id ?? 'all'); };
   const approve = (l: LandlordApp) => guard(() => {
-    patch(l.id, { status: 'Approved', applied: 'Just now', reviewed: stamp() });
+    patch(l.id, { status: 'Approved', reviewed: stamp() });
     setDlg(null); setOpen(null); setTab('approved');
-    toast.success('Landlord approved', { description: 'They were invited to the landlord portal.' });
+    toast.success('Landlord approved', { description: 'Their invite to the landlord portal goes when this closes.', duration: 8000, action: { label: 'Undo', onClick: undoFor(l) } });
   });
   const reject = (l: LandlordApp, note: string) => guard(() => {
     patch(l.id, { status: 'Rejected', lastNote: note, reviewed: stamp() });
     setDlg(null); setOpen(null); setTab('rejected');
-    toast.success('Application rejected', { description: 'The reason was emailed to the landlord.' });
+    toast.success('Application rejected', { description: 'Your reason is emailed to the landlord when this closes.', duration: 8000, action: { label: 'Undo', onClick: undoFor(l) } });
   });
   const simulateReply = (l: LandlordApp) => {
     patch(l.id, { portfolio: 5, areas: [...l.areas.filter((a) => a !== 'Claypath'), 'Claypath'], updated: true });
-    toast.success(`${l.name} updated his application`, { description: 'Portfolio is now 5 properties.' });
+    toast.success(`${l.name} updated their application`, { description: 'Portfolio is now 5 properties.' });
   };
 
   /* Every tab shows its count, selected or not, as on the other filter tabs. */

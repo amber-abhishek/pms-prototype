@@ -1,4 +1,16 @@
 import { Children, Fragment, createContext, isValidElement, useLayoutEffect, useSyncExternalStore, type ReactNode } from 'react';
+
+/* One h1 per page: a visible 20px title registers itself, and the breadcrumb's current crumb
+   is the h1 only on pages that have no such title. */
+let headings = 0;
+const headingSubs = new Set<() => void>();
+const emitHeadings = () => headingSubs.forEach((f) => f());
+export function useOwnHeading() {
+  useLayoutEffect(() => { headings++; emitHeadings(); return () => { headings--; emitHeadings(); }; }, []);
+}
+export function useHeadingTaken() {
+  return useSyncExternalStore((f) => { headingSubs.add(f); return () => { headingSubs.delete(f); }; }, () => headings > 0);
+}
 /** True in the page header's action slot and in table bodies: Button renders filled and outlined variants as
  *  borderless ghosts there (pms-header-action-buttons, 2026-11-07). Overlay contents reset it, so a dialog or
  *  menu opened from the header or a row keeps its real buttons.

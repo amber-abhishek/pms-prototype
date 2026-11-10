@@ -168,6 +168,13 @@ function bulk(seeded: App[]): App[] {
   };
   const other = APP_TARGETS.all - live.length - need.manual - need.allocated - need.rejected;
   const taken = new Set(seeded.map((a) => a.name));
+  /* Units already spoken for, so no generated allocation lands on someone else's room. */
+  const held = new Set<string>([
+    ...seeded.filter((a) => a.cycle === '2027/28' && a.status === 'allocated' && a.unit).map((a) => a.unit!),
+    ...seedOffers().filter((o) => o.status === 'open' || o.status === 'accepted').map((o) => `${o.hall} · ${o.unit}`),
+    ...seedBookings().filter((b) => !b.cancelled).map((b) => `${b.hall} · ${b.unit}`),
+    'Collingwood · 3.1.C', 'Collingwood · 3.1.D', 'Collingwood · 2.2.A',
+  ]);
   let k = 0;
   const nextName = () => {
     for (;;) {
@@ -196,7 +203,9 @@ function bulk(seeded: App[]): App[] {
     /* Offers went out from 20 Oct; most by auto-allocate in the first runs. */
     const day = 20 + (h(i, 2) % 8);
     const r = h(i, 3);
-    out.push(app({ ...b, status: 'allocated', unit: `${b.hall} · ${1 + (r % 5)}.${1 + ((r >>> 3) % 4)}.${'ABCD'[(r >>> 6) % 4]}`,
+    const code = freeCode(held, b.hall, r % unitsPerHall()) ?? unitCode(r);
+    held.add(`${b.hall} · ${code}`);
+    out.push(app({ ...b, status: 'allocated', unit: `${b.hall} · ${code}`,
       allocBy: h(i, 4) % 5 === 0 ? STAFF[h(i, 5) % 3] : 'Auto-allocate', allocOn: `${day} Oct`,
       offer: h(i, 6) % 11 === 0 ? 'Offer open' : h(i, 6) % 23 === 1 ? 'Declined' : 'Accepted', waiting: 0, submitted: `${Math.max(1, day - 14 + (i % 5))} Oct` }, i));
   }
@@ -253,7 +262,7 @@ function seedOffers(): Offer[] {
     { id: 'o1', name: 'Amira Rahman', hall: 'Ustinov', room: 'Accessible ensuite', unit: 'G.04.B', status: 'accepted', sent: '27 Oct', accepted: '28 Oct', deposit: 'Paid £250', reminders: 0, next: 'Booking created · lease sent', recent: true },
     { id: 'o2', name: 'Daniel Osei', hall: 'Josephine Butler', room: 'Ensuite', unit: '2.4.A', status: 'open', sent: '25 Oct', expires: '30 Oct 20:40', leftH: 52, reminders: 1, next: 'Reminder goes tomorrow 09:00', recent: true },
     { id: 'o3', name: 'Harvey Clarke', hall: 'Stephenson', room: 'Standard single', unit: '5.3.B', status: 'open', sent: '25 Oct', expires: '30 Oct 14:10', leftH: 46, reminders: 1, next: 'Reminder sent today', recent: true },
-    { id: 'o4', name: 'Mei Lin', hall: 'Hild Bede', room: 'Standard single', unit: '1.2.C', status: 'open', sent: '24 Oct', expires: '29 Oct 10:00', leftH: 18, reminders: 2, next: 'Last reminder sent', recent: true },
+    { id: 'o4', name: 'Mei Lin', hall: 'Hild Bede', room: 'Standard single', unit: '1.3.E', status: 'open', sent: '24 Oct', expires: '29 Oct 10:00', leftH: 18, reminders: 2, next: 'Last reminder sent', recent: true },
     { id: 'o5', name: 'Jack Fenwick', hall: 'John Snow', room: 'Ensuite single', unit: '4.1.A', status: 'open', sent: '28 Oct', expires: '2 Nov 09:00', leftH: 120, reminders: 0, next: 'From the waitlist · #1 for John Snow ensuite', fromWaitlist: '#1', recent: true },
     { id: 'o6', name: 'Tomás García', hall: 'John Snow', room: 'Ensuite single', unit: '4.1.A', status: 'lapsed', sent: '22 Oct', lapsed: '27 Oct', reminders: 2, wentTo: 'Jack Fenwick · waitlist #1', next: 'No reply in 5 days · unit offered to Jack Fenwick', recent: true },
     { id: 'o7', name: 'Grace Adeyemi', hall: 'Hild Bede', room: 'Ensuite single', unit: '1.2.D', status: 'declined', sent: '22 Oct', declined: '27 Oct', reason: 'Chose another university', unitNow: 'Offered to Ella Price', reminders: 1, next: 'Chose another university · unit re-offered', recent: true },
@@ -403,7 +412,7 @@ function seedConflicts(): Conflict[] {
 }
 function seedCycles(): Cycle[] {
   return [
-    { id: 'cy28', name: '2027/28', opens: '1 Oct 2026', ends: '19 Sep 2027', apps: 1184, allocated: 412, beds: 2893, status: 'open', from: '2026/27', closes: '31 Mar 2027', offersFrom: '20 Oct 2026', starts: '19 Sep 2027', accepted: 318, signed: 204 },
+    { id: 'cy28', name: '2027/28', opens: '1 Oct 2026', ends: '19 Sep 2027', apps: APP_TARGETS.all, allocated: APP_TARGETS.allocated, beds: 2893, status: 'open', from: '2026/27', closes: '31 Mar 2027', offersFrom: '20 Oct 2026', starts: '19 Sep 2027', accepted: OFFER_TARGETS.accepted, signed: 1990 },
     { id: 'cy27', name: '2026/27', opens: '1 Oct 2025', ends: '19 Sep 2026', apps: 3410, allocated: 2481, beds: 2893, status: 'tenancy', accepted: 2215, signed: 2190 },
     { id: 'cy26', name: '2025/26', opens: '1 Oct 2024', ends: '20 Sep 2025', apps: 3288, allocated: 2802, beds: 2846, status: 'closed', occupancy: '98.5%', closedOn: '30 Sep 2025' },
     { id: 'cy25', name: '2024/25', opens: '1 Oct 2023', ends: '21 Sep 2024', apps: 3104, allocated: 2790, beds: 2812, status: 'closed', occupancy: '99.2%', closedOn: '30 Sep 2024' },
@@ -444,9 +453,57 @@ export const useAlloc = create<State>()(
       snap: () => pick(get()),
       restore: (d) => set(d),
     }),
-    { name: 'pms-allocations', storage: createJSONStorage(() => sessionStorage), version: 6 },
+    { name: 'pms-allocations', storage: createJSONStorage(() => sessionStorage), version: 7 },
   ),
 );
+
+/* ---------------- Units ---------------- */
+/* Function declarations, not consts: the seed builder above runs before this point in the file. */
+/** Unit codes run floor.flat.room: 9 floors × 10 flats × 8 rooms = 720 per hall, more than any hall's seeded allocations. */
+function unitsPerHall() { return 720; }
+export function unitCode(k: number) { return `${1 + (k % 9)}.${1 + (Math.floor(k / 9) % 10)}.${'ABCDEFGH'[Math.floor(k / 90) % 8]}`; }
+/** The first code in a hall nobody holds, starting from `seed` so applicants spread out. */
+export function freeCode(held: Set<string>, hall: string, seed: number) {
+  for (let k = 0; k < unitsPerHall(); k++) {
+    const c = unitCode(seed + k);
+    if (!held.has(`${hall} · ${c}`)) return c;
+  }
+  return null;
+}
+/** Every unit someone holds in a cycle ("Hall · code"): allocated applications, open or accepted offers, live bookings.
+    `except` leaves out one applicant's own hold, so their current room still shows as theirs. */
+export function heldUnits(d: Pick<Data, 'apps' | 'offers' | 'bookings' | 'usedUnits'>, cycle = '2027/28', except?: string) {
+  const s = new Set<string>(d.usedUnits);
+  d.apps.forEach((a) => { if (a.status === 'allocated' && a.unit && a.cycle === cycle && a.name !== except) s.add(a.unit); });
+  d.offers.forEach((o) => { if ((o.status === 'open' || o.status === 'accepted') && (o.cycle ?? '2027/28') === cycle && o.name !== except) s.add(`${o.hall} · ${o.unit}`); });
+  if (cycle === '2027/28') d.bookings.forEach((b) => { if (!b.cancelled && b.name !== except) s.add(`${b.hall} · ${b.unit}`); });
+  return s;
+}
+
+/* ---------------- Undo ---------------- */
+const keyOf = (x: unknown): string => (typeof x === 'string' ? x : ((x as { id?: string; name?: string }).id ?? (x as { name?: string }).name ?? JSON.stringify(x)));
+function revertList<T>(before: T[], after: T[], cur: T[]): T[] {
+  const b = new Map(before.map((x) => [keyOf(x), x]));
+  const a = new Map(after.map((x) => [keyOf(x), x]));
+  const touched = new Set([...a].filter(([k, x]) => b.get(k) !== x).map(([k]) => k));
+  const removed = before.filter((x) => !a.has(keyOf(x)));
+  return [...removed, ...cur.flatMap((x) => { const k = keyOf(x); return !touched.has(k) ? [x] : b.has(k) ? [b.get(k)!] : []; })];
+}
+function revertCounts<T extends Record<string, number>>(before: T, after: T, cur: T): T {
+  const out: Record<string, number> = { ...cur };
+  new Set([...Object.keys(before), ...Object.keys(after)]).forEach((k) => { out[k] = (cur[k] ?? 0) - (after[k] ?? 0) + (before[k] ?? 0); });
+  return out as T;
+}
+/** Undo one action: put back only what that action changed, leaving anything done since untouched. */
+export function revertData(before: Data, after: Data, cur: Data): Data {
+  return {
+    cycles: revertList(before.cycles, after.cycles, cur.cycles), apps: revertList(before.apps, after.apps, cur.apps),
+    offers: revertList(before.offers, after.offers, cur.offers), recent: revertList(before.recent, after.recent, cur.recent),
+    waitlist: revertList(before.waitlist, after.waitlist, cur.waitlist), bookings: revertList(before.bookings, after.bookings, cur.bookings),
+    conflicts: revertList(before.conflicts, after.conflicts, cur.conflicts), usedUnits: revertList(before.usedUnits, after.usedUnits, cur.usedUnits),
+    used: revertCounts(before.used, after.used, cur.used), hidden: revertCounts(before.hidden, after.hidden, cur.hidden),
+  };
+}
 
 /* ---------------- Derived ---------------- */
 export const fmtN = (n: number) => n.toLocaleString('en-GB');
@@ -500,12 +557,15 @@ export function unitsFor(d: Data, a: App, hall: string, room: string): UnitOpt[]
   } else {
     const seed = [...(a.ref + hall)].reduce((s, c) => s + c.charCodeAt(0), 0);
     const step = a.reqs.includes('Step-free access');
+    /* Four free rooms, picked past anything already held, so the list never offers someone else's room. */
+    const busy = heldUnits(d, a.cycle, a.name);
     list = [0, 1, 2, 3].map((k) => {
       const v = seed + k * 7;
-      const floor = step ? 'G' : String((v % 5) + 1);
-      const code = `${floor}.${(v % 4) + 1}.${'ABCD'[(v >> 2) % 4]}`;
+      const code = step ? `G.${(v % 4) + 1}.${'ABCD'[(v >> 2) % 4]}` : freeCode(busy, hall, v) ?? unitCode(v);
+      busy.add(`${hall} · ${code}`);
+      const floor = code.split('.')[0];
       const block = 'ABCD'[(v >> 1) % 4];
-      return { code, where: `Block ${block} · ${floor === 'G' ? 'ground' : ['first', 'second', 'third', 'fourth', 'fifth'][+floor - 1]} floor`, match: 96 - k * 6 - (v % 3),
+      return { code, where: `Block ${block} · ${floor === 'G' ? 'ground' : ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth'][+floor - 1]} floor`, match: 96 - k * 6 - (v % 3),
         tags: [...(step ? [{ label: 'Step-free', tone: 'blue' as const }] : []), { label: `Kitchen with ${4 + (v % 5)}`, tone: 'orange' as const }, ...(k === 0 && a.reqs.includes('Year-round stay') ? [{ label: 'Year-round', tone: 'green' as const }] : [])] };
     });
     // E1: Sofia's best Collingwood room is taken by someone else while she is being allocated.
@@ -517,5 +577,6 @@ export function unitsFor(d: Data, a: App, hall: string, room: string): UnitOpt[]
       ];
     }
   }
-  return list.filter((u, i, arr) => !d.usedUnits.includes(`${hall} · ${u.code}`) && arr.findIndex((x) => x.code === u.code) === i).slice(0, Math.min(3, Math.max(free, 1)));
+  const held = heldUnits(d, a.cycle, a.name);
+  return list.filter((u, i, arr) => !held.has(`${hall} · ${u.code}`) && arr.findIndex((x) => x.code === u.code) === i).slice(0, Math.min(3, Math.max(free, 1)));
 }

@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Tone } from './seed';
 
@@ -12,6 +12,10 @@ export type Resident = {
   status: ResStatus; arrivingThisWeek?: boolean; arrives?: string; slot?: string; leaves?: string;
   deposit: 'Paid' | 'Not paid'; depositNote?: string; lease: 'Signed' | 'Not signed'; leaseNote?: string;
   year: string; plan?: string; rent: number; checkedIn?: string; checkInNote?: string;
+  /** The key fob handed over at check-in; no two residents share one. */
+  fob?: string;
+  /** Set while a deposit payment link or an override is out, so check-in can't start twice. */
+  pending?: 'payment' | 'override';
   studentId: string; phone: string; course: string; emergency: string; application: string;
 };
 
@@ -67,7 +71,7 @@ const mk = (id: string, name: string, hall: string, room: string, roomType: stri
   };
 };
 
-export const seedResidents = (): Resident[] => [
+const baseResidents = (): Resident[] => [
   mk('r1', 'Amira Rahman', 'Ustinov College', 'G.04.A', 'Accessible ensuite', 'Arriving', {
     arrivingThisWeek: true, arrives: 'Sat 19 Sep', slot: '10:00–12:00', year: 'First year', plan: 'With Disability Support · carer room G.04.B next door',
     studentId: '001942871', phone: '+44 7700 900412', course: 'BSc Biosciences · Year 1', emergency: 'Nadia Rahman (mother)', application: 'APP-27-01842 · from 2026/27 cycle',
@@ -100,6 +104,8 @@ export const seedResidents = (): Resident[] => [
   mk('r27', 'Zara Ahmed', "St Mary's College", '3.01', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sat 19 Sep', year: 'First year' }),
   mk('r28', 'Lucas Martin', 'Josephine Butler', '2.03', 'Standard single', 'Leaving', { leaves: '18 Jun 2027' }),
 ];
+/** Everyone already in has a fob; arriving residents get theirs at check-in. */
+export const seedResidents = (): Resident[] => baseResidents().map((r, i) => (r.status === 'Arriving' ? r : { ...r, fob: String(40100 + i * 7) }));
 
 /* ---------------- Requests ---------------- */
 const swapChecks = (arrears?: string): CheckItem[] => [
@@ -275,23 +281,36 @@ type RmsState = Data & {
   update: <K extends keyof Data>(key: K, id: string, ch: Partial<Data[K][number]>) => () => void;
 };
 
+type Rec = { id: string };
+/* Undo puts back only the records this change touched, so undoing one check-in
+   never reverts a later one made in between. */
+function revertOnly(key: keyof Data, before: Rec[], after: Rec[]): () => void {
+  const was = new Map(before.map((r) => [r.id, r]));
+  const afterIds = new Set(after.map((r) => r.id));
+  const touched = new Set(after.filter((r) => was.get(r.id) !== r).map((r) => r.id));
+  const removed = before.filter((r) => !afterIds.has(r.id));
+  return () => useRms.setState((s: RmsState) => ({
+    [key]: [...removed, ...(s[key] as Rec[]).flatMap((r) => (touched.has(r.id) ? (was.has(r.id) ? [was.get(r.id)!] : []) : [r]))],
+  }) as Partial<RmsState>);
+}
+
 const seed = (): Data => ({ residents: seedResidents(), requests: seedRequests(), notices: seedNotices(), faults: seedFaults() });
 
-export const useRms = create<RmsState>()(
+export const useRms: UseBoundStore<StoreApi<RmsState>> = create<RmsState>()(
   persist(
     (set, get) => ({
       ...seed(),
       patch: (key, fn) => {
         const prev = get()[key];
         set({ [key]: fn(prev) } as Partial<RmsState>);
-        return () => set({ [key]: prev } as Partial<RmsState>);
+        return revertOnly(key, prev as Rec[], get()[key] as Rec[]);
       },
       update: (key, id, ch) => {
         const prev = get()[key];
-        set({ [key]: (prev as { id: string }[]).map((x) => (x.id === id ? { ...x, ...ch } : x)) } as Partial<RmsState>);
-        return () => set({ [key]: prev } as Partial<RmsState>);
+        set({ [key]: (prev as Rec[]).map((x) => (x.id === id ? { ...x, ...ch } : x)) } as Partial<RmsState>);
+        return revertOnly(key, prev as Rec[], get()[key] as Rec[]);
       },
     }),
-    { name: 'pms-residents', storage: createJSONStorage(() => sessionStorage), partialize: (s) => ({ residents: s.residents, requests: s.requests, notices: s.notices, faults: s.faults }) },
+    { name: 'pms-residents', version: 1, storage: createJSONStorage(() => sessionStorage), partialize: (s) => ({ residents: s.residents, requests: s.requests, notices: s.notices, faults: s.faults }) },
   ),
 );

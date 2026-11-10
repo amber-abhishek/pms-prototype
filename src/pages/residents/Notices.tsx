@@ -137,13 +137,14 @@ function Compose({ draft }: { draft?: Notice }) {
             <div className="rounded-xl border border-line p-3 space-y-2">
               {conds.map((c, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Select className="w-36" value={c.field} onChange={(e) => setConds(conds.map((x, j) => (j === i ? { field: e.target.value as Cond['field'], value: e.target.value === 'Hall' ? 'Ustinov College' : 'Arriving this week' } : x)))}>
+                  {/* Sized wrappers: the trigger is w-full, which beats a width class passed to it. */}
+                  <div className="w-36 shrink-0"><Select value={c.field} onChange={(e) => setConds(conds.map((x, j) => (j === i ? { field: e.target.value as Cond['field'], value: e.target.value === 'Hall' ? 'Ustinov College' : 'Arriving this week' } : x)))}>
                     <option>Hall</option><option>Status</option>
-                  </Select>
+                  </Select></div>
                   <span className="text-sm text-gray-500">is</span>
-                  <Select className="flex-1" value={c.value} onChange={(e) => setConds(conds.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}>
+                  <div className="flex-1 min-w-0"><Select aria-label={c.field} value={c.value} onChange={(e) => setConds(conds.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}>
                     {(c.field === 'Hall' ? HALLS.slice(1) : GROUPS.slice(1)).map((o) => <option key={o}>{o}</option>)}
-                  </Select>
+                  </Select></div>
                   <button type="button" aria-label="Remove condition" onClick={() => setConds(conds.filter((_, j) => j !== i))} className="size-7 rounded-md text-gray-400 hover:bg-gray-100 hover:text-ink flex items-center justify-center"><X size={14} /></button>
                 </div>
               ))}
@@ -189,21 +190,26 @@ function Compose({ draft }: { draft?: Notice }) {
   );
 }
 
+const NOW_TIME = '11:20';
+const TIMES = ['07:30', '08:00', '09:00', '12:00', '18:00', '22:30'];
 function ScheduleDialog({ open, onClose, count, hall, channels, onSchedule }: { open: boolean; onClose: () => void; count: number; hall: string; channels: Channels; onSchedule: (when: string, o: { urgent: boolean; sendNow: boolean; pinned?: string }) => void }) {
   const [date, setDate] = useState('Wed 16 Sep');
   const [time, setTime] = useState('09:00');
   const [pin, setPin] = useState(true);
+  /* It is 11:20 on Tue 15 Sep in the prototype: earlier times today have already gone. */
+  const past = (d: string, t: string) => d === 'Today' && t < NOW_TIME;
+  const pickDate = (d: string) => { setDate(d); if (past(d, time)) setTime(TIMES.find((t) => !past(d, t))!); };
   const [urgent, setUrgent] = useState(false);
   const quiet = useMemo(() => { const h = Number(time.slice(0, 2)); return h >= 21 || h < 8; }, [time]);
   const by = [channels.email && 'email', channels.portal && 'the resident portal', channels.sms && 'SMS'].filter(Boolean).join(' and ') || 'no channel yet';
   const sendNow = quiet && urgent && date === 'Today';
-  const when = quiet && !urgent ? (date === 'Today' ? 'Tue 15 Sep, 08:00' : `${date}, 08:00 (next morning)`) : `${date}, ${time}`;
+  const when = quiet && !urgent ? (date === 'Today' ? 'Wed 16 Sep, 08:00' : `${date}, 08:00 (next morning)`) : `${date}, ${time}`;
   return (
     <Modal open={open} onClose={onClose} title="Schedule the notice" sub={`${count.toLocaleString('en-GB')} residents${hall === 'All halls' ? ' in every hall' : ` at ${hall}`}, by ${by}.`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={sendNow ? PaperPlaneTilt : Clock} onClick={() => onSchedule(sendNow ? `Today ${time}` : when, { urgent: quiet && urgent, sendNow, pinned: pin ? 'Sat 19 Sep' : undefined })}>{sendNow ? 'Send at 22:30' : 'Schedule'}</Button></>}>
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={sendNow ? PaperPlaneTilt : Clock} onClick={() => onSchedule(sendNow ? `Today ${time}` : when, { urgent: quiet && urgent, sendNow, pinned: pin ? 'Sat 19 Sep' : undefined })}>{sendNow ? 'Send now' : 'Schedule'}</Button></>}>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Date"><Select value={date} onChange={(e) => setDate(e.target.value)}>{['Today', 'Wed 16 Sep', 'Thu 17 Sep', 'Fri 18 Sep'].map((d) => <option key={d}>{d}</option>)}</Select></Field>
-        <Field label="Time"><Select value={time} onChange={(e) => setTime(e.target.value)}>{['07:30', '08:00', '09:00', '12:00', '18:00', '22:30'].map((d) => <option key={d}>{d}</option>)}</Select></Field>
+        <Field label="Date"><Select value={date} onChange={(e) => pickDate(e.target.value)}>{['Today', 'Wed 16 Sep', 'Thu 17 Sep', 'Fri 18 Sep'].map((d) => <option key={d}>{d}</option>)}</Select></Field>
+        <Field label="Time" hint={date === 'Today' ? `It’s ${NOW_TIME} now` : undefined}><Select value={time} onChange={(e) => setTime(e.target.value)}>{TIMES.map((t) => <option key={t} disabled={past(date, t)}>{t}</option>)}</Select></Field>
       </div>
       <CheckBox checked={pin} onChange={setPin} label="Pin it on the resident portal until Sat 19 Sep" />
       {quiet ? (
@@ -278,7 +284,7 @@ function NoticeSheet({ n, onClose , nav: sheetNav }: { nav?: SheetNav;  n: Notic
                       <span className="flex-1 min-w-0 truncate text-[#111827]">{nm}</span>
                       <span className="w-16 text-[#646A78]">{rm}</span>
                       <span className="w-20 text-[#646A78]">{ar}</span>
-                      <Envelope size={14} className="text-gray-400" aria-label="Delivered, not opened" />
+                      <Envelope size={14} className="text-[#646A78]" aria-label="Delivered, not opened" />
                     </div>
                   ))}
                   {unopened > notOpened.length && <div className="h-10 flex items-center text-sm text-[#646A78]">and {(unopened - notOpened.length).toLocaleString('en-GB')} more</div>}

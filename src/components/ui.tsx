@@ -1,6 +1,17 @@
 import { Children, Fragment, isValidElement, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Illustration, type Illo } from './Illustration';
-import { GhostZone, headerZone, usePageTitle, usePublishTitle } from './headerCtx';
+import { GhostZone, headerZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
+
+/** The breadcrumb's current page: the h1 unless the page shows its own title. */
+export function CrumbTitle({ className, children }: { className: string; children: ReactNode }) {
+  const taken = useHeadingTaken();
+  return taken ? <span aria-current="page" className={className}>{children}</span> : <h1 className={className}>{children}</h1>;
+}
+/** A visible page title; registers so the breadcrumb steps down. */
+export function TitleH1({ className, children }: { className: string; children: ReactNode }) {
+  useOwnHeading();
+  return <h1 className={className}>{children}</h1>;
+}
 import { Link } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { Button as UIButton, type ButtonProps as UIButtonProps } from './shadcn/button';
@@ -129,7 +140,7 @@ export function PageHeader({ icon: I, title, crumbs, children }: { icon?: Icon; 
       {I && <I size={16} className="text-gray-500 shrink-0" />}
       <div className="flex items-center gap-1.5 min-w-0 text-sm leading-5">
         {crumbs?.filter((c) => (typeof c === 'string' ? c : c.label)).map((c, i) => <CrumbLink key={i} c={c} />)}
-        <h1 className="font-normal text-[#111827] truncate">{title}</h1>
+        <CrumbTitle className="font-normal text-[#111827] truncate">{title}</CrumbTitle>
       </div>
       <div className="ml-auto flex items-center gap-1">{<GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider>}</div>
     </div>
@@ -143,7 +154,7 @@ export function PageHeading({ title, right, className }: { title?: ReactNode; ri
   const t = usePageTitle();
   return (
     <div className={cx('shrink-0 px-[var(--tx,16px)] pt-6 pb-3 flex items-center gap-2', className)}>
-      <h2 className="text-xl leading-7 font-medium text-ink truncate ml-[calc(var(--gx,16px)+var(--cx,12px)-var(--tx,16px))]">{title ?? t}</h2>
+      <TitleH1 className="text-xl leading-7 font-medium text-ink truncate ml-[calc(var(--gx,16px)+var(--cx,12px)-var(--tx,16px))]">{title ?? t}</TitleH1>
       {right && <div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div>}
     </div>
   );
@@ -160,7 +171,7 @@ export function Toolbar({ children, right, className, heading }: { children?: Re
 }
 /** Mercury-style metric links above a table: a bold label, then "value label ›" links that filter the table. */
 export type Metric = { label: string; value: ReactNode; tone?: 'red' | 'orange' | 'amber' | 'green'; onClick?: () => void; active?: boolean };
-const metricTone = { red: 'text-[#D92D20]', orange: 'text-[#E5530C]', amber: 'text-[#C47A00]', green: 'text-[#0B8A4C]' } as const;
+const metricTone = { red: 'text-[#C11F14]', orange: 'text-[#C2410C]', amber: 'text-[#9A5B00]', green: 'text-[#087A43]' } as const;
 export function Metrics({ title, items, right }: { title: string; items: Metric[]; right?: ReactNode }) {
   return (
     <div className="h-10 shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] flex items-center gap-5 text-sm whitespace-nowrap overflow-x-auto">
@@ -249,7 +260,7 @@ export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; on
       <TabsList>
         {tabs.map((t) => (
           <TabsTrigger key={t.id} value={t.id}>
-            {t.label}{t.count !== undefined && <span className="text-xs font-medium text-gray-400 group-data-[state=active]:text-[#2B5CFF]">{t.count.toLocaleString('en-GB')}</span>}
+            {t.label}{t.count !== undefined && <span className="text-xs font-medium text-[#646A78] group-data-[state=active]:text-[#2B5CFF]">{t.count.toLocaleString('en-GB')}</span>}
           </TabsTrigger>
         ))}
       </TabsList>
@@ -351,7 +362,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, page
     /* 2820:111: 36px header, 12px medium #646A78, #E5E7EB rule; 40px rows, 14px, #F3F4F6 rules; 20px outer padding. */
     <UITable className="text-[#111827]">
       <TableHeader className="sticky top-0 z-[1]"><TableRow>{group && <TableHead className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'w-[120px]', group.className)}>{group.label}</TableHead>}{cols.map((c, i) => <TableHead key={c.key} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === cols.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), c.className)}>{sort?.key === c.key ? (
-        <button type="button" disabled={!sort.onToggle} onClick={sort.onToggle} className="inline-flex items-center gap-1 text-[#111827] font-medium disabled:cursor-default">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button>
+        <button type="button" disabled={!sort.onToggle} onClick={sort.onToggle} className="relative inline-flex items-center gap-1 text-[#111827] font-medium disabled:cursor-default after:absolute after:-inset-y-1 after:-inset-x-1 after:content-['']">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button>
       ) : c.label}</TableHead>)}</TableRow></TableHeader>
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }, ri) => (
@@ -412,8 +423,9 @@ export function Note({ tone = 'amber', title, children, icon: I }: { tone?: 'amb
 
 /* ---------- Form controls ---------- */
 /** 3054:2: 14px medium #111827 label, 6px gap, 32px control; hint 12px #646A78. */
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return <Label className="block"><span className="block text-sm leading-5 font-medium text-[#111827] mb-1.5">{label}</span>{children}{hint && <span className="block text-xs leading-4 font-normal text-[#646A78] mt-1.5">{hint}</span>}</Label>;
+export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
+  /* An error replaces the hint, in red, under the field it belongs to. */
+  return <Label className="block"><span className="block text-sm leading-5 font-medium text-[#111827] mb-1.5">{label}</span>{children}{error ? <span role="alert" className="block text-xs leading-4 font-normal text-[#C11F14] mt-1.5">{error}</span> : hint && <span className="block text-xs leading-4 font-normal text-[#646A78] mt-1.5">{hint}</span>}</Label>;
 }
 /* shadcn Input / Textarea / NativeSelect, styled in ./shadcn. */
 export const Input = (p: React.ComponentProps<typeof UIInput>) => <UIInput {...p} />;
@@ -469,7 +481,7 @@ export const Textarea = (p: React.ComponentProps<'textarea'>) => <UITextarea {..
 export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
   return <UISwitch checked={checked} onCheckedChange={onChange} aria-label={label} />;
 }
-/** 3031:2: 16px box, 4px radius; checked #2563EB with a white tick, unchecked white with #D1D5DB border. */
+/** 20px box; checked #2563EB with a white tick, unchecked white with the --input border. */
 export function Check({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <Label className="inline-flex items-center gap-2 text-sm font-normal text-gray-700 cursor-pointer select-none">
@@ -526,7 +538,16 @@ export function SheetNavButtons({ nav }: { nav?: SheetNav }) {
     </div>
   );
 }
+/* When a sheet closes on a click, the second click of a double click would land on whatever is
+   behind it (a row, a link). A clear layer eats clicks for a moment after the close. */
+function shieldClicks(ms = 350) {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;z-index:2147483647';
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), ms);
+}
 export function Sheet({ open, onClose, title, sub, children, footer, width = 480, nav }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav }) {
+  useEffect(() => { if (!open) return; return () => shieldClicks(); }, [open]);
   return (
     <UISheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent style={{ width }} {...noDesc(sub)}>
@@ -568,7 +589,7 @@ export function SheetHero({ name, meta, avatar = true, children }: { name: React
       <div className="flex items-center gap-3">
         {avatar && typeof name === 'string' && <Avatar name={name} size={40} />}
         <div className="min-w-0">
-          <div className="text-xl font-medium text-ink leading-7 truncate">{name}</div>
+          <div className="text-xl font-medium text-ink leading-7 [overflow-wrap:anywhere]">{name}</div>
           {meta && <div className="text-sm text-gray-500 leading-5 truncate">{meta}</div>}
         </div>
       </div>

@@ -3,6 +3,7 @@
 // frames (E1–E4) and the empty states use their own member lists, loadable with ?demo=edge|empty.
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { revertList } from './revert';
 
 export type Hall = { id: string; short: string; name: string; rooms: number };
 /** Halls (properties) people can be given access to. Ids match the shared seed's properties. */
@@ -121,6 +122,23 @@ export const useOrg = create<OrgState>()(
 );
 
 export const oid = (p: string) => `${p}${Math.random().toString(36).slice(2, 8)}`;
+
+/* ---------- undo ---------- */
+type Lists = Pick<OrgState, 'roles' | 'members' | 'campuses' | 'teams'>;
+const LISTS = ['roles', 'members', 'campuses', 'teams'] as const;
+/** Take this before an action; pass it to undoSince after the action has run. */
+export const snapOrg = (): Lists => { const s = useOrg.getState(); return { roles: s.roles, members: s.members, campuses: s.campuses, teams: s.teams }; };
+/** An Undo for the action that ran since `before`. The audit log keeps its lines and records the undo. */
+export function undoSince(before: Lists, what: string, area: AuditEntry['area']) {
+  const after = snapOrg();
+  return () => {
+    const cur = useOrg.getState();
+    const patch: Partial<Lists> = {};
+    for (const k of LISTS) if (before[k] !== after[k]) (patch as Record<string, unknown>)[k] = revertList(before[k] as { id: string }[], after[k] as { id: string }[], cur[k] as { id: string }[]);
+    useOrg.setState(patch);
+    cur.audit_(`undid “${what}”`, area);
+  };
+}
 
 /* ---------- helpers ---------- */
 export function hallsLabel(h: Member['halls'], long = false) {

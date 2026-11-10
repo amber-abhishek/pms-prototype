@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, X, XCircle, Archive, type Icon } from '../../components/icons';
+import { CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, WarningCircle, X, XCircle, Archive, type Icon } from '../../components/icons';
 import { Status, cx } from '../../components/ui';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
@@ -19,11 +19,11 @@ export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' 
 }
 
 /* Tag text colours from 2820:111; the border is the same colour at 35%. Self-catered/Riverside are teal, Common room pink. */
-const TAG_HEX: Record<string, string> = { green: '#0B8A4C', blue: '#1F45E0', amber: '#A16207', orange: '#E5530C', red: '#E0243A', purple: '#6E3BD8', grey: '#374151' };
+const TAG_HEX: Record<string, string> = { green: '#087A43', blue: '#1F45E0', amber: '#9A5B00', orange: '#C2410C', red: '#C8102E', purple: '#6E3BD8', grey: '#374151' };
 const TAG_BY_LABEL: Record<string, string> = { 'Self-catered': '#0E7A80', Riverside: '#0E7A80', 'Common room': '#C0266D' };
 const tagColor = (t: Tag) => TAG_BY_LABEL[t.label] ?? TAG_HEX[t.tone] ?? '#374151';
 export function Tags({ tags, max = 2 }: { tags: Tag[]; max?: number }) {
-  if (!tags.length) return <span className="text-gray-400">—</span>;
+  if (!tags.length) return <span className="text-[#646A78]">—</span>;
   return (
     <span className="inline-flex items-center gap-1.5">
       {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-[22px] px-2 rounded-md border bg-white text-xs font-medium whitespace-nowrap" style={{ color: c, borderColor: c + '59' }}>{t.label}</span>; })}
@@ -121,7 +121,7 @@ export function Menu({ trigger, items, align = 'right', width = 200 }: { trigger
 /* Stepper −  n  + */
 export function Stepper({ value, onChange, min = 1, max = 99 }: { value: number; onChange: (n: number) => void; min?: number; max?: number }) {
   return (
-    <div className="inline-flex h-8 rounded-lg border border-gray-300 bg-white overflow-hidden">
+    <div className="inline-flex h-8 rounded-lg border border-input bg-white overflow-hidden">
       <button type="button" aria-label="Fewer" onClick={() => onChange(Math.max(min, value - 1))} className="w-8 flex items-center justify-center text-[#646A78] hover:bg-gray-50 border-r border-gray-200"><Minus size={13} /></button>
       <input aria-label="Count" value={value} onChange={(e) => { const n = parseInt(e.target.value, 10); if (!Number.isNaN(n)) onChange(Math.min(max, Math.max(min, n))); }} className="w-12 text-center text-sm outline-none" />
       <button type="button" aria-label="More" onClick={() => onChange(Math.min(max, value + 1))} className="w-8 flex items-center justify-center text-[#646A78] hover:bg-gray-50 border-l border-gray-200"><Plus size={13} /></button>
@@ -129,12 +129,25 @@ export function Stepper({ value, onChange, min = 1, max = 99 }: { value: number;
   );
 }
 
+/* ---- Shared checks (molades-attack, 2026-11-10). Money is digits with at most one point and two decimals;
+   dates are "19 Sep 2027". A failed check shows its reason in words under the field and blocks Save. ---- */
+export const isMoney = (v: string) => /^\d+(\.\d{1,2})?$/.test(v.trim());
+export const isWhole = (v: string) => /^\d+$/.test(v.trim());
+export const parseDay = (v: string) => { if (!/^\d{1,2} [A-Za-z]{3,9} \d{4}$/.test(v.trim())) return null; const t = Date.parse(v); return Number.isNaN(t) ? null : t; };
+export const moneyErr = (v: string, what: string, { allowZero = false } = {}) => (!v.trim() ? `Enter ${what}.` : !isMoney(v) ? `${what[0].toUpperCase()}${what.slice(1).replace(/^(a|an) /, '')} must be a number, e.g. 168 or 168.50.` : !allowZero && +v <= 0 ? `${what[0].toUpperCase()}${what.slice(1).replace(/^(a|an) /, '')} must be more than £0.` : '');
+export const rangeErr = (from: string, to: string) => { const a = parseDay(from), b = parseDay(to); return !a ? 'Enter Available from as a date, e.g. 19 Sep 2027.' : !b ? 'Enter Available to as a date, e.g. 24 Jul 2028.' : b <= a ? 'Available to must be after Available from.' : ''; };
+export function FieldErr({ children }: { children?: ReactNode }) {
+  return children ? <p className="text-xs text-[#C8102E] mt-1.5 flex items-center gap-1"><WarningCircle size={14} className="shrink-0" />{children}</p> : null;
+}
+/* Letters are dropped as you type; a malformed number like "1.2.3" is left as typed so the field can say what is wrong. */
+const digits = (v: string) => v.replace(/[^0-9.]/g, '');
+
 /* £ prefixed input with an optional suffix (/ wk). */
 export function MoneyInput({ value, onChange, suffix, className, autoFocusRef }: { value: string; onChange: (v: string) => void; suffix?: string; className?: string; autoFocusRef?: React.Ref<HTMLInputElement> }) {
   return (
     <label className={cx('h-8 flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 text-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25', className)}>
       <span className="text-[#646A78]">£</span>
-      <input ref={autoFocusRef} value={value} inputMode="decimal" onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 min-w-0 outline-none bg-transparent" />
+      <input ref={autoFocusRef} value={value} inputMode="decimal" onChange={(e) => onChange(digits(e.target.value))} className="flex-1 min-w-0 outline-none bg-transparent" />
       {suffix && <span className="text-gray-400">{suffix}</span>}
     </label>
   );
@@ -164,7 +177,7 @@ export function Picker<T extends string>({ value, onChange, options, icon: I, pl
 }
 
 export function Kbd({ children }: { children: ReactNode }) {
-  return <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-line bg-white text-[11px] text-[#646A78] font-sans">{children}</kbd>;
+  return <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-line bg-white text-xs text-[#646A78] font-sans">{children}</kbd>;
 }
 
 /* Thin progress bar in primary or green. */
@@ -173,6 +186,6 @@ export function Progress({ value, tone = 'blue', className }: { value: number; t
 }
 
 export function EditLink({ onClick, children = 'Edit' }: { onClick: () => void; children?: ReactNode }) {
-  return <button type="button" onClick={onClick} className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1">{children}</button>;
+  return <button type="button" onClick={onClick} className="-my-1 -mx-1.5 h-6 px-1.5 rounded-md text-xs font-medium text-primary hover:bg-[#EFF6FF] inline-flex items-center gap-1">{children}</button>;
 }
 export { PencilSimple };

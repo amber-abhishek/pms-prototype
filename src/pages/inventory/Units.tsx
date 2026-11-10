@@ -8,7 +8,7 @@ import { Button, Field, Input, PageHeader, Pill, Sheet, SheetHero, SheetSection,
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, flatsOf, money, per, useInv, type ArchivedRow, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
-import { Menu, Modal, Picker, PropStatus, RadioCard } from './common';
+import { FieldErr, Menu, Modal, Picker, PropStatus, RadioCard } from './common';
 import { GhostZone } from '../../components/headerCtx';
 import { EmptyArea } from '../allocations/common';
 
@@ -190,7 +190,7 @@ function UnitsView({ props }: { props: Property[] }) {
       <UnitSheet p={p} unit={openUnit} nav={listNav(flatList, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} path={[p.name, block?.name ?? '', `Floor ${sel.floor}`, flats.find((f) => f.units.some((u) => u.id === open))?.name ?? '']} />
       <ArchiveFlatDialog flat={archiveFlat} onClose={() => setArchiveFlat(null)} onConfirm={doArchiveFlat} />
       <RestoreDialog p={p} row={restore} onClose={() => setRestore(null)} />
-      <RenameDialog flat={renaming ? curFlat : null} onClose={() => setRenaming(false)} />
+      <RenameDialog flat={renaming ? curFlat : null} siblings={flats} onClose={() => setRenaming(false)} />
     </>
   );
 
@@ -225,8 +225,8 @@ function Tree({ props, sel, go, archivedFlats }: { props: Property[]; sel: Sel; 
   const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const row = (depth: number, k: string, I: typeof Bed, label: string, n: number | null, active: boolean, onClick: () => void, leaf = false) => (
     <div key={k} aria-current={active || undefined} className={cx('h-7 mb-px flex items-center gap-1.5 rounded-lg text-sm pr-2 cursor-pointer', depth === 0 ? 'font-semibold' : 'font-medium', active ? 'bg-[#EFF6FF] text-[#1F45E0]' : 'text-[#111827] hover:bg-gray-100')} style={{ paddingLeft: 6 + depth * 14 }} onClick={onClick}>
-      {leaf ? <span className="w-3" /> : <button type="button" aria-label="Expand" onClick={(e) => { e.stopPropagation(); tog(k); }} className="w-3 text-gray-400">{open[k] ? <CaretDown size={10} /> : <CaretRight size={10} />}</button>}
-      <I size={14} className={cx('shrink-0', active ? 'text-[#2B5CFF]' : 'text-gray-500')} /><span className="truncate flex-1">{label}</span>{n != null && <span className={cx('text-xs font-normal tabular-nums', active ? 'text-[#2B5CFF]' : 'text-gray-400')}>{n}</span>}
+      {leaf ? <span className="w-6 shrink-0" /> : <button type="button" aria-label={open[k] ? 'Collapse' : 'Expand'} aria-expanded={!!open[k]} onClick={(e) => { e.stopPropagation(); tog(k); }} className="-ml-1.5 size-6 shrink-0 rounded-md flex items-center justify-center text-[#646A78] hover:bg-gray-100">{open[k] ? <CaretDown size={12} /> : <CaretRight size={12} />}</button>}
+      <I size={14} className={cx('shrink-0', active ? 'text-[#2B5CFF]' : 'text-gray-500')} /><span className="truncate flex-1">{label}</span>{n != null && <span className={cx('text-xs font-normal tabular-nums', active ? 'text-[#2B5CFF]' : 'text-[#646A78]')}>{n}</span>}
     </div>
   );
   return (
@@ -281,9 +281,9 @@ function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFl
           <td className="pl-[var(--cx,12px)] h-10" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${u.code}`} checked={checked.includes(u.id)} onCheckedChange={() => setChecked((c) => (c.includes(u.id) ? c.filter((x) => x !== u.id) : [...c, u.id]))} /></td>
           <td className="px-3 font-semibold text-sm text-[#111827]">{u.code}</td>
           <td className="px-3 text-sm text-[#111827]">{u.type}</td>
-          <td className="px-3 text-right text-sm text-[#111827] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-gray-400">No tenancy</span>}</td>
+          <td className="px-3 text-right text-sm text-[#111827] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#646A78]">No tenancy</span>}</td>
           <td className="px-3 pl-6"><PropStatus s={u.status} /></td>
-          <td className="pl-3 pr-[var(--cx,12px)] text-[#646A78]">{u.template ?? <span className="text-gray-400">—</span>}</td>
+          <td className="pl-3 pr-[var(--cx,12px)] text-[#646A78]">{u.template ?? <span className="text-[#646A78]">—</span>}</td>
         </tr>
       ))}
     </>
@@ -296,7 +296,10 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
   const [blocked, setBlocked] = useState(false);
   const [size, setSize] = useState('');
   useEffect(() => { setBlocked(false); setSize(unit ? String(unit.size) : ''); }, [unit?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [confirmArchive, setConfirmArchive] = useState(false);
   if (!unit) return null;
+  const archive = () => { editUnit(unit.id, { status: 'Archived' }); toast.success(`${unit.code} archived`, { action: { label: 'Undo', onClick: () => editUnit(unit.id, { status: unit.status }) } }); onClose(); };
+  const sizeErr = !size.trim() ? 'Enter a room size.' : !/^\d+(\.\d{1,2})?$/.test(size) || +size <= 0 ? 'Room size must be a number above 0, e.g. 14.' : '';
   const setStatus = (s: UStatus) => {
     if (s === unit.status) return;
     if (s === 'Active' && unit.rent == null) { setBlocked(true); return; }
@@ -314,7 +317,9 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
   };
   return (
     <Sheet open onClose={onClose} nav={nav} width={420} title="Unit"
-      footer={<Button className="mr-auto" icon={Archive} variant="ghost" onClick={() => { editUnit(unit.id, { status: 'Archived' }); toast.success(`${unit.code} archived`, { action: { label: 'Undo', onClick: () => editUnit(unit.id, { status: unit.status }) } }); onClose(); }}>Archive unit</Button>}>
+      footer={<Button className="mr-auto" icon={Archive} variant="danger-ghost" onClick={() => (unit.rent != null ? setConfirmArchive(true) : archive())}>Archive unit</Button>}>
+      <Modal open={confirmArchive} onClose={() => setConfirmArchive(false)} icon={Archive} width={420} title={`Archive ${unit.code}?`} sub={`It has a ${unit.template ?? 'tenancy'} linked. Archiving takes it off sale; the tenancy stays on record.`}
+        footer={<><Button onClick={() => setConfirmArchive(false)}>Keep</Button><Button variant="danger" icon={null} onClick={() => { setConfirmArchive(false); archive(); }}>Archive unit</Button></>}>{null}</Modal>
       <SheetHero avatar={false} name={<span className="font-mono">{unit.code}</span>} meta={path.filter(Boolean).join(' › ')}>
         <PropStatus s={unit.status} />
         <Pill outline icon={Bed}>Room · BSU{unit.note ? ` · ${unit.note}` : ''}</Pill>
@@ -332,7 +337,8 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
         <div className="space-y-4">
           <Field label="Room type"><Picker value={unit.type} onChange={(v) => { editUnit(unit.id, { type: v }); toast.success(`${unit.code} is now ${v}`); }} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></Field>
           <Field label="Room size *">
-            <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Room size" value={size} onChange={(e) => setSize(e.target.value.replace(/[^0-9.]/g, ''))} onBlur={() => size && +size !== unit.size && (editUnit(unit.id, { size: +size }), toast.success('Room size saved'))} className="flex-1 outline-none" /><span className="text-gray-400 text-xs">m²</span></label>
+            <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Room size" value={size} onChange={(e) => setSize(e.target.value.replace(/[^0-9.]/g, ''))} onBlur={() => !sizeErr && +size !== unit.size && (editUnit(unit.id, { size: +size }), toast.success(`${unit.code} room size saved · ${+size} m²`))} className="flex-1 outline-none" /><span className="text-[#646A78] text-xs">m²</span></label>
+            <FieldErr>{sizeErr && `${sizeErr} Not saved.`}</FieldErr>
           </Field>
         </div>
       </SheetSection>
@@ -429,13 +435,22 @@ function RestoreDialog({ p, row, onClose }: { p: Property; row: ArchivedRow | nu
     </Modal>
   );
 }
-function RenameDialog({ flat, onClose }: { flat: Flat | null; onClose: () => void }) {
+function RenameDialog({ flat, siblings, onClose }: { flat: Flat | null; siblings: Flat[]; onClose: () => void }) {
   const [v, setV] = useState('');
   useEffect(() => { if (flat) setV(flat.name); }, [flat]);
   if (!flat) return null;
+  const name = v.trim();
+  const err = !name ? 'Enter a name.' : siblings.some((f) => f.id !== flat.id && f.name.trim().toLowerCase() === name.toLowerCase()) ? `This floor already has ${name}.` : '';
+  const save = () => {
+    if (err) return;
+    /* Flat names live with the unit edits under a "flat|" key, so flatsOf picks them up. */
+    useInv.getState().set('unitEdits', (e) => ({ ...e, [`flat|${flat.id}`]: { code: name } }));
+    onClose();
+    toast.success(`${flat.name} renamed to ${name}`);
+  };
   return (
-    <Modal open onClose={onClose} icon={PencilSimple} title={`Rename ${flat.name}`} width={420} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => { onClose(); toast.success(`${flat.name} renamed to ${v}`); }}>Rename</Button></>}>
-      <Field label="Name"><Input value={v} onChange={(e) => setV(e.target.value)} /></Field>
+    <Modal open onClose={onClose} icon={PencilSimple} title={`Rename ${flat.name}`} width={420} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!err || name === flat.name} onClick={save}>Rename</Button></>}>
+      <Field label="Name"><Input value={v} onChange={(e) => setV(e.target.value)} /><FieldErr>{err}</FieldErr></Field>
     </Modal>
   );
 }

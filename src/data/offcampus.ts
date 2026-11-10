@@ -88,8 +88,8 @@ function reviews(): Review[] {
   return [
     { id: 'rv-hallgarth', title: '14 Hallgarth Street', type: 'House', beds: 4, landlord: 'Callum Reid', tint: tints[0], received: '10 min ago', submittedAt: '28 Oct 2026, 16:20', status: 'Under review', ...hallgarth },
     { id: 'rv-oldelvet', title: 'Flat 2, 31 Old Elvet', town: 'Durham', type: 'Apartment', beds: 2, landlord: 'Hannah Moss', tint: tints[1], received: '1 hour ago', submittedAt: '28 Oct 2026, 15:31', status: 'Under review', address: 'Flat 2, 31 Old Elvet, DH1 3HN', letAs: 'Whole property', size: 58, from: 165, amenities: ['Wi-Fi', 'Washing machine', 'Dishwasher'], bills: 'All bills included in rent', rules: 'No pets · No smoking · Students only · Max occupancy 2', rooms: roomsFor(2, 165) },
-    { id: 'rv-mistletoe', title: '7 Mistletoe Street', town: 'Durham', type: 'House', beds: 5, landlord: 'Joanne Pike', tint: tints[2], received: 'Yesterday', submittedAt: '27 Oct 2026, 11:08', status: 'Under review', address: '7 Mistletoe Street, DH1 4EP', letAs: 'By the room', size: 112, from: 129, amenities: ['Wi-Fi', 'Washing machine', 'Garden', 'Bike storage'], bills: 'Water included in rent · Electricity, Gas, Internet not included · Estimated bills £55 per month', rules: 'No pets · No smoking · Students only · Max occupancy 5', rooms: roomsFor(5, 129) },
-    { id: 'rv-sutton', title: '22 Sutton Street', town: 'Durham', type: 'House', beds: 3, landlord: 'Daniel Ashworth', tint: tints[3], received: '2 days ago', submittedAt: '26 Oct 2026, 09:47', status: 'Under review', address: '22 Sutton Street, DH1 4BW', letAs: 'Whole property', size: 84, from: 138, amenities: ['Wi-Fi', 'Washing machine', 'Desk in every room'], bills: 'All bills included in rent', rules: 'No pets · Students only · Max occupancy 3', rooms: roomsFor(3, 138) },
+    { id: 'rv-mistletoe', title: '7 Mistletoe Street', town: 'Durham', type: 'House', beds: 5, landlord: 'Ruth Ellison', tint: tints[2], received: 'Yesterday', submittedAt: '27 Oct 2026, 11:08', status: 'Under review', address: '7 Mistletoe Street, DH1 4EP', letAs: 'By the room', size: 112, from: 129, amenities: ['Wi-Fi', 'Washing machine', 'Garden', 'Bike storage'], bills: 'Water included in rent · Electricity, Gas, Internet not included · Estimated bills £55 per month', rules: 'No pets · No smoking · Students only · Max occupancy 5', rooms: roomsFor(5, 129) },
+    { id: 'rv-sutton', title: '22 Sutton Street', town: 'Durham', type: 'House', beds: 3, landlord: 'Sophie Grant', tint: tints[3], received: '2 days ago', submittedAt: '26 Oct 2026, 09:47', status: 'Under review', address: '22 Sutton Street, DH1 4BW', letAs: 'Whole property', size: 84, from: 138, amenities: ['Wi-Fi', 'Washing machine', 'Desk in every room'], bills: 'All bills included in rent', rules: 'No pets · Students only · Max occupancy 3', rooms: roomsFor(3, 138) },
     { id: 'rv-gilesgate', title: '41 Gilesgate', town: 'Durham', type: 'House', beds: 6, landlord: 'Gary Holt', tint: tints[4], received: '1 week ago', submittedAt: '20 Oct 2026, 14:02', status: 'Rejected', note: 'The landlord is not approved for this portal.', address: '41 Gilesgate, DH1 1QW', letAs: 'By the room', size: 130, from: 120, amenities: ['Wi-Fi'], bills: 'No bills included', rules: 'Students only', rooms: roomsFor(6, 120) },
   ];
 }
@@ -97,10 +97,10 @@ function reviews(): Review[] {
 const hmo = (id: string, title: string, type: Hmo['type'], beds: number, landlord: string, i: number, status: HmoStatus = 'Active', extra: Partial<Hmo> = {}): Hmo => ({ id, title, town: 'Durham', type, beds, landlord, tint: tints[i % 5], status, ...extra });
 function hmos(): Hmo[] {
   return [
-    hmo('hm-hallgarth', '14 Hallgarth Street', 'House', 4, 'Callum Reid', 0),
-    hmo('hm-oldelvet', 'Flat 2, 31 Old Elvet', 'Apartment', 2, 'Hannah Moss', 1),
+    hmo('hm-elvet', '11 Old Elvet', 'House', 5, 'Ruth Ellison', 0),
+    hmo('hm-gilesgate', '4 Gilesgate Bank', 'House', 4, 'Sophie Grant', 1),
     hmo('hm-wanless', '9 Wanless Terrace', 'House', 4, 'Mark Little', 2),
-    hmo('hm-sutton', '22 Sutton Street', 'House', 3, 'Daniel Ashworth', 3),
+    hmo('hm-claypath', 'Flat 3, 16 Claypath', 'Apartment', 2, 'Nadia Dodd', 3),
     hmo('hm-mowbray', '18 Mowbray Street', 'House', 5, 'Ruth Ellison', 4),
     hmo('hm-hawthorn', '5 Hawthorn Terrace', 'House', 3, 'Sophie Grant', 1, 'Paused', { pausedBy: 'landlord', reason: 'Refurbishing the kitchen' }),
     hmo('hm-john', '3 John Street', 'House', 4, 'Peter Wade', 2, 'Paused', { pausedBy: 'revoked' }),
@@ -126,11 +126,11 @@ function pbsas(): Pbsa[] {
 
 function enquiries(): Enquiry[] {
   return [
-    { id: 'en1', student: 'Aisha Khan', email: 'aisha.khan@durham.ac.uk', phone: '07700 900123', property: '14 Hallgarth Street', source: 'HMO', moveIn: '1 Sep 2027', received: '12 min ago' },
+    { id: 'en1', student: 'Aisha Khan', email: 'aisha.khan@durham.ac.uk', phone: '07700 900123', property: '11 Old Elvet', source: 'HMO', moveIn: '1 Sep 2027', received: '12 min ago' },
     { id: 'en2', student: 'Tom Fletcher', email: 'tom.fletcher@gmail.com', phone: '07700 900456', property: 'Riverside Quarter', source: 'Amber PBSA', moveIn: '20 Sep 2027', received: '1 hour ago' },
-    { id: 'en3', student: 'Mei Lin', email: 'mei.lin@outlook.com', phone: '07700 900789', property: 'Flat 2, 31 Old Elvet', source: 'HMO', moveIn: '1 Jul 2027', received: '3 hours ago' },
+    { id: 'en3', student: 'Mei Lin', email: 'mei.lin@outlook.com', phone: '07700 900789', property: '9 Wanless Terrace', source: 'HMO', moveIn: '1 Jul 2027', received: '3 hours ago' },
     { id: 'en4', student: 'Oliver Shaw', email: 'olivershaw@icloud.com', phone: '07700 900321', property: 'Claypath Court', source: 'Amber PBSA', moveIn: '13 Sep 2027', received: 'Yesterday' },
-    { id: 'en5', student: 'Grace Adeyemi', email: 'grace.a@durham.ac.uk', phone: '07700 900654', property: '22 Sutton Street', source: 'HMO', moveIn: '1 Aug 2027', received: 'Yesterday' },
+    { id: 'en5', student: 'Grace Adeyemi', email: 'grace.a@durham.ac.uk', phone: '07700 900654', property: '4 Gilesgate Bank', source: 'HMO', moveIn: '1 Aug 2027', received: 'Yesterday' },
     { id: 'en6', student: 'Lucas Moreau', email: 'l.moreau@gmail.com', phone: '07700 900987', property: 'Framwellgate Point', source: 'Amber PBSA', moveIn: '20 Sep 2027', received: '2 days ago' },
   ];
 }

@@ -4,7 +4,7 @@ import { Buildings, Camera, CheckCircle, Circle, Clock, DeviceMobile, DotsThree,
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
-import { Avatar, Button, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
+import { TitleH1, Avatar, Button, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
 import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 import { kindIcon } from './Requests';
@@ -23,7 +23,7 @@ export function useCheckIn() {
   const ui = who && (who.deposit === 'Paid'
     ? <CheckInSheet key={who.id} r={who} onClose={() => setWho(null)} />
     : <DepositDialog key={who.id} r={who} onClose={() => setWho(null)} />);
-  return { start: setWho, ui };
+  return { start: (r: Resident) => { if (!r.pending) setWho(r); }, ui };
 }
 
 /* ---------------- List (no frame: same style as the other lists; 3218, 3219, 3221) ---------------- */
@@ -45,7 +45,7 @@ export function ResidentsList() {
     <>
       <RHeader icon={Users} crumbs={[]} title="Residents" />
       <Toolbar right={<>
-        <SearchInput value={q} onChange={setQ} placeholder="Search name, email or room" />
+        <SearchInput value={q} onChange={setQ} placeholder="Search name or room" />
         <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: [...new Set(residents.map((r) => r.hall))] }, { id: 'deposit', label: 'Deposit', options: ['Paid', 'Not paid'] }, { id: 'week', label: 'This week', chips: true, options: ['Arriving today', 'Arriving this week', 'Leaving'] }]} />
       </>}>
         <Tabs value={tab} onChange={setTab} tabs={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ id: t, label: t, count: scoped.filter((r) => inTab(r, t)).length }))} />
@@ -59,7 +59,7 @@ export function ResidentsList() {
           { key: 'a', label: tab === 'Leaving' ? 'Leaves' : 'Arrives', render: (r) => <span className="text-gray-500">{r.status === 'Leaving' ? r.leaves : r.arrivingThisWeek ? r.arrives : 'In since Sep'}</span> },
           { key: 'd', label: 'Deposit', render: (r) => <DepositPill r={r} /> },
           { key: 's', label: 'Status', render: (r) => <ResStatusPill r={r} /> },
-          { key: 'x', label: '', className: 'text-right w-[110px]', render: (r) => r.status === 'Arriving' && <span onClick={(e) => e.stopPropagation()}><Button size="sm" icon={Key} onClick={() => checkIn.start(r)}>Check in</Button></span> },
+          { key: 'x', label: '', className: 'text-right w-[110px]', render: (r) => r.status === 'Arriving' && <span onClick={(e) => e.stopPropagation()}><Button size="sm" icon={Key} disabled={!!r.pending} onClick={() => checkIn.start(r)}>{r.pending ? 'Waiting' : 'Check in'}</Button></span> },
         ]} />
       {checkIn.ui}
     </>
@@ -92,7 +92,7 @@ export function ResidentDetail() {
     <>
       <RHeader icon={Users} crumbs={[['Residents', '/residents']]} title={r.name}>
         <Button icon={Envelope} onClick={() => setMsg(true)}>Message</Button>
-        {arriving ? <Button variant="primary" icon={SignIn} onClick={() => checkIn.start(r)}>Check in</Button>
+        {arriving ? <Button variant="primary" icon={r.pending ? Clock : SignIn} disabled={!!r.pending} onClick={() => checkIn.start(r)}>{r.pending === 'payment' ? 'Waiting for payment' : r.pending ? 'Waiting for sign-off' : 'Check in'}</Button>
           : <Button icon={DotsThree} onClick={() => toast('More actions', { description: 'Move room, start move-out, or add a note.' })}>More</Button>}
       </RHeader>
       <div className="flex-1 overflow-auto">
@@ -100,7 +100,7 @@ export function ResidentDetail() {
           <Avatar name={r.name} size={36} />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-[20px] font-medium tracking-tight mr-1">{r.name}</h2>
+              <TitleH1 className="text-[20px] font-medium tracking-tight mr-1">{r.name}</TitleH1>
               {arriving ? <Pill tone="blue" outline icon={Buildings}>Arriving {r.arrives}</Pill> : <ResStatusPill r={r} />}
               {r.plan && <Pill tone="purple" outline>Accessibility plan</Pill>}
               <Pill tone="blue" outline>{r.year}</Pill>
@@ -121,7 +121,7 @@ export function ResidentDetail() {
                       <div key={i.t} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
                         {i.ok ? <CheckCircle size={20} weight="fill" className="text-[#16A34A] shrink-0" /> : <Circle size={20} className="text-gray-300 shrink-0" />}
                         <div className="flex-1"><div className="text-sm">{i.t}</div><div className="text-xs text-gray-500">{i.s}</div></div>
-                        {!i.ok && (i.t === 'ID checked' ? <Pill tone="amber" icon={Clock}>At the desk</Pill> : <Pill tone="red" icon={WarningCircle}>Outstanding</Pill>)}
+                        {!i.ok && (i.t === 'ID checked' ? <Pill tone="amber" icon={Clock}>At the desk</Pill> : i.t === 'Deposit paid' && r.pending ? <Pill tone="amber" icon={Clock}>{r.pending === 'payment' ? 'Link sent' : 'Override asked'}</Pill> : <Pill tone="red" icon={WarningCircle}>Outstanding</Pill>)}
                       </div>
                     ))}
                   </div>
@@ -188,8 +188,8 @@ export function ResidentDetail() {
 }
 
 /* ---------------- Check-in sheet: 3006 ---------------- */
-const IconInput = ({ icon: I, ...p }: { icon: typeof Key; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; 'aria-label': string }) => (
-  <div className="relative"><I size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" /><Input className="pl-8" {...p} /></div>
+const IconInput = ({ icon: I, invalid, ...p }: { icon: typeof Key; invalid?: boolean; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; 'aria-label': string }) => (
+  <div className="relative"><I size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#646A78]" /><Input className={invalid ? 'pl-8 border-[#C11F14] focus-visible:border-[#C11F14]' : 'pl-8'} aria-invalid={invalid || undefined} {...p} /></div>
 );
 function CheckInSheet({ r, onClose }: { r: Resident; onClose: () => void }) {
   const { update } = useRms();
@@ -202,10 +202,18 @@ function CheckInSheet({ r, onClose }: { r: Resident; onClose: () => void }) {
   const [photos, setPhotos] = useState(isAmira ? 6 : 0);
   const [welcome, setWelcome] = useState(true);
   const total = r.plan ? 4 : 3;
+  const [tried, setTried] = useState(false);
+  const residents = useRms((s) => s.residents);
+  /* A fob is 5 digits and belongs to one resident; the meter reading is a number, kWh optional. */
+  const f = fob.trim();
+  const holder = residents.find((x) => x.id !== r.id && x.fob === f);
+  const fobError = !f ? 'Record the key fob number' : !/^\d{5}$/.test(f) ? 'A fob number is 5 digits' : holder ? `Fob ${f} is already ${holder.name}’s` : undefined;
+  const meterError = meter.trim() && !/^\d+(\.\d+)?\s*(kwh)?$/i.test(meter.trim()) ? 'Numbers only, e.g. 01284.6' : undefined;
   const submit = () => once(() => {
-    if (!fob.trim()) { toast.error('Record the key fob number'); return; }
+    setTried(true);
+    if (fobError || meterError) return;
     const when = isAmira ? 'Sat 19 Sep, 10:42 by Priya Shah' : 'Today, 11:20 by Priya Shah';
-    const undo = update('residents', r.id, { status: 'In residence', checkedIn: when, checkInNote: `Fob ${fob.trim()} · room condition recorded with ${photos} photos${welcome ? ' · welcome email sent' : ''}` });
+    const undo = update('residents', r.id, { status: 'In residence', checkedIn: when, fob: f, checkInNote: `Fob ${f} · room condition recorded with ${photos} photos${welcome ? ' · welcome email sent' : ''}` });
     log(`checked in ${r.name} to ${hallShort(r.hall)} ${r.room}`, 'Residents');
     onClose();
     undoToast(isAmira ? 'Amira Rahman checked in · Ustinov is 62% in residence' : `${r.name} checked in to ${r.room}`, undo);
@@ -222,9 +230,9 @@ function CheckInSheet({ r, onClose }: { r: Resident; onClose: () => void }) {
         </div>
       </SheetSection>
       <SheetSection title="Keys and meter">
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Key fob"><IconInput icon={Key} aria-label="Key fob" value={fob} onChange={(e) => setFob(e.target.value)} /></Field>
-        <Field label="Electricity meter"><IconInput icon={Lightning} aria-label="Electricity meter" value={meter} onChange={(e) => setMeter(e.target.value)} /></Field>
+      <div className="grid grid-cols-2 gap-3 items-start">
+        <Field label="Key fob" error={tried ? fobError : undefined}><IconInput icon={Key} aria-label="Key fob" invalid={tried && !!fobError} value={fob} onChange={(e) => setFob(e.target.value)} /></Field>
+        <Field label="Electricity meter" error={tried ? meterError : undefined}><IconInput icon={Lightning} aria-label="Electricity meter" invalid={tried && !!meterError} value={meter} onChange={(e) => setMeter(e.target.value)} /></Field>
       </div>
       </SheetSection>
       <SheetSection title="Room condition">
@@ -246,21 +254,26 @@ function DepositDialog({ r, onClose }: { r: Resident; onClose: () => void }) {
   const once = useOnce();
   const [choice, setChoice] = useState<'pay' | 'override'>('pay');
   const first = r.name.split(' ')[0];
+  /* The record shows the wait straight away and refuses a second link; the reply lands once. */
+  const finish = (kind: 'payment' | 'override', ch: Partial<Resident>, msg: string) => {
+    const cur = useRms.getState().residents.find((x) => x.id === r.id);
+    if (!cur || cur.pending !== kind) return;
+    const { update } = useRms.getState();
+    const undo = update('residents', r.id, { ...ch, pending: undefined });
+    useDb.getState().log(`checked in ${r.name} to ${hallShort(r.hall)} ${r.room}`, 'Residents');
+    undoToast(msg, () => { undo(); useRms.getState().update('residents', r.id, { pending: undefined }); });
+  };
   const submit = () => once(() => {
     onClose();
+    if (useRms.getState().residents.find((x) => x.id === r.id)?.pending) return;
     if (choice === 'pay') {
+      useRms.getState().update('residents', r.id, { pending: 'payment' });
       toast(`Payment link sent to ${first}’s phone`, { description: 'Keys stay at the desk until it is paid.' });
-      setTimeout(() => {
-        const undo = useRms.getState().update('residents', r.id, { deposit: 'Paid', depositNote: '£250 · card · today', status: 'In residence', checkedIn: 'Today, 11:24 by James Ward', checkInNote: 'Deposit paid by link at the desk · keys handed over' });
-        useDb.getState().log(`checked in ${r.name} to ${hallShort(r.hall)} ${r.room}`, 'Residents');
-        undoToast(`${r.name} paid £250 and is checked in to ${r.room}`, undo);
-      }, 3000);
+      setTimeout(() => finish('payment', { deposit: 'Paid', depositNote: '£250 · card · today', status: 'In residence', checkedIn: 'Today, 11:24 by Priya Shah', checkInNote: 'Deposit paid by link at the desk · keys handed over' }, `${r.name} paid £250 and is checked in to ${r.room}`), 3000);
     } else {
+      useRms.getState().update('residents', r.id, { pending: 'override' });
       toast(`Asked Aisha Khan to override`, { description: 'Hall managers can check a resident in with the deposit unpaid.' });
-      setTimeout(() => {
-        const undo = useRms.getState().update('residents', r.id, { depositNote: '£250 · now arrears', status: 'In residence', checkedIn: 'Today, 11:24 by James Ward', checkInNote: 'Checked in by Aisha Khan’s override · the £250 deposit is now arrears' });
-        undoToast(`${r.name} checked in · the £250 deposit is now arrears`, undo);
-      }, 2200);
+      setTimeout(() => finish('override', { depositNote: '£250 · now arrears', status: 'In residence', checkedIn: 'Today, 11:24 by Priya Shah', checkInNote: 'Checked in by Aisha Khan’s override · the £250 deposit is now arrears' }, `${r.name} checked in · the £250 deposit is now arrears`), 2200);
     }
   });
   return (

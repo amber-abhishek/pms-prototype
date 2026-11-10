@@ -2,6 +2,7 @@
 // Settings tabs (3054–3061) and edge cases E3 (integration stops syncing) and E4 (report bounces).
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { revertList } from './revert';
 
 export type ReportDef = { id: string; name: string; area: 'Inventory' | 'Allocations' | 'Finance' | 'Maintenance' | 'Residents'; desc: string; to: string };
 export const REPORTS: ReportDef[] = [
@@ -85,3 +86,9 @@ export const useWorkspace = create<WsState>()(
   ),
 );
 export const wid = (p: string) => `${p}${Math.random().toString(36).slice(2, 8)}`;
+/** Undo for a schedules change: call before the change, use the result as the toast's Undo after it.
+ *  Only the schedules this change touched go back; later changes stay. */
+export function scheduleUndo() {
+  const before = useWorkspace.getState().schedules;
+  return { arm: () => { const after = useWorkspace.getState().schedules; return () => useWorkspace.setState({ schedules: revertList(before, after, useWorkspace.getState().schedules) }); } };
+}

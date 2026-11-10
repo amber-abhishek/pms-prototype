@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ImageSquare, MagnifyingGlass, MapPin, Plus } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Input, Pill, Status, Table, Toolbar, cx } from '../../components/ui';
+import { Button, Input, Pill, Status, Table, TitleH1, Toolbar, cx } from '../../components/ui';
 import { useDb } from '../../data/store';
 import { oid, useOrg, type Campus } from '../../data/org';
 import { EmptyState, Header, IconSelect, ODialog } from './parts';
@@ -63,7 +63,7 @@ export function CampusesPage() {
             { key: 's', label: 'Status', render: (c) => <Status s={c.status} /> },
             { key: 'c', label: 'City', render: (c) => <span className="text-sm">{c.city || '—'}</span> },
             { key: 'r', label: 'Amber region', render: (c) => <span className="text-sm text-[#646A78]">{c.amberRegion || '—'}</span> },
-            { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()}><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-gray-400">None yet</span>; } },
+            { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()} className="relative inline-flex after:absolute after:inset-x-0 after:-inset-y-px after:content-['']"><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-[#646A78]">None yet</span>; } },
           ]} />
         </>
       )}
@@ -75,7 +75,7 @@ export function CampusesPage() {
 function Section({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-line bg-white p-6">
-      <h3 className="text-[15px] font-semibold">{title}</h3>
+      <h2 className="text-sm font-semibold">{title}</h2>
       {sub && <p className="text-sm text-[#646A78] mt-1">{sub}</p>}
       <div className="mt-4">{children}</div>
     </section>
@@ -100,6 +100,8 @@ export function CampusForm() {
     if (busy.current) return;
     const n = name.trim();
     if (!n) { toast.error('Give the campus a name'); return; }
+    const twin = useOrg.getState().campuses.find((c) => c.id !== existing?.id && c.name.trim().toLowerCase() === n.toLowerCase());
+    if (twin) { toast.error(`There’s already a campus called ${twin.name}`); return; }
     if (status === 'Active' && !place) { toast.error('An active campus needs an address', { description: 'Pick it from the address search, or keep it Draft.' }); return; }
     busy.current = true;
     const rec: Campus = { id: existing?.id ?? oid('c'), name: n, status, ...(place ?? { address: '', city: '', region: '', postcode: '', country: '', amberRegion: '' }) };
@@ -113,9 +115,9 @@ export function CampusForm() {
     <>
       <Header icon={ICON} crumbs={[{ label: 'Organisation' }, { label: 'Campuses', to: '/org/campuses' }]} title={existing ? existing.name : 'Add campus'} />
       <div className="flex-1 overflow-auto px-6 py-5">
-        <Link to="/org/campuses" className="inline-flex items-center gap-1.5 text-sm text-[#646A78] hover:text-ink"><ArrowLeft size={13} />All campuses</Link>
+        <Link to="/org/campuses" className="relative inline-flex items-center gap-1.5 text-sm text-[#646A78] hover:text-ink after:absolute after:inset-x-0 after:-inset-y-0.5 after:content-['']"><ArrowLeft size={13} />All campuses</Link>
         <div className="flex items-start gap-4 mt-4 mb-4">
-          <div className="flex-1"><h2 className="text-xl font-medium tracking-tight">{existing ? 'Edit campus' : 'Add campus'}</h2></div>
+          <div className="flex-1"><TitleH1 className="text-xl font-medium tracking-tight">{existing ? 'Edit campus' : 'Add campus'}</TitleH1></div>
           <Button variant="primary" onClick={save}>{existing ? 'Save campus' : 'Add campus'}</Button>
         </div>
         <div className="max-w-[768px] space-y-6 pb-10">
@@ -142,7 +144,7 @@ export function CampusForm() {
             </div>
             <div className="grid grid-cols-4 gap-4 mt-4">
               {([['City', place?.city], ['Region', place?.region], ['Postcode', place?.postcode], ['Country', place?.country]] as const).map(([k, v]) => (
-                <div key={k}><div className="text-sm text-[#646A78]">{k}</div><div className={cx('text-sm mt-1', !v && 'text-gray-400')}>{v || '—'}</div></div>
+                <div key={k}><div className="text-sm text-[#646A78]">{k}</div><div className={cx('text-sm mt-1', !v && 'text-[#646A78]')}>{v || '—'}</div></div>
               ))}
             </div>
             {place && <p className="text-xs text-[#646A78] mt-4">Amber region: <span className="text-ink font-medium">{place.amberRegion}</span></p>}

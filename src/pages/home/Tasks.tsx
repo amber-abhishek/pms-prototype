@@ -143,7 +143,9 @@ function MyTasks() {
             doneRows.length ? doneRows.filter((r) => shown.includes(r)).map((r) => <MainRow key={r.id} t={r} sel={open === r.id} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} />)
               : <Empty art="caughtUp" icon={CheckCircle} title="Nothing done yet" sub="Tasks you tick off show up here." />
           ) : ordered.length === 0 ? (
-            <Empty title="No tasks match these filters" sub="Try another filter or clear them." />
+            Object.values(f).some(Boolean) ? <Empty title="No tasks match these filters" sub="Try another filter or clear them." />
+              : tab === 'team' ? <Empty art="caughtUp" icon={CheckCircle} title="No open team tasks" sub="Everyone’s list is clear." />
+              : <Empty art="caughtUp" icon={CheckCircle} title="Nothing due this week" sub="New tasks arrive from Applications, Requests, Maintenance and Bookings." />
           ) : ordered.map(({ g, list }) => (
             <div key={g}>
               <div className="h-8 pl-[var(--cx,12px)] pr-[var(--cx,12px)] flex items-center text-xs bg-[#F9FAFB] border-b border-line"><span className="font-medium text-ink">{groupLabel[g]}</span><span className="text-gray-500 ml-1">· {list.length}</span></div>
@@ -165,8 +167,10 @@ const LEAVE_MS = 200;
 function MainRow({ t, handed, sel, onOpen, onCheck, onWake }: { t: HTask; handed?: boolean; sel?: boolean; onOpen: () => void; onCheck: (v: boolean) => void; onWake?: () => void }) {
   const I = t.from ? fromIcon[t.from.icon] : CheckCircle;
   const [phase, setPhase] = useState<'idle' | 'ticked' | 'leaving'>('idle');
+  const ticking = useRef(false);
   const check = (v: boolean) => {
-    if (phase !== 'idle') return;
+    if (ticking.current) return;
+    ticking.current = true;
     setPhase('ticked');
     window.setTimeout(() => setPhase('leaving'), HOLD_MS);
     window.setTimeout(() => onCheck(v), HOLD_MS + LEAVE_MS);
@@ -187,7 +191,7 @@ function MainRow({ t, handed, sel, onOpen, onCheck, onWake }: { t: HTask; handed
       className={cx(sel && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', 'group grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] items-center border-b border-[#F3F4F6] last:border-b-transparent text-sm cursor-pointer hover:bg-[#F9FAFB] focus-visible:bg-[#F9FAFB] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
         closed ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100')}>
       <span className="pl-[var(--cx,12px)]"><Box checked={done} disabled={handed} label={done ? `Mark “${t.title}” not done` : `Mark “${t.title}” done`} onChange={check} /></span>
-      <span className={cx('truncate px-4 font-medium transition-colors duration-150', handed || done ? 'text-gray-400' : 'text-ink', done && 'line-through')}>{t.title}</span>
+      <span title={t.title} className={cx('truncate px-4 font-medium transition-colors duration-150', handed || done ? 'text-gray-400' : 'text-ink', done && 'line-through')}>{t.title}</span>
       <span className="flex items-center gap-1.5 px-4 text-gray-500 truncate">{I && <I size={14} className="text-gray-400 shrink-0" />}{t.from?.label}</span>
       <span className="px-4">{t.done ? <span className="text-xs text-gray-500">{t.doneLabel}</span> : t.snoozed ? <span className="inline-flex items-center gap-1.5 text-[#646A78]"><AlarmClock size={14} className="text-gray-400" />{t.snoozed.label}</span> : <DuePill t={t} />}</span>
       <span className="px-3" title={t.owner}><Who name={t.owner} grad /></span>

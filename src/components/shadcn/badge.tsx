@@ -8,7 +8,7 @@ import type { Tone } from '../../data/seed';
    `outline` is the white tag (r6, tone border); `status` is the same chip as `soft` (kept for call sites). */
 const tones = Object.keys(toneCls) as Tone[];
 /* 2026-11-09: no icon in any pill, on any screen — a leading svg passed by older call sites is hidden here. */
-const badgeVariants = cva('inline-flex items-center gap-[5px] h-[22px] px-2 border text-xs font-medium whitespace-nowrap [&>svg]:hidden', {
+const badgeVariants = cva('inline-flex items-center gap-1 h-[22px] px-2 border text-xs font-medium whitespace-nowrap [&>svg]:hidden', {
   variants: {
     tone: Object.fromEntries(tones.map((t) => [t, ''])) as Record<Tone, string>,
     look: { soft: 'rounded-lg', outline: 'rounded-md bg-white', status: 'rounded-lg' },

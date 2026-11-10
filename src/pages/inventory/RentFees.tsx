@@ -5,7 +5,7 @@ import { Buildings, CalendarBlank, CurrencyGbp, Globe, Info, PencilSimple, Plus,
 import { Button, Field, Input, PageHeader, Sheet, SheetSection, Switch, Table, Tabs, cx, listNav, type SheetNav, PageHeading } from '../../components/ui';
 import { invId, money, useInv, type Fee, type FeeType, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
-import { Modal, MoneyInput, Picker, PropStatus, RadioCard, Seg } from './common';
+import { FieldErr, Modal, MoneyInput, Picker, PropStatus, RadioCard, Seg, isMoney, moneyErr, rangeErr } from './common';
 
 type TabId = 'templates' | 'fees';
 
@@ -59,52 +59,62 @@ export function RentFeesPage() {
             { key: 'o', label: 'Charged on', render: (f) => <span className="text-[#646A78]">{f.chargedOn}</span> },
             { key: 'r', label: 'Refundable', render: (f) => (feeTypes.find((t) => t.id === f.typeId)?.refundable ? 'Yes' : 'No') },
             { key: 'm', label: 'Mandatory', render: (f) => (feeTypes.find((t) => t.id === f.typeId)?.mandatory ? 'Yes' : 'No') },
-          ]} />
+          ]} empty={<Empty title="No fees yet" sub="Add a fee to charge it on tenancies." />} />
       )}
-      <TemplateSheet key={editing?.id} t={editing} nav={listNav(tpls, (x) => x.id === editing?.id, (x) => setEditing(x))} onClose={() => setEditing(null)} />
+      <TemplateSheet key={editing?.id} t={editing} isNew={!!editing && !allTpl.some((x) => x.id === editing.id)} siblings={tpls} nav={listNav(tpls, (x) => x.id === editing?.id, (x) => setEditing(x))} onClose={() => setEditing(null)} />
       <AddFeeDialog open={adding} onClose={() => setAdding(false)} onAdded={(id) => { setFresh(id); window.setTimeout(() => setFresh(null), 4000); }} />
       <FeeTypesSheet open={typesOpen} onClose={() => setTypesOpen(false)} types={feeTypes} />
     </>
   );
 
   function newTemplate() {
-    const t: Template = { id: invId('tp'), propertyId: pid, name: 'New template', weeks: 44, rent: 170, deposit: 250, billing: 'Termly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 0, own: 0, status: 'Inactive' };
-    useInv.getState().set('templates', (l) => [...l, t]);
-    setEditing(t);
+    /* A draft: nothing is stored until Save, so Cancel leaves no orphan row. */
+    setEditing({ id: invId('tp'), propertyId: pid, name: '', weeks: 44, rent: 170, deposit: 250, billing: 'Termly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 0, own: 0, status: 'Inactive' });
   }
 }
 
 /* ---------------- F5: edit a template ---------------- */
-function TemplateSheet({ t, onClose , nav }: { nav?: SheetNav;  t: Template | null; onClose: () => void }) {
+function TemplateSheet({ t, onClose, nav, isNew, siblings }: { nav?: SheetNav; t: Template | null; onClose: () => void; isNew: boolean; siblings: Template[] }) {
   const [v, setV] = useState({ name: '', weeks: '', rent: '', deposit: '', billing: 'Termly' as Template['billing'], from: '', to: '' });
   const busy = useRef(false);
   useEffect(() => { if (t) { setV({ name: t.name, weeks: String(t.weeks), rent: String(t.rent), deposit: String(t.deposit), billing: t.billing, from: t.from, to: t.to }); busy.current = false; } }, [t]);
   if (!t) return null;
-  const rentChanged = +v.rent !== t.rent;
+  const rentChanged = !isNew && isMoney(v.rent) && +v.rent !== t.rent;
   const follow = t.linked - t.own;
+  const name = v.name.trim();
+  const errs = {
+    name: !name ? 'Enter a template name.' : siblings.some((x) => x.id !== t.id && x.name.trim().toLowerCase() === name.toLowerCase()) ? `This property already has a template called ${name}.` : '',
+    weeks: !/^\d+$/.test(v.weeks) || +v.weeks < 1 || +v.weeks > 52 ? 'Length must be between 1 and 52 weeks.' : '',
+    rent: moneyErr(v.rent, 'a rent'),
+    deposit: moneyErr(v.deposit, 'a deposit, or 0 for none', { allowZero: true }),
+    dates: rangeErr(v.from, v.to),
+  };
+  const ok = Object.values(errs).every((e) => !e);
   const save = () => {
-    if (busy.current) return;
+    if (busy.current || !ok) return;
     busy.current = true;
-    useInv.getState().set('templates', (l) => l.map((x) => (x.id === t.id ? { ...x, name: v.name || x.name, weeks: +v.weeks || x.weeks, rent: +v.rent || x.rent, deposit: +v.deposit, billing: v.billing, from: v.from, to: v.to, status: x.linked ? x.status : 'Active' } : x)));
+    const next: Template = { ...t, name, weeks: +v.weeks, rent: +v.rent, deposit: +v.deposit, billing: v.billing, from: v.from.trim(), to: v.to.trim(), status: t.linked ? t.status : 'Active' };
+    useInv.getState().set('templates', (l) => (isNew ? [...l, next] : l.map((x) => (x.id === t.id ? next : x))));
     onClose();
-    toast.success(rentChanged && follow ? `${v.name} saved · ${follow} tenancies now ${money(+v.rent)} / wk` : `${v.name} saved`);
+    /* The toast reports exactly what was stored. */
+    toast.success(isNew ? `${name} created` : rentChanged && follow ? `${name} saved · ${follow} tenancies now ${money(next.rent)} / wk` : `${name} saved`);
   };
   return (
-    <Sheet open onClose={onClose} nav={nav} width={500} title={`Edit ${t.name}`} sub={`${t.linked} linked tenancies`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{rentChanged && follow ? `Save and update ${follow}` : 'Save'}</Button></>}>
+    <Sheet open onClose={onClose} nav={isNew ? undefined : nav} width={500} title={isNew ? 'New template' : `Edit ${t.name}`} sub={isNew ? 'Not saved yet' : `${t.linked} linked tenancies`}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!ok} onClick={save}>{isNew ? 'Create template' : rentChanged && follow ? `Save and update ${follow}` : 'Save'}</Button></>}>
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="Template">
         <div className="space-y-4">
-        <Field label="Name"><Input value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></Field>
+        <Field label="Name"><Input value={v.name} placeholder="e.g. Ensuite single" onChange={(e) => setV({ ...v, name: e.target.value })} /><FieldErr>{errs.name}</FieldErr></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Length"><label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Weeks" value={v.weeks} onChange={(e) => setV({ ...v, weeks: e.target.value.replace(/\D/g, '') })} className="flex-1 min-w-0 outline-none" /><span className="text-gray-400">weeks</span></label></Field>
+          <Field label="Length"><label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Weeks" value={v.weeks} onChange={(e) => setV({ ...v, weeks: e.target.value.replace(/\D/g, '') })} className="flex-1 min-w-0 outline-none" /><span className="text-[#646A78]">weeks</span></label><FieldErr>{errs.weeks}</FieldErr></Field>
         </div>
         </div>
         </SheetSection>
         <SheetSection title="Money">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Rent"><MoneyInput value={v.rent} onChange={(r) => setV({ ...v, rent: r })} suffix="/ wk" />{rentChanged && <span className="block text-xs text-[#646A78] mt-1">Was {money(t.rent)}</span>}</Field>
-          <Field label="Deposit"><MoneyInput value={v.deposit} onChange={(r) => setV({ ...v, deposit: r })} /></Field>
+          <Field label="Rent"><MoneyInput value={v.rent} onChange={(r) => setV({ ...v, rent: r })} suffix="/ wk" />{errs.rent ? <FieldErr>{errs.rent}</FieldErr> : rentChanged && <span className="block text-xs text-[#646A78] mt-1">Was {money(t.rent)}</span>}</Field>
+          <Field label="Deposit"><MoneyInput value={v.deposit} onChange={(r) => setV({ ...v, deposit: r })} /><FieldErr>{errs.deposit}</FieldErr></Field>
           <Field label="Billing"><Picker value={v.billing} onChange={(b) => setV({ ...v, billing: b })} options={[{ id: 'Termly', label: 'Termly' }, { id: 'Monthly', label: 'Monthly' }, { id: 'Upfront', label: 'Upfront' }]} /></Field>
         </div>
         <div className="mt-4 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span className="text-[#646A78]">Sold tenancies never change. Only tenancies nobody has booked yet pick up the new rent.</span></div>
@@ -114,6 +124,7 @@ function TemplateSheet({ t, onClose , nav }: { nav?: SheetNav;  t: Template | nu
           <Field label="Available from"><DateBox value={v.from} onChange={(x) => setV({ ...v, from: x })} /></Field>
           <Field label="Available to"><DateBox value={v.to} onChange={(x) => setV({ ...v, to: x })} /></Field>
         </div>
+        <FieldErr>{errs.dates}</FieldErr>
         </SheetSection>
         {t.linked > 0 && (
           <SheetSection title="Who gets the new rent">
@@ -146,8 +157,10 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
   const busy = useRef(false);
   useEffect(() => { if (open) { setStage('type'); setTypeId(''); setScope('one'); setPid(props.some((p) => p.id === 'stm') ? 'stm' : 'col'); setAmount('60'); busy.current = false; } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const type = feeTypes.find((t) => t.id === typeId);
+  const typeErr = !nt.name.trim() ? 'Enter a name.' : feeTypes.some((t) => t.name.trim().toLowerCase() === nt.name.trim().toLowerCase()) ? `A fee type called ${nt.name.trim()} already exists.` : '';
+  const amountErr = type?.calc === 'Percentage' ? (!isMoney(amount) || +amount <= 0 || +amount > 100 ? 'Enter a percentage between 0 and 100.' : '') : moneyErr(amount, 'an amount');
   const createType = () => {
-    if (busy.current || !nt.name.trim()) return;
+    if (busy.current || typeErr) return;
     busy.current = true;
     const id = invId('ft');
     useInv.getState().set('feeTypes', (l) => [...l, { id, ...nt, name: nt.name.trim() }]);
@@ -156,7 +169,7 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
     busy.current = false;
   };
   const add = () => {
-    if (busy.current || !type || !amount) return;
+    if (busy.current || !type || amountErr) return;
     busy.current = true;
     const id = invId('fe');
     const amt = type.calc === 'Percentage' ? `${amount}% of rent` : type.calc === 'Per unit' ? `£${amount} each` : `£${amount}`;
@@ -170,8 +183,8 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
       title={stage === 'type' ? 'Add a fee' : stage === 'newType' ? 'New fee type' : `Add ${type?.name ?? 'fee'}`}
       sub={stage === 'type' ? 'Pick what kind of fee it is.' : stage === 'newType' ? 'A fee type is reused across properties.' : `${type?.calc} · ${type?.mandatory ? 'mandatory' : 'optional'} · ${type?.refundable ? 'refundable' : 'not refundable'}`}
       footer={stage === 'type' ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!typeId} onClick={() => setStage('config')}>Continue</Button></>
-        : stage === 'newType' ? <><Button onClick={() => setStage('type')}>Back</Button><Button variant="primary" disabled={!nt.name.trim()} onClick={createType}>Create fee type</Button></>
-          : <><Button onClick={() => setStage('type')}>Back</Button><Button variant="primary" disabled={!amount} onClick={add}>Add fee</Button></>}>
+        : stage === 'newType' ? <><Button onClick={() => setStage('type')}>Back</Button><Button variant="primary" disabled={!!typeErr} onClick={createType}>Create fee type</Button></>
+          : <><Button onClick={() => setStage('type')}>Back</Button><Button variant="primary" disabled={!!amountErr} onClick={add}>Add fee</Button></>}>
       {stage === 'type' && (
         <div className="space-y-2">
           {feeTypes.map((t) => <RadioCard key={t.id} checked={typeId === t.id} onClick={() => setTypeId(t.id)} title={t.name} sub={`${t.calc} · ${t.mandatory ? 'Mandatory' : 'Optional'}${t.refundable ? ' · refundable' : ''}`} />)}
@@ -180,7 +193,7 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
       )}
       {stage === 'newType' && (
         <div className="space-y-4">
-          <Field label="Name"><Input value={nt.name} onChange={(e) => setNt({ ...nt, name: e.target.value })} /></Field>
+          <Field label="Name"><Input value={nt.name} onChange={(e) => setNt({ ...nt, name: e.target.value })} /><FieldErr>{typeErr}</FieldErr></Field>
           <div><div className="text-sm font-medium text-gray-700 mb-1.5">Calculation</div><Seg value={nt.calc} onChange={(c) => setNt({ ...nt, calc: c })} options={['Flat', 'Percentage', 'Per unit']} className="w-full" /></div>
           <div className="rounded-xl border border-line divide-y divide-line">
             <div className="h-12 px-3.5 flex items-center"><span className="flex-1"><span className="block text-sm">Mandatory</span><span className="block text-xs text-[#646A78]">Added to every tenancy it applies to</span></span><Switch checked={nt.mandatory} onChange={(m) => setNt({ ...nt, mandatory: m })} label="Mandatory" /></div>
@@ -199,7 +212,7 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Charged on"><Picker value={on} onChange={setOn} options={[{ id: 'Each tenancy', label: 'Each tenancy' }, { id: 'Each room', label: 'Each room' }, { id: 'The property', label: 'The property' }]} /></Field>
-            <Field label="Amount">{type.calc === 'Percentage' ? <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Amount" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 outline-none" /><span className="text-gray-400">% of rent</span></label> : <MoneyInput value={amount} onChange={setAmount} suffix={type.calc === 'Per unit' ? 'each' : undefined} />}</Field>
+            <Field label="Amount">{type.calc === 'Percentage' ? <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Amount" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 outline-none" /><span className="text-[#646A78]">% of rent</span></label> : <MoneyInput value={amount} onChange={setAmount} suffix={type.calc === 'Per unit' ? 'each' : undefined} />}<FieldErr>{amountErr}</FieldErr></Field>
           </div>
           {scope === 'org' && <div className="flex gap-2 text-xs text-[#646A78]"><Warning size={14} className="text-[#F59E0B] shrink-0" />Applies to all {props.length} properties, including new tenancies already in draft.</div>}
         </div>

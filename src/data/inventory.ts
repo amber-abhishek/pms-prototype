@@ -185,7 +185,8 @@ export function flatsOf(p: Property, bi: number, floor: number, edits: Record<st
       return { id: `${p.id}|${bi}|${floor}|${fi + 1}`, name: `Flat ${floor}.${fi + 1}`, units };
     });
   }
-  return flats.map((f) => ({ ...f, units: f.units.map((x) => ({ ...x, ...edits[x.id] })) }));
+  /* A renamed flat is stored as edits["flat|<flat id>"].code (Units › Rename). */
+  return flats.map((f) => ({ ...f, name: edits[`flat|${f.id}`]?.code ?? f.name, units: f.units.map((x) => ({ ...x, ...edits[x.id] })) }));
 }
 export const floorRooms = (b: Block) => Math.round(b.rooms / b.floors);
 

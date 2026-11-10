@@ -25,6 +25,14 @@ export function PropertiesPage() {
   const importOpen = sp.get('import') === '1';
   const setImport = (v: boolean) => setSp((p) => { const n = new URLSearchParams(p); if (v) n.set('import', '1'); else n.delete('import'); return n; });
   const empty = sp.get('empty') === '1';
+  /* The property page's Archive sends a property with live tenancies here (?archive=<id>) to close it first. */
+  const askArchive = sp.get('archive');
+  useEffect(() => {
+    if (!askArchive) return;
+    const p = props.find((x) => x.id === askArchive);
+    if (p) setArchiving(p);
+    setSp((x) => { const n = new URLSearchParams(x); n.delete('archive'); return n; }, { replace: true });
+  }, [askArchive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const list = useMemo(() => (empty ? [] : props).filter((p) => p.status !== 'Archived'), [props, empty]);
   const rows = list.filter((p) => (tab === 'all' || (tab === 'city' ? p.campus === 'Durham City' : p.campus === 'Queen’s Campus')) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())));
@@ -50,7 +58,7 @@ export function PropertiesPage() {
   };
 
   const cols = [
-    { key: 'name', label: 'Property', render: (p: Property) => <span className="flex items-center gap-2.5"><IconTile icon={Buildings} /><span className="font-medium">{p.name}</span></span> },
+    { key: 'name', label: 'Property', render: (p: Property) => <span className="flex items-center gap-2.5 min-w-0"><IconTile icon={Buildings} /><span className="font-medium truncate max-w-[320px]" title={p.name}>{p.name}</span></span> },
     { key: 'Campus', label: 'Campus', render: (p: Property) => <span className="text-[#646A78]">{p.campus}</span> },
     { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#646A78]">{p.structure}</span> },
     { key: 'Tags', label: 'Tags', render: (p: Property) => <Tags tags={p.tags} /> },
@@ -165,7 +173,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         </Field>
         <div className="rounded-xl border border-line p-3.5">
           <div className="flex items-center justify-between"><span className="text-sm font-medium">Template columns</span><Button size="sm" icon={DownloadSimple} onClick={() => toast.success(`${structure.toLowerCase()}-template.csv downloaded`)}>Download template</Button></div>
-          <div className="flex flex-wrap gap-1.5 mt-3">{cols.map((c) => <span key={c} className="h-6 px-2 rounded-md border border-line font-mono text-[11px] flex items-center">{c}</span>)}</div>
+          <div className="flex flex-wrap gap-1.5 mt-3">{cols.map((c) => <span key={c} className="h-6 px-2 rounded-md border border-line font-mono text-xs flex items-center">{c}</span>)}</div>
           <p className="text-xs text-[#646A78] mt-2.5">* means required.</p>
         </div>
         {stage === 'pick' && (

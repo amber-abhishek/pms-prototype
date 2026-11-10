@@ -144,6 +144,8 @@ function PbsaTab() {
           <div className="py-16 text-center text-sm text-gray-500">
             {c.ticked ? `${c.name} has no Amber region yet.` : `${c.name} isn't ticked for this portal.`} <Link to="/offcampus/portal" className="text-primary hover:underline">Choose campuses in Off-campus portal</Link>
           </div>
+        ) : !rows.length ? (
+          <div className="py-16 text-center text-sm text-gray-500">Amber has no halls listed in {region} yet.</div>
         ) : (
           <>
             <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">

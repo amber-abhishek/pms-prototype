@@ -234,7 +234,7 @@ function Tree({ props, p, sel, go, archivedFlats }: { props: Property[]; p: Prop
     <div key={k} aria-current={active || undefined} style={{ paddingLeft: 4 + depth * 16 }} onClick={onClick}
       className={cx('h-8 shrink-0 flex items-center gap-1.5 rounded-lg border pr-2 text-sm leading-5 cursor-pointer transition-colors',
         depth === 0 || active ? 'font-medium' : 'font-normal',
-        active ? 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#0A0A0A]' : 'border-transparent text-[#0A0A0A] hover:bg-black/[0.03]')}>
+        active ? 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(10,13,20,0.06)] text-[#0A0A0A]' : 'border-transparent text-[#0A0A0A] hover:bg-black/[0.03]')}>
       {leaf ? <span className="w-4 shrink-0" /> : <button type="button" aria-label={open[k] ? 'Collapse' : 'Expand'} aria-expanded={!!open[k]} onClick={(e) => { e.stopPropagation(); tog(k); }} className="size-4 shrink-0 rounded flex items-center justify-center text-[#737373] hover:text-[#0A0A0A]">{open[k] ? <CaretDown size={14} strokeWidth={1.5} /> : <CaretRight size={14} strokeWidth={1.5} />}</button>}
       <I size={16} strokeWidth={1.5} className={cx('shrink-0', active ? 'text-[#2563EB]' : 'text-[#404040]')} />
       <span className="truncate flex-1">{label}</span>

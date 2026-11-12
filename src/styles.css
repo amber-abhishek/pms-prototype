@@ -182,3 +182,14 @@ html:not(.dark) label.border-gray-300 { border-color: #D4D4D4; }
 
 /* Connect cells are 14px medium ink; grey secondary lines inside them (an address, a "2 days ago") stay regular. */
 table tbody td :is(.text-gray-500, .text-gray-400, .text-muted-foreground, .text-\[\#737373\], .text-\[\#A3A3A3\]):not(.font-medium):not(.font-semibold) { font-weight: 400; }
+
+/* Tables in modals and side panels (2026-11-12): a bordered card, not full-bleed rows. 1px #E5E5E5 border, 12px radius,
+   #FAFAFA mono head band, 56px rows split by #EBEBEB rules, no rule under the last row. Pages keep their full-bleed tables.
+   border-collapse: separate so the radius clips; row rules move from <tr> to the cells. */
+[role=dialog] table { border-collapse: separate; border-spacing: 0; border: 1px solid #E5E5E5; border-radius: 12px; overflow: hidden; background: #fff; }
+[role=dialog] thead th { height: 44px; box-shadow: inset 0 -1px 0 #E5E5E5; }
+[role=dialog] tbody td { height: 56px; }
+[role=dialog] tbody tr:not(:last-child) > td { box-shadow: inset 0 -1px 0 #EBEBEB; }
+[role=dialog] [data-scroller] { padding-top: 20px; padding-bottom: 20px; }
+/* A table already inside a card uses the card as its frame: no second border or radius. */
+[role=dialog] [data-card] table { border: 0; border-radius: 0; }

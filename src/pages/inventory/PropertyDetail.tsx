@@ -97,7 +97,7 @@ export function PropertyDetail() {
     <>
       {/* A centred modal over the Properties list, like Add property: the Connect header band (record type, actions, ✕), then the property. */}
       <UIDialog open onOpenChange={(o) => { if (!o) nav('/inventory/properties'); }}>
-      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:0px] [--cx:24px]">
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:28px] [--cx:20px]">
       <DialogHeader className="py-3">
         <DialogTitle>Property</DialogTitle>
         <Menu width={200} trigger={(o) => <button type="button" onClick={o} aria-label="More" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><DotsThree size={16} /></button>} items={[

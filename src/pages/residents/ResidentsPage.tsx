@@ -94,7 +94,7 @@ export function ResidentDetail() {
   return (
     <>
       <UIDialog open onOpenChange={(o) => { if (!o) nav('/residents'); }}>
-      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:0px] [--cx:24px]">
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:28px] [--cx:20px]">
       <DialogHeader className="py-3">
         <DialogTitle>Resident</DialogTitle>
         <Button icon={Envelope} onClick={() => setMsg(true)}>Message</Button>

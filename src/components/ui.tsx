@@ -368,6 +368,14 @@ export function FilterButton({ defs, value, onChange }: { defs: FilterDef[]; val
 /* ---------- Table: inset rows, end-to-end footer bar with summary + pager ---------- */
 /** Empty cells read as a quiet grey dash, as Mercury's tables do. */
 const muteDash = (v: ReactNode) => (v === '—' ? <span className="text-[#A3A3A3]">—</span> : v);
+const PAGER_STEP = 'h-7 px-1.5 rounded-lg inline-flex items-center gap-1 text-sm font-medium text-[#0A0A0A] hover:bg-[#F5F5F5] disabled:text-[#A3A3A3] disabled:pointer-events-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+/** Connect pager pages: all of them up to 5, otherwise 1 2 3 … last (or first … around the current … last). */
+const pageList = (n: number, cur: number): (number | '…')[] => {
+  if (n <= 5) return Array.from({ length: n }, (_, i) => i);
+  if (cur < 3) return [0, 1, 2, '…', n - 1];
+  if (cur > n - 4) return [0, '…', n - 3, n - 2, n - 1];
+  return [0, '…', cur, '…', n - 1];
+};
 export type Col<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
 export function Table<T extends { id: string }>({ cols, rows, onRow, empty, pageSize = 50, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
   cols: Col<T>[]; rows: T[]; onRow?: (r: T) => void; empty?: ReactNode; pageSize?: number; selected?: string;
@@ -404,16 +412,20 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, page
     </UITable>
   );
   const footer = (
-    /* 40px footer, #E5E5E5 top rule, 12px #737373. */
-    <div data-foot className="h-10 shrink-0 px-5 flex items-center gap-2 border-t border-line text-xs text-[#737373] bg-white">
-      {showFooter && summary && <span>{summary}</span>}
+    /* Connect footer: #E5E5E5 top rule, 24px sides, 14px #737373 "Showing 10 of 25 entries" on the left;
+       "‹ Previous · 1 2 3 … · Next ›" on the right, the current page a 28px blue-tinted square. */
+    <div data-foot className={cx('shrink-0 px-6 flex items-center gap-2 border-t border-line text-sm text-[#737373] bg-white', pages > 1 ? 'h-[68px]' : 'h-12')}>
+      {showFooter && summary ? <span>{summary}</span> : pages > 1 && <span>Showing {shown.length} of {rows.length} entries</span>}
       <div className="ml-auto flex items-center gap-1.5">
         {footerRight}
-        {pages > 1 && <span className="mr-1">{page * pageSize + 1}–{Math.min(rows.length, (page + 1) * pageSize)} of {rows.length}</span>}
-        {pages > 1 && <>
-        <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={13} /></button>
-        <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={13} /></button>
-        </>}
+        {pages > 1 && <nav aria-label="Pages" className="flex items-center gap-1">
+          <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className={cx(PAGER_STEP, 'mr-1')}><CaretLeft size={16} strokeWidth={1.75} />Previous</button>
+          {pageList(pages, page).map((p, i) => p === '…'
+            ? <span key={`e${i}`} className="w-5 text-center text-[#0A0A0A]">…</span>
+            : <button key={p} type="button" aria-current={p === page ? 'page' : undefined} onClick={() => setPage(p)}
+                className={cx('size-7 rounded-lg text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', p === page ? 'bg-[#EDF3FF] border border-[#1A6CF8] text-[#1A6CF8]' : 'text-[#0A0A0A] hover:bg-[#F5F5F5]')}>{p + 1}</button>)}
+          <button type="button" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className={cx(PAGER_STEP, 'ml-1')}>Next<CaretRight size={16} strokeWidth={1.75} /></button>
+        </nav>}
       </div>
     </div>
   );

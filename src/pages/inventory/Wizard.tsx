@@ -29,14 +29,15 @@ export function AddPropertyWizard() {
   const nav = useNavigate();
   const existing = useInv((s) => s.properties);
   const [step, setStep] = useState(0);
-  const [name, setName] = useState('St Mary’s College');
-  const [invNo, setInvNo] = useState('SMC-001');
+  const [name, setName] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
+  const [invNo, setInvNo] = useState('');
   const [campus, setCampus] = useState<'Durham City' | 'Queen’s Campus'>('Durham City');
   const [letting, setLetting] = useState<'Weekly' | 'Monthly'>('Weekly');
   const [structure, setStructure] = useState<'College' | 'House'>('College');
-  const [query, setQuery] = useState('St Mary’s College, Elvet Hill Road');
-  const [picked, setPicked] = useState(true);
-  const [zone, setZone] = useState('Elvet');
+  const [query, setQuery] = useState('');
+  const [picked, setPicked] = useState(false);
+  const [zone, setZone] = useState('');
   const [blocks, setBlocks] = useState<WBlock[]>([
     { key: 'b1', name: 'Main House', floors: 4, flats: 4, rpf: 6, roomType: 'Ensuite single', size: '14', floorPat: 'Floor {n}', flatPat: 'Flat {n}', roomPat: 'Room {n}' },
     { key: 'b2', name: 'Fenwick Block', floors: 2, flats: 4, rpf: 6, roomType: 'Standard single', size: '12', floorPat: 'Floor {n}', flatPat: 'Flat {n}', roomPat: 'Room {n}' },
@@ -158,9 +159,9 @@ export function AddPropertyWizard() {
 
               {step === 0 && (
                 <div className="flex flex-col gap-6 pt-2">
-                  <Field label="Property name"><Input className={i9} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. St Mary’s College" aria-invalid={!!nameErr} /><Err>{nameErr}</Err></Field>
+                  <Field label="Property name"><Input className={i9} value={name} onChange={(e) => setName(e.target.value)} onBlur={() => setNameTouched(true)} placeholder="e.g. St Mary’s College" aria-invalid={nameTouched && !!nameErr} /><Err>{nameTouched ? nameErr : ''}</Err></Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Inventory number" hint="Optional · your own reference"><Input className={cx(i9, 'font-mono')} value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
+                    <Field label="Inventory number" hint="Optional · your own reference"><Input className={cx(i9, 'font-mono')} value={invNo} onChange={(e) => setInvNo(e.target.value)} placeholder="e.g. SMC-001" /></Field>
                     <Field label="Campus"><Picker className={i9} value={campus} onChange={setCampus} options={[{ id: 'Durham City', label: 'Durham City' }, { id: 'Queen’s Campus', label: 'Queen’s Campus' }]} /></Field>
                   </div>
                   <div>

@@ -7,7 +7,7 @@ import { Offers } from './allocations/Offers';
 import { AllocOverview } from './allocations/Overview';
 
 /** Allocations (BMS): overview, cycles, the application queue, offers and the waitlist, bookings. Data lives in data/allocations.ts. */
-/** Applications with no tab is the overview; each tab (To review, Manual review…) is the queue. */
+/** Applications with no tab is the overview; each tab (To review, Flagged…) is the queue. */
 function ApplicationsHome() {
   const [sp] = useSearchParams();
   return sp.get('tab') ? <Applications /> : <AllocOverview />;

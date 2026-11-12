@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowsClockwise, CheckCircle, Clock, Copy, EnvelopeSimple, Eye, Gear, Globe, MapPin, SquaresFour, UploadSimple, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, Select, Switch, cx } from '../../components/ui';
+import { Button, PageHeader, Select, Switch, Tabs, cx } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { AMBER_REGIONS, TAKEN_DOMAINS, regionOf, stamp, useOc, type Campus, type Portal as P } from '../../data/offcampus';
-import { Combo, ODialog, Tag, Thumb, Title, UnderTabs } from './parts';
+import { SharedBrand } from '../../components/SharedBrand';
+import { Combo, ODialog, Tag, Thumb, Title } from './parts';
 
 type Sec = 'behaviour' | 'appearance' | 'site' | 'domain';
 const SECS: { id: Sec; label: string; path: string }[] = [
@@ -21,8 +22,11 @@ export function Portal({ sec }: { sec: Sec }) {
       <PageHeader icon={Gear} crumbs={['Off-campus']} title="Off-campus portal" />
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Off-campus portal" />
-        <UnderTabs value={sec} onChange={(s) => nav(SECS.find((x) => x.id === s)!.path + search)} tabs={SECS} />
-        <div className="flex-1 overflow-auto bg-white p-6">
+        {/* Same segmented tabs as Listings (All · HMO · Amber PBSA). */}
+        <div className="px-6 py-3">
+          <Tabs value={sec} onChange={(s) => nav(SECS.find((x) => x.id === s)!.path + search)} tabs={SECS} />
+        </div>
+        <div className="flex-1 overflow-auto bg-white px-6 pb-6 pt-3">
           {sec === 'behaviour' && <Behaviour />}
           {sec === 'appearance' && <Appearance />}
           {sec === 'site' && <SiteDetails />}
@@ -116,7 +120,7 @@ function Behaviour() {
 }
 
 /* ---------------- Appearance (flow 6) ---------------- */
-export const missingForPublish = (p: P) => [!p.heroBanner && 'Hero banner', !p.logo && 'Logo', !p.siteTitle.trim() && 'Site title', !p.pageTitle.trim() && 'Page title'].filter(Boolean) as string[];
+export const missingForPublish = (p: P) => [!p.heroBanner && 'Hero banner', !p.siteTitle.trim() && 'Site title', !p.pageTitle.trim() && 'Page title'].filter(Boolean) as string[];
 
 function ImageRow({ has, onUpload, onRemove, hint }: { has: boolean; onUpload: () => void; onRemove: () => void; hint?: string }) {
   return (
@@ -155,11 +159,11 @@ function Appearance() {
   const p = useOc((s) => s.portal);
   const setPortal = useOc((s) => s.setPortal);
   const file = useRef<HTMLInputElement>(null);
-  const target = useRef<'logo' | 'favicon' | 'heroBanner'>('heroBanner');
+  const target = useRef<'favicon' | 'heroBanner'>('heroBanner');
   const busy = useRef(false);
   const missing = missingForPublish(p);
   const edit = (x: Partial<P>) => setPortal({ ...x, draftSaved: false });
-  const upload = (k: 'logo' | 'favicon' | 'heroBanner') => { target.current = k; file.current?.click(); };
+  const upload = (k: 'favicon' | 'heroBanner') => { target.current = k; file.current?.click(); };
   const onFile = (f: File | undefined) => {
     if (!f) return;
     const max = target.current === 'heroBanner' ? 25 : 5;
@@ -173,7 +177,7 @@ function Appearance() {
     setPortal({ liveSince: stamp(), draftSaved: true });
     toast.success('Site published', { description: 'Students now see this version. Later edits stay in the draft.' });
   };
-  const colour = (label: string, k: 'brandColour' | 'ctaColour') => <ColourField label={label} value={p[k]} onChange={(v) => edit({ [k]: v })} />;
+  const colour = (label: string, k: 'ctaColour') => <ColourField label={label} value={p[k]} onChange={(v) => edit({ [k]: v })} />;
   return (
     <div className="max-w-[1140px]">
       <input ref={file} type="file" accept="image/png,image/jpeg,image/webp,image/x-icon" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
@@ -189,8 +193,7 @@ function Appearance() {
         <div className="space-y-4">
           <Box className="p-4 space-y-4">
             <h2 className="text-sm font-semibold">Brand</h2>
-            {colour('Brand colour', 'brandColour')}
-            <div><Lbl>Logo</Lbl><ImageRow has={p.logo} onUpload={() => upload('logo')} onRemove={() => edit({ logo: false })} /></div>
+            <div><Lbl>Logo and brand colour</Lbl><SharedBrand /></div>
             {colour('Listing CTA colour', 'ctaColour')}
           </Box>
           <Box className="p-4 space-y-4">

@@ -11,9 +11,9 @@ import { AppDetail, statusLabel, type Pref } from './AppDetail';
 import { AllocateSheet, AutoAllocateDialog, RejectDialog } from './AppSheets';
 import { applyFilters, describe, fieldsFor, FilterPanel, type Filters } from './filters';
 
-type TabId = 'To review' | 'Manual review' | 'Allocated' | 'Rejected' | 'All';
-const LEGACY: Record<string, TabId> = { New: 'To review', 'In review': 'To review', Offered: 'Allocated', Accepted: 'Allocated', Waitlisted: 'All', Declined: 'Rejected' };
-const tabStatus: Record<TabId, AppStatus | null> = { 'To review': 'review', 'Manual review': 'manual', Allocated: 'allocated', Rejected: 'rejected', All: null };
+type TabId = 'To review' | 'Flagged' | 'Allocated' | 'Rejected' | 'All';
+const LEGACY: Record<string, TabId> = { 'Manual review': 'Flagged', New: 'To review', 'In review': 'To review', Offered: 'Allocated', Accepted: 'Allocated', Waitlisted: 'All', Declined: 'Rejected' };
+const tabStatus: Record<TabId, AppStatus | null> = { 'To review': 'review', Flagged: 'manual', Allocated: 'allocated', Rejected: 'rejected', All: null };
 const PAGE = 50;
 
 /* "24 Oct" within a cycle → a sortable number: newer cycles first, then the date inside the cycle's
@@ -78,7 +78,7 @@ export function Applications() {
         </EmptyArea>
       ) : tab === 'To review' && counts.review === 0 ? (
         <EmptyArea art="queueClear" icon={CheckCircle} title="Queue clear" sub="New applications land here as students apply.">
-          <Button onClick={() => setTab('Manual review')}>Open manual review · {counts.manual}</Button>
+          <Button onClick={() => setTab('Flagged')}>Open flagged · {counts.manual}</Button>
         </EmptyArea>
       ) : split ? (
         <Queue key={tab} sort={sort} tab={tab} rows={rows} total={isDefault ? counts.review : rows.length} filtered={!isDefault} open={open} setOpen={setOpen} fs={fs} setFs={setFs} fields={fields} base={base} defaults={defaults} />
@@ -186,10 +186,10 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
   );
 }
 
-/* ---------------- Table tabs: Manual review, Allocated, Rejected ---------------- */
+/* ---------------- Table tabs: Flagged, Allocated, Rejected ---------------- */
 const COLS: Record<string, { key: string; label: string }[]> = {
   All: [{ key: 'ref', label: 'Reference' }, { key: 'pref', label: '1st preference' }, { key: 'status', label: 'Status' }, { key: 'sub', label: 'Submitted' }],
-  'Manual review': [{ key: 'why', label: 'Why it’s here' }, { key: 'pref', label: '1st preference' }, { key: 'wait', label: 'Waiting' }, { key: 'who', label: 'Assigned to' }],
+  Flagged: [{ key: 'why', label: 'Why it’s here' }, { key: 'pref', label: '1st preference' }, { key: 'wait', label: 'Waiting' }, { key: 'who', label: 'Assigned to' }],
   Allocated: [{ key: 'unit', label: 'Unit' }, { key: 'by', label: 'Allocated by' }, { key: 'on', label: 'On' }, { key: 'offer', label: 'Offer' }],
   Rejected: [{ key: 'reason', label: 'Reason' }, { key: 'by', label: 'Rejected by' }, { key: 'on', label: 'On' }, { key: 'emailed', label: 'Emailed' }],
 };
@@ -209,12 +209,12 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
   const [newest, setNewest] = useState(false);
   useEffect(() => setPage(0), [rows.length]);
   const applicant: C<App> = { key: 'name', label: 'Applicant', render: (a) => <Person name={a.name} /> };
-  const order = useMemo(() => (tab === 'Manual review' ? [...rows].sort((x, y) => y.waiting - x.waiting) : tab === 'All' ? [...rows].sort((x, y) => (dayKey(x.cycle, x.submitted) - dayKey(y.cycle, y.submitted) || +x.ref - +y.ref) * (newest ? -1 : 1))
+  const order = useMemo(() => (tab === 'Flagged' ? [...rows].sort((x, y) => y.waiting - x.waiting) : tab === 'All' ? [...rows].sort((x, y) => (dayKey(x.cycle, x.submitted) - dayKey(y.cycle, y.submitted) || +x.ref - +y.ref) * (newest ? -1 : 1))
     : [...rows].sort((x, y) => dayKey(y.cycle, y.allocOn ?? y.rejOn) - dayKey(x.cycle, x.allocOn ?? x.rejOn) || +y.ref - +x.ref)), [rows, tab, newest]);
   const pages = Math.max(1, Math.ceil(order.length / PAGE));
   const shown = order.slice(page * PAGE, page * PAGE + PAGE);
   useEffect(() => { const i = order.findIndex((a) => a.id === open); if (i >= 0) setPage(Math.floor(i / PAGE)); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-  const cols: C<App>[] = tab === 'Manual review' ? [
+  const cols: C<App>[] = tab === 'Flagged' ? [
     applicant,
     { key: 'why', label: 'Why it’s here', render: (a) => <span className="flex items-center gap-2"><Flag size={14} className="text-[#8B2CF5]" />{a.why}</span> },
     { key: 'pref', label: '1st preference', render: (a) => <span className="text-gray-500">{a.hall} · {a.room}</span> },

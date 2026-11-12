@@ -30,7 +30,7 @@ export type Campus = { id: string; name: string; isDefault?: boolean; ticked: bo
 
 export type Portal = {
   campuses: Campus[]; showPbsa: boolean; defaultCampus: string; senderName: string; replyTo: string;
-  brandColour: string; ctaColour: string; logo: boolean; siteTitle: string; favicon: boolean;
+  ctaColour: string; siteTitle: string; favicon: boolean;
   pageTitle: string; heroText: string; heroBanner: boolean; customLinks: boolean; announcements: boolean; footerLinks: boolean;
   liveSince: string | null; draftSaved: boolean;
   domainMode: 'standard' | 'custom'; subdomain: string; customDomain: string | null; domainState: 'none' | 'pending' | 'failed' | 'verified';
@@ -142,7 +142,7 @@ function portal(): Portal {
       { id: 'c-queens', name: "Queen's Campus", ticked: false, resolved: null, match: null, override: null },
     ],
     showPbsa: false, defaultCampus: 'c-durham', senderName: 'Durham University Accommodation', replyTo: 'accommodation@durham.ac.uk',
-    brandColour: '#68246D', ctaColour: '#68246D', logo: true, siteTitle: 'Durham University · Off-campus housing', favicon: true,
+    ctaColour: '#68246D', siteTitle: 'Durham University · Off-campus housing', favicon: true,
     pageTitle: 'Find a home off campus', heroText: 'Houses and flats near Durham, checked by the university.', heroBanner: false,
     customLinks: false, announcements: false, footerLinks: false, liveSince: null, draftSaved: true,
     domainMode: 'standard', subdomain: 'durham', customDomain: null, domainState: 'none',

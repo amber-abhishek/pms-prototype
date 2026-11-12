@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, CircleCheck, History, Inbox, Wrench, UserCheck, Building, Grid3x3, ChartColumn, Network, TextCursorInput, Wallet,
   FileText, Calendar, Send, CalendarCheck, Users, ArrowsLeftRight, Megaphone, ClipboardCheck, LayoutTemplate, MessageSquare, Settings,
-  Globe, Monitor, Landmark, MapPin, Shield, Mail, Plug, House, Palette, Tag, type Icon,
+  Globe, Monitor, Landmark, MapPin, Shield, Mail, Bell, Plug, House, Palette, Tag, type Icon,
 } from './components/icons';
 import type { Role } from './data/store';
 import { useHome, myOpenCount } from './data/home';
@@ -88,7 +88,7 @@ export const modules: Module[] = [
     match: starts('/allocations'),
     sections: [{ items: [
       { label: 'Applications', to: '/allocations/applications', icon: Inbox, landing: true, count: (c) => c.toReview, sub: [
-        { label: 'To review', tab: 'To review', count: (c) => c.toReview }, { label: 'Manual review', tab: 'Manual review', count: (c) => c.manual },
+        { label: 'To review', tab: 'To review', count: (c) => c.toReview }, { label: 'Flagged', tab: 'Flagged', count: (c) => c.manual },
         { label: 'Allocated', tab: 'Allocated' }, { label: 'Rejected', tab: 'Rejected' }, { label: 'All', tab: 'All' },
       ] },
       { label: 'Offers & waitlist', to: '/allocations/offers', icon: Send, count: (c) => c.offers },
@@ -156,10 +156,10 @@ export const modules: Module[] = [
     sections: [{ items: [
       { label: 'General', to: '/settings', icon: Settings },
       { label: 'Academic year', to: '/settings/academic-year', icon: Calendar },
-      { label: 'Notifications', to: '/settings/notifications', icon: Mail },
+      { label: 'Notifications', to: '/settings/notifications', icon: Bell },
       { label: 'Payments', to: '/settings/payments', icon: Wallet },
       { label: 'Integrations', to: '/settings/integrations', icon: Plug },
-      { label: 'Branding', to: '/settings/branding', icon: LayoutTemplate },
+      { label: 'Emails', to: '/settings/emails', icon: Mail },
     ] }],
   },
 ];

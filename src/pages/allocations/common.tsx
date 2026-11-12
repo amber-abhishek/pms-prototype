@@ -18,7 +18,7 @@ export function Person({ name, sub }: { name: string; sub?: ReactNode }) {
 
 /** Status pill with an icon chosen for this module's words. */
 const T: Record<string, [Tone, Icon]> = {
-  'In review': ['blue', Hourglass], 'Manual review': ['purple', Flag], Allocated: ['green', UserCheck], Waitlist: ['orange', Clock], Declined: ['grey', XCircle],
+  'In review': ['blue', Hourglass], Flagged: ['purple', Flag], Allocated: ['green', UserCheck], Waitlist: ['orange', Clock], Declined: ['grey', XCircle],
   Accepted: ['green', CheckMark], Open: ['blue', EnvelopeSimple], 'Offer open': ['blue', EnvelopeSimple], Lapsed: ['grey', MinusCircle], 'Offer sent': ['blue', PaperPlaneTilt],
   Signed: ['green', FileText], Sent: ['orange', PaperPlaneTilt], Draft: ['grey', PencilSimple], Cancelled: ['grey', XCircle], Conflict: ['red', WarningCircle],
   'Applications open': ['blue', RadioButton], 'In tenancy': ['green', House], 'Not open yet': ['purple', Clock], Active: ['green', CheckCircle],

@@ -1,7 +1,7 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { NotFound } from './Misc';
 import { ApplicationsReport, OccupancyReport, ReportsLibrary, SimpleReport } from './workspace/Reports';
-import { SettingsAcademicYear, SettingsBranding, SettingsGeneral, SettingsIntegrations, SettingsNotifications, SettingsPayments } from './workspace/Settings';
+import { SettingsAcademicYear, SettingsEmails, SettingsGeneral, SettingsIntegrations, SettingsNotifications, SettingsPayments } from './workspace/Settings';
 
 export function ReportsRoutes() {
   return (
@@ -23,7 +23,8 @@ export function SettingsRoutes() {
       <Route path="notifications" element={<SettingsNotifications />} />
       <Route path="payments" element={<SettingsPayments />} />
       <Route path="integrations" element={<SettingsIntegrations />} />
-      <Route path="branding" element={<SettingsBranding />} />
+      <Route path="emails" element={<SettingsEmails />} />
+      <Route path="branding" element={<Navigate to="/settings/emails" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

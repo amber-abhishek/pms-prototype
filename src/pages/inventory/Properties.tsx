@@ -3,12 +3,12 @@ import { Illustration } from '../../components/Illustration';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Archive, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, Tag as TagIcon, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
+  Archive, ArrowsDownUp, Buildings, CaretDown, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, Tag as TagIcon, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
 } from '../../components/icons';
-import { Button, Check, Empty, Field, PageHeader, SearchInput, Table, Tabs, cx, toolbarCls, PageHeading } from '../../components/ui';
+import { Button, Check, Empty, Field, PageHeader, SearchInput, Table, cx } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
-import { IconTile, Kbd, Menu, Modal, Picker, PropStatus, RadioCard, Tags } from './common';
+import { Menu, Modal, Picker, PropStatus, RadioCard, Tags } from './common';
 
 type Tab = 'all' | 'city' | 'queens';
 const COLS = ['Campus', 'Layout', 'Tags', 'Units', 'Status'] as const;
@@ -34,8 +34,20 @@ export function PropertiesPage() {
     setSp((x) => { const n = new URLSearchParams(x); n.delete('archive'); return n; }, { replace: true });
   }, [askArchive]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [layoutF, setLayoutF] = useState<string | null>(null);
+  const [statusF, setStatusF] = useState<string | null>(null);
+  const [sort, setSort] = useState<{ key: 'name' | 'units'; dir: 1 | -1 } | null>(null);
   const list = useMemo(() => (empty ? [] : props).filter((p) => p.status !== 'Archived'), [props, empty]);
-  const rows = list.filter((p) => (tab === 'all' || (tab === 'city' ? p.campus === 'Durham City' : p.campus === 'Queen’s Campus')) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())));
+  const rows = list
+    .filter((p) => (tab === 'all' || (tab === 'city' ? p.campus === 'Durham City' : p.campus === 'Queen’s Campus')) && (!layoutF || p.structure === layoutF) && (!statusF || p.status === statusF) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())))
+    .sort((a, b) => !sort ? 0 : sort.dir * (sort.key === 'units' ? a.units - b.units : a.name.localeCompare(b.name)));
+  const sortBy = (key: 'name' | 'units') => setSort((s) => (s?.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
+  /* Figma 3884:39809 heads: Property and Units carry the ↕ sort glyph, ink while that column sorts the table. */
+  const head = (label: string, key: 'name' | 'units') => (
+    <button type="button" onClick={() => sortBy(key)} aria-label={`Sort by ${label}`} className="inline-flex items-center gap-1.5 uppercase hover:text-[#0A0A0A]">
+      {label}<ArrowsDownUp size={14} strokeWidth={2} className={sort?.key === key ? 'text-[#0A0A0A]' : 'text-[#737373]'} />
+    </button>
+  );
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -58,15 +70,29 @@ export function PropertiesPage() {
   };
 
   const cols = [
-    { key: 'name', label: 'Property', render: (p: Property) => <span className="flex items-center gap-2.5 min-w-0"><IconTile icon={Buildings} /><span className="font-medium truncate max-w-[320px]" title={p.name}>{p.name}</span></span> },
-    { key: 'Campus', label: 'Campus', render: (p: Property) => <span className="text-[#737373]">{p.campus}</span> },
-    { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#737373]">{p.structure}</span> },
+    /* Figma 3884:39809 row: 116×62 photo (r6), then a 12px blue kicker, the 14px medium name and a grey street · postcode line; 84px tall. */
+    { key: 'name', label: head('Property', 'name'), className: 'py-[11px]', render: (p: Property) => {
+      const k = KICKER[p.id] ?? (p.status === 'Active' ? null : 'Not letting 2026/27');
+      return (
+        <span className="flex items-center gap-4 min-w-0">
+          {PHOTO[p.id] ? <img src={PHOTO[p.id]} alt="" loading="lazy" className="w-[116px] h-[62px] rounded-md object-cover shrink-0 bg-[#F5F5F5]" />
+            : <span className="w-[116px] h-[62px] rounded-md bg-[#F5F5F5] shrink-0 flex items-center justify-center"><Buildings size={20} className="text-[#A3A3A3]" /></span>}
+          <span className="min-w-0 flex flex-col gap-0.5">
+            {k && <span className={cx('text-xs leading-4 font-medium', KICKER[p.id] ? 'text-[#1D4ED8]' : 'text-[#737373]')}>{k}</span>}
+            <span className="font-medium truncate max-w-[260px]" title={p.name}>{p.name}</span>
+            <span className="text-[#737373] truncate max-w-[260px]">{shortAddress(p.address)}</span>
+          </span>
+        </span>
+      );
+    } },
+    { key: 'Campus', label: 'Campus', render: (p: Property) => <span className="text-[#404040]">{p.campus}</span> },
+    { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#404040]">{p.structure}</span> },
     { key: 'Tags', label: 'Tags', render: (p: Property) => <Tags tags={p.tags} /> },
-    { key: 'Units', label: 'Units', className: 'text-right', render: (p: Property) => <span className="tabular-nums">{p.units.toLocaleString('en-GB')}</span> },
-    { key: 'Status', label: 'Status', render: (p: Property) => <PropStatus s={p.status} /> },
+    { key: 'Units', label: <span className="flex justify-end">{head('Units', 'units')}</span>, className: 'text-right', render: (p: Property) => <span className="font-medium tabular-nums">{p.units.toLocaleString('en-GB')}</span> },
+    { key: 'Status', label: 'Status', className: 'pl-8', render: (p: Property) => <PropStatus s={p.status} /> },
     {
-      key: 'menu', label: '', className: 'w-10', render: (p: Property) => (
-        <Menu width={168} trigger={(o) => <button type="button" aria-label={`More for ${p.name}`} onClick={o} className="size-7 rounded-md hover:bg-gray-100 flex items-center justify-center text-[#737373]"><DotsThree size={18} weight="bold" /></button>}
+      key: 'menu', label: <span className="sr-only">Actions</span>, className: 'w-14 text-right', render: (p: Property) => (
+        <Menu width={168} trigger={(o) => <button type="button" aria-label={`More for ${p.name}`} onClick={(e) => { e.stopPropagation(); o(); }} className="size-8 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] inline-flex items-center justify-center text-[#404040]"><DotsThree size={16} strokeWidth={1.75} /></button>}
           items={[{ label: 'Edit', icon: PencilSimple, onClick: () => nav(`/inventory/properties/${p.id}`) }, { label: 'Duplicate', icon: Copy, onClick: () => duplicate(p) }, 'sep', { label: 'Archive', icon: Archive, danger: true, onClick: () => archive(p) }]} />
       ),
     },
@@ -96,21 +122,42 @@ export function PropertiesPage() {
         </div>
       ) : (
         <>
-          <PageHeading right={<>
-            <SearchInput value={q} onChange={setQ} placeholder="Search properties" />
-            <Display hidden={hidden} setHidden={setHidden} />
-          </>} />
-          <div className={cx(toolbarCls, '!pt-0 empty:hidden')}>
-            <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: list.length }, { id: 'city', label: 'Durham City', count: list.filter((p) => p.campus === 'Durham City').length }, { id: 'queens', label: 'Queen’s Campus', count: list.filter((p) => p.campus === 'Queen’s Campus').length }]} />
+          {/* Figma 3884:39809 toolbar: 68px, 16/24 padding; 280×36 search on the left; campus, layout and status dropdowns and Display on the right. */}
+          <div className="shrink-0 px-6 py-4 flex items-center gap-3">
+            <div className="[&>label]:w-[280px] [&>label]:h-9"><SearchInput value={q} onChange={setQ} placeholder="Search properties" /></div>
+            <div className="ml-auto flex items-center gap-3">
+              <DropFilter value={tab === 'all' ? null : tab === 'city' ? 'Durham City' : 'Queen’s Campus'} placeholder="All campuses" all="All campuses"
+                options={['Durham City', 'Queen’s Campus']} onChange={(v) => setTab(v === 'Durham City' ? 'city' : v ? 'queens' : 'all')} />
+              <DropFilter value={layoutF} placeholder="Layout" all="All layouts" options={['College', 'House']} onChange={setLayoutF} />
+              <DropFilter value={statusF} placeholder="Status" all="All statuses" options={['Active', 'Draft', 'Inactive', 'Closed to allocations']} onChange={setStatusF} />
+              <Display hidden={hidden} setHidden={setHidden} />
+            </div>
           </div>
-          <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)}
+          <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)} paginate={rows.length > 50}
             empty={<Empty title="No properties match" sub="Try another campus or clear the search." />}
-            footerRight={<span className="flex items-center gap-1.5 mr-2"><Kbd>C</Kbd> new property</span>} />
+            summary={`Showing ${rows.length} of ${list.length} properties`} />
         </>
       )}
       <ImportDialog open={importOpen} onClose={() => setImport(false)} />
       <LiveTenanciesDialog p={archiving} onClose={() => setArchiving(null)} />
     </>
+  );
+}
+
+/* Dummy row details for the Figma kicker and photo (the backend has neither yet). */
+const PHOTO: Record<string, string> = { col: '/properties/p1.jpg', jb: '/properties/p2.jpg', ust: '/properties/p3.jpg', ste: '/properties/p4.jpg', hb: '/properties/p5.jpg', js: '/properties/p6.jpg', erh: '/properties/p7.jpg' };
+const KICKER: Record<string, string> = { col: '88% pre-let', jb: '83% pre-let', ust: '94% pre-let', ste: '91% pre-let', hb: '86% pre-let', js: '89% pre-let' };
+/** "South Road, Durham DH1 3DF" → "South Road · DH1 3DF". */
+const shortAddress = (a: string) => { const parts = a.split(', '); const pc = parts[parts.length - 1].split(' ').slice(-2).join(' '); return parts.length > 1 ? `${parts[0]} · ${pc}` : a; };
+
+/** Figma 3884:39809 dropdown: 34px, r8, #E5E5E5 edge, 14px medium #404040, chevron; picks one option or clears to all. */
+function DropFilter({ value, placeholder, all, options, onChange }: { value: string | null; placeholder: string; all: string; options: string[]; onChange: (v: string | null) => void }) {
+  return (
+    <Menu width={200} trigger={(o) => (
+      <button type="button" onClick={o} className={cx('h-[34px] pl-3 pr-2.5 rounded-lg border bg-white text-sm font-medium flex items-center gap-1.5 hover:bg-[#F5F5F5]', value ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
+        {value ?? placeholder}<CaretDown size={16} strokeWidth={1.75} className={value ? 'text-[#2563EB]' : 'text-[#404040]'} />
+      </button>
+    )} items={[{ label: all, onClick: () => onChange(null) }, 'sep', ...options.map((x) => ({ label: x, onClick: () => onChange(x) }))]} />
   );
 }
 

@@ -27,8 +27,9 @@ export function Tags({ tags, max = 2 }: { tags: Tag[]; max?: number }) {
   if (!tags.length) return <span className="text-[#737373]">—</span>;
   return (
     <span className="inline-flex items-center gap-1.5">
-      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-[22px] px-2 rounded-md border bg-white text-xs font-medium whitespace-nowrap" style={{ color: c, borderColor: c + '59' }}>{t.label}</span>; })}
-      {tags.length > max && <span className="text-xs font-medium text-[#737373]">+{tags.length - max}</span>}
+      {/* Figma 3884:39809 tag: Connect chip, 20px, r6, 6px sides, the tag colour at 10% over white, Geist Mono 12 medium uppercase. */}
+      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-5 px-1.5 rounded-[6px] font-mono text-xs leading-4 font-medium uppercase whitespace-nowrap" style={{ color: c, background: `linear-gradient(${c}1A, ${c}1A), #fff` }}>{t.label}</span>; })}
+      {tags.length > max && <span className="font-mono text-xs text-[#737373]">+{tags.length - max}</span>}
     </span>
   );
 }

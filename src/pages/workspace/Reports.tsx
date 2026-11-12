@@ -1,12 +1,12 @@
 // Workspace › Reports. Figma Flow 8 (3035–3038), empty 3130:2, E4 report bounces (3236, 3238, 3239).
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Bed, Buildings, CalendarBlank, CaretRight, ChartBar, ChatCircleText, Clock, CurrencyGbp, DownloadSimple, EnvelopeSimple, Funnel as FunnelIcon, Megaphone, Plus,
   ShareNetwork, Info, UsersThree, Warning, Wrench, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, SheetSection, StatStrip, listNav, type SheetNav } from '../../components/ui';
 import { useTab } from '../hooks';
 import { useDb } from '../../data/store';
 import { useAlloc, appCounts, offerCounts } from '../../data/allocations';
@@ -223,16 +223,6 @@ function Chip({ value, onChange, options, label, icon }: { value: string; onChan
     className="h-7 border-line shadow-tile text-xs font-medium" /></div>;
 }
 
-function Tile({ label, value, color, sub, subColor }: { label: string; value: ReactNode; color?: string; sub?: ReactNode; subColor?: string }) {
-  return (
-    <div className="rounded-xl border border-line bg-white px-4 py-3">
-      <div className="text-xs font-medium text-[#737373]">{label}</div>
-      <div className="text-xl font-semibold mt-1 tabular-nums" style={{ color }}>{value}</div>
-      {sub && <div className="text-xs mt-1 truncate" style={{ color: subColor ?? '#737373' }}>{sub}</div>}
-    </div>
-  );
-}
-
 export function OccupancyReport() {
   const nav = useNavigate();
   const props = useInv((s) => s.properties);
@@ -277,13 +267,13 @@ export function OccupancyReport() {
         {archived && <span className="text-xs text-[#737373] whitespace-nowrap">Archived · final week only</span>}
       </Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
-        <div className="grid grid-cols-5 gap-3">
-          <Tile label="Occupancy" value={`${occ}%`} sub={archived ? `Final week of ${year}` : `${diff >= 0 ? '+' : '−'}${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'pt' : 'pts'} vs 2025/26`} subColor={archived ? undefined : diff >= 0 ? '#087A43' : '#B91C1C'} />
-          <Tile label="Rent roll" value={gbpM(t.roll)} sub={`${fmt(t.res + t.arr)} beds let · ${year}`} />
-          <Tile label={archived ? 'Void beds at year end' : 'Void beds today'} value={fmt(t.vac)} color="#C2410C" sub={archived ? 'the year has ended' : `${gbp(t.risk)} rent at risk`} subColor={archived ? undefined : '#B91C1C'} />
-          <Tile label="Held units" value={fmt(t.blk)} sub="excluded from occupancy" />
-          <Tile label="Avg days void" value={archived ? '—' : '11.6'} sub={archived ? 'kept for the current year only' : 'from release to re-let'} />
-        </div>
+        <StatStrip items={[
+          { label: 'Occupancy', value: `${occ}%`, sub: archived ? `Final week of ${year}` : `${diff >= 0 ? '+' : '−'}${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'pt' : 'pts'} vs 2025/26` },
+          { label: 'Rent roll', value: gbpM(t.roll), sub: `${fmt(t.res + t.arr)} beds let · ${year}` },
+          { label: archived ? 'Void beds at year end' : 'Void beds today', value: fmt(t.vac), color: '#F97316', sub: archived ? 'the year has ended' : `${gbp(t.risk)} rent at risk` },
+          { label: 'Held units', value: fmt(t.blk), sub: 'excluded from occupancy' },
+          { label: 'Avg days void', value: archived ? '—' : '11.6', sub: archived ? 'kept for the current year only' : 'from release to re-let' },
+        ]} />
         <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">
         <div className="rounded-xl border border-line bg-white p-4 min-w-0">
           <div className="flex items-center"><h2 className="text-sm font-semibold">{view === 'By week' ? 'Beds filled by week' : 'Beds filled by hall'}</h2>
@@ -469,12 +459,8 @@ export function ApplicationsReport() {
         <Chip label="Cycle" value={cycle} onChange={setCycle} options={['2027/28', '2026/27']} />
       </Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
-        <div className="grid grid-cols-5 gap-3">
-          {/* Tile figures use text-safe tones; the bars keep the brighter fills. */}
-          {stages.map(([l, n, c]) => <Tile key={l} label={l} value={fmt(n)} color={c === '#F59E0B' ? '#9A5B00' : c} />)}
-          {/* £182 a week is the seed average rent (Collingwood's Standard single). */}
-          <Tile label="Rent booked" value={gbpM(f.accepted * 182 * 44)} sub="accepted × 44 weeks" />
-        </div>
+        {/* Each stage keeps its chart colour on the bar. £182 a week is the seed average rent (Collingwood's Standard single). */}
+        <StatStrip items={[...stages.map(([l, n, c]) => ({ label: l, value: fmt(n), color: c })), { label: 'Rent booked', value: gbpM(f.accepted * 182 * 44), sub: 'accepted × 44 weeks' }]} />
         <div className="rounded-xl border border-line bg-white p-5">
           <h2 className="text-sm font-semibold mb-4">From application to booking · {cycle} cycle</h2>
           <div className="space-y-3">
@@ -581,7 +567,7 @@ export function SimpleReport() {
       </Header>
       <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
-        <div className="grid grid-cols-4 gap-3">{r.tiles.map(([l, v, c, sub]) => <Tile key={l} label={l} value={v} color={c} sub={sub} />)}</div>
+        <StatStrip items={r.tiles.map(([l, v, c, sub]) => ({ label: l, value: v, color: c, sub }))} />
         <div className="rounded-xl border border-line bg-white overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="text-xs text-[#737373] border-b border-line">{r.cols.map((c, i) => <th key={c} className={cx('font-medium h-9 px-3', i === 0 ? 'text-left pl-5' : 'text-right', i === r.cols.length - 1 && 'pr-5')}>{c}</th>)}</tr></thead>

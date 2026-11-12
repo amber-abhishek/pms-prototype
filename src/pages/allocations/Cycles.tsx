@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, CalendarCheck, CalendarDots, Lock, Plus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Field, Input, PageHeader, Sheet, SheetSection, Tabs, Toolbar, cx } from '../../components/ui';
+import { Button, Dialog, Field, Input, PageHeader, Sheet, SheetSection, StatStrip, Tabs, Toolbar, cx } from '../../components/ui';
 import { TODAY, appCounts, fmtN, offerCounts, useAlloc, type Cycle } from '../../data/allocations';
 import { useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Modal, Radio, St } from './common';
@@ -110,11 +110,7 @@ function LiveCard({ c, onEdit, onClose, onOpenApps }: { c: Cycle; onEdit: () => 
           {ten ? <Button size="sm" onClick={() => nav('/allocations/bookings')}>Open bookings</Button> : <Button size="sm" onClick={onOpenApps}>Open applications</Button>}
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-5 rounded-[10px] border border-line divide-x divide-line">
-        {tiles.map(([k, v, s]) => (
-          <div key={k} className="p-3.5"><div className="text-xs text-gray-500">{k}</div><div className="text-xl font-semibold tracking-tight mt-0.5">{v}</div><div className="text-xs text-gray-500 h-4">{s}</div></div>
-        ))}
-      </div>
+      <StatStrip className="mt-4" items={tiles.map(([k, v, s]) => ({ label: k, value: v, sub: s }))} />
       <div className="mt-4 flex gap-6 text-xs">
         {dates.map(([k, v]) => <span key={k} className="flex items-center gap-1.5 text-gray-500"><Calendar size={12} className="text-gray-400" />{k}<span className="text-ink font-medium ml-1">{v}</span></span>)}
       </div>

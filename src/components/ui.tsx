@@ -19,7 +19,7 @@ import { Badge } from './shadcn/badge';
 import { Card as UICard } from './shadcn/card';
 import { Tabs as UITabs, TabsList, TabsTrigger } from './shadcn/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from './shadcn/popover';
-import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from './shadcn/table';
+import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow, monoize } from './shadcn/table';
 import { Input as UIInput } from './shadcn/input';
 import { Textarea as UITextarea } from './shadcn/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './shadcn/dropdown-menu';
@@ -30,7 +30,7 @@ import { Sheet as UISheet, sheetStep, SheetBody, SheetContent, SheetDescription,
 import { Dialog as UIDialog, DialogContent, DialogFrame } from './shadcn/dialog';
 import { toneCls, toneDot } from './tones';
 import { rowAttrs, useRowMotion } from './rowMotion';
-import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, CaretUp, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
+import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
 import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag, House } from './icons';
 export { toneCls, toneDot, toneLine } from './tones';
 import type { Tone } from '../data/seed';
@@ -456,7 +456,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, page
       <span>{showFooter && summary ? summary : `Showing ${shown.length} of ${rows.length} entries`}</span>
       <div className="ml-auto flex items-center gap-1.5">
         {footerRight}
-        {paginate && <nav aria-label="Pages" className="flex items-center gap-1">
+        {pages > 1 && <nav aria-label="Pages" className="flex items-center gap-1">
           <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className={cx(PAGER_STEP, 'mr-1')}><CaretLeft size={16} strokeWidth={1.75} />Previous</button>
           {pageList(pages, page).map((p, i) => p === '…'
             ? <span key={`e${i}`} className="w-5 text-center text-[#0A0A0A]">…</span>
@@ -467,7 +467,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, page
       </div>
     </div>
   );
-  /* Connect logic: the footer always shows the count and the pager (Previous 1 Next, even on one page); footer={false} hides it unless there is more than one page. */
+  /* Connect logic: the footer always shows the count; the pager only when there is more than one page; footer={false} hides it unless there is more than one page. */
   const foot = showFooter || pages > 1 ? footer : null;
   if (card) return <Card className="overflow-hidden">{table}{foot}</Card>;
   /* Inset Mercury-style: the rows sit inside the --gx gutter (set on <main> from data-gx); the footer stays end to end. */
@@ -582,7 +582,7 @@ export function listNav<T>(rows: readonly T[], isCur: (r: T) => boolean, go: (r:
   if (i < 0 || rows.length < 2) return undefined;
   return { prev: i > 0 ? () => go(rows[i - 1]) : undefined, next: i < rows.length - 1 ? () => go(rows[i + 1]) : undefined, pos: `${i + 1} of ${rows.length}` };
 }
-const navBtn = 'size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const navBtn = 'size-[30px] rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 /** The list row of the open record, outside the sheet: a table row, a list option, or a queue row. */
 const SELECTED_ROW = '[data-state="selected"], [aria-selected="true"], [data-selected]';
 /** Step to another record, then bring its (now highlighted) row into view in the list behind the sheet. */
@@ -594,7 +594,7 @@ function step(go: () => void) {
     row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }));
 }
-/** Header chevrons (Mercury drawer): ↑/↓ or K/J step through the list without closing the sheet. */
+/** Header chevrons (Connect drawer: two 30px bordered buttons before the title): ↑/↓ or K/J step through the list without closing the sheet. */
 export function SheetNavButtons({ nav }: { nav?: SheetNav }) {
   useEffect(() => {
     if (!nav) return;
@@ -609,11 +609,9 @@ export function SheetNavButtons({ nav }: { nav?: SheetNav }) {
   }, [nav]);
   if (!nav) return null;
   return (
-    <div className="flex items-center gap-1 shrink-0">
-      {nav.pos && <span className="text-xs text-gray-500 tabular-nums mr-1.5">{nav.pos}</span>}
-      <button type="button" className={navBtn} onClick={() => nav.prev && step(nav.prev)} disabled={!nav.prev} aria-label="Previous" title="Previous (↑)"><CaretUp size={14} /></button>
-      <button type="button" className={navBtn} onClick={() => nav.next && step(nav.next)} disabled={!nav.next} aria-label="Next" title="Next (↓)"><CaretDown size={14} /></button>
-      <span className="w-px h-4 bg-line ml-1.5" aria-hidden />
+    <div className="flex items-center gap-3 shrink-0">
+      <button type="button" className={navBtn} onClick={() => nav.prev && step(nav.prev)} disabled={!nav.prev} aria-label={nav.pos ? `Previous (${nav.pos})` : 'Previous'} title="Previous (↑)"><CaretLeft size={16} strokeWidth={1.75} /></button>
+      <button type="button" className={navBtn} onClick={() => nav.next && step(nav.next)} disabled={!nav.next} aria-label={nav.pos ? `Next (${nav.pos})` : 'Next'} title="Next (↓)"><CaretRight size={16} strokeWidth={1.75} /></button>
     </div>
   );
 }
@@ -631,8 +629,8 @@ export function Sheet({ open, onClose, title, sub, children, footer, width = 520
     <UISheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent style={{ width }} {...noDesc(sub)}>
         <SheetHeader>
-          <div className="min-w-0 flex-1"><SheetTitle>{title}</SheetTitle>{sub && <SheetDescription>{sub}</SheetDescription>}</div>
           <SheetNavButtons nav={nav} />
+          <div className="min-w-0 flex-1"><SheetTitle>{title}</SheetTitle>{sub && <SheetDescription>{sub}</SheetDescription>}</div>
         </SheetHeader>
         <SheetBody>{children}</SheetBody>
         {footer && <SheetFooter>{footer}</SheetFooter>}
@@ -670,24 +668,24 @@ export function SheetHero({ name, meta, avatar = true, action, children }: { nam
     </div>
   );
 }
+/** Connect drawer section: a full-width #FAFAFA strip with the Geist Mono uppercase title, then a 20px body over a #E5E5E5 rule. */
 export function SheetSection({ title, rows, children }: { title: string; rows?: [string, ReactNode][]; children?: ReactNode }) {
   return (
-    <section className="border-t border-[#F5F5F5] py-5 first:border-t-0 first:pt-0 last:pb-0">
-      <h3 className="text-xs font-medium text-gray-500 mb-3">{title}</h3>
-      {rows && (
-        <dl className="grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
-          {rows.map(([k, v]) => <Fragment key={k}><dt className="text-gray-500">{k}</dt><dd className="text-ink min-w-0 break-words">{v}</dd></Fragment>)}
-        </dl>
-      )}
-      {children}
+    <section className="-mx-5 first:-mt-5 last:-mb-5 [&:not(:last-child)]:border-b border-[#E5E5E5]">
+      <h3 className="px-5 py-1.5 bg-[#FAFAFA] font-mono text-xs leading-4 font-medium uppercase tracking-[0.04em] text-[#737373]">{title}</h3>
+      <div className="p-5">
+        {rows && <DL rows={rows} />}
+        {children && <div className={rows ? 'mt-4' : undefined}>{children}</div>}
+      </div>
     </section>
   );
 }
 
+/** Connect key/value rows: label left in ink, value right in medium #737373 (numbers and dates in Geist Mono), 16px apart. */
 export function DL({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-[140px_1fr] gap-y-2.5 text-sm">
-      {rows.map(([k, v]) => <Fragment key={k}><dt className="text-gray-500">{k}</dt><dd className="text-ink">{v}</dd></Fragment>)}
+    <dl className="flex flex-col gap-4 text-sm leading-5">
+      {rows.map(([k, v]) => <div key={k} className="flex items-start justify-between gap-4"><dt className="shrink-0 text-[#0A0A0A]">{k}</dt><dd className="min-w-0 text-right font-medium text-[#737373] break-words">{monoize(muteDash(v))}</dd></div>)}
     </dl>
   );
 }

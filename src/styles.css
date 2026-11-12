@@ -176,3 +176,6 @@ thead.sticky th, thead th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #
    hand-built fields (a <label> wrapping an <input>: money, dates, steppers, weeks) get the same colour here.
    Decorative dashed boxes keep #D4D4D4. Light mode only; dark mode has its own --input. */
 html:not(.dark) label.border-gray-300 { border-color: #D4D4D4; }
+
+/* Connect modal and drawer fields are 36px (Add Member: 36px, 12px sides); page toolbars keep 32px beside the 34px buttons. */
+[role=dialog] { --density-input: 2.25rem; }

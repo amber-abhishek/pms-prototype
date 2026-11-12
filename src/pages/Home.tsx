@@ -32,7 +32,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
   const rows = activity.filter((a) => (area === 'All' || a.area === area) && (!query || `${a.who} ${a.what}`.toLowerCase().includes(query)));
   return (
     <>
-      <PageHeader icon={icon} title={title} />
+      <PageHeader icon={icon} title={title} search={band} />
       {band && <HomeBand />}
       <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Person or action" />}>
         <Tabs value={area} onChange={setArea} tabs={areas.map((x) => ({ id: x, label: x, count: x === 'All' ? activity.length : activity.filter((a) => a.area === x).length }))} />

@@ -113,7 +113,7 @@ function MyTasks() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <PageHeader icon={CheckCircle} title="My tasks"><NewTaskButton scope="main" /></PageHeader>
+      <PageHeader icon={CheckCircle} title="My tasks" search><NewTaskButton scope="main" /></PageHeader>
       <HomeBand />
       <PageHeading right={<>
         <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />

@@ -117,7 +117,7 @@ export function CustomFieldsPage() {
       <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search fields" />} />
       <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
-              { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#737373] font-mono">{f.key}</span></span> },
+              { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#2563EB] font-mono">{f.key}</span></span> },
               { key: 't', label: 'Type', render: (f) => <span className="text-[#737373]">{f.type}</span> },
               { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <span key={a} className="h-[22px] px-2 rounded-md border border-line bg-white text-xs text-[#0A0A0A] flex items-center">{a}</span>)}</span> },
             ]} />

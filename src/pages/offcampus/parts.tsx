@@ -5,7 +5,6 @@ import { CaretUpDown, Image, X, type Icon } from '../../components/icons';
 import { Button, TitleH1, cx } from '../../components/ui';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
-import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '../../components/shadcn/command';
 import type { Tone } from '../../data/seed';
 
@@ -21,19 +20,6 @@ export function Title({ title, sub, children }: { title: ReactNode; sub?: ReactN
 }
 
 /** Underline tabs (HMO / Amber PBSA, Portal settings sections). */
-export function UnderTabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string }[] }) {
-  /* shadcn Tabs, underline style. */
-  return (
-    <Tabs value={value} onValueChange={(v) => onChange(v as T)}>
-      <TabsList slide={false} className="flex justify-start gap-6 rounded-none bg-transparent p-0 px-6 border-b border-line">
-        {tabs.map((t) => (
-          <TabsTrigger key={t.id} value={t.id} className="h-9 px-0 rounded-none -mb-px border-b-2 border-transparent text-gray-500 hover:text-ink data-[state=active]:border-[#111827] data-[state=active]:text-ink data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
-  );
-}
-
 /** Grey photo placeholder tile. */
 export function Thumb({ tint = '#E8EEF6', w = 40, h = 28, size = 12 }: { tint?: string; w?: number; h?: number; size?: number }) {
   return <span className="inline-flex items-center justify-center rounded-md shrink-0" style={{ width: w, height: h, background: tint }}><Image size={size} className="text-gray-400" /></span>;

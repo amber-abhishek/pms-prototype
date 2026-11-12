@@ -146,7 +146,7 @@ export function makeSeed() {
   const tasks: Task[] = [
     { id: 't1', icon: 'alert', title: 'Leaking radiator, Ustinov C.2.14', sub: 'Urgent · reported 2h ago · no one assigned', badge: { label: 'Overdue', tone: 'red' }, to: '/residents/maintenance?open=m1', done: false },
     { id: 't2', icon: 'swap', title: 'Room swap: Ella Morgan ↔ Josh Patel', sub: 'Collingwood · both residents agreed', badge: { label: 'Due today', tone: 'orange' }, to: '/residents/requests?open=rq1', done: false },
-    { id: 't3', icon: 'lease', title: '14 leases not signed', sub: 'Move-in on Saturday · lease needed to collect keys', badge: { label: '5 days', tone: 'amber' }, to: '/allocations/bookings?tab=Lease%20unsigned', done: false },
+    { id: 't3', icon: 'lease', title: '14 leases not signed', sub: 'Move-in on Saturday · lease needed to collect keys', badge: { label: '5 days', tone: 'amber' }, to: '/allocations/bookings?tab=Awaiting%20signature', done: false },
     { id: 't4', icon: 'inbox', title: '31 applications waiting more than 5 days', sub: '2027/28 · To review', badge: { label: 'Behind', tone: 'orange' }, to: '/allocations/applications?tab=New', done: false },
     { id: 't5', icon: 'notice', title: 'Move-in notice to Ustinov residents', sub: 'Draft · scheduled for Wednesday 09:00', badge: { label: 'Draft', tone: 'grey' }, to: '/residents/notices?open=n1', done: false },
     { id: 't6', icon: 'landlord', title: 'Review 4 landlord applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange' }, to: '/offcampus/landlords', done: false },

@@ -1,14 +1,15 @@
 // Workspace › Settings. Figma Flow 9 (3040–3042), tabs 3054/3055/3056/3059/3060/3061, E3 integration stops syncing (3232–3234).
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Children, isValidElement, useEffect, useRef, useState, type ReactNode } from 'react';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { Link, useBeforeUnload, useBlocker, useSearchParams } from 'react-router-dom';
 import {
-  Archive, EnvelopeSimple, PencilSimple, ArrowUpRight, Calculator, ChatCenteredText, Key, SlidersHorizontal, ArrowsLeftRight, DeviceMobile, Bank, Bell, CalendarBlank, Check, Globe, Money, Moon, Sun, CreditCard, DoorOpen, Gear, GraduationCap, Info, Palette, Plug, Plus, Textbox, TreeStructure,
+  Archive, EnvelopeSimple, PencilSimple, ArrowUpRight, Calculator, ChatCenteredText, Key, SlidersHorizontal, ArrowsLeftRight, DeviceMobile, Bank, Bell, CalendarBlank, Check, Globe, Money, Moon, Sun, CreditCard, DoorOpen, Gear, GraduationCap, Info, Plug, Plus, Textbox, TreeStructure,
   UploadSimple, Warning, WarningCircle, WebhooksLogo, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, DL, Input, Pill, Switch, Textarea, TitleH1, cx } from '../../components/ui';
 import { BRAND, BrandTile } from '../../components/brandLogos';
+import { SharedBrand } from '../../components/SharedBrand';
 import { usePins } from '../../data/pins';
 import { useWorkspace, type Branding, type General, type Integration, type NotifRow, type Payments, type Term, type Year } from '../../data/workspace';
 import { Alert, Header, IconSelect, ODialog, RowMenu } from '../org/parts';
@@ -21,10 +22,12 @@ const TABS: { id: string; label: string; to: string; icon: Icon; external?: bool
   { id: 'custom-fields', label: 'Custom fields', to: '/inventory/custom-fields', icon: Textbox, external: true },
   { id: 'payments', label: 'Payments', to: '/settings/payments', icon: CreditCard },
   { id: 'integrations', label: 'Integrations', to: '/settings/integrations', icon: Plug },
-  { id: 'branding', label: 'Branding', to: '/settings/branding', icon: Palette },
+  { id: 'emails', label: 'Emails', to: '/settings/emails', icon: EnvelopeSimple },
 ];
 
-function Layout({ tab, title, sub, actions, children, wide }: { tab: string; title: string; sub: string; actions?: ReactNode; children: ReactNode; wide?: boolean }) {
+/* Settings page: a plain 20px title (no subtitle), then sections as two columns — what it is on the
+   left, the fields on the right — split by hairlines instead of stacked headings. */
+function Layout({ tab, title, actions, children, wide }: { tab: string; title: string; actions?: ReactNode; children: ReactNode; wide?: boolean }) {
   const t = TABS.find((x) => x.id === tab)!;
   return (
     <>
@@ -32,10 +35,13 @@ function Layout({ tab, title, sub, actions, children, wide }: { tab: string; tit
       {/* The design's in-page tab rail is the sidebar panel's job in this shell, so it isn't repeated here. */}
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 overflow-auto">
-          <div className={cx('px-8 py-6 pb-12', wide ? 'max-w-[1080px]' : 'max-w-[820px]')}>
-            <TitleH1 className="text-base leading-6 font-semibold text-[#111827]">{title}</TitleH1>
-            <p className="text-sm leading-5 text-[#646A78] mt-1">{sub}</p>
-            <div className="mt-6 space-y-7">{children}</div>
+          <div className={cx('px-8 pt-8 pb-16', wide ? 'max-w-[1080px]' : 'max-w-[960px]')}>
+            <TitleH1 className="text-xl leading-7 font-medium text-[#111827]">{title}</TitleH1>
+            <div className="mt-6 divide-y divide-[#E5E7EB] border-t border-[#E5E7EB]">
+              {/* Anything that isn't a Section (a table, a note, the Emails grid) gets the same 32px band, outside its own box.
+                  A closed dialog renders nothing, so its band is hidden rather than leaving an empty stripe. */}
+              {Children.toArray(children).map((c, i) => (isValidElement(c) && c.type === Section ? c : <div key={i} className="py-8 empty:hidden">{c}</div>))}
+            </div>
           </div>
         </div>
       </div>
@@ -45,12 +51,14 @@ function Layout({ tab, title, sub, actions, children, wide }: { tab: string; tit
 
 function Section({ title, sub, children, action, tone }: { title: string; sub?: ReactNode; children?: ReactNode; action?: ReactNode; tone?: 'red' }) {
   return (
-    /* 3054:2: no card; 14px semibold title, 12px #646A78 sub, fields 16px below. `tone` kept for callers; the frame's Danger zone title is ink too. */
-    <section data-tone={tone}>
-      <div className="flex items-start gap-3">
-        <div className="flex-1"><h2 className="text-sm leading-5 font-semibold text-[#111827]">{title}</h2>{sub && <p className="text-xs leading-4 text-[#646A78] mt-0.5">{sub}</p>}</div>{action}
+    <section data-tone={tone} className="grid grid-cols-[240px_1fr] gap-x-10 py-8">
+      <div>
+        {/* `tone` kept for callers; the frame (3054:2) keeps the Danger zone title ink. */}
+        <h2 className="text-sm leading-5 font-medium text-[#111827]">{title}</h2>
+        {sub && <p className="text-xs leading-4 text-[#646A78] mt-1">{sub}</p>}
+        {action && <div className="mt-3">{action}</div>}
       </div>
-      {children && <div className="pt-4">{children}</div>}
+      <div className="min-w-0">{children}</div>
     </section>
   );
 }
@@ -80,7 +88,7 @@ function whiteOn(hex: string) {
 const HOURS = ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '06:00', '07:00', '08:00', '09:00'];
 
 type DraftKey = 'general' | 'notifs' | 'payments' | 'branding';
-const TAB_NAME: Record<DraftKey, string> = { general: 'General', notifs: 'Notifications', payments: 'Payments', branding: 'Branding' };
+const TAB_NAME: Record<DraftKey, string> = { general: 'General', notifs: 'Notifications', payments: 'Payments', branding: 'Emails' };
 const FIELD: Record<string, string> = {
   name: 'Name', short: 'Short name', timezone: 'Timezone', currency: 'Currency', weekStarts: 'Week starts', quietFrom: 'Quiet hours from', quietTo: 'Quiet hours to',
   methods: 'How residents can pay', billed: 'Billed', due: 'Due', deposit: 'Deposit', remind: 'Rent reminder', arrears: 'Arrears flag', lateFee: 'Late fee',
@@ -219,22 +227,52 @@ function useDraft<T>(key: DraftKey, value: T, save: (v: T) => void, msg: (prev: 
 }
 
 /* ---------------- General (3054, 3040) ---------------- */
+type GeneralDraft = General & Pick<Branding, 'logo' | 'colour'>;
 export function SettingsGeneral() {
-  const { general, years, set } = useWorkspace();
-  const { d, setD, actions, dialogs, err } = useDraft<General>('general', general, (v) => set('general', v), () => 'Settings saved · every screen and scheduled send uses them now', (v) => ({
+  const { general, branding, years, set } = useWorkspace();
+  /* The logo and brand colour live in `branding` (emails, the booking site and the off-campus portal read them there);
+     they are edited here with the rest of the organisation's identity. */
+  const value: GeneralDraft = { ...general, logo: branding.logo, colour: branding.colour };
+  const save = ({ logo, colour, ...g }: GeneralDraft) => {
+    set('general', g);
+    set('branding', (cur) => ({ ...cur, logo, colour }));
+  };
+  const { d, setD, actions, dialogs, err } = useDraft<GeneralDraft>('general', value, save, () => 'Settings saved · emails, the booking site and the off-campus portal use them now', (v) => ({
     name: v.name.trim() ? undefined : 'Name the organisation; residents see it on every email',
     short: v.short.trim() ? undefined : 'Add a short name for SMS and tight spaces',
+    colour: /^#[0-9a-f]{6}$/i.test(v.colour) ? undefined : 'Use a hex colour like #68246D',
     quiet: v.quietFrom === v.quietTo ? 'Quiet hours need different start and end times' : undefined,
   }));
   const cur = years.find((y) => y.status === 'Current');
   const [archive, setArchive] = useState(false);
-  const up = (p: Partial<General>) => setD({ ...d, ...p });
+  const up = (p: Partial<GeneralDraft>) => setD({ ...d, ...p });
+  const okColour = /^#[0-9a-f]{6}$/i.test(d.colour);
+  const c = okColour ? d.colour : branding.colour;
   return (
-    <Layout tab="general" title="General" sub="What applies to the whole workspace." actions={actions}>
-      <Section title="Organisation" sub="Shown to residents in emails and the portal">
-        <div className="grid grid-cols-2 gap-3">
-          <label><Lbl>Name</Lbl><Input aria-invalid={!!err.name} className={bad(err.name)} value={d.name} onChange={(e) => up({ name: e.target.value })} /><Err>{err.name}</Err></label>
-          <label><Lbl>Short name</Lbl><Input aria-invalid={!!err.short} className={bad(err.short)} value={d.short} onChange={(e) => up({ short: e.target.value })} /><Err>{err.short}</Err></label>
+    <Layout tab="general" title="General" actions={actions}>
+      <Section title="Organisation" sub="Used on emails, the booking site and the off-campus portal">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <label><Lbl>Name</Lbl><Input aria-invalid={!!err.name} className={bad(err.name)} value={d.name} onChange={(e) => up({ name: e.target.value })} /><Err>{err.name}</Err></label>
+            <label><Lbl>Short name</Lbl><Input aria-invalid={!!err.short} className={bad(err.short)} value={d.short} onChange={(e) => up({ short: e.target.value })} /><Err>{err.short}</Err></label>
+          </div>
+          <div><Lbl>Logo</Lbl>
+            <div className="flex items-center gap-3">
+              <span className="size-12 rounded-lg text-white text-lg font-semibold flex items-center justify-center" style={{ background: c }}>D</span>
+              <span className="flex-1"><span className="block text-sm text-[#111827]">{d.logo}</span><span className="block text-xs text-[#646A78]">SVG or PNG, at least 256px</span></span>
+              <Button size="sm" icon={UploadSimple} onClick={() => { up({ logo: 'durham-crest-2026.svg' }); toast('durham-crest-2026.svg uploaded', { description: 'Save to use it.' }); }}>Replace</Button>
+            </div>
+          </div>
+          <div><Lbl>Brand colour</Lbl>
+            <div className="flex items-center gap-2 max-w-[280px]">
+              <label className="relative size-9 rounded-lg shrink-0 cursor-pointer" style={{ background: c }}><input type="color" aria-label="Pick brand colour" value={c} onChange={(e) => up({ colour: e.target.value.toUpperCase() })} className="absolute inset-0 opacity-0 cursor-pointer" /></label>
+              <Input aria-label="Brand colour" aria-invalid={!!err.colour} className={cx('flex-1', bad(err.colour))} value={d.colour} onChange={(e) => up({ colour: e.target.value })} />
+            </div>
+            {/* A pale colour is allowed, but the admin is told white text on it will be hard to read. */}
+            {err.colour ? <Err>{err.colour}</Err>
+              : okColour && whiteOn(d.colour) < 4.5 ? <p role="status" className="flex items-start gap-1.5 text-xs leading-4 mt-1.5 text-[#B45309]"><Warning size={14} className="shrink-0" />White text on {d.colour.toUpperCase()} is {whiteOn(d.colour).toFixed(1)}:1, under the 4.5:1 emails and sites need.</p>
+              : null}
+          </div>
         </div>
       </Section>
       <Section title="Regional">
@@ -344,7 +382,7 @@ export function SettingsAcademicYear() {
   const yIcon = { Upcoming: CalendarBlank, Current: Check, Ended: Archive } as const;
   const { items: yearRows, bodyRef } = useRowMotion(years);
   return (
-    <Layout tab="academic-year" title="Academic year" sub="Academic years and terms."
+    <Layout tab="academic-year" title="Academic year"
       actions={<Button variant="primary" icon={Plus} onClick={() => openYear()}>New year</Button>}>
       <div className="rounded-xl border border-line overflow-hidden">
         <table className="w-full text-sm">
@@ -405,7 +443,7 @@ export function SettingsNotifications() {
   });
   const tog = (id: string, k: 'app' | 'email' | 'sms') => setD(d.map((n) => (n.id === id ? { ...n, [k]: !n[k] } : n)));
   return (
-    <Layout tab="notifications" title="Notifications" sub="Your own notifications." actions={actions}>
+    <Layout tab="notifications" title="Notifications" actions={actions}>
       {/* 3056:2: table card (#F9FAFB 40px header), 52px rows, green toggles per channel; blue note with a phone icon below. */}
       <div className="rounded-xl border border-line overflow-hidden bg-white">
         <table className="w-full text-sm">
@@ -438,7 +476,7 @@ export function SettingsPayments() {
   const methods = [['card', 'Card', CreditCard], ['bank', 'Bank transfer', Bank], ['dd', 'Direct Debit', ArrowsLeftRight]] as const;
   const rules = [['remind', 'Remind 7 days before rent is due', 'Email and the resident portal'], ['arrears', 'Flag arrears after 14 days', 'Shows in Residents and stops room swaps'], ['lateFee', 'Charge a late fee', d.lateFee ? '£25 after 14 days in arrears' : 'Off: Durham doesn’t charge late fees']] as const;
   return (
-    <Layout tab="payments" title="Payments" sub="How residents pay rent and deposits, and when it’s due." actions={actions}>
+    <Layout tab="payments" title="Payments" actions={actions}>
       <Section title="Provider">
         <div className="rounded-[10px] border border-line px-3.5 h-[60px] flex items-center gap-3">
           <BrandTile id="stripe" />
@@ -518,7 +556,7 @@ export function SettingsIntegrations() {
     setOpen(null); toast.success(`${x.name} connected`);
   };
   return (
-    <Layout wide tab="integrations" title="Integrations" sub="Connect the systems the university already uses.">
+    <Layout wide tab="integrations" title="Integrations">
       {failing && (
         <Alert tone="red" icon={WarningCircle} title="Student records (SITS) stopped syncing" action={<Button variant="primary" size="sm" onClick={() => setReconnect(true)}>Reconnect</Button>}>
           The connection token expired on 30 Oct. 3 syncs failed; 41 new students aren’t in Applications yet.
@@ -568,41 +606,24 @@ export function SettingsIntegrations() {
   );
 }
 
-/* ---------------- Branding (3061) ---------------- */
-export function SettingsBranding() {
+/* ---------------- Emails (3061) ---------------- */
+type EmailFields = Pick<Branding, 'sender' | 'replyTo' | 'footer'>;
+export function SettingsEmails() {
   const { branding, general, set } = useWorkspace();
-  const okHex = (x: string) => /^#[0-9a-f]{6}$/i.test(x);
-  const { d, setD, actions, dialogs, err } = useDraft<Branding>('branding', branding, (v) => set('branding', v), () => 'Branding saved · emails and the resident portal use it now', (v) => ({
-    colour: okHex(v.colour) ? undefined : 'Use a hex colour like #68246D',
+  const value: EmailFields = { sender: branding.sender, replyTo: branding.replyTo, footer: branding.footer };
+  /* Only the email fields: the logo and colour are shared and edited in General, so saving here never overwrites them. */
+  const { d, setD, actions, dialogs, err } = useDraft<EmailFields>('branding', value, (v) => set('branding', (cur) => ({ ...cur, ...v })), () => 'Email settings saved · new emails use them now', (v) => ({
     sender: v.sender.trim() ? undefined : 'Add the name residents see in their inbox',
     replyTo: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.replyTo.trim()) ? undefined : 'Use a full email like residences@durham.ac.uk',
   }));
-  const up = (p: Partial<Branding>) => setD({ ...d, ...p });
-  const okColour = okHex(d.colour);
-  const c = okColour ? d.colour : branding.colour;
-  /* A pale colour is allowed, but the admin is told white text on it will be hard to read. */
-  const ratio = okColour ? whiteOn(d.colour) : 21;
+  const up = (p: Partial<EmailFields>) => setD({ ...d, ...p });
+  const c = branding.colour;
   return (
-    <Layout wide tab="branding" title="Branding" sub="How emails, notices and the resident portal look." actions={actions}>
+    <Layout wide tab="emails" title="Emails" actions={actions}>
       <div className="grid grid-cols-[1fr_400px] gap-5 items-start">
-        {/* 3061:2: plain labelled fields (14px medium label, 16px gaps); 48px logo tile with name + hint; 36px colour swatch beside the hex field; reply-to with a mail icon. */}
+        {/* 3061:2: plain labelled fields (14px medium label, 16px gaps); reply-to with a mail icon. Logo and colour come from General. */}
         <div className="space-y-4">
-          <div><Lbl>Logo</Lbl>
-            <div className="flex items-center gap-3">
-              <span className="size-12 rounded-lg text-white text-lg font-semibold flex items-center justify-center" style={{ background: c }}>D</span>
-              <span className="flex-1"><span className="block text-sm text-[#111827]">{d.logo}</span><span className="block text-xs text-[#646A78]">SVG or PNG, at least 256px</span></span>
-              <Button size="sm" icon={UploadSimple} onClick={() => { up({ logo: 'durham-crest-2026.svg' }); toast('durham-crest-2026.svg uploaded', { description: 'Save to use it.' }); }}>Replace</Button>
-            </div>
-          </div>
-          <div><Lbl>Brand colour</Lbl>
-            <div className="flex items-center gap-2">
-              <label className="relative size-9 rounded-lg shrink-0 cursor-pointer" style={{ background: c }}><input type="color" aria-label="Pick brand colour" value={c} onChange={(e) => up({ colour: e.target.value.toUpperCase() })} className="absolute inset-0 opacity-0 cursor-pointer" /></label>
-              <Input aria-label="Brand colour" aria-invalid={!!err.colour} className={cx('flex-1', bad(err.colour))} value={d.colour} onChange={(e) => up({ colour: e.target.value })} />
-            </div>
-            {err.colour ? <Err>{err.colour}</Err>
-              : ratio < 4.5 ? <p role="status" className="flex items-start gap-1.5 text-xs leading-4 mt-1.5 text-[#B45309]"><Warning size={14} className="shrink-0" />White text on {d.colour.toUpperCase()} is {ratio.toFixed(1)}:1, under the 4.5:1 emails need. Residents may struggle to read the header and Pay now.</p>
-              : <p className="text-xs leading-4 mt-1.5 text-[#646A78]">Buttons and headers in emails and the portal</p>}
-          </div>
+          <div><Lbl>Logo and brand colour</Lbl><SharedBrand linkLabel="Change in General" /></div>
           <label className="block"><Lbl>Email sender name</Lbl><Input aria-invalid={!!err.sender} className={bad(err.sender)} value={d.sender} onChange={(e) => up({ sender: e.target.value })} /><Err>{err.sender}</Err></label>
           <label className="block"><Lbl>Reply-to</Lbl><span className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><Input aria-invalid={!!err.replyTo} className={cx('pl-8', bad(err.replyTo))} type="email" value={d.replyTo} onChange={(e) => up({ replyTo: e.target.value })} /></span><Err>{err.replyTo}</Err></label>
           <label className="block"><Lbl>Email footer</Lbl><Textarea value={d.footer} onChange={(e) => up({ footer: e.target.value })} /></label>

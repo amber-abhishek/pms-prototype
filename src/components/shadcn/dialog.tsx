@@ -51,7 +51,7 @@ const DialogHeader = ({ className, children, ...props }: React.HTMLAttributes<HT
 DialogHeader.displayName = 'DialogHeader';
 
 const DialogCloseButton = () => (
-  <DialogPrimitive.Close className="size-7 shrink-0 rounded-lg text-gray-700 hover:bg-secondary flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+  <DialogPrimitive.Close className="size-7 -my-0.5 shrink-0 rounded-lg text-gray-700 hover:bg-secondary flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
     <X size={16} />
     <span className="sr-only">Close</span>
   </DialogPrimitive.Close>

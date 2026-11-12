@@ -7,9 +7,10 @@ import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
 import { useAllocActions } from './actions';
 
-type TabId = 'All' | 'Lease sent' | 'Drafts' | 'Conflicts' | 'Cancelled';
-const TABS: TabId[] = ['All', 'Lease sent', 'Drafts', 'Conflicts', 'Cancelled'];
-const LEGACY: Record<string, TabId> = { 'Lease unsigned': 'Lease sent', Confirmed: 'All', 'Checked in': 'All', Draft: 'Drafts' };
+type TabId = 'All' | 'Awaiting signature' | 'Lease not sent' | 'Conflicts' | 'Cancelled';
+const TABS: TabId[] = ['All', 'Awaiting signature', 'Lease not sent', 'Conflicts', 'Cancelled'];
+/* Old tab names in saved links and pins land on the tab that replaced them. */
+const LEGACY: Record<string, TabId> = { 'Lease sent': 'Awaiting signature', 'Lease unsigned': 'Awaiting signature', Drafts: 'Lease not sent', Draft: 'Lease not sent', Confirmed: 'All', 'Checked in': 'All' };
 const unitOf = (b: Booking) => `${b.hall} · ${b.unit}`;
 const leaseLabel = (b: Booking) => (b.cancelled ? 'Cancelled' : b.lease);
 
@@ -54,7 +55,7 @@ export function Bookings() {
     toast.success(`${b.name}’s lease is signed`, { description: 'Resident portal invite sent' });
   };
 
-  const cols: Record<'All' | 'Lease sent' | 'Drafts' | 'Cancelled', C<Booking>[]> = {
+  const cols: Record<'All' | 'Awaiting signature' | 'Lease not sent' | 'Cancelled', C<Booking>[]> = {
     All: [
       { key: 'n', label: 'Resident', render: (b) => <Person name={b.name} /> },
       { key: 'u', label: 'Unit', render: unitOf },
@@ -63,7 +64,7 @@ export function Bookings() {
       { key: 'd', label: 'Deposit', render: (b) => b.deposit.startsWith('Paid') ? <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-lg border border-[#DDF3E6] bg-[#E8F7EE] text-xs font-medium text-[#0B8A4C]">{b.deposit}</span> : <span className="text-gray-500">{b.deposit}</span> },
       { key: 'c', label: 'Created', render: (b) => <span className="text-gray-500">{b.created}</span> },
     ],
-    'Lease sent': [
+    'Awaiting signature': [
       { key: 'n', label: 'Resident', render: (b) => <Person name={b.name} /> },
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 's', label: 'Lease sent', render: (b) => <span className="text-gray-500">{b.leaseSent}</span> },
@@ -71,7 +72,7 @@ export function Bookings() {
       { key: 'w', label: 'Waiting', render: (b) => <span className={cx((b.waiting ?? 0) > 7 ? 'text-[#E5530C] font-medium' : 'text-gray-500')}>{b.waiting} days</span> },
       { key: 'a', label: '', className: 'text-right', render: (b) => <Button size="sm" icon={Bell} onClick={(e) => { e.stopPropagation(); remind([b]); }}>Send reminder</Button> },
     ],
-    Drafts: [
+    'Lease not sent': [
       { key: 'n', label: 'Resident', render: (b) => <Person name={b.name} /> },
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 'm', label: 'What’s missing', render: (b) => <span className="inline-flex items-center gap-1.5 text-ink"><CircleDashed size={14} className="text-gray-400" />{b.missing ?? '—'}</span> },
@@ -86,18 +87,18 @@ export function Bookings() {
       { key: 'm', label: 'Money', render: (b) => <span className="text-gray-500">{b.cancelled?.money}</span> },
     ],
   };
-  const rows = tab === 'All' ? act : tab === 'Lease sent' ? sent : tab === 'Drafts' ? drafts : tab === 'Cancelled' ? cancelled : [];
+  const rows = tab === 'All' ? act : tab === 'Awaiting signature' ? sent : tab === 'Lease not sent' ? drafts : tab === 'Cancelled' ? cancelled : [];
   const none = c.all === 0;
 
   return (
     <>
       <PageHeader icon={FileText} title="Bookings" crumbs={['Allocations']}>
         <Button icon={DownloadSimple} onClick={() => toast.success('Export started', { description: `${fmtN(tab === 'All' ? c.all : rows.length)} bookings · CSV · we’ll email you the file` })}>Export</Button>
-        {tab === 'Lease sent' && late.length > 0 && <Button icon={Bell} onClick={() => remind(late)}>Remind all {late.length}</Button>}
+        {tab === 'Awaiting signature' && late.length > 0 && <Button icon={Bell} onClick={() => remind(late)}>Remind all {late.length}</Button>}
         <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New booking</Button>
       </PageHeader>
       <Toolbar right={<><SearchInput value={q} onChange={setQ} placeholder="Search" /><FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} /></>}>
-        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'All', label: 'All', count: c.all }, { id: 'Lease sent', label: 'Lease sent', count: c.sent }, { id: 'Drafts', label: 'Drafts', count: c.drafts }, { id: 'Conflicts', label: 'Conflicts', count: c.conflicts }, { id: 'Cancelled', label: 'Cancelled', count: c.cancelled }]} />
+        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'All', label: 'All', count: c.all }, { id: 'Awaiting signature', label: 'Awaiting signature', count: c.sent }, { id: 'Lease not sent', label: 'Lease not sent', count: c.drafts }, { id: 'Conflicts', label: 'Conflicts', count: c.conflicts }, { id: 'Cancelled', label: 'Cancelled', count: c.cancelled }]} />
       </Toolbar>
       {none ? (
         <EmptyArea art="bookings" icon={FileText} title="No bookings yet" sub="Bookings are made when an applicant accepts an offer.">
@@ -134,12 +135,12 @@ export function Bookings() {
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
             {rows.length ? <Grid key={tab} fill cols={cols[tab]} rows={rows} onRow={(b) => setOpen(b.id)} selected={open} />
-              : <EmptyArea art="bookings" icon={FileText} title={tab === 'Drafts' ? 'No drafts' : tab === 'Lease sent' ? 'Every lease is signed' : `No ${tab.toLowerCase()} bookings`} sub={q || f.hall || f.lease ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
+              : <EmptyArea art="bookings" icon={FileText} title={tab === 'Lease not sent' ? 'Every lease is sent' : tab === 'Awaiting signature' ? 'Every lease is signed' : `No ${tab.toLowerCase()} bookings`} sub={q || f.hall || f.lease ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
         </div>
       )}
       {sel && <BookingSheet b={sel} nav={listNav(rows, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} onSend={() => sendLease(sel)} onRemind={() => remind([sel])} onSigned={() => markSigned(sel)} withUndo={withUndo} />}
-      {creating && <NewBooking onClose={() => setCreating(false)} onMade={(id) => { setCreating(false); setTab('Drafts'); setOpen(id); }} />}
+      {creating && <NewBooking onClose={() => setCreating(false)} onMade={(id) => { setCreating(false); setTab('Lease not sent'); setOpen(id); }} />}
       {resolving && <Resolve k={resolving} onClose={() => setResolving(null)} withUndo={withUndo} />}
     </>
   );

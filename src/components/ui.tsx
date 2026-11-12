@@ -546,7 +546,7 @@ function shieldClicks(ms = 350) {
   document.body.appendChild(d);
   setTimeout(() => d.remove(), ms);
 }
-export function Sheet({ open, onClose, title, sub, children, footer, width = 480, nav }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav }) {
+export function Sheet({ open, onClose, title, sub, children, footer, width = 520, nav }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav }) {
   useEffect(() => { if (!open) return; return () => shieldClicks(); }, [open]);
   return (
     <UISheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -583,15 +583,17 @@ export function Dialog({ open, onClose, title, sub, children, footer, width = 48
 
 /* Mercury-style detail sheet body (2026-11-09): a hero (avatar, 20px Medium name, grey meta, chips), then titled
    sections split by a 1px #F3F4F6 rule. Section rows: 12px-gap grid, grey label column, ink value. */
-export function SheetHero({ name, meta, avatar = true, children }: { name: ReactNode; meta?: ReactNode; avatar?: boolean; children?: ReactNode }) {
+/** `action`: a secondary action that sits top-right of the hero, keeping the footer to its main choices. */
+export function SheetHero({ name, meta, avatar = true, action, children }: { name: ReactNode; meta?: ReactNode; avatar?: boolean; action?: ReactNode; children?: ReactNode }) {
   return (
     <div className="pb-5">
       <div className="flex items-center gap-3">
         {avatar && typeof name === 'string' && <Avatar name={name} size={40} />}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-xl font-medium text-ink leading-7 [overflow-wrap:anywhere]">{name}</div>
           {meta && <div className="text-sm text-gray-500 leading-5 truncate">{meta}</div>}
         </div>
+        {action && <div className="shrink-0 self-start">{action}</div>}
       </div>
       {children && <div className="mt-4 flex items-center gap-2 flex-wrap">{children}</div>}
     </div>

@@ -7,7 +7,7 @@ import { available, firstName, hallFull, roomTerms, useAlloc, type App, type Req
 import { St } from './common';
 import { useAllocActions } from './actions';
 
-export const statusLabel: Record<App['status'], string> = { review: 'In review', manual: 'Manual review', allocated: 'Allocated', rejected: 'Rejected', waitlist: 'Waitlist', declined: 'Declined' };
+export const statusLabel: Record<App['status'], string> = { review: 'In review', manual: 'Flagged', allocated: 'Allocated', rejected: 'Rejected', waitlist: 'Waitlist', declined: 'Declined' };
 const ord = ['1st', '2nd', '3rd'];
 export type Pref = { rank: number; hall: string; room: string; sub: string; avail: number; weeks: number };
 
@@ -49,7 +49,7 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
             <Button variant="danger-ghost" onClick={onReject}>Reject</Button>
             <div className="ml-auto flex gap-2">
               {a.status === 'review'
-                ? <Button onClick={() => { act.manual(a); onAfter(); }}>Manual review</Button>
+                ? <Button onClick={() => { act.manual(a); onAfter(); }}>Flag</Button>
                 : <Button onClick={() => act.toQueue(a)}>Back to To review</Button>}
               <Button variant="primary" icon={UserCheck} onClick={() => (best ? onAllocate(best) : toast.error(`No free unit in any of ${firstName(a.name)}’s choices`, { description: 'Pick a unit from another hall, or add them to the waitlist.' }))}>Allocate best match</Button>
             </div>

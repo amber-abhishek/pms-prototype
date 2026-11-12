@@ -3,9 +3,10 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { toast } from 'sonner';
 import {
-  ArrowDown, ArrowUp, Buildings, ChatCircleText, Check as CheckIco, Copy, CurrencyGbp, DotsSixVertical, EnvelopeSimple, Eye, FileText, Globe,
+  ArrowDown, ArrowUp, Buildings, ChatCircleText, Copy, CurrencyGbp, DotsSixVertical, EnvelopeSimple, Eye, FileText, Globe,
   Image, Info, Monitor, Plus, UploadSimple, Warning, Wheelchair, type Icon,
 } from '../../components/icons';
+import { SharedBrand, useBrand } from '../../components/SharedBrand';
 import { Button, Check, Field, Input, Note, PageHeader, Select, Switch, Tabs, Textarea, cx, Pill } from '../../components/ui';
 
 /* On-campus booking site builder (Figma 2063:2). The Site panel rows pick the editor (Pages, Theme, Settings);
@@ -22,7 +23,7 @@ type Content = {
   intro: string;
   hallsMode: 'all' | 'pick'; picked: string[];
   live: boolean; prices: boolean; floor: boolean;
-  brand: string; corners: 'soft' | 'square'; font: string;
+  corners: 'soft' | 'square'; font: string;
   name: string; seo: boolean; password: boolean; pw: string; cycle: string;
 };
 type SiteState = Content & {
@@ -33,7 +34,6 @@ type SiteState = Content & {
   publish: () => void;
 };
 
-const BRANDS = [{ hex: '#5B2A86', name: 'Purple' }, { hex: '#2563EB', name: 'Blue' }, { hex: '#0B8A4C', name: 'Green' }, { hex: '#B91C1C', name: 'Red' }, { hex: '#111827', name: 'Black' }];
 
 const HALLS = [
   { name: 'Collingwood College', from: 168, left: 41 },
@@ -58,7 +58,7 @@ const draft: Content = {
   headline: 'Find your home at Durham',
   intro: 'Applications for 2027/28 open 1 February. Pick up to three colleges and the room type you want.',
   hallsMode: 'all', picked: HALLS.map((h) => h.name), live: true, prices: true, floor: false,
-  brand: BRANDS[0].hex, corners: 'soft', font: 'Geist',
+  corners: 'soft', font: 'Geist',
   name: 'Durham University Accommodation', seo: true, password: false, pw: '', cycle: '2027/28',
 };
 const KEYS = Object.keys(draft) as (keyof Content)[];
@@ -231,21 +231,8 @@ function ThemeEditor() {
   const s = useSite();
   return (
     <div className="p-4 flex flex-col gap-5">
-      <Field label="Brand colour">
-        <div className="flex gap-2">
-          {BRANDS.map(({ hex: c, name }) => (
-            <button key={c} type="button" aria-label={name} title={name} aria-pressed={s.brand === c} onClick={() => s.set({ brand: c })}
-              className={cx('size-8 rounded-lg flex items-center justify-center text-white ring-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', s.brand === c && 'ring-2 ring-[#93C5FD]')} style={{ background: c }}>
-              {s.brand === c && <CheckIco size={14} strokeWidth={3} />}
-            </button>
-          ))}
-        </div>
-      </Field>
-      <Field label="Logo" hint="PNG or SVG, at least 128px.">
-        <div className="flex items-center gap-3">
-          <span className="size-10 rounded-lg text-white font-semibold flex items-center justify-center" style={{ background: s.brand }}>D</span>
-          <Button size="sm" icon={UploadSimple} onClick={() => toast('File picker opens in the real product')}>Upload</Button>
-        </div>
+      <Field label="Logo and brand colour" hint="Shared with emails and the off-campus portal.">
+        <SharedBrand />
       </Field>
       <Field label="Font">
         <Select value={s.font} onChange={(e) => s.set({ font: e.target.value })}>
@@ -293,6 +280,7 @@ const Row = ({ title, sub, children }: { title: string; sub: string; children: R
 /* ---------------- Live preview ---------------- */
 function Preview() {
   const s = useSite();
+  const brand = useBrand().colour;
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const r = s.corners === 'soft' ? 'rounded-lg' : 'rounded-none';
   const font = s.font === 'Georgia' ? 'Georgia, serif' : s.font === 'Inter' ? 'Inter, sans-serif' : undefined;
@@ -324,7 +312,7 @@ function Preview() {
                 <div className="text-sm font-semibold">{h.name}</div>
                 {s.prices && <div className="text-xs text-[#646A78] mt-0.5">From £{h.from}/wk · 44 or 51 weeks</div>}
                 {s.live && <div className="mt-2 h-6 px-2 rounded-md bg-[#E8F7EE] text-xs font-medium text-[#087A43] flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-[#0B8A4C]" />{h.left} rooms left</div>}
-                {s.floor && <div className="mt-2 text-xs font-medium" style={{ color: s.brand }}>View floor plan</div>}
+                {s.floor && <div className="mt-2 text-xs font-medium" style={{ color: brand }}>View floor plan</div>}
               </div>
             </div>
           ))}
@@ -333,10 +321,10 @@ function Preview() {
     ),
     prices: <><h3 className="text-base font-semibold mb-1">Prices & terms</h3><p className="text-sm text-[#646A78]">44-week and 51-week contracts. Bills included. £250 deposit, refunded at the end of your stay.</p></>,
     apply: (
-      <div className={cx('p-4 flex items-center gap-4 text-white', r, mobile && 'flex-col items-start')} style={{ background: s.brand }}>
+      <div className={cx('p-4 flex items-center gap-4 text-white', r, mobile && 'flex-col items-start')} style={{ background: brand }}>
         <div className="flex-1"><div className="text-sm font-semibold">Applications for {s.cycle} {CYCLES[s.cycle] ?? 'are open'}</div><div className="text-xs opacity-80 mt-0.5">Choose up to three colleges.</div></div>
         {/* Inline white, not bg-white: the button sits on the brand colour, so dark mode mustn't darken it. */}
-        <span className={cx('h-8 px-3 text-sm font-medium flex items-center', r)} style={{ background: '#fff', color: s.brand }}>Apply now</span>
+        <span className={cx('h-8 px-3 text-sm font-medium flex items-center', r)} style={{ background: '#fff', color: brand }}>Apply now</span>
       </div>
     ),
     faqs: <><h3 className="text-base font-semibold mb-2">FAQs</h3>{['When will I hear back?', 'Can I live with friends?', 'Is there parking?'].map((q) => <div key={q} className="py-2 border-b border-[#F3F4F6] text-sm">{q}</div>)}</>,
@@ -355,12 +343,12 @@ function Preview() {
           <span className="ml-3 h-6 px-2.5 rounded-md border border-line bg-white text-xs text-[#646A78] flex items-center truncate">accommodation.durham.ac.uk</span>
         </div>
         <header className="h-14 px-6 border-b border-line flex items-center gap-3">
-          <span className={cx('size-7 text-white text-sm font-semibold flex items-center justify-center shrink-0', r)} style={{ background: s.brand }}>D</span>
+          <span className={cx('size-7 text-white text-sm font-semibold flex items-center justify-center shrink-0', r)} style={{ background: brand }}>D</span>
           <span className="text-sm font-semibold truncate">{s.name}</span>
           {!mobile && <nav className="ml-auto flex items-center gap-4 text-sm text-[#646A78]"><span>Halls</span><span>Prices</span><span>FAQs</span>
-            {on('apply') && <span className={cx('h-8 px-3 text-white font-medium flex items-center', r)} style={{ background: s.brand }}>Apply now</span>}</nav>}
+            {on('apply') && <span className={cx('h-8 px-3 text-white font-medium flex items-center', r)} style={{ background: brand }}>Apply now</span>}</nav>}
         </header>
-        <div className="pb-4" style={{ background: `linear-gradient(180deg, ${s.brand}0D 0, transparent 160px)` }}>
+        <div className="pb-4" style={{ background: `linear-gradient(180deg, ${brand}0D 0, transparent 160px)` }}>
           {s.sections.filter((x) => x.on).map((x) => block(x.id, body[x.id]))}
           {!s.sections.some((x) => x.on) && <div className="py-16 text-center text-sm text-[#646A78]">Turn on a section to see it here.</div>}
         </div>

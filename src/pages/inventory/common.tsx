@@ -50,10 +50,10 @@ export function Modal({ open, onClose, title, sub, children, footer, width = 560
           {title ? (
             <div className={cx('flex gap-3', center ? 'flex-col items-center text-center' : 'items-start')}>
               <DialogTitle className="leading-6">{title}</DialogTitle>
-              {!center && <DialogClose aria-label="Close" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center shrink-0"><X size={16} /></DialogClose>}
+              {!center && <DialogClose aria-label="Close" className="size-7 -my-0.5 -mr-1 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center shrink-0"><X size={16} /></DialogClose>}
             </div>
           ) : <DialogTitle className="sr-only">Dialog</DialogTitle>}
-          {sub && <DialogDescription className={cx('mt-2', center && 'text-center')}>{sub}</DialogDescription>}
+          {sub && <DialogDescription className={cx('mt-1', center && 'text-center')}>{sub}</DialogDescription>}
           {children && <div className="mt-4">{children}</div>}
         </div>
         {footer && <DialogFooter>{footer}</DialogFooter>}

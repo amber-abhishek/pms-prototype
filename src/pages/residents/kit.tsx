@@ -13,7 +13,7 @@ export function RHeader({ icon: I, crumbs, title, meta, children }: { icon: Icon
     <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
       <I size={16} className="text-gray-500" />
       <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map(([label, to]) => <CrumbLink key={label} c={{ label, to }} />)}</div>
-      <CrumbTitle className="text-sm font-normal text-[#111827]">{title}</CrumbTitle>
+      <CrumbTitle className="text-sm font-normal text-[#0A0A0A]">{title}</CrumbTitle>
       {meta}
       <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
     </div>
@@ -79,7 +79,7 @@ export function RadioCard({ checked, onClick, title, sub, right, avatar }: { che
       className={cx('w-full text-left rounded-xl border px-3.5 py-3 flex items-center gap-3 transition-colors', checked ? 'border-primary bg-[#EFF6FF]' : 'border-line bg-white hover:bg-gray-50')}>
       <span className={cx('size-4 rounded-full border shrink-0 flex items-center justify-center', checked ? 'border-primary bg-primary' : 'border-gray-300 bg-white')}>{checked && <span className="size-1.5 rounded-full bg-white" />}</span>
       {avatar && <Avatar name={avatar} size={24} />}
-      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-semibold text-[#111827]">{title}</span>{sub && <span className="block text-xs text-gray-500 mt-0.5">{sub}</span>}</span>
+      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-semibold text-[#0A0A0A]">{title}</span>{sub && <span className="block text-xs text-gray-500 mt-0.5">{sub}</span>}</span>
       {right}
     </button>
   );
@@ -119,9 +119,9 @@ export function Checks({ items }: { items: { label: string; sub: string; ok: boo
   return (
     <div>
       {items.map((c) => (
-        <div key={c.label} className="h-9 flex items-center gap-2.5 border-b border-[#F3F4F6] last:border-0">
+        <div key={c.label} className="h-9 flex items-center gap-2.5 border-b border-[#F5F5F5] last:border-0">
           {c.ok ? <CheckCircle size={16} className="text-[#0B8A4C] shrink-0" /> : <XCircle size={16} className="text-[#B91C1C] shrink-0" />}
-          <span className="w-[250px] shrink-0 text-sm leading-5 font-medium text-[#111827]">{c.label}</span>
+          <span className="w-[250px] shrink-0 text-sm leading-5 font-medium text-[#0A0A0A]">{c.label}</span>
           <span className={cx('text-xs', c.ok ? 'text-gray-500' : 'text-[#B91C1C]')}>{c.sub}</span>
         </div>
       ))}
@@ -147,13 +147,13 @@ export function Timeline({ steps }: { steps: { title: string; sub?: string; when
 }
 
 export const Photo = ({ size = 96 }: { size?: number }) => (
-  <span className="rounded-lg bg-[#F3F4F6] border border-line flex items-center justify-center text-gray-400" style={{ width: size, height: size * 0.75 }}><ImageIcon size={18} /></span>
+  <span className="rounded-lg bg-[#F5F5F5] border border-line flex items-center justify-center text-gray-400" style={{ width: size, height: size * 0.75 }}><ImageIcon size={18} /></span>
 );
 
 /** "Now → After" room tile used on the swap cards. */
 export function RoomMove({ now, after }: { now: [string, string]; after: [string, string] }) {
   return (
-    <div className="rounded-[10px] bg-[#F9FAFB] px-3 py-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+    <div className="rounded-[10px] bg-[#FAFAFA] px-3 py-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
       <div><div className="text-xs text-gray-500">Now</div><div className="text-sm leading-5 font-semibold">{now[0]}</div><div className="text-xs text-gray-500">{now[1]}</div></div>
       <ArrowRight size={16} className="text-gray-400" />
       <div><div className="text-xs text-gray-500">After the swap</div><div className="text-sm leading-5 font-semibold">{after[0]}</div><div className="text-xs text-gray-500">{after[1]}</div></div>

@@ -21,7 +21,7 @@ const faultIcon: Record<FaultIcon, Icon> = {
 };
 export const PriorityPill = ({ p }: { p: Priority }) => (p === 'Urgent' ? <Pill tone="red" icon={Siren}>Urgent</Pill> : p === 'High' ? <Pill tone="orange" icon={ArrowUp}>High</Pill> : <Pill tone="grey" icon={Minus}>Normal</Pill>);
 function Assignee({ name }: { name?: string }) {
-  if (!name) return <span className="text-xs text-[#646A78]">Not assigned</span>;
+  if (!name) return <span className="text-xs text-[#737373]">Not assigned</span>;
   return <span className="flex items-center gap-2"><Avatar name={name} size={20} />{name}</span>;
 }
 function Sla({ f }: { f: Fault }) {
@@ -77,7 +77,7 @@ export function MaintenanceList() {
       </RHeader>
       <Toolbar right={<>
         {view === 'board' && (
-          <label className="flex items-center gap-2 text-sm text-[#646A78] cursor-pointer select-none mr-1">
+          <label className="flex items-center gap-2 text-sm text-[#737373] cursor-pointer select-none mr-1">
             <Checkbox checked={showResolved} onCheckedChange={(v) => setShowResolved(v === true)} />Show resolved (7 days)
           </label>
         )}
@@ -265,7 +265,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
           <div className="flex-1"><div className="text-sm leading-5 font-semibold">{f.reporter ?? 'A resident'}</div><div className="text-xs text-gray-500">{f.reporterRoom ? (f.reporterRoom.includes('reception') ? f.reporterRoom : `Resident · ${f.reporterRoom}`) : `Resident · ${f.where.split(' · ')[1] ?? ''}`}</div></div>
           <span className="text-xs text-gray-500">{f.reported ?? 'Earlier'}</span>
         </div>
-        <p className="text-sm leading-5 text-[#374151] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
+        <p className="text-sm leading-5 text-[#404040] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
         {isRad && <div className="flex gap-2 mt-3"><Photo /><Photo /><Photo /></div>}
         {isRad && <div className="flex gap-4 mt-3 text-xs text-gray-500"><span className="flex items-center gap-1.5"><Key size={13} className="text-gray-400" />OK to enter when I’m out</span><span className="flex items-center gap-1.5"><PawPrint size={13} className="text-gray-400" />No pets</span></div>}
       </Card>
@@ -286,7 +286,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
           ['Category', isRad ? 'Heating · radiator' : f.category],
           ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
           ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
-          ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#646A78]">Nobody yet</span>],
+          ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#737373]">Nobody yet</span>],
         ]} />
       </Panel>
     </div>
@@ -306,7 +306,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
         ['Category', isRad ? 'Heating · radiator' : f.category],
         ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
         ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
-        ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#646A78]">Nobody yet</span>],
+        ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#737373]">Nobody yet</span>],
         ['Deadline', deadline],
       ]} />
       <SheetSection title="Report">
@@ -315,7 +315,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
           <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium">{f.reporter ?? 'A resident'}</div><div className="text-xs text-gray-500">{f.reporterRoom ? (f.reporterRoom.includes('reception') ? f.reporterRoom : `Resident · ${f.reporterRoom}`) : `Resident · ${f.where.split(' · ')[1] ?? ''}`}</div></div>
           <span className="text-xs text-gray-500">{f.reported ?? 'Earlier'}</span>
         </div>
-        <p className="text-sm leading-5 text-[#374151] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
+        <p className="text-sm leading-5 text-[#404040] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
         {isRad && <div className="flex gap-2 mt-3"><Photo /><Photo /><Photo /></div>}
         {isRad && <div className="flex gap-4 mt-3 text-xs text-gray-500"><span className="flex items-center gap-1.5"><Key size={13} className="text-gray-400" />OK to enter when I’m out</span><span className="flex items-center gap-1.5"><PawPrint size={13} className="text-gray-400" />No pets</span></div>}
       </SheetSection>
@@ -337,7 +337,7 @@ function FaultPage({ f }: { f: Fault }) {
         {v.message}{v.primary}
       </RHeader>
       <div className="flex-1 overflow-auto">
-        <div className="px-6 pt-6 pb-5 border-b border-[#F3F4F6]">
+        <div className="px-6 pt-6 pb-5 border-b border-[#F5F5F5]">
           <div className="flex items-center gap-2 flex-wrap"><h2 className="text-[20px] font-medium tracking-tight mr-1">{f.title}</h2>{v.pills}</div>
           <p className="text-sm text-gray-500 mt-1">{v.sub}</p>
         </div>

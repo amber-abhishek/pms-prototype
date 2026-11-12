@@ -12,7 +12,7 @@ import { useAllocActions } from './actions';
 type TabId = 'All' | 'Live' | 'Closed';
 const label = (c: Cycle) => ({ open: 'Applications open', tenancy: 'In tenancy', closed: 'Closed', upcoming: 'Not open yet' }[c.status]);
 const isLive = (c: Cycle) => c.status !== 'closed';
-const CycleIcon = () => <span className="size-7 rounded-lg bg-[#F3F4F6] flex items-center justify-center text-gray-500"><CalendarDots size={14} /></span>;
+const CycleIcon = () => <span className="size-7 rounded-lg bg-[#F5F5F5] flex items-center justify-center text-gray-500"><CalendarDots size={14} /></span>;
 
 export function Cycles() {
   const d = useAlloc();
@@ -29,7 +29,7 @@ export function Cycles() {
   const live = cycles.filter(isLive), closed = cycles.filter((c) => !isLive(c));
   const bar = (c: Cycle) => (
     <div className="flex items-center gap-2.5">
-      <div className="w-[120px] h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${(c.allocated / c.beds) * 100}%`, background: c.status === 'open' || c.status === 'upcoming' ? '#2563EB' : c.status === 'tenancy' ? '#0B8A4C' : '#9CA3AF' }} /></div>
+      <div className="w-[120px] h-1.5 rounded-full bg-[#F5F5F5] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${(c.allocated / c.beds) * 100}%`, background: c.status === 'open' || c.status === 'upcoming' ? '#2563EB' : c.status === 'tenancy' ? '#0B8A4C' : '#A3A3A3' }} /></div>
       <span>{fmtN(c.allocated)} of {fmtN(c.beds)}</span>
     </div>
   );
@@ -99,7 +99,7 @@ function LiveCard({ c, onEdit, onClose, onOpenApps }: { c: Cycle; onEdit: () => 
   return (
     <div className="rounded-xl border border-line bg-white p-5">
       <div className="flex items-start gap-3">
-        <span className="size-9 rounded-[10px] bg-[#F3F4F6] flex items-center justify-center text-gray-500"><CalendarDots size={16} /></span>
+        <span className="size-9 rounded-[10px] bg-[#F5F5F5] flex items-center justify-center text-gray-500"><CalendarDots size={16} /></span>
         <div className="flex-1">
           <div className="flex items-center gap-2"><span className="text-sm font-semibold">{c.name}</span><St s={label(c)} /></div>
           <div className="text-xs text-gray-500 mt-0.5">{c.opens} – {c.ends} · {ten ? 'residents in their rooms' : c.from ? `duplicated from ${c.from}` : 'set up by hand'}</div>

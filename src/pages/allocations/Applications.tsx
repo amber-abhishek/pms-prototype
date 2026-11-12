@@ -141,7 +141,7 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
   return (
     <div className="flex-1 min-h-0 flex">
       <div className="w-[340px] shrink-0 border-r border-line flex flex-col">
-        <div className="h-10 shrink-0 px-3 flex items-center gap-2 border-b border-[#F3F4F6] text-xs text-gray-500">
+        <div className="h-10 shrink-0 px-3 flex items-center gap-2 border-b border-[#F5F5F5] text-xs text-gray-500">
           <Checkbox aria-label="Select all on this page" checked={checked} onCheckedChange={(v) => setChecked((v === true))} />
           {checked ? <>
             <span className="text-ink">{shown.length} selected</span>
@@ -149,14 +149,14 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
           </> : <>
             <span>{fmtN(total)} {tab === 'To review' ? (filtered || fs.order.length ? 'to review' : 'applications') : 'applications'}</span>
             <span className="ml-auto">{sorted.length ? `${page * PAGE + 1}–${Math.min(sorted.length, page * PAGE + PAGE)}` : '0'}</span>
-            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
-            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
+            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
           </>}
         </div>
         <div className="flex-1 overflow-auto">
           {shown.map((a) => (
             <button key={a.id} type="button" onClick={() => setOpen(a.id)} data-selected={sel?.id === a.id || undefined}
-              className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F3F4F6] border-l-2', sel?.id === a.id ? 'bg-[#EFF6FF] border-l-primary' : 'border-l-transparent hover:bg-[#F9FAFB]')}>
+              className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F5F5F5] border-l-2', sel?.id === a.id ? 'bg-[#EFF6FF] border-l-primary' : 'border-l-transparent hover:bg-[#FAFAFA]')}>
               <Ini name={a.name} size={24} />
               <div className="min-w-0 flex-1">
                 <div className="text-sm truncate"><span className="font-semibold">{a.name}</span>{a.tag && <span className={cx('text-xs font-medium', a.tag === 'No study offer' ? 'text-[#9A5B00]' : 'text-[#8B2CF5]')}> · {a.tag}</span>}</div>
@@ -164,7 +164,7 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
               </div>
               <div className="text-right shrink-0">
                 <div className={cx('text-xs', a.waiting >= 7 ? 'font-semibold text-[#C11F14]' : a.waiting >= 5 ? 'font-semibold text-[#C2410C]' : 'font-medium text-gray-500')}>{a.waiting} d</div>
-                <div className="text-xs text-[#646A78] font-mono mt-0.5">{a.ref}</div>
+                <div className="text-xs text-[#737373] font-mono mt-0.5">{a.ref}</div>
               </div>
             </button>
           ))}
@@ -248,8 +248,8 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
       <Foot right={<>
         {pages > 1 && <span className="flex items-center gap-1 tabular-nums">
           {page * PAGE + 1}–{Math.min(order.length, page * PAGE + PAGE)} of {fmtN(order.length)}
-          <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
-          <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
+          <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+          <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
         </span>}
       </>} />
       <Sheet open={!!sel && !allocating && !rejecting} onClose={() => setOpen(null)} width={600} title="Application" nav={listNav(order, (a) => a.id === open, (a) => setOpen(a.id))}>

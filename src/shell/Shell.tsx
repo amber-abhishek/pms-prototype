@@ -2,12 +2,13 @@ import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type Ke
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
-import { ArrowCounterClockwise, CaretDown, Moon, Tray, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
+import { ArrowCounterClockwise, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
 import { modules, moduleFor, pinnable, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
 import { useDb, type Role } from '../data/store';
 import { cx, Pill } from '../components/ui';
+import { OrgLogo, PersonPhoto } from '../components/Logo';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/shadcn/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/shadcn/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/shadcn/popover';
@@ -16,36 +17,36 @@ import { Palette } from './Palette';
 import { Switch } from '../components/shadcn/switch';
 import { useTheme } from '../data/theme';
 import { useEmpty } from '../data/empty';
-import { RailSolid, hasSolid } from './railIcons';
-import { SolidIcon, hasSolidIcon } from './solidIcons';
 import { NoAccess } from '../pages/Misc';
 
+/* Amber Connect shell (Figma 3882:39269, code: amber-connect NavigationMenu). One sidebar, 256px (68 folded with ⌘.),
+   #FAFAFA with a right line: 56px logo header, 36px rows (8/12 padding, r8, 4px apart, 16px icons), the selected row
+   raised white with a hairline edge and blue label, a 68px profile footer. Hover moves the row 2px, it never tints it.
+   PMS adds what Connect's flat list doesn't need: the open module's pages hang under it on a guide line. */
 export function Shell() {
   const { pathname, search } = useLocation();
   const role = useDb((s) => s.role);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [open, setOpen] = useState(true);
   const [palette, setPalette] = useState(false);
-  /* Mercury page scroll: mark <main> once the table header is stuck under the breadcrumb, so its line runs edge to edge. */
+  /* Page scroll: mark <main> once the table header is stuck under the page header, so its line runs edge to edge. */
   const mainRef = useRef<HTMLElement>(null);
   const onMainScroll = () => {
     const m = mainRef.current; if (!m) return;
     const th = m.querySelector('[data-scroller] thead, [data-scroller] [data-head]');
-    const stuck = !!th && m.scrollTop > 0 && th.getBoundingClientRect().top - m.getBoundingClientRect().top <= 52.5;
+    const stuck = !!th && m.scrollTop > 0 && th.getBoundingClientRect().top - m.getBoundingClientRect().top <= 56.5;
     if (stuck !== m.hasAttribute('data-stuck')) m.toggleAttribute('data-stuck', stuck);
   };
   useEffect(() => { const m = mainRef.current; if (m) { m.scrollTop = 0; m.removeAttribute('data-stuck'); } }, [pathname]);
   const via = usePins((s) => s.via);
   const pins = usePins((s) => s.pins);
   const path = useNavPath(pathname);
-  /* Opened from a pin: Home stays selected while you are on any pinned page (or a page under one). Checked against
-     the pin list, not just the clicked pin, so the render between the click and the route change stays on Home too. */
+  /* Opened from a pin: Home stays open while you are on any pinned page (or a page under one). */
   const fromPin = !!via && pins.some((p) => within(p, path));
   useEffect(() => {
     const st = usePins.getState();
-    /* The route has caught up with the click (or the click was to the page you are on): drop the pending target. */
     if (st.pending) usePins.setState({ pending: null });
     if (st.via && !st.pins.some((p) => within(p, pathname))) st.setVia(null);
-  }, [pathname, search]); /* search too: in-page tab changes (?tab=) must move the sidebar selection */
+  }, [pathname, search]);
   const mod = fromPin ? modules[0] : moduleFor(path);
   const visible = modules.filter((m) => m.roles.includes(role));
   const allowed = moduleFor(pathname).roles.includes(role);
@@ -55,7 +56,7 @@ export function Shell() {
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); }
-      if ((e.metaKey || e.ctrlKey) && e.key === '.') { e.preventDefault(); setPanelOpen((p) => !p); }
+      if ((e.metaKey || e.ctrlKey) && e.key === '.') { e.preventDefault(); setOpen((p) => !p); }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
@@ -64,112 +65,128 @@ export function Shell() {
   if (!signedIn) return <Navigate to="/login" replace />;
 
   return (
-    <div className="h-full flex flex-col bg-chrome min-w-[1024px]">
-      {/* Top bar on the chrome */}
-      <header className="h-12 shrink-0 flex items-center pl-[14px] pr-2">
-        <div className="w-[280px] flex items-center justify-between pr-3">
-          <button type="button" className="flex items-center gap-2 rounded-lg px-0 py-1 hover:opacity-80" onClick={() => toast('Durham University is the only organisation on this account')}>
-            <span className="size-7 rounded-[7px] bg-[#2563EB] text-white text-sm leading-5 font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_1px_2px_rgba(37,99,235,0.35)] flex items-center justify-center">D</span>
-            <span className="flex items-center gap-1"><span className="text-sm leading-[18px] font-medium text-ink">Durham University</span><CaretDown size={14} className="text-gray-500" /></span>
-          </button>
-          <button type="button" aria-label={panelOpen ? 'Hide panel' : 'Show panel'} title="Toggle panel (⌘.)" onClick={() => setPanelOpen((p) => !p)} className="size-7 rounded-md flex items-center justify-center text-gray-500 hover:bg-white hover:text-ink">
-            <SidebarSimple size={16} />
-          </button>
-        </div>
-        <button type="button" onClick={() => setPalette(true)} className="ml-auto h-8 w-80 flex items-center gap-2 pl-2.5 pr-1.5 rounded-lg border border-line bg-white text-sm leading-5 text-[#646A78] hover:border-gray-300 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-          <MagnifyingGlass size={14} className="text-gray-500" />Search anything
-          <span className="ml-auto flex gap-1">{['⌘', 'K'].map((k) => <kbd key={k} className="min-w-[18px] h-[18px] px-1 rounded border border-line bg-white text-[11px] leading-4 text-[#646A78] font-sans flex items-center justify-center">{k}</kbd>)}</span>
-        </button>
-      </header>
-
-      <div className="flex-1 flex min-h-0 pr-2 pb-2">
-        <Rail visible={visible} active={mod} />
-        <div className="flex-1 flex min-w-0 rounded-xl border border-line bg-white shadow-card overflow-hidden">
-          <Panel mod={mod} collapsed={!panelOpen} />
-          <main ref={mainRef} onScroll={onMainScroll} className="pms-main flex-1 min-w-0 flex flex-col">{allowed ? <Outlet key={emptyKey ? 'empty' : 'full'} /> : <NoAccess />}</main>
-        </div>
-      </div>
+    <div className="h-full flex bg-white min-w-[1024px]">
+      <Sidebar visible={visible} active={mod} collapsed={!open} onToggle={() => setOpen((p) => !p)} onSearch={() => setPalette(true)} />
+      <main ref={mainRef} onScroll={onMainScroll} className="pms-main flex-1 min-w-0 flex flex-col bg-white">{allowed ? <Outlet key={emptyKey ? 'empty' : 'full'} /> : <NoAccess />}</main>
       <Palette open={palette} onClose={() => setPalette(false)} />
     </div>
   );
 }
 
-function Rail({ visible, active }: { visible: Module[]; active: Module }) {
-  const groups = (['top', 'modules', 'bottom'] as const).map((g) => visible.filter((m) => m.group === g));
+/** Connect's selected row: white, 1px #E5E5E5 edge, a small two-layer drop, blue label. */
+const RAISED = 'bg-white border border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#2563EB]';
+/** Rows: 14px medium, 8/12 padding, r8. Hover nudges 2px right (Connect's whileHover x: 2), press shrinks slightly. */
+const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 font-medium outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
+const IDLE = 'text-[#777777] hover:translate-x-0.5 hover:text-[#0A0A0A]';
+
+function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: Module[]; active: Module; collapsed: boolean; onToggle: () => void; onSearch: () => void }) {
+  const counts = useNavCounts();
+  const main = visible.filter((m) => m.group !== 'bottom');
+  const system = visible.filter((m) => m.group === 'bottom');
   return (
     <TooltipProvider delayDuration={300}>
-    <nav aria-label="Modules" className="w-14 shrink-0 flex flex-col items-center pt-1 pb-1 gap-1">
-      {groups.map((g, i) => (
+      <aside aria-label="Main" className={cx('shrink-0 h-full flex flex-col bg-[#FAFAFA] border-r border-[#E5E5E5] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]', collapsed ? 'w-[68px]' : 'w-64')}>
+        <div className={cx('h-14 shrink-0 flex items-center border-b border-[#E5E5E5] px-3', collapsed ? 'justify-center' : 'justify-between gap-2')}>
+          {!collapsed && (
+            <button type="button" className="flex items-center gap-2 min-w-0 rounded-lg pl-1 hover:opacity-80" onClick={() => toast('Durham University is the only organisation on this account')}>
+              <OrgLogo size={24} />
+              <span className="text-sm leading-5 font-semibold text-[#0A0A0A] truncate">Durham University</span>
+            </button>
+          )}
+          <button type="button" aria-label={collapsed ? 'Show sidebar' : 'Hide sidebar'} title="Toggle sidebar (⌘.)" onClick={onToggle}
+            className="size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F5] flex items-center justify-center">
+            <SidebarSimple size={16} className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
+          </button>
+        </div>
+        <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-1 px-2 py-4">
+          <SearchRow collapsed={collapsed} onSearch={onSearch} />
+          {main.map((m) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} />)}
+          {system.length > 0 && <div className={cx('h-px bg-[#E5E5E5] my-2', collapsed ? 'mx-3' : 'mx-3')} aria-hidden />}
+          {system.map((m) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} />)}
+        </nav>
+        <UserMenu collapsed={collapsed} />
+      </aside>
+    </TooltipProvider>
+  );
+}
+
+/** Search as the first row, with Connect's ⌘K key cap. */
+function SearchRow({ collapsed, onSearch }: { collapsed: boolean; onSearch: () => void }) {
+  const row = (
+    <button type="button" aria-label="Search" onClick={onSearch} className={cx(ROW, IDLE, 'h-9 shrink-0 mb-2', collapsed ? 'justify-center px-2' : 'px-3')}>
+      <MagnifyingGlass size={16} strokeWidth={1.75} className="shrink-0 opacity-80" />
+      {!collapsed && <><span className="flex-1 text-left">Search</span><Kbd>⌘K</Kbd></>}
+    </button>
+  );
+  return collapsed ? <Tooltip><TooltipTrigger asChild>{row}</TooltipTrigger><TooltipContent side="right" sideOffset={8}>Search · ⌘K</TooltipContent></Tooltip> : row;
+}
+
+export function Kbd({ children }: { children: ReactNode }) {
+  return <kbd className="h-5 px-1.5 rounded border border-[#E5E5E5] bg-white font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#737373] flex items-center">{children}</kbd>;
+}
+
+/** A module row. The open module lists its pages under it; the others show their headline count. */
+function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean }) {
+  const I = m.icon;
+  const lead = m.sections.flatMap((s) => s.items).find((i) => i.count);
+  const n = lead?.count?.(counts);
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)}
+            className={cx(ROW, 'relative h-9 shrink-0 justify-center px-2', on ? RAISED : IDLE)}>
+            <I size={16} strokeWidth={1.75} className={on ? '' : 'opacity-65'} />
+            {m.locked && <span className="absolute right-1 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
+          </NavLink>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8}>{m.label}{m.locked && <span className="text-gray-400"> · locked</span>}</TooltipContent>
+      </Tooltip>
+    );
+  }
+  /* With no pages to list, the module row itself is the selection. */
+  const flat = on && m.sections.every((s) => s.items.length <= 1 && !s.pinned);
+  return (
+    <>
+      <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
+        className={cx(ROW, 'h-9 shrink-0 px-3', flat ? RAISED : on ? 'text-[#0A0A0A]' : IDLE)}>
+        <I size={16} strokeWidth={1.75} className={cx('shrink-0', !on && 'opacity-65')} />
+        <span className="flex-1 truncate">{m.label}</span>
+        {m.locked && <Lock size={14} className="text-[#A3A3A3]" />}
+        {!on && n !== undefined && n > 0 && <span className={cx('font-mono text-xs tabular-nums', lead?.alert ? 'text-[#DC2626]' : 'text-[#A3A3A3]')}>{n.toLocaleString('en-GB')}</span>}
+      </NavLink>
+      {on && !flat && <ModulePages mod={m} counts={counts} />}
+    </>
+  );
+}
+
+/** The open module's pages, on a guide line under its row (lined up with the module icon). */
+function ModulePages({ mod, counts }: { mod: Module; counts: NavCounts }) {
+  return (
+    <div className="relative ml-5 pl-2.5 pb-1 flex flex-col gap-1 before:absolute before:left-0 before:top-0 before:bottom-1 before:w-px before:bg-[#E5E5E5]">
+      {mod.sections.map((s, i) => s.pinned ? <PinnedSection key={i} counts={counts} /> : (
         <Fragment key={i}>
-          {i === 2 && <div className="flex-1" />}
-          {i > 0 && g.length > 0 && <div className="w-5 h-px bg-[#E2E3E7] my-1" />}
-          {g.map((m) => <RailItem key={m.id} m={m} on={m.id === active.id} />)}
+          {s.label && <div className="h-7 mt-1 px-3 flex items-center font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#A3A3A3]">{s.label}</div>}
+          {s.items.map((it) => <PanelRow key={it.label} it={it} count={it.count?.(counts)} locked={mod.locked} mode={mod.id === 'home' ? 'plain' : 'module'} />)}
         </Fragment>
       ))}
-      <UserMenu />
-    </nav>
-    </TooltipProvider>
+      {mod.locked && (
+        <div className="mt-2 rounded-lg border border-[#E5E5E5] bg-white p-4">
+          <div className="text-sm font-semibold text-[#171717]">Not in your plan</div>
+          <div className="text-xs text-[#737373] mt-1">Listing site (LMS) lets you publish your halls on your own website.</div>
+        </div>
+      )}
+    </div>
   );
 }
 
-function RailItem({ m, on }: { m: Module; on: boolean }) {
-  const I = m.icon;
-  return (
-    <Tooltip>
-    <TooltipTrigger asChild>
-      <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)}
-        className={cx('group relative size-10 flex items-center justify-center transition-colors duration-0 hover:duration-150', /* 3783:48441 RailItem: pressed into the chrome — #E8EAEE, inset drop + hairline ring, white lip below. */ on ? 'rounded-[10px] bg-[#E8EAEE] text-[#111827] shadow-[inset_0_1px_3px_rgba(17,24,39,0.16),inset_0_0_0_1px_rgba(17,24,39,0.08),0_1px_0_#FFFFFF]' : 'rounded-[10px] text-gray-500 hover:bg-[#ECEEF1] hover:text-[#111827]')}>
-        <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolid(m.id) ? <RailSolid id={m.id} /> : <I size={16} />}</span>
-        {/* Locked module (not in the plan): a small lock badge on the icon's bottom-right corner. */}
-        {m.locked && <span className="absolute right-1 bottom-1 size-4 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center"><Lock size={10} weight="fill" className="text-gray-500" /></span>}
-      </NavLink>
-    </TooltipTrigger>
-    {/* Same tooltip as the collapsed panel's page icons: to the right, 8px off. */}
-    <TooltipContent side="right" sideOffset={8}>
-      {m.label}{m.locked && <span className="text-gray-400"> · locked</span>}
-    </TooltipContent>
-    </Tooltip>
-  );
-}
-
-/* Collapsed (⌘.): the panel narrows to its page icons, each with a tooltip; section labels become short dividers. */
-function Panel({ mod, collapsed }: { mod: Module; collapsed: boolean }) {
-  const counts = useNavCounts();
-  return (
-    <TooltipProvider delayDuration={collapsed ? 300 : 400}>
-    <aside aria-label={`${mod.label} pages`} className={cx('shrink-0 border-r border-line flex flex-col pb-4', collapsed ? 'w-14 px-3' : 'w-56 px-3')}>
-      <div className={cx('shrink-0 flex items-center', collapsed ? 'h-3' : 'h-[52px] pl-2 pr-1')}>
-        {!collapsed && <div className="text-[15px] leading-5 font-semibold text-ink">{mod.label}</div>}
-      </div>
-      <div className={cx('flex-1 flex flex-col gap-1', collapsed ? 'overflow-y-auto overflow-x-hidden' : 'overflow-auto')}>
-        {mod.sections.map((s, i) => s.pinned ? <PinnedSection key={i} counts={counts} collapsed={collapsed} /> : (
-          <div key={i} className="flex flex-col gap-1">
-            {s.label && (collapsed
-              ? <div className="h-px w-5 mx-auto my-2.5 bg-[#E2E3E7]" aria-hidden />
-              : <div className="h-6 mt-2 px-2 flex items-center justify-between text-xs leading-5 font-medium text-gray-500">{s.label}</div>
-            )}
-            {s.items.map((it) => <PanelRow key={it.label} it={it} count={it.count?.(counts)} locked={mod.locked} mode={mod.id === 'home' ? 'plain' : 'module'} collapsed={collapsed} />)}
-          </div>
-        ))}
-        {mod.locked && !collapsed && (
-          <div className="mt-4 mx-1 rounded-xl border border-[#A855F7]/30 p-3">
-            <div className="text-sm font-semibold text-[#7E22CE]">Not in your plan</div>
-            <div className="text-xs text-gray-500 mt-0.5">Listing site (LMS) lets you publish your halls on your own website.</div>
-          </div>
-        )}
-      </div>
-    </aside>
-    </TooltipProvider>
-  );
-}
-
-/** A small icon button that appears on the right of a panel row when you hover it. */
+/** A small icon button that appears on the right of a row when you hover it. */
 function RowAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button type="button" aria-label={label} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(); }}
-          className="absolute right-1 top-1 size-6 rounded-md flex items-center justify-center text-gray-400 hover:text-ink hover:bg-black/[0.05] opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          className="absolute right-1.5 top-1.5 size-6 rounded-md flex items-center justify-center text-[#A3A3A3] hover:text-ink hover:bg-black/[0.05] opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {children}
         </button>
       </TooltipTrigger>
@@ -190,51 +207,30 @@ function pinToggle(it: NavItem) {
   }
 }
 
-/* mode: 'plain' = Home's own pages; 'module' = a module page (no pin control: pins are added from Home's Pinned +);
-   'pinned' = a row in Home's Pinned list, with unpin on hover. */
 /** Every module row target, so a row without ?tab can tell when a sibling row owns the current tab. */
 const ALL_TO = modules.flatMap((m) => m.sections.flatMap((s) => s.items.map((i) => i.to)));
 
-function PanelRow({ it, count, locked, mode, collapsed }: { it: NavItem; count?: number; locked?: boolean; mode: 'plain' | 'module' | 'pinned'; collapsed?: boolean }) {
+/* mode: 'plain' = Home's own pages; 'module' = a module page; 'pinned' = a row in Home's Pinned list, with unpin on hover. */
+function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; locked?: boolean; mode: 'plain' | 'module' | 'pinned' }) {
   const { pathname: route, search } = useLocation();
   const pathname = useNavPath(route);
   const href = useNavHref(route, search);
   const disabled = !!(it.soon || locked);
   const on = !disabled && (mode === 'pinned' ? within(it.to, pathname) : isCurrent(it.to, href, ALL_TO));
-  /* Only Home's Pinned rows have a hover action (unpin); pinning itself happens from Pinned's + button. */
   const action = !disabled && mode === 'pinned';
-  /* Mercury-style: a page's views open under its row, on a thin guide line, only while the page is open. */
-  const open = !disabled && !collapsed && !!it.sub && within(it.to, pathname);
+  /* A page's views open under its row, only while the page is open. */
+  const open = !disabled && !!it.sub && within(it.to, pathname);
   const counts = useNavCounts();
-  const I = it.icon;
   const inner = (
     <>
-      <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolidIcon(I) ? <SolidIcon icon={I} className="shrink-0 text-[#111827]" /> : <I size={16} className={on ? 'text-[#111827]' : 'text-gray-500'} />}</span>
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
-      {!open && count !== undefined && count > 0 && <span className={cx('text-xs leading-5 font-medium tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-gray-500')}>{count}</span>}
+      {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#A3A3A3]')}>{count}</span>}
     </>
   );
   const tabNow = new URLSearchParams(href.split('?')[1] ?? '').get('tab');
   const rowSel = on && (!open || (!!it.landing && !tabNow));
-  const cls = cx(!disabled && 'group', 'h-8 shrink-0 px-2 rounded-lg flex items-center gap-2 text-sm leading-5 font-medium transition-colors duration-0 hover:duration-150', rowSel ? 'bg-[#F3F4F6] text-ink shadow-[inset_0_1px_2px_rgba(17,24,39,0.08),inset_0_0_0_1px_rgba(17,24,39,0.06),0_1px_0_#fff]' : on ? 'text-ink hover:bg-[#F6F7F8]' : 'text-gray-700 hover:bg-[#F6F7F8]', disabled && 'opacity-60 cursor-default');
-  if (collapsed) {
-    const icon = <span key={on ? 'on' : 'off'} className={cx('nav-ic', on && 'nav-ic-on')}>{on && hasSolidIcon(I) ? <SolidIcon icon={I} className="shrink-0 text-[#111827]" /> : <I size={16} className={on ? 'text-[#111827]' : 'text-gray-500'} />}</span>;
-    const dot = count !== undefined && count > 0 && it.alert && <span className="absolute right-1 top-1 size-1.5 rounded-full bg-[#DC2626]" />;
-    const ccls = cx(cls, 'relative w-8 px-0 justify-center');
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {disabled
-            ? <div className={ccls} aria-disabled aria-label={it.label}>{icon}</div>
-            : <NavLink to={it.to} end draggable={false} aria-label={it.label} className={ccls} onClick={() => usePins.getState().go(it.to, mode === 'pinned' ? it.to : null)}>{icon}{dot}</NavLink>}
-        </TooltipTrigger>
-        <TooltipContent side="right" sideOffset={8}>
-          {it.label}{count !== undefined && count > 0 && <span className={it.alert ? 'text-[#FCA5A5]' : 'text-gray-400'}> · {count}</span>}{it.soon && <span className="text-gray-400"> · soon</span>}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
+  const cls = cx(ROW, 'h-9 shrink-0 px-3', rowSel ? RAISED : on ? 'text-[#0A0A0A]' : IDLE, disabled && 'opacity-60 cursor-default hover:translate-x-0');
   if (disabled) return <div className={cls} aria-disabled>{inner}</div>;
   const curTab = tabNow ?? (it.landing ? undefined : it.sub?.[0].tab);
   return (
@@ -244,16 +240,16 @@ function PanelRow({ it, count, locked, mode, collapsed }: { it: NavItem; count?:
         {mode === 'pinned' && <RowAction label="Unpin" onClick={() => pinToggle(it)}><PinOff size={14} /></RowAction>}
       </div>
       {open && (
-        <div className="relative ml-4 pl-2 py-1 flex flex-col gap-1 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-px before:bg-[#E5E7EB]">
+        <div className="relative ml-3 pl-2.5 flex flex-col gap-1 before:absolute before:left-0 before:top-0 before:bottom-1 before:w-px before:bg-[#E5E5E5]">
           {it.sub!.map((v) => {
             const to = `${it.to}?tab=${encodeURIComponent(v.tab)}`;
             const sel = curTab === v.tab;
             const n = v.count?.(counts);
             return (
               <NavLink key={v.tab} to={to} draggable={false} aria-current={sel ? 'page' : undefined} onClick={() => usePins.getState().go(to, mode === 'pinned' ? it.to : null)}
-                className={cx('h-8 px-2 rounded-lg flex items-center gap-2 text-sm leading-5 transition-colors duration-0 hover:duration-150', sel ? 'text-ink font-medium bg-[#F3F4F6] shadow-[inset_0_1px_2px_rgba(17,24,39,0.08),inset_0_0_0_1px_rgba(17,24,39,0.06),0_1px_0_#fff]' : 'text-gray-500 hover:text-ink hover:bg-[#F6F7F8]')}>
+                className={cx(ROW, 'h-9 px-3', sel ? RAISED : IDLE)}>
                 <span className="flex-1 truncate">{v.label}</span>
-                {n !== undefined && n > 0 && <span className="text-xs font-medium tabular-nums text-gray-500">{n}</span>}
+                {n !== undefined && n > 0 && <span className="font-mono text-xs tabular-nums text-[#A3A3A3]">{n}</span>}
               </NavLink>
             );
           })}
@@ -264,7 +260,7 @@ function PanelRow({ it, count, locked, mode, collapsed }: { it: NavItem; count?:
 }
 
 /** Home's Pinned list: drag (or Alt+↑/↓) to reorder, hover to unpin, + to pin any page. */
-function PinnedSection({ counts, collapsed }: { counts: NavCounts; collapsed?: boolean }) {
+function PinnedSection({ counts }: { counts: NavCounts }) {
   const role = useDb((s) => s.role);
   const { pins, move } = usePins();
   const pages = pins.map((to) => pinnable.find((p) => p.to === to)).filter((p): p is (typeof pinnable)[number] => !!p && p.roles.includes(role));
@@ -293,21 +289,14 @@ function PinnedSection({ counts, collapsed }: { counts: NavCounts; collapsed?: b
     requestAnimationFrame(() => (document.querySelector(`[data-pin="${to}"] a`) as HTMLElement | null)?.focus());
   };
 
-  if (collapsed) return pages.length === 0 ? null : (
-    <div className="flex flex-col gap-1">
-      <div className="h-px w-5 mx-auto my-2.5 bg-[#E2E3E7]" aria-hidden />
-      {pages.map((p) => <PanelRow key={p.to} it={p} count={p.count?.(counts)} mode="pinned" collapsed />)}
-    </div>
-  );
-
   return (
     <div className="flex flex-col gap-1">
-      <div className="h-6 mt-2 pl-2 pr-1 flex items-center justify-between text-xs leading-5 font-medium text-gray-500">
+      <div className="h-7 mt-1 pl-3 pr-1 flex items-center justify-between font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#A3A3A3]">
         Pinned
         <PinPicker />
       </div>
       {pages.length === 0 && (
-        <div className="mx-1 mt-0.5 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-xs leading-[18px] text-gray-500">
+        <div className="rounded-lg border border-dashed border-[#D4D4D4] px-3 py-2.5 text-xs leading-4 text-[#737373]">
           Pin the pages you open most. Use + to add one.
         </div>
       )}
@@ -337,7 +326,7 @@ function PinPicker() {
     <Popover>
       <Tooltip>
         <TooltipTrigger asChild>
-          <PopoverTrigger aria-label="Pin a page" className="size-5 rounded flex items-center justify-center text-gray-400 hover:text-ink hover:bg-black/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <PopoverTrigger aria-label="Pin a page" className="size-5 rounded flex items-center justify-center text-[#A3A3A3] hover:text-ink hover:bg-black/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Plus size={14} />
           </PopoverTrigger>
         </TooltipTrigger>
@@ -354,7 +343,7 @@ function PinPicker() {
                   const I = p.icon;
                   const on = pins.includes(p.to);
                   return (
-                    <CommandItem key={p.to} value={`${g} ${p.label}`} onSelect={() => pinToggle(p)} className="gap-2.5 data-[selected=true]:bg-[#F3F4F6]">
+                    <CommandItem key={p.to} value={`${g} ${p.label}`} onSelect={() => pinToggle(p)} className="gap-2.5 data-[selected=true]:bg-[#F5F5F5]">
                       <I size={16} className="text-gray-500" /><span className="flex-1 truncate">{p.label}</span>
                       {on && <CheckIcon size={14} className="text-primary" />}
                     </CommandItem>
@@ -369,7 +358,8 @@ function PinPicker() {
   );
 }
 
-function UserMenu() {
+/** The profile in the sidebar footer (68px, Connect): r10 photo, name, light email, up/down chevrons. Opens the account menu. */
+function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { role, setRole, reset } = useDb();
   const nav = useNavigate();
   const roles: { id: Role; label: string; sub: string }[] = useMemo(() => [
@@ -386,42 +376,49 @@ function UserMenu() {
     setTimeout(() => setLeaving('done'), 900);
     setTimeout(() => { useAuth.getState().signOut(); nav('/login', { replace: true }); }, 1800);
   };
-  /* shadcn DropdownMenu, opening to the right of the avatar. */
   return (
     <>
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger aria-label="Account" className="mt-1 size-10 flex items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <span className="size-7 rounded-full bg-gradient-to-br from-[#F97316] to-[#EC4899] text-white text-[11px] font-semibold flex items-center justify-center ring-2 ring-white">{me.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
+      <DropdownMenuTrigger aria-label="Account" className={cx('h-[68px] shrink-0 border-t border-[#E5E5E5] flex items-center gap-2 p-4 outline-none transition-colors duration-150 data-[state=open]:bg-[#F4F4F5] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring text-left', collapsed && 'justify-center px-0')}>
+        <PersonPhoto name={me.name} size={32} />
+        {!collapsed && <>
+          <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#404040] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#737373] truncate">{me.email}</span></span>
+          <ChevronsUpDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+        </>}
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-64 p-1.5">
-        <DropdownMenuLabel className="px-2 py-1.5 font-normal"><div className="font-medium text-sm text-ink">{me.name}</div><div className="text-xs text-gray-500">{me.email}</div></DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-line" />
-        <DropdownMenuLabel className="px-2 pt-1 pb-0.5 text-xs font-normal text-gray-500">View as (demo)</DropdownMenuLabel>
-        {roles.map((r) => (
-          <DropdownMenuItem key={r.id} className="h-auto items-start px-2 py-1.5 focus:bg-gray-50"
-            onSelect={() => { setRole(r.id); nav('/'); toast.success(`Viewing as ${r.label}`); }}>
-            <span className="size-4 mt-0.5">{role === r.id && <CheckIcon size={16} weight="bold" className="text-primary" />}</span>
-            <span><span className="block">{r.label}</span><span className="block text-xs text-gray-500">{r.sub}</span></span>
+      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-60 p-0 overflow-hidden">
+        <DropdownMenuLabel className="px-3 py-3 font-normal bg-[#F5F5F5] border-b border-[#E5E5E5] flex items-center gap-2.5">
+          <PersonPhoto name={me.name} size={32} />
+          <span className="min-w-0"><span className="block font-medium text-sm text-ink truncate">{me.name}</span><span className="block text-xs text-[#737373] truncate">{me.email}</span></span>
+        </DropdownMenuLabel>
+        <div className="p-1.5">
+          <DropdownMenuLabel className="px-2 pt-1 pb-0.5 font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#737373]">View as (demo)</DropdownMenuLabel>
+          {roles.map((r) => (
+            <DropdownMenuItem key={r.id} className="h-auto items-start px-2 py-1.5 focus:bg-[#F5F5F5]"
+              onSelect={() => { setRole(r.id); nav('/'); toast.success(`Viewing as ${r.label}`); }}>
+              <span className="size-4 mt-0.5">{role === r.id && <CheckIcon size={16} weight="bold" className="text-primary" />}</span>
+              <span><span className="block">{r.label}</span><span className="block text-xs text-[#737373]">{r.sub}</span></span>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator className="bg-[#E5E5E5]" />
+          {/* Stays open when toggled, so you see the switch flip and the app change behind it. */}
+          <DropdownMenuItem className="px-2 focus:bg-[#F5F5F5]" onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
+            <Moon size={16} strokeWidth={1.5} className="text-[#404040]" /><span className="flex-1">Dark mode</span>
+            <Switch checked={theme === 'dark'} tabIndex={-1} aria-hidden className="pointer-events-none" />
           </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator className="bg-line" />
-        {/* Stays open when toggled, so you see the switch flip and the app change behind it. */}
-        <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
-          <Moon size={16} className="text-gray-500" /><span className="flex-1">Dark mode</span>
-          <Switch checked={theme === 'dark'} tabIndex={-1} aria-hidden className="pointer-events-none" />
-        </DropdownMenuItem>
-        {/* Demo: every list goes empty so its first-run state (with its Figma illustration) shows. Off brings the data back. */}
-        <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={(e) => { e.preventDefault(); setEmpty(!emptyOn); }}>
-          <Tray size={16} className="text-gray-500" /><span className="flex-1">Empty states</span>
-          <Switch checked={emptyOn} tabIndex={-1} aria-hidden className="pointer-events-none" />
-        </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-line" />
-        <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={() => { reset(); nav('/'); toast.success('Demo data reset'); }}>
-          <ArrowCounterClockwise size={16} className="text-gray-500" />Reset demo data
-        </DropdownMenuItem>
-        <DropdownMenuItem className="px-2 focus:bg-gray-50" onSelect={signOut}>
-          <SignOut size={16} className="text-gray-500" />Sign out
-        </DropdownMenuItem>
+          {/* Demo: every list goes empty so its first-run state shows. Off brings the data back. */}
+          <DropdownMenuItem className="px-2 focus:bg-[#F5F5F5]" onSelect={(e) => { e.preventDefault(); setEmpty(!emptyOn); }}>
+            <Tray size={16} strokeWidth={1.5} className="text-[#404040]" /><span className="flex-1">Empty states</span>
+            <Switch checked={emptyOn} tabIndex={-1} aria-hidden className="pointer-events-none" />
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="bg-[#E5E5E5]" />
+          <DropdownMenuItem className="px-2 focus:bg-[#F5F5F5]" onSelect={() => { reset(); nav('/'); toast.success('Demo data reset'); }}>
+            <ArrowCounterClockwise size={16} strokeWidth={1.5} className="text-[#404040]" />Reset demo data
+          </DropdownMenuItem>
+          <DropdownMenuItem className="px-2 text-[#DC2626] focus:bg-[#F5F5F5] focus:text-[#DC2626]" onSelect={signOut}>
+            <SignOut size={16} strokeWidth={1.5} />Sign out
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
     {leaving && <SigningOut name={me.name} done={leaving === 'done'} />}

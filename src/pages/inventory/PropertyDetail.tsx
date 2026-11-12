@@ -111,12 +111,12 @@ export function PropertyDetail() {
         footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations…</Button></>
           : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
       <div className="flex-1 overflow-auto">
-        {/* 2822:71: 64px grey photo tile, 20px semibold title, 14px #646A78 meta with 14px grey-400 icons and · separators. */}
+        {/* 2822:71: 64px grey photo tile, 20px semibold title, 14px #737373 meta with 14px grey-400 icons and · separators. */}
         <div className="px-7 pt-6 pb-5 flex items-center gap-4">
-          <div className="size-16 rounded-xl bg-[#F3F4F6] border border-line flex items-center justify-center"><Image size={24} className="text-[#94A3B8]" /></div>
+          <div className="size-16 rounded-xl bg-[#F5F5F5] border border-line flex items-center justify-center"><Image size={24} className="text-[#94A3B8]" /></div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2.5"><h2 className="text-xl leading-7 font-medium tracking-[-0.2px] text-[#111827]">{p.name}</h2><PropStatus s={p.status} /></div>
-            <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-[#646A78]">
+            <div className="flex items-center gap-2.5"><h2 className="text-xl leading-7 font-medium tracking-[-0.2px] text-[#0A0A0A]">{p.name}</h2><PropStatus s={p.status} /></div>
+            <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-[#737373]">
               <span className="flex items-center gap-2"><BuildingOffice size={14} className="text-gray-400" />{p.campus} campus</span><span>·</span>
               <span className="flex items-center gap-2"><MapPin size={14} className="text-gray-400" />{p.address || 'No address'}</span><span>·</span>
               <span className="flex items-center gap-2"><ListDashes size={14} className="text-gray-400" />{p.structure} layout</span>
@@ -134,7 +134,7 @@ export function PropertyDetail() {
                 <Card className="p-4">
                   <div className="flex items-center gap-3">
                     <CircleNotch size={18} className="text-primary animate-spin" />
-                    <div className="flex-1"><div className="text-sm font-medium">Creating {p.build!.total} rooms and their tenancies</div><div className="text-xs text-[#646A78]">You can leave this page; we’ll email you when it’s done.</div></div>
+                    <div className="flex-1"><div className="text-sm font-medium">Creating {p.build!.total} rooms and their tenancies</div><div className="text-xs text-[#737373]">You can leave this page; we’ll email you when it’s done.</div></div>
                     <span className="text-sm tabular-nums">{p.build!.done} / {p.build!.total}</span>
                   </div>
                   <Progress value={(p.build!.done / p.build!.total) * 100} className="mt-3" />
@@ -142,28 +142,28 @@ export function PropertyDetail() {
               )}
               {p.pendingRows ? <Note tone="amber" icon={Warning} title={`${p.pendingRows} rows still to add`}>Fix them and import again from the Units tab.</Note> : null}
               <Card>
-                <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Set-up</span><span className="ml-auto text-xs text-[#646A78]">{doneCount} of 5 done</span><Progress value={doneCount * 20} className="w-24 ml-2" /></div>
+                <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Set-up</span><span className="ml-auto text-xs text-[#737373]">{doneCount} of 5 done</span><Progress value={doneCount * 20} className="w-24 ml-2" /></div>
                 {/* 2822:71: 56px rows, 20px green circle with a white tick (dashed grey circle when not done), two-line label. */}
                 {setupRows.map((r) => (
-                  <div key={r.k} className="h-14 px-4 flex items-center gap-3 border-b border-[#F3F4F6] last:border-0">
+                  <div key={r.k} className="h-14 px-4 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0">
                     {r.ok ? <span className="size-5 rounded-full bg-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" className="text-white" /></span> : <span className="size-5 rounded-full border border-dashed border-gray-400 shrink-0" />}
-                    <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#111827]">{r.k}</span><span className="block text-xs leading-4 text-[#646A78] truncate">{r.v}</span></span>
+                    <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A]">{r.k}</span><span className="block text-xs leading-4 text-[#737373] truncate">{r.v}</span></span>
                     <EditLink onClick={r.go} />
                   </div>
                 ))}
               </Card>
               <Card>
-                <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Units</span><button type="button" onClick={() => nav(`/inventory/units?p=${p.id}`)} className="ml-auto text-xs font-medium text-primary">Open in Inventory</button></div>
+                <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Units</span><button type="button" onClick={() => nav(`/inventory/units?p=${p.id}`)} className="ml-auto text-xs font-medium text-primary">Open in Inventory</button></div>
                 {p.blocks.length ? (
                   <table className="w-full text-sm">
-                    <thead><tr className="text-left text-xs text-[#646A78] border-b border-line"><th className="font-medium h-9 px-5">Block</th><th className="font-medium text-right px-3">Floors</th><th className="font-medium text-right px-3">Rooms</th><th className="font-medium px-3 pl-6">Tenancy template</th><th className="font-medium text-right pr-4">Rent</th></tr></thead>
+                    <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-5">Block</th><th className="font-medium text-right px-3">Floors</th><th className="font-medium text-right px-3">Rooms</th><th className="font-medium px-3 pl-6">Tenancy template</th><th className="font-medium text-right pr-4">Rent</th></tr></thead>
                     <tbody>{p.blocks.map((b) => {
                       const t = templates.find((x) => x.name === b.roomType);
                       const rt = p.roomTypes.find((x) => x.name === b.roomType);
                       return (
-                        <tr key={b.name} className="border-b border-[#F3F4F6] last:border-0 h-10">
-                          <td className="px-5 font-medium text-[#111827]">{b.name}</td><td className="text-right px-3 tabular-nums">{p.structure === 'House' ? '—' : b.floors}</td><td className="text-right px-3 tabular-nums">{b.rooms}</td>
-                          <td className="px-3 pl-6 text-[#646A78]">{p.tenancies === false ? <span className="text-gray-400">No tenancy</span> : `${b.roomType}${t ? ` · ${t.weeks} wk` : ''}`}</td>
+                        <tr key={b.name} className="border-b border-[#F5F5F5] last:border-0 h-10">
+                          <td className="px-5 font-medium text-[#0A0A0A]">{b.name}</td><td className="text-right px-3 tabular-nums">{p.structure === 'House' ? '—' : b.floors}</td><td className="text-right px-3 tabular-nums">{b.rooms}</td>
+                          <td className="px-3 pl-6 text-[#737373]">{p.tenancies === false ? <span className="text-gray-400">No tenancy</span> : `${b.roomType}${t ? ` · ${t.weeks} wk` : ''}`}</td>
                           <td className="pr-4 text-right">{p.tenancies === false ? '—' : t ? `${money(t.rent)} / ${per(p)} · ${t.weeks} wk` : rt?.rent ? `${money(rt.rent)} / ${per(p)}` : '—'}</td>
                         </tr>
                       );
@@ -173,22 +173,22 @@ export function PropertyDetail() {
               </Card>
             </div>
             <Card>
-              <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6] text-sm font-semibold">Details</div>
+              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5] text-sm font-semibold">Details</div>
               <dl className="px-4 py-2 grid grid-cols-[120px_1fr] text-sm leading-5 items-center [&>dt]:py-[7px] [&>dd]:py-[6px] [&>dd]:min-w-0">
-                <dt className="text-[#646A78]">Status</dt><dd><PropStatus s={p.status} /></dd>
-                <dt className="text-[#646A78]">Letting period</dt><dd className="flex items-center gap-2">{p.letting}<EditLink onClick={() => setLettingOpen(true)}>Change</EditLink></dd>
-                <dt className="text-[#646A78]">Campus</dt><dd>{p.campus}</dd>
-                <dt className="text-[#646A78]">Structure</dt><dd>{p.structure} · {p.structure === 'College' ? 5 : 2} levels</dd>
-                <dt className="text-[#646A78]">Inventory no.</dt><dd className="font-mono">{p.invNo || '—'}</dd>
-                <dt className="text-[#646A78]">Zone</dt><dd>{p.zone || '—'}</dd>
-                <dt className="text-[#646A78]">Units</dt><dd>{p.units}</dd>
-                <dt className="text-[#646A78] self-start pt-0.5">Tags</dt>
+                <dt className="text-[#737373]">Status</dt><dd><PropStatus s={p.status} /></dd>
+                <dt className="text-[#737373]">Letting period</dt><dd className="flex items-center gap-2">{p.letting}<EditLink onClick={() => setLettingOpen(true)}>Change</EditLink></dd>
+                <dt className="text-[#737373]">Campus</dt><dd>{p.campus}</dd>
+                <dt className="text-[#737373]">Structure</dt><dd>{p.structure} · {p.structure === 'College' ? 5 : 2} levels</dd>
+                <dt className="text-[#737373]">Inventory no.</dt><dd className="font-mono">{p.invNo || '—'}</dd>
+                <dt className="text-[#737373]">Zone</dt><dd>{p.zone || '—'}</dd>
+                <dt className="text-[#737373]">Units</dt><dd>{p.units}</dd>
+                <dt className="text-[#737373] self-start pt-0.5">Tags</dt>
                 <dd className="flex flex-wrap gap-1.5 items-center">
-                  {p.tags.length ? <span className="flex flex-wrap gap-1.5">{p.tags.map((t) => <Tags key={t.label} tags={[t]} />)}</span> : <span className="text-[#646A78]">None yet</span>}
+                  {p.tags.length ? <span className="flex flex-wrap gap-1.5">{p.tags.map((t) => <Tags key={t.label} tags={[t]} />)}</span> : <span className="text-[#737373]">None yet</span>}
                   <Menu align="left" width={180} trigger={(o) => <button type="button" onClick={o} className="text-xs font-medium text-primary inline-flex items-center gap-1">Add tag</button>}
                     items={TAG_CHOICES.filter((t) => !p.tags.some((x) => x.label === t.label)).map((t) => ({ label: t.label, icon: TagIcon, onClick: () => { patchProp(p.id, (x) => ({ tags: [...x.tags, t] })); toast.success(`Tagged ${t.label}`); } }))} />
                 </dd>
-                <dt className="text-[#646A78]">Created</dt><dd className="flex items-center gap-1.5"><Avatar name={p.createdBy} size={20} />{p.createdBy} · {p.created}</dd>
+                <dt className="text-[#737373]">Created</dt><dd className="flex items-center gap-1.5"><Avatar name={p.createdBy} size={20} />{p.createdBy} · {p.created}</dd>
               </dl>
             </Card>
           </div>
@@ -199,30 +199,30 @@ export function PropertyDetail() {
           <div className="p-6 space-y-5">
             {p.tenancies === false && <Note tone="amber" icon={WarningCircle} title="These rooms have no tenancy yet">Apply a tenancy template to each room type before the property can go active.</Note>}
             <Card className="overflow-hidden">
-              <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Room types</span><span className="ml-2 text-sm text-[#646A78]">Rent applies to every room of that type</span></div>
+              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Room types</span><span className="ml-2 text-sm text-[#737373]">Rent applies to every room of that type</span></div>
               <table className="w-full text-sm">
-                <thead><tr className="text-left text-xs text-[#646A78] border-b border-line"><th className="font-medium h-9 px-4">Room type</th><th className="font-medium text-right">Rooms</th><th className="font-medium pl-8">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="pr-4" /></tr></thead>
+                <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Room type</th><th className="font-medium text-right">Rooms</th><th className="font-medium pl-8">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="pr-4" /></tr></thead>
                 <GhostZone.Provider value><tbody>
                   {p.roomTypes.map((r) => (
-                    <tr key={r.name} className="border-b border-[#F3F4F6] last:border-0 h-12">
-                      <td className="px-4"><span className="flex items-center gap-2 text-sm font-medium"><Bed size={15} className="text-[#646A78]" />{r.name}</span></td>
+                    <tr key={r.name} className="border-b border-[#F5F5F5] last:border-0 h-12">
+                      <td className="px-4"><span className="flex items-center gap-2 text-sm font-medium"><Bed size={15} className="text-[#737373]" />{r.name}</span></td>
                       <td className="text-right tabular-nums">{r.rooms}</td>
-                      <td className="pl-8">{r.rent == null ? <span className="text-[#E0243A]">No rent</span> : r.next ? <span>{money(r.rent)} / {per(p) === 'wk' ? 'week' : 'month'} <span className="text-gray-400">→</span> <b className="font-medium">{money(r.next.rent)}</b> <span className="text-[#646A78]">from {r.next.from} for new tenancies</span></span> : `${money(r.rent)} / ${per(p) === 'wk' ? 'week' : 'month'}`}</td>
+                      <td className="pl-8">{r.rent == null ? <span className="text-[#E0243A]">No rent</span> : r.next ? <span>{money(r.rent)} / {per(p) === 'wk' ? 'week' : 'month'} <span className="text-gray-400">→</span> <b className="font-medium">{money(r.next.rent)}</b> <span className="text-[#737373]">from {r.next.from} for new tenancies</span></span> : `${money(r.rent)} / ${per(p) === 'wk' ? 'week' : 'month'}`}</td>
                       <td className="pr-4 text-right"><Button size="sm" icon={null} onClick={() => setRentFor(r)}>Change rent</Button></td>
                     </tr>
                   ))}
-                  {!p.roomTypes.length && <tr><td colSpan={4} className="h-16 text-center text-[#646A78]">No room types yet</td></tr>}
+                  {!p.roomTypes.length && <tr><td colSpan={4} className="h-16 text-center text-[#737373]">No room types yet</td></tr>}
                 </tbody></GhostZone.Provider>
               </table>
             </Card>
             <Card className="overflow-hidden">
-              <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Rent and fees</button></div>
+              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Rent and fees</button></div>
               {templates.length ? templates.map((t) => (
-                <div key={t.id} className="h-12 px-4 flex items-center gap-3 border-b border-[#F3F4F6] last:border-0 text-sm">
-                  <span className="text-sm font-medium w-44">{t.name}</span><span className="text-[#646A78] flex-1">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.billing}</span>
-                  <span className="text-[#646A78]">{t.linked} linked</span><PropStatus s={t.status} />
+                <div key={t.id} className="h-12 px-4 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0 text-sm">
+                  <span className="text-sm font-medium w-44">{t.name}</span><span className="text-[#737373] flex-1">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.billing}</span>
+                  <span className="text-[#737373]">{t.linked} linked</span><PropStatus s={t.status} />
                 </div>
-              )) : <div className="p-5 text-sm text-[#646A78]">No templates for {short} yet.</div>}
+              )) : <div className="p-5 text-sm text-[#737373]">No templates for {short} yet.</div>}
             </Card>
           </div>
         )}
@@ -231,8 +231,8 @@ export function PropertyDetail() {
           <div className="p-6 max-w-3xl">
             <Card>
               {p.activity.map((a, i) => (
-                <div key={i} className="px-4 py-3 flex items-center gap-3 border-b border-[#F3F4F6] last:border-0">
-                  <Avatar name={a.who} size={24} /><span className="text-sm flex-1"><b className="font-medium">{a.who}</b> <span className="text-[#646A78]">{a.what.charAt(0).toLowerCase() + a.what.slice(1)}</span></span><span className="text-sm text-[#646A78]">{a.when}</span>
+                <div key={i} className="px-4 py-3 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0">
+                  <Avatar name={a.who} size={24} /><span className="text-sm flex-1"><b className="font-medium">{a.who}</b> <span className="text-[#737373]">{a.what.charAt(0).toLowerCase() + a.what.slice(1)}</span></span><span className="text-sm text-[#737373]">{a.when}</span>
                 </div>
               ))}
             </Card>
@@ -247,7 +247,7 @@ export function PropertyDetail() {
           {problems.map((x) => (
             <div key={x.title} className="h-11 px-3.5 flex items-center gap-2.5 text-sm">
               {x.ok ? <CheckCircle size={17} weight="fill" className="text-[#16A34A]" /> : <WarningCircle size={17} weight="fill" className="text-[#E0243A]" />}
-              <span className="font-medium flex-1">{x.title}</span><span className={x.ok ? 'text-[#646A78]' : 'text-[#E0243A]'}>{x.ok ? x.okText : x.fail}</span>
+              <span className="font-medium flex-1">{x.title}</span><span className={x.ok ? 'text-[#737373]' : 'text-[#E0243A]'}>{x.ok ? x.okText : x.fail}</span>
             </div>
           ))}
         </div>
@@ -268,7 +268,7 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
   const patchProp = useInv((s) => s.patchProp);
   const short = shortName(p);
   if (p.build && p.build.done < p.build.total) {
-    return <div className="p-6"><Card className="p-6 text-center"><CircleNotch size={22} className="text-primary animate-spin mx-auto" /><div className="font-medium mt-2">Building {p.build.total} rooms</div><div className="text-sm text-[#646A78] mt-1">{p.build.done} of {p.build.total} done</div><Progress value={(p.build.done / p.build.total) * 100} className="max-w-xs mx-auto mt-3" /></Card></div>;
+    return <div className="p-6"><Card className="p-6 text-center"><CircleNotch size={22} className="text-primary animate-spin mx-auto" /><div className="font-medium mt-2">Building {p.build.total} rooms</div><div className="text-sm text-[#737373] mt-1">{p.build.done} of {p.build.total} done</div><Progress value={(p.build.done / p.build.total) * 100} className="max-w-xs mx-auto mt-3" /></Card></div>;
   }
   if (!p.units) {
     const build = () => {
@@ -280,7 +280,7 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
         <div className="max-w-md text-center">
           <EmptyArt kind="clipboard" />
           <div className="font-semibold mt-5">No rooms in {short} yet</div>
-          <p className="text-sm text-[#646A78] mt-1">Build them block by block, or import a spreadsheet.</p>
+          <p className="text-sm text-[#737373] mt-1">Build them block by block, or import a spreadsheet.</p>
           <div className="flex justify-center gap-2 mt-4">
             <Button variant="primary" icon={Plus} onClick={build}>Build rooms</Button>
             <Button icon={DownloadSimple} onClick={() => toast.success('rooms-template.csv downloaded')}>Download template</Button>
@@ -299,18 +299,18 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
         </Note>
       ) : null}
       <Card className="overflow-hidden">
-        <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Rooms</span><span className="ml-2 text-sm text-[#646A78]">{p.units} in {p.blocks.length} {p.blocks.length === 1 ? 'block' : 'blocks'}</span>
+        <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Rooms</span><span className="ml-2 text-sm text-[#737373]">{p.units} in {p.blocks.length} {p.blocks.length === 1 ? 'block' : 'blocks'}</span>
           <div className="ml-auto flex gap-2"><Button size="sm" variant="ghost" icon={UploadSimple} onClick={onImport}>Import</Button><Button size="sm" variant="ghost" icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button></div></div>
         <table className="w-full text-sm">
-          <thead><tr className="text-left text-xs text-[#646A78] border-b border-line"><th className="font-medium h-9 px-4">Room</th><th className="font-medium">Block · flat</th><th className="font-medium">Room type</th><th className="font-medium">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="font-medium pr-4">Status</th></tr></thead>
+          <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Room</th><th className="font-medium">Block · flat</th><th className="font-medium">Room type</th><th className="font-medium">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="font-medium pr-4">Status</th></tr></thead>
           <tbody>{units.map((u) => (
-            <tr key={u.id} className="border-b border-[#F3F4F6] last:border-0 h-10 hover:bg-[#FAFAFB] cursor-pointer" onClick={() => nav(`/inventory/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)}>
-              <td className="px-4 font-mono">{p.tenancies === false ? `B.${u.code.split('.')[0]}.${String(units.indexOf(u) + 1).padStart(2, '0')}` : u.code}</td><td className="text-[#646A78]">{u.block} · {u.flat}</td><td>{u.type}</td>
+            <tr key={u.id} className="border-b border-[#F5F5F5] last:border-0 h-10 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => nav(`/inventory/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)}>
+              <td className="px-4 font-mono">{p.tenancies === false ? `B.${u.code.split('.')[0]}.${String(units.indexOf(u) + 1).padStart(2, '0')}` : u.code}</td><td className="text-[#737373]">{u.block} · {u.flat}</td><td>{u.type}</td>
               <td>{u.rent != null ? money(u.rent) : <span className="text-gray-400">No tenancy</span>}</td><td className="pr-4"><PropStatus s={u.status} /></td>
             </tr>
           ))}</tbody>
         </table>
-        {p.units > units.length && <div className="h-10 px-4 flex items-center border-t border-line text-sm text-[#646A78]">Showing {units.length} of {p.units} · <button type="button" className="text-primary ml-1" onClick={() => nav(`/inventory/units?p=${p.id}`)}>see them all in Inventory</button></div>}
+        {p.units > units.length && <div className="h-10 px-4 flex items-center border-t border-line text-sm text-[#737373]">Showing {units.length} of {p.units} · <button type="button" className="text-primary ml-1" onClick={() => nav(`/inventory/units?p=${p.id}`)}>see them all in Inventory</button></div>}
       </Card>
     </div>
   );
@@ -348,7 +348,7 @@ function ImportRoomsSheet({ p, open, onClose }: { p: Property; open: boolean; on
         <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
           <SheetSection title="File">
           <button type="button" onClick={() => setStage('check')} className="w-full rounded-xl border-[1.5px] border-dashed border-gray-300 py-10 flex flex-col items-center gap-2 hover:bg-gray-50">
-            <FileCsv size={28} className="text-primary" /><span className="text-sm font-medium">st-marys-rooms.csv</span><span className="text-xs text-[#646A78]">146 rows · 18 KB · click to check it</span>
+            <FileCsv size={28} className="text-primary" /><span className="text-sm font-medium">st-marys-rooms.csv</span><span className="text-xs text-[#737373]">146 rows · 18 KB · click to check it</span>
           </button>
           </SheetSection>
           <SheetSection title="Columns">
@@ -359,18 +359,18 @@ function ImportRoomsSheet({ p, open, onClose }: { p: Property; open: boolean; on
         <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
           <SheetSection title="Check">
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-line p-3.5"><div className="text-[22px] font-semibold text-[#0B8A4C]">141</div><div className="text-sm text-[#646A78]">rooms ready to import</div></div>
-            <div className="rounded-xl border border-[#F59E0B4D] p-3.5"><div className="text-[22px] font-semibold text-[#B45309]">5</div><div className="text-sm text-[#646A78]">rows need fixing · left out</div></div>
+            <div className="rounded-xl border border-line p-3.5"><div className="text-[22px] font-semibold text-[#0B8A4C]">141</div><div className="text-sm text-[#737373]">rooms ready to import</div></div>
+            <div className="rounded-xl border border-[#F59E0B4D] p-3.5"><div className="text-[22px] font-semibold text-[#B45309]">5</div><div className="text-sm text-[#737373]">rows need fixing · left out</div></div>
           </div>
           </SheetSection>
           <SheetSection title="Rows to fix">
           <div className="rounded-xl border border-line overflow-hidden">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-[#646A78] bg-[#F9FAFB] border-b border-line"><th className="font-medium h-9 px-3">Row</th><th className="font-medium">Room</th><th className="font-medium">Problem</th><th className="font-medium pr-3">Fix</th></tr></thead>
-              <tbody>{BAD_ROWS.map((r) => <tr key={r.row} className="border-b border-[#F3F4F6] last:border-0"><td className="px-3 h-11 tabular-nums">{r.row}</td><td className="font-mono">{r.room}</td><td className="text-[#E0243A]">{r.problem}</td><td className="pr-3 text-[#646A78]">{r.fix}</td></tr>)}</tbody>
+              <thead><tr className="text-left text-xs text-[#737373] bg-[#FAFAFA] border-b border-line"><th className="font-medium h-9 px-3">Row</th><th className="font-medium">Room</th><th className="font-medium">Problem</th><th className="font-medium pr-3">Fix</th></tr></thead>
+              <tbody>{BAD_ROWS.map((r) => <tr key={r.row} className="border-b border-[#F5F5F5] last:border-0"><td className="px-3 h-11 tabular-nums">{r.row}</td><td className="font-mono">{r.room}</td><td className="text-[#E0243A]">{r.problem}</td><td className="pr-3 text-[#737373]">{r.fix}</td></tr>)}</tbody>
             </table>
           </div>
-          <p className="mt-3 text-xs text-[#646A78]">Download the 5 rows after the import, fix them and import again.</p>
+          <p className="mt-3 text-xs text-[#737373]">Download the 5 rows after the import, fix them and import again.</p>
           </SheetSection>
         </div>
       )}
@@ -398,7 +398,7 @@ function PhotosTab({ p }: { p: Property }) {
       <div className="p-6 grid grid-cols-[1fr_340px] gap-5 items-start flex-1">
         <div className="space-y-5 min-w-0">
           <Card>
-            <div className="h-12 px-4 flex items-center border-b border-[#F3F4F6]"><span className="text-sm font-semibold">Photos</span><span className="ml-2 text-sm text-[#646A78]">{photos ? `${photos} · the first is the cover` : 'None yet'}</span><Button size="sm" icon={UploadSimple} className="ml-auto" onClick={() => setPhotos(photos ? photos + 1 : 7)}>Add photos</Button></div>
+            <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Photos</span><span className="ml-2 text-sm text-[#737373]">{photos ? `${photos} · the first is the cover` : 'None yet'}</span><Button size="sm" icon={UploadSimple} className="ml-auto" onClick={() => setPhotos(photos ? photos + 1 : 7)}>Add photos</Button></div>
             <div className="p-4">
               {photos ? (
                 <div className="grid grid-cols-4 gap-3">
@@ -411,7 +411,7 @@ function PhotosTab({ p }: { p: Property }) {
                 </div>
               ) : (
                 <button type="button" onClick={() => setPhotos(7)} className="w-full rounded-xl border-[1.5px] border-dashed border-gray-300 py-10 flex flex-col items-center gap-2 hover:bg-gray-50">
-                  <ImageSquare size={26} className="text-primary" /><span className="text-sm font-medium">Drop photos here</span><span className="text-xs text-[#646A78]">JPG or PNG · the first one is the cover</span>
+                  <ImageSquare size={26} className="text-primary" /><span className="text-sm font-medium">Drop photos here</span><span className="text-xs text-[#737373]">JPG or PNG · the first one is the cover</span>
                 </button>
               )}
             </div>
@@ -459,7 +459,7 @@ function WardenPhoneDialog({ p, open, onClose, onDone }: { p: Property; open: bo
       <div className="rounded-xl border border-line">
         <div className="h-10 px-3.5 flex items-center border-b border-line text-sm font-medium">1 thing to fix</div>
         <div className="p-3.5 space-y-3">
-          <div className="flex items-start gap-2.5"><WarningCircle size={17} weight="fill" className="text-[#E0243A] mt-px" /><div><div className="text-sm font-medium">Warden phone is empty</div><div className="text-xs text-[#646A78]">A required custom field on Property · <span className="font-mono">field.wardenPhone</span></div></div></div>
+          <div className="flex items-start gap-2.5"><WarningCircle size={17} weight="fill" className="text-[#E0243A] mt-px" /><div><div className="text-sm font-medium">Warden phone is empty</div><div className="text-xs text-[#737373]">A required custom field on Property · <span className="font-mono">field.wardenPhone</span></div></div></div>
           <Field label="Warden phone"><Input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></Field>
         </div>
       </div>
@@ -498,11 +498,11 @@ function LettingDialog({ p, open, onClose }: { p: Property; open: boolean; onClo
         <>
           <div className="rounded-xl border border-line overflow-hidden mt-4">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-[#646A78] bg-[#F9FAFB] border-b border-line"><th className="font-medium h-9 px-3">Template</th><th className="font-medium">Now</th><th className="font-medium pr-3">After</th></tr></thead>
-              <tbody>{templates.map((t) => <tr key={t.id} className="border-b border-[#F3F4F6] last:border-0 h-10"><td className="px-3 font-medium">{t.name}</td><td className="text-[#646A78]">{now(t.rent, t.weeks)}</td><td className="pr-3 font-medium">{after(t.rent, t.weeks)}</td></tr>)}</tbody>
+              <thead><tr className="text-left text-xs text-[#737373] bg-[#FAFAFA] border-b border-line"><th className="font-medium h-9 px-3">Template</th><th className="font-medium">Now</th><th className="font-medium pr-3">After</th></tr></thead>
+              <tbody>{templates.map((t) => <tr key={t.id} className="border-b border-[#F5F5F5] last:border-0 h-10"><td className="px-3 font-medium">{t.name}</td><td className="text-[#737373]">{now(t.rent, t.weeks)}</td><td className="pr-3 font-medium">{after(t.rent, t.weeks)}</td></tr>)}</tbody>
             </table>
           </div>
-          <ul className="mt-3 space-y-1 text-sm text-[#646A78] list-disc pl-5">
+          <ul className="mt-3 space-y-1 text-sm text-[#737373] list-disc pl-5">
             <li>Converts {templates.length} templates and {n} tenancies: rent × 52 ÷ 12 to the penny, length to whole months.</li>
             <li>Deposits and billing frequency stay as they are.</li>
           </ul>
@@ -546,7 +546,7 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
         <SheetSection title="New rent">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Rent"><MoneyInput value={rent} onChange={setRent} suffix={`/ ${unit}`} /><FieldErr>{rentErr}</FieldErr></Field>
-          <Field label="From"><label className="h-8 flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 text-sm"><CalendarBlank size={14} className="text-[#646A78]" /><input aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1 min-w-0 outline-none" /></label><FieldErr>{fromErr}</FieldErr></Field>
+          <Field label="From"><label className="h-8 flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 text-sm"><CalendarBlank size={14} className="text-[#737373]" /><input aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1 min-w-0 outline-none" /></label><FieldErr>{fromErr}</FieldErr></Field>
         </div>
         </SheetSection>
         <SheetSection title="Apply to">

@@ -11,7 +11,7 @@ export const fromIcon: Record<FromIcon, Icon> = {
 };
 
 const dueCls: Record<DueTone, string> = {
-  red: 'bg-[#FEEFEE] text-[#C11F14] border-[#FCE1E0]', orange: 'bg-[#FFF0E0] text-[#C2410C] border-[#FFE9D2]', amber: 'bg-[#FFF6E0] text-[#9A5B00] border-[#FFF2D1]', grey: 'bg-[#F3F4F6] text-[#374151] border-[#ECEDF0]', plain: '',
+  red: 'bg-[#FEEFEE] text-[#C11F14] border-[#FCE1E0]', orange: 'bg-[#FFF0E0] text-[#C2410C] border-[#FFE9D2]', amber: 'bg-[#FFF6E0] text-[#9A5B00] border-[#FFF2D1]', grey: 'bg-[#F5F5F5] text-[#404040] border-[#ECEDF0]', plain: '',
 };
 /** Due pill: calendar icon on My tasks, clock icon on the team board. "This week" is plain text. */
 export function DuePill({ t }: { t: Pick<HTask, 'dueLabel' | 'dueTone'>; clock?: boolean }) {
@@ -21,7 +21,7 @@ export function DuePill({ t }: { t: Pick<HTask, 'dueLabel' | 'dueTone'>; clock?:
 
 /** Person avatar: the shared toned Avatar (Figma 3770:15786) in each person's colour (PS orange, TB teal, AK purple); muted is grey. `grad` is kept for callers. */
 export function Who({ name, size = 22, muted }: { name: string; size?: number; muted?: boolean; grad?: boolean }) {
-  return <Avatar name={name} size={size} color={muted ? '#9CA3AF' : PEOPLE[name]?.color} />;
+  return <Avatar name={name} size={size} color={muted ? '#A3A3A3' : PEOPLE[name]?.color} />;
 }
 
 /** Square checkbox drawn to the design (16px, blue when on), inside a 24px hit area that doesn't move the layout. */
@@ -83,7 +83,7 @@ export function Picker({ title, can, cant, onPick }: {
       </label>
       <div className="px-2 pt-3 pb-1 text-xs font-medium text-gray-500">{title}</div>
       {can.length === 0 ? (
-        <div className="h-10 px-2 rounded-lg bg-[#F9FAFB] flex items-center gap-2 text-sm text-gray-500"><UserMinus size={14} className="text-gray-400" />Nobody else</div>
+        <div className="h-10 px-2 rounded-lg bg-[#FAFAFA] flex items-center gap-2 text-sm text-gray-500"><UserMinus size={14} className="text-gray-400" />Nobody else</div>
       ) : canShown.length === 0 ? (
         <div className="h-9 px-2 flex items-center text-sm text-gray-400">No one matches “{q}”</div>
       ) : canShown.map((p) => (
@@ -92,7 +92,7 @@ export function Picker({ title, can, cant, onPick }: {
         </button>
       ))}
       {cantShown.length > 0 && (
-        <div className="mt-1.5 pt-1.5 border-t border-[#F3F4F6]">
+        <div className="mt-1.5 pt-1.5 border-t border-[#F5F5F5]">
           <div className="px-2 pt-1.5 pb-1 text-xs font-medium text-gray-500">Can’t {title.startsWith('Can approve') ? 'approve' : 'take this'} here</div>
           {cantShown.map((p) => (
             <div key={p.name} aria-disabled="true" className="h-10 px-2 flex items-center gap-2 text-sm text-gray-400 cursor-not-allowed">

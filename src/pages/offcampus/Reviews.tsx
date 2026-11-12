@@ -132,7 +132,7 @@ export function Reviews() {
                 {items.map(({ row: r, motion }) => {
                   const on = ticked.includes(r.id);
                   return (
-                    <tr key={r.id} {...rowAttrs(r.id, motion)} onClick={() => setOpen(r.id)} className={cx('border-b border-[#F3F4F6] cursor-pointer [&>td]:h-10 [&>td]:px-3 [&>td]:py-1.5', on ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_theme(colors.primary)]' : open === r.id ? 'bg-[#EFF6FF]' : 'hover:bg-[#F9FAFB]')}>
+                    <tr key={r.id} {...rowAttrs(r.id, motion)} onClick={() => setOpen(r.id)} className={cx('border-b border-[#F5F5F5] cursor-pointer [&>td]:h-10 [&>td]:px-3 [&>td]:py-1.5', on ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_theme(colors.primary)]' : open === r.id ? 'bg-[#EFF6FF]' : 'hover:bg-[#FAFAFA]')}>
                       {canTick && <td className="!pl-[var(--cx,12px)]" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${r.title}`} checked={on} onCheckedChange={(v) => tick(r.id, (v === true))} /></td>}
                       <td className={cx(!canTick && '!pl-[var(--cx,12px)]')}>
                         <div className="flex items-center gap-2.5"><Thumb tint={r.tint} /><div className="leading-tight"><div className="font-medium">{r.title}</div><div className="text-xs text-gray-500">{r.town} · {r.type} · {r.beds} bed</div></div></div>
@@ -221,11 +221,11 @@ function ListingDetail({ r }: { r: Review }) {
       </SheetSection>
       <SheetSection title="Terms" rows={[['Bills', r.bills], ['House rules', r.rules]]} />
       <SheetSection title={`Rooms · ${r.rooms.length}`}>
-        <div className="divide-y divide-[#F3F4F6]">
+        <div className="divide-y divide-[#F5F5F5]">
           {r.rooms.map((rm, i) => (
             <div key={rm.name} className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3">
               {rm.photos ? <Thumb tint={['#EFEBE3', '#E6EEE8', '#ECE6EE', '#EAECEF'][i % 4]} w={56} h={40} size={16} />
-                : <span className="w-14 h-10 rounded-md border border-dashed border-[#8A909C] text-xs leading-tight text-[#646A78] flex items-center px-1">No photos</span>}
+                : <span className="w-14 h-10 rounded-md border border-dashed border-[#8A909C] text-xs leading-tight text-[#737373] flex items-center px-1">No photos</span>}
               <div className="flex-1 leading-tight">
                 <div className="flex items-center gap-2 text-sm font-medium">{rm.name}<Tag tone="green">Active</Tag></div>
                 <div className="text-xs text-gray-500 mt-0.5">{rm.kind} · {rm.size} m² · {rm.bath}</div>

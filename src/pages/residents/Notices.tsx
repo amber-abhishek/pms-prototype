@@ -173,7 +173,7 @@ function Compose({ draft }: { draft?: Notice }) {
             <textarea ref={bodyRef} rows={8} value={body} onChange={(e) => setBody(e.target.value)} className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-sm leading-relaxed outline-none focus:border-primary focus:ring-2 focus:ring-primary/25 placeholder:text-gray-400" placeholder="Write to residents. Use {first name} to greet each one." />
           </div>
         </div>
-        <aside className="w-[400px] shrink-0 border-l border-line bg-[#FAFAFB] p-5 overflow-auto">
+        <aside className="w-[400px] shrink-0 border-l border-line bg-[#FAFAFA] p-5 overflow-auto">
           <div className="flex items-center mb-3"><span className="text-sm text-gray-500">Preview as Amira Rahman</span>
             <div className="ml-auto"><Tabs value={view} onChange={setView} tabs={[{ id: 'Email', label: 'Email' }, { id: 'Portal', label: 'Portal' }]} /></div></div>
           <Card className="p-4">
@@ -271,25 +271,25 @@ function NoticeSheet({ n, onClose , nav: sheetNav }: { nav?: SheetNav;  n: Notic
             <SheetSection title="Delivery">
               <div className="grid grid-cols-2 gap-x-4 gap-y-4">
                 {([['Delivered', n.count.toLocaleString('en-GB'), '100%'], ['Opened', opened.toLocaleString('en-GB'), `${n.opened ?? 0}%`], [n.id === 'n1' ? 'Bedding packs ordered' : 'Clicked a link', clicks, 'from the link'], ['Bounced', 0, '']] as const).map(([l, v, sub]) => (
-                  <div key={l}><div className="text-sm text-[#646A78]">{l}</div><div className="flex items-baseline gap-2 mt-1"><span className="text-xl font-semibold tracking-tight">{v}</span>{sub && <span className="text-xs text-[#646A78]">{sub}</span>}</div></div>
+                  <div key={l}><div className="text-sm text-[#737373]">{l}</div><div className="flex items-baseline gap-2 mt-1"><span className="text-xl font-semibold tracking-tight">{v}</span>{sub && <span className="text-xs text-[#737373]">{sub}</span>}</div></div>
                 ))}
               </div>
             </SheetSection>
             <SheetSection title="Not opened">
               {unopened > 0 && <div className="mb-2 flex items-center justify-between"><span className="text-sm text-ink">{unopened.toLocaleString('en-GB')} residents</span><Button size="sm" icon={ChatText} onClick={() => setRemind(true)}>Remind by SMS</Button></div>}
               {unopened > 0 ? (
-                <div className="divide-y divide-[#F3F4F6]">
+                <div className="divide-y divide-[#F5F5F5]">
                   {notOpened.map(([nm, rm, ar]) => (
                     <div key={nm} className="h-10 flex items-center gap-3 text-sm">
-                      <span className="flex-1 min-w-0 truncate text-[#111827]">{nm}</span>
-                      <span className="w-16 text-[#646A78]">{rm}</span>
-                      <span className="w-20 text-[#646A78]">{ar}</span>
-                      <Envelope size={14} className="text-[#646A78]" aria-label="Delivered, not opened" />
+                      <span className="flex-1 min-w-0 truncate text-[#0A0A0A]">{nm}</span>
+                      <span className="w-16 text-[#737373]">{rm}</span>
+                      <span className="w-20 text-[#737373]">{ar}</span>
+                      <Envelope size={14} className="text-[#737373]" aria-label="Delivered, not opened" />
                     </div>
                   ))}
-                  {unopened > notOpened.length && <div className="h-10 flex items-center text-sm text-[#646A78]">and {(unopened - notOpened.length).toLocaleString('en-GB')} more</div>}
+                  {unopened > notOpened.length && <div className="h-10 flex items-center text-sm text-[#737373]">and {(unopened - notOpened.length).toLocaleString('en-GB')} more</div>}
                 </div>
-              ) : <div className="text-sm text-[#646A78]">Everyone has opened it.</div>}
+              ) : <div className="text-sm text-[#737373]">Everyone has opened it.</div>}
             </SheetSection>
           </>
         )}

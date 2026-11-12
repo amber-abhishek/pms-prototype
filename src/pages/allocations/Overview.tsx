@@ -73,7 +73,7 @@ export function AllocOverview() {
         </div>
         <div className="grid grid-cols-3 gap-4">
           <SummaryCard title="To review" foot="Oldest" footValue={e || !queue.length ? '—' : `${oldest} ${oldest === 1 ? 'day' : 'days'}`} footTone={e || oldest < 7 ? 'ink' : 'orange'} action={e ? null : <Button size="sm" onClick={() => nav(review)}>Review</Button>}>
-            <Split value={e ? '0' : fmtN(queue.length)} parts={[[`${e ? 0 : ready} ready`, e ? 0 : ready, '#2563EB'], [`${e ? 0 : flagged} need a person`, e ? 0 : flagged, '#F59E0B'], [`${e ? 0 : noUnit} no unit`, e ? 0 : noUnit, '#D1D5DB']]} />
+            <Split value={e ? '0' : fmtN(queue.length)} parts={[[`${e ? 0 : ready} ready`, e ? 0 : ready, '#2563EB'], [`${e ? 0 : flagged} need a person`, e ? 0 : flagged, '#F59E0B'], [`${e ? 0 : noUnit} no unit`, e ? 0 : noUnit, '#D4D4D4']]} />
           </SummaryCard>
           <SummaryCard title="Offers out" foot="Waitlist" footValue={e || !oc.waitlist ? 'No one waiting' : `${fmtN(oc.waitlist)} waiting`} action={e ? null : <ViewLink to="/allocations/offers" />}>
             <Stats items={e ? [['Open', '0'], ['Expiring in 48 h', '0'], ['Accepted', '0']] : [['Open', fmtN(oc.open)], ['Expiring in 48 h', String(expiring), expiring ? 'orange' : undefined], ['Accepted', fmtN(oc.accepted)]]} />

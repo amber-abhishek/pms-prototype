@@ -157,7 +157,7 @@ function PbsaTab() {
                   {shown.map((p) => {
                     const h = isHidden(p.ref);
                     return (
-                      <tr key={p.id} className="border-b border-[#F3F4F6] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-1">
+                      <tr key={p.id} className="border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-1">
                         <td className="!pl-[var(--cx,12px)]"><div className="leading-tight"><div className="font-medium">{p.name}</div><div className="font-mono text-xs text-gray-500">{p.ref}</div></div></td>
                         <td>{p.region === 'Newcastle upon Tyne' ? 'Newcastle' : p.region}</td>
                         <td className="text-right">£{p.from} / week</td>
@@ -170,10 +170,10 @@ function PbsaTab() {
                 </tbody></GhostZone.Provider>
               </table>
             </div>
-            {pages > 1 && <div data-foot className="h-10 shrink-0 px-5 flex items-center justify-end gap-1.5 border-t border-line bg-white text-xs text-[#646A78]">
+            {pages > 1 && <div data-foot className="h-10 shrink-0 px-5 flex items-center justify-end gap-1.5 border-t border-line bg-white text-xs text-[#737373]">
               <span className="mr-1">{page * PER + 1}–{Math.min(rows.length, (page + 1) * PER)} of {rows.length}</span>
-              <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={13} /></button>
-              <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={13} /></button>
+              <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={13} /></button>
+              <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={13} /></button>
             </div>}
           </>
         )}

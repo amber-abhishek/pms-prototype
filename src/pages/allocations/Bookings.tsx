@@ -115,12 +115,12 @@ export function Bookings() {
             </div>
             {d.conflicts.map((k) => (
               <div key={k.id} className="rounded-xl border border-line bg-white">
-                <div className="h-14 px-4 flex items-center gap-2.5 border-b border-[#F3F4F6]">
+                <div className="h-14 px-4 flex items-center gap-2.5 border-b border-[#F5F5F5]">
                   <Warning size={16} className="text-[#E0243A] shrink-0" /><div className="min-w-0"><div className="text-sm font-semibold">{k.unit}</div><div className="text-xs text-gray-500">{k.overlap}</div></div>
                   <Button size="sm" className="ml-auto" onClick={() => setResolving(k)}>Resolve…</Button>
                 </div>
                 {[k.a, k.b].map((s, i) => (
-                  <div key={s.ref} className={cx('h-[52px] px-4 flex items-center gap-3', i === 0 && 'border-b border-[#F3F4F6]')}>
+                  <div key={s.ref} className={cx('h-[52px] px-4 flex items-center gap-3', i === 0 && 'border-b border-[#F5F5F5]')}>
                     <Ini name={s.name} size={24} />
                     <div><div className="text-sm font-medium">{s.name}</div><div className="font-mono text-xs text-gray-500">{s.note ? `${s.note} · ` : ''}{s.ref}</div></div>
                     <span className="ml-auto text-sm text-ink mr-12">{s.term}</span>

@@ -76,17 +76,17 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
 }
 
 /* ---------- pieces ---------- */
-/** A flat list row inside a section: leading slot, title + grey sub, trailing slot. Rows split by #F3F4F6 hairlines. */
+/** A flat list row inside a section: leading slot, title + grey sub, trailing slot. Rows split by #F5F5F5 hairlines. */
 function Row({ lead, title, sub, children }: { lead?: ReactNode; title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="min-h-[52px] py-2 flex items-center gap-3 border-b border-[#F3F4F6] last:border-b-0">
+    <div className="min-h-[52px] py-2 flex items-center gap-3 border-b border-[#F5F5F5] last:border-b-0">
       {lead}
       <div className="min-w-0 flex-1"><div className="text-sm font-medium text-ink truncate">{title}</div>{sub && <div className="text-xs text-gray-500 truncate">{sub}</div>}</div>
       {children}
     </div>
   );
 }
-const Rank = ({ n, on }: { n: number; on?: boolean }) => <span className={cx('size-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0', on ? 'bg-primary text-white' : 'bg-[#F3F4F6] text-[#646A78]')}>{n}</span>;
+const Rank = ({ n, on }: { n: number; on?: boolean }) => <span className={cx('size-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0', on ? 'bg-primary text-white' : 'bg-[#F5F5F5] text-[#737373]')}>{n}</span>;
 
 function AppNote({ a }: { a: App }) {
   if (stepFree(a)) return <Callout icon={Wheelchair} title="Needs a ground-floor or lift-access room" sub="Verified by Disability Support, 20 Oct" />;
@@ -177,14 +177,14 @@ function Documents({ a, onVerify }: { a: App; onVerify: (r: Req) => void }) {
   return (
     <SheetSection title="Documents">
       {docs.map((x) => (
-        <Row key={x.name} lead={<span className="size-8 rounded-lg bg-[#F3F4F6] text-gray-500 flex items-center justify-center shrink-0"><FileText size={16} /></span>} title={x.name} sub={x.meta}>
+        <Row key={x.name} lead={<span className="size-8 rounded-lg bg-[#F5F5F5] text-gray-500 flex items-center justify-center shrink-0"><FileText size={16} /></span>} title={x.name} sub={x.meta}>
           {x.s === 'ok' ? <Pill tone="green">Verified</Pill> : x.s === 'check' ? <Pill tone="amber">To check</Pill> : <Pill tone="red">Missing</Pill>}
           <Button size="sm" disabled={x.s === 'missing'} onClick={() => setView(x)}>View</Button>
         </Row>
       ))}
       <Dialog open={!!view} onClose={() => setView(null)} title={view?.name ?? ''} width={560}
         footer={view && <>{view.s === 'check' && view.req && <Button variant="success" icon={ShieldCheck} onClick={() => { onVerify(view.req!); setView(null); }}>Mark verified</Button>}<Button onClick={() => setView(null)}>Close</Button></>}>
-        <div className="rounded-lg border border-line bg-[#F9FAFB] h-72 flex flex-col items-center justify-center text-gray-400 gap-2"><FileText size={40} weight="duotone" /><span className="text-sm">{view?.meta}</span></div>
+        <div className="rounded-lg border border-line bg-[#FAFAFA] h-72 flex flex-col items-center justify-center text-gray-400 gap-2"><FileText size={40} weight="duotone" /><span className="text-sm">{view?.meta}</span></div>
       </Dialog>
     </SheetSection>
   );
@@ -197,8 +197,8 @@ function Activity({ a }: { a: App }) {
     ...(a.opened ? [{ icon: Eye, tone: 'bg-[#E6ECFF] text-[#1F45E0]', t: 'Priya Shah opened the application', when: '27 Oct, 10:42' }] : []),
     ...(a.tag ? [{ icon: MagicWand, tone: 'bg-[#F1E7FF] text-[#8B2CF5]', t: `Auto-allocate skipped ${firstName(a.name)}`, when: '22 Oct, 02:00', sub: a.tag === 'Requirements' ? 'Step-free requirement' : a.tag === 'No study offer' ? 'No study offer' : 'Flagged' }] : []),
     ...(stepFree(a) ? [{ icon: ShieldCheck, tone: 'bg-[#E8F7EE] text-[#0B8A4C]', t: 'Disability Support verified step-free access', when: '20 Oct, 15:18' }] : []),
-    ...(a.reqs.includes('Medication fridge') ? [{ icon: UploadSimple, tone: 'bg-[#F3F4F6] text-gray-500', t: `${a.name} uploaded a GP note`, when: '19 Oct, 09:05' }] : []),
-    { icon: Tray, tone: 'bg-[#F3F4F6] text-gray-500', t: `${a.name} submitted the application`, when: `${a.submitted}, 21:37` },
+    ...(a.reqs.includes('Medication fridge') ? [{ icon: UploadSimple, tone: 'bg-[#F5F5F5] text-gray-500', t: `${a.name} uploaded a GP note`, when: '19 Oct, 09:05' }] : []),
+    { icon: Tray, tone: 'bg-[#F5F5F5] text-gray-500', t: `${a.name} submitted the application`, when: `${a.submitted}, 21:37` },
   ];
   return (
     <SheetSection title="Activity">

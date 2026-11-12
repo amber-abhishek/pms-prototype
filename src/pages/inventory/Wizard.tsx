@@ -120,37 +120,37 @@ export function AddPropertyWizard() {
   return (
     <>
       <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
-        <Buildings size={16} className="text-[#646A78]" />
-        <span className="flex items-center gap-2 text-sm text-[#646A78]">Inventory<CaretRight size={12} /></span>
-        <button type="button" onClick={() => nav('/inventory/properties')} className="flex items-center gap-2 text-sm text-[#646A78] hover:text-ink">Properties<CaretRight size={12} /></button>
+        <Buildings size={16} className="text-[#737373]" />
+        <span className="flex items-center gap-2 text-sm text-[#737373]">Inventory<CaretRight size={12} /></span>
+        <button type="button" onClick={() => nav('/inventory/properties')} className="flex items-center gap-2 text-sm text-[#737373] hover:text-ink">Properties<CaretRight size={12} /></button>
         <h1 className="text-sm font-medium">New property</h1>
         <button type="button" aria-label="Close" onClick={leave} className="ml-auto size-8 rounded-lg hover:bg-gray-100 flex items-center justify-center"><X size={16} /></button>
       </div>
       <div data-wizard className="flex-1 min-h-0 flex">
         {/* Steps. One left edge (16px) shared with the header icon: aside 8 + row border 1 + row padding 7. */}
-        <aside className="hidden lg:flex w-[248px] shrink-0 border-r border-line bg-[#FAFAFB] flex-col px-2 py-3">
-          <div className="px-2 pt-2 pb-4"><div className="text-xs text-[#646A78]">New property</div><div className="text-sm font-semibold mt-0.5 truncate">{name.trim() || 'Untitled property'}</div></div>
+        <aside className="hidden lg:flex w-[248px] shrink-0 border-r border-line bg-[#FAFAFA] flex-col px-2 py-3">
+          <div className="px-2 pt-2 pb-4"><div className="text-xs text-[#737373]">New property</div><div className="text-sm font-semibold mt-0.5 truncate">{name.trim() || 'Untitled property'}</div></div>
           <ol className="space-y-1">
             {STEPS.map((s, i) => (
               <li key={s.title}>
                 <button type="button" disabled={i > step} onClick={() => setStep(i)} className={cx('w-full text-left rounded-xl border px-[7px] py-2.5 flex gap-3 items-start', i === step ? 'bg-white border-line shadow-tile' : 'border-transparent')}>
                   {done(i) ? <span className="size-[22px] rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0"><Check size={12} weight="bold" /></span>
-                    : <span className={cx('size-[22px] rounded-full text-xs font-semibold flex items-center justify-center shrink-0', i === step ? 'bg-ink text-white' : 'border border-gray-300 text-[#646A78] bg-white')}>{i + 1}</span>}
-                  <span className="min-w-0"><span className={cx('block text-sm', i <= step ? 'text-ink font-medium' : 'text-[#646A78]')}>{s.title}</span><span className="block text-xs text-[#646A78] truncate">{done(i) ? summary[i] : s.sub}</span></span>
+                    : <span className={cx('size-[22px] rounded-full text-xs font-semibold flex items-center justify-center shrink-0', i === step ? 'bg-ink text-white' : 'border border-gray-300 text-[#737373] bg-white')}>{i + 1}</span>}
+                  <span className="min-w-0"><span className={cx('block text-sm', i <= step ? 'text-ink font-medium' : 'text-[#737373]')}>{s.title}</span><span className="block text-xs text-[#737373] truncate">{done(i) ? summary[i] : s.sub}</span></span>
                 </button>
               </li>
             ))}
           </ol>
-          <p className="mt-auto px-2 pb-1 text-xs text-[#646A78] flex gap-1.5"><Info size={14} className="shrink-0 mt-px" />Nothing is created until you click Create property on the last step.</p>
+          <p className="mt-auto px-2 pb-1 text-xs text-[#737373] flex gap-1.5"><Info size={14} className="shrink-0 mt-px" />Nothing is created until you click Create property on the last step.</p>
         </aside>
 
         {/* Form */}
         <section className="flex-1 min-w-0 flex flex-col">
           <div className="flex-1 overflow-auto px-6 py-7">
             <div className={cx(step === 1 ? 'max-w-[860px]' : 'max-w-[528px]')}>
-              <div className="text-sm text-[#646A78]">Step {step + 1} of 5</div>
+              <div className="text-sm text-[#737373]">Step {step + 1} of 5</div>
               <h2 className="text-xl font-medium tracking-tight mt-1">{STEPS[step].title}</h2>
-              <p className="text-sm text-[#646A78] mt-1 mb-6">{[
+              <p className="text-sm text-[#737373] mt-1 mb-6">{[
                 'What the property is called and how its units are organised.', 'Pick the place from the search. Its address and pin come from the result.',
                 'Build the blocks, floors and rooms. Each room becomes a unit you can let.', 'Make a tenancy template for each room type. Every room gets a draft tenancy from it.', 'Check everything, then create the property.',
               ][step]}</p>
@@ -165,7 +165,7 @@ export function AddPropertyWizard() {
                   <div>
                     <div className="text-sm font-medium text-gray-700 mb-1.5">Letting period</div>
                     <Seg value={letting} onChange={setLetting} options={['Weekly', 'Monthly']} className="w-80" />
-                    <p className="text-xs text-[#646A78] mt-1.5">Rent and tenancy length use this unit. You can switch later.</p>
+                    <p className="text-xs text-[#737373] mt-1.5">Rent and tenancy length use this unit. You can switch later.</p>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-700 mb-1.5">Property layout</div>
@@ -174,7 +174,7 @@ export function AddPropertyWizard() {
                         <div key={s} role="radio" aria-checked={structure === s} tabIndex={0} onClick={() => setStructure(s)} onKeyDown={(e) => e.key === ' ' && setStructure(s)}
                           className={cx('rounded-xl border p-3.5 flex gap-3 cursor-pointer', structure === s ? 'border-primary bg-[#F5F9FF] ring-2 ring-primary/15' : 'border-line hover:bg-gray-50')}>
                           <span className={cx('size-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0', structure === s ? 'border-primary bg-primary' : 'border-gray-300')}>{structure === s && <span className="size-1.5 rounded-full bg-white" />}</span>
-                          <div><div className="text-sm"><span className="font-semibold">{s}</span><span className="text-sm text-[#646A78] ml-2">Used by {n} properties</span></div>
+                          <div><div className="text-sm"><span className="font-semibold">{s}</span><span className="text-sm text-[#737373] ml-2">Used by {n} properties</span></div>
                             <div className="flex items-center gap-1.5 mt-2">{lv.map((l, i) => <span key={l} className="flex items-center gap-1.5">{i > 0 && <CaretRight size={10} className="text-gray-400" />}<span className="h-[22px] px-2 rounded-md border border-line bg-white text-xs flex items-center">{l}</span></span>)}</div></div>
                         </div>
                       ))}
@@ -191,12 +191,12 @@ export function AddPropertyWizard() {
                       <label className="h-8 flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 text-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25">
                         <MagnifyingGlass size={14} className="text-gray-400" />
                         <input value={query} onChange={(e) => { setQuery(e.target.value); setPicked(false); }} placeholder="Search a place or postcode" className="flex-1 outline-none" />
-                        {query && <button type="button" aria-label="Clear" onClick={() => { setQuery(''); setPicked(false); }} className="-mr-1.5 size-6 rounded-md flex items-center justify-center text-[#646A78] hover:bg-gray-100"><X size={12} /></button>}
+                        {query && <button type="button" aria-label="Clear" onClick={() => { setQuery(''); setPicked(false); }} className="-mr-1.5 size-6 rounded-md flex items-center justify-center text-[#737373] hover:bg-gray-100"><X size={12} /></button>}
                       </label>
                       {!picked && query.length > 1 && (
                         <div className="absolute left-0 right-0 top-10 z-20 rounded-xl border border-line bg-white shadow-pop p-1">
                           <button type="button" onClick={() => { setQuery('St Mary’s College, Elvet Hill Road'); setPicked(true); }} className="w-full px-2.5 py-2 rounded-lg hover:bg-gray-50 flex items-start gap-2 text-left">
-                            <MapPin size={15} className="text-primary mt-0.5" /><span><span className="block text-sm font-medium">St Mary’s College, Elvet Hill Road</span><span className="block text-xs text-[#646A78]">Durham DH1 3LR, United Kingdom</span></span>
+                            <MapPin size={15} className="text-primary mt-0.5" /><span><span className="block text-sm font-medium">St Mary’s College, Elvet Hill Road</span><span className="block text-xs text-[#737373]">Durham DH1 3LR, United Kingdom</span></span>
                           </button>
                         </div>
                       )}
@@ -206,7 +206,7 @@ export function AddPropertyWizard() {
                   {picked && (
                     <div className="rounded-xl border border-line p-3.5 flex items-center gap-3">
                       <MapPin size={18} className="text-primary" />
-                      <div className="flex-1"><div className="text-sm font-medium">St Mary’s College, Elvet Hill Road</div><div className="text-xs text-[#646A78]">Durham DH1 3LR, United Kingdom</div></div>
+                      <div className="flex-1"><div className="text-sm font-medium">St Mary’s College, Elvet Hill Road</div><div className="text-xs text-[#737373]">Durham DH1 3LR, United Kingdom</div></div>
                       <button type="button" onClick={() => { setPicked(false); setQuery(''); }} className="text-sm text-primary">Change</button>
                     </div>
                   )}
@@ -217,7 +217,7 @@ export function AddPropertyWizard() {
               {step === 2 && (
                 <div className="space-y-4">
                   <div className="relative rounded-xl border-[1.5px] border-dashed border-gray-300 p-3.5 flex items-center gap-3">
-                    <FileText size={16} className="text-[#646A78]" />
+                    <FileText size={16} className="text-[#737373]" />
                     <span className="flex-1 text-sm">Already have every room in a spreadsheet? Import the whole property from a CSV instead.</span>
                     <button type="button" onClick={() => nav('/inventory/properties?import=1')} className="text-sm text-primary">Import instead</button>
                     <span className="absolute -top-2.5 right-3"><Pill outline icon={ArrowElbowDownRight}>Flow 2</Pill></span>
@@ -225,30 +225,30 @@ export function AddPropertyWizard() {
                   {blocks.map((b) => openBlock === b.key ? (
                     <div key={b.key} className="rounded-xl border border-line bg-white">
                       <div className="h-14 px-3.5 flex items-center gap-3 border-b border-line">
-                        <Buildings size={16} className="text-[#646A78]" />
-                        <label className="flex items-center gap-2 text-sm text-[#646A78]">Block name
+                        <Buildings size={16} className="text-[#737373]" />
+                        <label className="flex items-center gap-2 text-sm text-[#737373]">Block name
                           <Input ref={(el: HTMLInputElement | null) => { nameRefs.current[b.key] = el; }} value={b.name} onChange={(e) => upd(b.key, { name: e.target.value })} className="w-48 text-ink" /></label>
                         <span className="ml-auto text-sm font-medium whitespace-nowrap">{fmt(rooms(b, house))} rooms</span>
-                        {blocks.length > 1 && <Menu width={160} trigger={(o) => <button type="button" aria-label="Block menu" onClick={o} className="size-8 rounded-md hover:bg-gray-100 flex items-center justify-center text-[#646A78]"><DotsThree size={18} weight="bold" /></button>}
+                        {blocks.length > 1 && <Menu width={160} trigger={(o) => <button type="button" aria-label="Block menu" onClick={o} className="size-8 rounded-md hover:bg-gray-100 flex items-center justify-center text-[#737373]"><DotsThree size={18} weight="bold" /></button>}
                           items={[{ label: 'Remove block', icon: Trash, danger: true, onClick: () => { setBlocks((bs) => bs.filter((x) => x.key !== b.key)); } }]} />}
                       </div>
                       <div className="p-3.5 grid grid-cols-[120px_auto_1fr] gap-x-4 gap-y-3 items-center text-sm">
-                        <span /><span className="text-xs text-[#646A78]">Count</span><span className="text-xs text-[#646A78]">Name pattern</span>
+                        <span /><span className="text-xs text-[#737373]">Count</span><span className="text-xs text-[#737373]">Name pattern</span>
                         {!house && <><span>Floors</span><Stepper value={b.floors} onChange={(n) => upd(b.key, { floors: n })} /><Input className="font-mono" value={b.floorPat} onChange={(e) => upd(b.key, { floorPat: e.target.value })} aria-label="Floor name pattern" /></>}
                         {!house && <><span>Flats per floor</span><Stepper value={b.flats} onChange={(n) => upd(b.key, { flats: n })} /><Input className="font-mono" value={b.flatPat} onChange={(e) => upd(b.key, { flatPat: e.target.value })} aria-label="Flat name pattern" /></>}
                         <span>{house ? 'Rooms' : 'Rooms per flat'}</span><Stepper value={b.rpf} onChange={(n) => upd(b.key, { rpf: n })} /><Input className="font-mono" value={b.roomPat} onChange={(e) => upd(b.key, { roomPat: e.target.value })} aria-label="Room name pattern" />
                         <span>Room type</span><div className="col-span-2"><Picker value={b.roomType} onChange={(v) => upd(b.key, { roomType: v })} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></div>
                         <span>Room size <span className="text-[#E0243A]">*</span></span>
                         <label className="h-8 w-[152px] flex items-center rounded-lg border border-gray-300 px-2.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25"><input aria-label="Room size" value={b.size} onChange={(e) => upd(b.key, { size: e.target.value.replace(/[^0-9.]/g, '') })} className="flex-1 min-w-0 outline-none" /><span className="text-gray-400 text-xs">m²</span></label>
-                        <span className="text-xs text-[#646A78]">Set on all {fmt(rooms(b, house))} rooms</span>
+                        <span className="text-xs text-[#737373]">Set on all {fmt(rooms(b, house))} rooms</span>
                       </div>
                       {blockErr(b) && <div className="px-3.5 pb-3.5 -mt-1.5"><Err>{blockErr(b)}</Err></div>}
                     </div>
                   ) : (
                     <button key={b.key} type="button" onClick={() => setOpenBlock(b.key)} className="w-full h-14 rounded-xl border border-line bg-white px-3.5 flex items-center gap-3 text-left hover:bg-gray-50">
-                      <Buildings size={16} className="text-[#646A78]" />
+                      <Buildings size={16} className="text-[#737373]" />
                       <span className="text-sm font-medium whitespace-nowrap">{b.name}</span>
-                      <span className="min-w-0 text-xs text-[#646A78] truncate">{blockErr(b) ? <span className="text-[#C8102E]">Needs a fix</span> : <>{house ? `${b.rpf} rooms` : `${b.floors} floors × ${b.flats} flats × ${b.rpf} rooms`} · {b.roomType}</>}</span>
+                      <span className="min-w-0 text-xs text-[#737373] truncate">{blockErr(b) ? <span className="text-[#C8102E]">Needs a fix</span> : <>{house ? `${b.rpf} rooms` : `${b.floors} floors × ${b.flats} flats × ${b.rpf} rooms`} · {b.roomType}</>}</span>
                       <span className="ml-auto text-sm font-medium whitespace-nowrap">{fmt(rooms(b, house))} rooms</span><CaretDown size={14} className="text-gray-400 shrink-0" />
                     </button>
                   ))}
@@ -256,7 +256,7 @@ export function AddPropertyWizard() {
                   {total > BIG && (
                     <label className="rounded-xl border border-[#F5C26B] p-3.5 flex gap-3 items-start cursor-pointer">
                       <input type="checkbox" checked={bigOk} onChange={(e) => setBigOk(e.target.checked)} className="mt-0.5 size-4 accent-primary" />
-                      <span><span className="block text-sm font-medium text-[#B45309]">That’s {fmt(total)} rooms</span><span className="block text-xs text-[#646A78] mt-0.5">Far more than a typical hall. Check the counts, or tick to confirm.</span></span>
+                      <span><span className="block text-sm font-medium text-[#B45309]">That’s {fmt(total)} rooms</span><span className="block text-xs text-[#737373] mt-0.5">Far more than a typical hall. Check the counts, or tick to confirm.</span></span>
                     </label>
                   )}
                 </div>
@@ -267,11 +267,11 @@ export function AddPropertyWizard() {
                   <div className="rounded-xl border border-line overflow-hidden">
                     <table className="w-full text-sm table-fixed">
                       <colgroup><col /><col className="w-16" /><col className="w-[72px]" /><col className="w-[108px]" /><col className="w-[116px]" /></colgroup>
-                      <thead><tr className="text-left text-xs text-[#646A78] bg-[#F9FAFB] border-b border-line"><th className="font-medium h-9 px-4">New template</th><th className="font-medium text-right px-2">Rooms</th><th className="font-medium px-2">Weeks</th><th className="font-medium px-2">Rent / {letting === 'Weekly' ? 'wk' : 'mo'}</th><th className="font-medium px-2 pr-3">Deposit</th></tr></thead>
+                      <thead><tr className="text-left text-xs text-[#737373] bg-[#FAFAFA] border-b border-line"><th className="font-medium h-9 px-4">New template</th><th className="font-medium text-right px-2">Rooms</th><th className="font-medium px-2">Weeks</th><th className="font-medium px-2">Rent / {letting === 'Weekly' ? 'wk' : 'mo'}</th><th className="font-medium px-2 pr-3">Deposit</th></tr></thead>
                       <tbody>
                         {types.map((t) => (
-                          <tr key={t.name} className="border-b border-[#F3F4F6] last:border-0">
-                            <td className="h-12 px-4"><span className="flex items-center gap-2 text-sm"><Bed size={15} className="text-[#646A78]" />{t.name}</span></td>
+                          <tr key={t.name} className="border-b border-[#F5F5F5] last:border-0">
+                            <td className="h-12 px-4"><span className="flex items-center gap-2 text-sm"><Bed size={15} className="text-[#737373]" />{t.name}</span></td>
                             <td className="text-right px-2 text-sm">{fmt(t.rooms)}</td>
                             <td className="px-2"><Input aria-label={`${t.name} weeks`} value={t.weeks} onChange={(e) => setTerm(t.name, 'weeks', e.target.value.replace(/\D/g, ''))} /></td>
                             <td className="px-2"><MoneyInput value={t.rent} onChange={(v) => setTerm(t.name, 'rent', v)} /></td>
@@ -291,7 +291,7 @@ export function AddPropertyWizard() {
                     <Err>{dateErr}</Err>
                   </div>
                   <div className="rounded-xl border border-line p-3.5 flex items-center">
-                    <div><div className="text-sm font-medium">Organisation-wide fees apply</div><div className="text-xs text-[#646A78]">Contents insurance · £45 per tenancy</div></div>
+                    <div><div className="text-sm font-medium">Organisation-wide fees apply</div><div className="text-xs text-[#737373]">Contents insurance · £45 per tenancy</div></div>
                     <button type="button" onClick={() => nav('/inventory/rent-fees?tab=fees')} className="ml-auto text-sm text-primary">Rent and fees</button>
                   </div>
                 </div>
@@ -307,14 +307,14 @@ export function AddPropertyWizard() {
                       ['Rent & terms', `${types.length} new tenancy templates · ${fmt(total)} draft tenancies`, `${types.map((t) => `${t.name} £${t.rent} · ${t.weeks} wk`).join(' · ')} · ${from} to ${to} · ${billing.toLowerCase()}`, 3],
                     ] as const).map(([k, a, b, s]) => (
                       <div key={k} className="px-3.5 py-3 grid grid-cols-[132px_1fr_auto] gap-3 items-center">
-                        <span className="text-sm text-[#646A78]">{k}</span>
-                        <span><span className="block text-sm font-medium">{a}</span><span className="block text-xs text-[#646A78]">{b}</span></span>
+                        <span className="text-sm text-[#737373]">{k}</span>
+                        <span><span className="block text-sm font-medium">{a}</span><span className="block text-xs text-[#737373]">{b}</span></span>
                         <button type="button" onClick={() => setStep(s)} className="text-sm text-primary">Edit</button>
                       </div>
                     ))}
                   </div>
-                  <div className="rounded-xl border border-line bg-[#FAFAFB] p-3.5 flex gap-2.5 text-sm">
-                    <CircleDashed size={16} className="text-[#646A78] shrink-0 mt-px" />
+                  <div className="rounded-xl border border-line bg-[#FAFAFA] p-3.5 flex gap-2.5 text-sm">
+                    <CircleDashed size={16} className="text-[#737373] shrink-0 mt-px" />
                     <span>Everything is created as Draft. Nobody can book it until you make it active (Flow 4). Photos and a description are added on the property page.</span>
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export function AddPropertyWizard() {
                 {(structure === 'College' ? [['Property', name || 'Untitled', Buildings], ['Block', 'e.g. Main House', BuildingOffice], ['Floor', 'e.g. Floor 1', Stack], ['Flat', 'e.g. Flat 1', Door], ['Room', 'e.g. Room 1 · the unit you let', Bed]] as const
                   : [['Property', name || 'Untitled', Buildings], ['Room', 'e.g. Room 1 · the unit you let', Bed]] as const).map(([l, ex, I], i) => (
                   <div key={l} className="flex items-start gap-2" style={{ paddingLeft: i * 16 }}>
-                    <I size={15} className={cx('mt-0.5', l === 'Room' ? 'text-primary' : 'text-[#646A78]')} /><span className="font-medium">{l}</span><span className="text-xs text-[#646A78] mt-0.5">{ex}</span>
+                    <I size={15} className={cx('mt-0.5', l === 'Room' ? 'text-primary' : 'text-[#737373]')} /><span className="font-medium">{l}</span><span className="text-xs text-[#737373] mt-0.5">{ex}</span>
                   </div>
                 ))}
               </div>
@@ -350,9 +350,9 @@ export function AddPropertyWizard() {
             <>
               <PanelHead title="Preview" sub={`How ${short} will look in Inventory`} />
               <div className="rounded-xl border border-line p-3.5 text-sm space-y-2">
-                <div className="flex items-center gap-2"><Buildings size={15} className="text-[#646A78]" /><span className="font-medium">{name}</span></div>
-                <div className="flex items-start gap-2 text-[#646A78]"><MapPin size={15} className="text-[#646A78] mt-px" />{picked ? 'Elvet Hill Road, Durham DH1 3LR' : 'No address yet'}</div>
-                {zone && <div className="text-[#646A78] pl-6">Zone {zone}</div>}
+                <div className="flex items-center gap-2"><Buildings size={15} className="text-[#737373]" /><span className="font-medium">{name}</span></div>
+                <div className="flex items-start gap-2 text-[#737373]"><MapPin size={15} className="text-[#737373] mt-px" />{picked ? 'Elvet Hill Road, Durham DH1 3LR' : 'No address yet'}</div>
+                {zone && <div className="text-[#737373] pl-6">Zone {zone}</div>}
               </div>
               <Hint>The pin is used for distances on the student site.</Hint>
             </>
@@ -362,7 +362,7 @@ export function AddPropertyWizard() {
               <div className="flex items-start justify-between"><PanelHead title="Preview" sub="Nothing is created until the last step" /><span className="text-sm font-semibold whitespace-nowrap">{fmt(total)} rooms</span></div>
               <div className="rounded-xl border border-line p-2"><PreviewTree blocks={blocks} house={house} /></div>
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {[[blocks.length, 'blocks'], ...(house ? [] : [[floors, 'floors'], [flats, 'flats']]), [total, 'rooms']].map(([n, l]) => <span key={l} className="h-6 px-2 rounded-md border border-line text-xs flex items-center gap-1"><b className="font-semibold">{n}</b><span className="text-[#646A78]">{l}</span></span>)}
+                {[[blocks.length, 'blocks'], ...(house ? [] : [[floors, 'floors'], [flats, 'flats']]), [total, 'rooms']].map(([n, l]) => <span key={l} className="h-6 px-2 rounded-md border border-line text-xs flex items-center gap-1"><b className="font-semibold">{n}</b><span className="text-[#737373]">{l}</span></span>)}
               </div>
               <Hint>{'{n}'} counts up from 1 under each parent. Rename or change a single room later, in Inventory.</Hint>
             </>
@@ -371,7 +371,7 @@ export function AddPropertyWizard() {
             <>
               <PanelHead title="What gets created" sub="When you click Create property" />
               <div className="rounded-xl border border-line divide-y divide-line">
-                {types.map((t) => <div key={t.name} className="px-3.5 py-3 flex items-center"><div><div className="text-sm font-medium">{t.name} · {t.weeks} wk</div><div className="text-xs text-[#646A78]">New template · {short}</div></div><span className="ml-auto text-sm font-medium">{fmt(t.rooms)} tenancies</span></div>)}
+                {types.map((t) => <div key={t.name} className="px-3.5 py-3 flex items-center"><div><div className="text-sm font-medium">{t.name} · {t.weeks} wk</div><div className="text-xs text-[#737373]">New template · {short}</div></div><span className="ml-auto text-sm font-medium">{fmt(t.rooms)} tenancies</span></div>)}
               </div>
               <Hint>Templates belong to one property. A later edit to a template is copied to its linked tenancies (Flow 5).</Hint>
             </>
@@ -381,7 +381,7 @@ export function AddPropertyWizard() {
               <PanelHead title="What happens next" sub="In this order" />
               <ol className="space-y-4">
                 {[['Property', `${short} is saved as a draft with its address and zone.`], ['Templates', `The ${types.length === 2 ? 'two' : types.length} tenancy templates are made for ${short}.`], ['Rooms and tenancies', `${blocks.length} blocks, ${floors} floors, ${fmt(flats)} flats and ${fmt(total)} rooms are built in the background, each room with a draft tenancy. All or nothing; you get an email.`]].map(([a, b], i) => (
-                  <li key={a} className="flex gap-3"><span className={cx('size-[22px] rounded-full text-xs font-semibold flex items-center justify-center shrink-0', i === 0 ? 'bg-ink text-white' : 'border border-gray-300 text-[#646A78]')}>{i + 1}</span><span><span className="block text-sm font-medium">{a}</span><span className="block text-xs text-[#646A78] mt-0.5">{b}</span></span></li>
+                  <li key={a} className="flex gap-3"><span className={cx('size-[22px] rounded-full text-xs font-semibold flex items-center justify-center shrink-0', i === 0 ? 'bg-ink text-white' : 'border border-gray-300 text-[#737373]')}>{i + 1}</span><span><span className="block text-sm font-medium">{a}</span><span className="block text-xs text-[#737373] mt-0.5">{b}</span></span></li>
                 ))}
               </ol>
             </>
@@ -394,8 +394,8 @@ export function AddPropertyWizard() {
   );
 }
 
-const PanelHead = ({ title, sub }: { title: string; sub: string }) => <div className="mb-4"><div className="text-sm font-semibold">{title}</div><div className="text-xs text-[#646A78] mt-0.5">{sub}</div></div>;
-const Hint = ({ children }: { children: ReactNode }) => <p className="text-xs text-[#646A78] mt-4 flex gap-1.5"><Info size={14} className="shrink-0 mt-px" />{children}</p>;
+const PanelHead = ({ title, sub }: { title: string; sub: string }) => <div className="mb-4"><div className="text-sm font-semibold">{title}</div><div className="text-xs text-[#737373] mt-0.5">{sub}</div></div>;
+const Hint = ({ children }: { children: ReactNode }) => <p className="text-xs text-[#737373] mt-4 flex gap-1.5"><Info size={14} className="shrink-0 mt-px" />{children}</p>;
 
 function DateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return <label className="h-8 flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 text-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25"><CalendarBlank size={14} className="text-gray-400" /><input value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 min-w-0 outline-none" /></label>;
@@ -422,7 +422,7 @@ function PreviewTree({ blocks, house }: { blocks: WBlock[]; house: boolean }) {
   const Row = ({ depth, k, icon: I, label, n, leaf, sub }: { depth: number; k?: string; icon: typeof Bed; label: string; n?: number | string; leaf?: boolean; sub?: string }) => (
     <div className="h-7 flex items-center gap-1.5 text-sm rounded-md hover:bg-gray-50 cursor-pointer" style={{ paddingLeft: depth * 14 }} onClick={() => k && tog(k)}>
       {leaf ? <span className="w-3" /> : open[k ?? ''] ? <CaretDown size={11} className="text-gray-400" /> : <CaretRight size={11} className="text-gray-400" />}
-      <I size={14} className={leaf ? 'text-primary' : 'text-[#646A78]'} /><span className={depth === 0 ? 'font-medium' : ''}>{label}</span>
+      <I size={14} className={leaf ? 'text-primary' : 'text-[#737373]'} /><span className={depth === 0 ? 'font-medium' : ''}>{label}</span>
       {sub && <span className="ml-auto text-xs text-gray-400 pr-1.5">{sub}</span>}{n !== undefined && !sub && <span className="ml-auto text-xs text-gray-400 pr-1.5">{n}</span>}
     </div>
   );

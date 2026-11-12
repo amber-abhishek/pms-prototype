@@ -60,11 +60,11 @@ function roomsFor(h: Hall, block: string): Room[] {
 }
 
 const ST: Record<St, { label: string; icon: Icon; tile: string; code: string; who: string; swatch: string; tone: Tone }> = {
-  in: { label: 'In residence', icon: House, tile: 'bg-[#E8F7EE] border-transparent', code: 'text-[#087A43]', who: 'text-[#374151]', swatch: 'bg-[#E8F7EE] border-[#087A43]', tone: 'green' },
-  arriving: { label: 'Arriving', icon: SignIn, tile: 'bg-[#EFF6FF] border-transparent', code: 'text-[#1F45E0]', who: 'text-[#374151]', swatch: 'bg-[#EFF6FF] border-[#1F45E0]', tone: 'blue' },
-  held: { label: 'Held for offer', icon: Hourglass, tile: 'bg-[#FFF6E0] border-transparent', code: 'text-[#9A5B00]', who: 'text-[#374151]', swatch: 'bg-[#FFF6E0] border-[#9A5B00]', tone: 'amber' },
-  vacant: { label: 'Vacant', icon: CircleDashed, tile: 'bg-white border-line', code: 'text-[#646A78]', who: 'text-[#646A78]', swatch: 'bg-white border-gray-400', tone: 'grey' },
-  blocked: { label: 'Blocked', icon: Prohibit, tile: 'bg-[#F3F4F6] border-transparent', code: 'text-[#4B5563]', who: 'text-[#374151]', swatch: 'bg-[#F3F4F6] border-gray-500', tone: 'grey' },
+  in: { label: 'In residence', icon: House, tile: 'bg-[#E8F7EE] border-transparent', code: 'text-[#087A43]', who: 'text-[#404040]', swatch: 'bg-[#E8F7EE] border-[#087A43]', tone: 'green' },
+  arriving: { label: 'Arriving', icon: SignIn, tile: 'bg-[#EFF6FF] border-transparent', code: 'text-[#1F45E0]', who: 'text-[#404040]', swatch: 'bg-[#EFF6FF] border-[#1F45E0]', tone: 'blue' },
+  held: { label: 'Held for offer', icon: Hourglass, tile: 'bg-[#FFF6E0] border-transparent', code: 'text-[#9A5B00]', who: 'text-[#404040]', swatch: 'bg-[#FFF6E0] border-[#9A5B00]', tone: 'amber' },
+  vacant: { label: 'Vacant', icon: CircleDashed, tile: 'bg-white border-line', code: 'text-[#737373]', who: 'text-[#737373]', swatch: 'bg-white border-gray-400', tone: 'grey' },
+  blocked: { label: 'Blocked', icon: Prohibit, tile: 'bg-[#F5F5F5] border-transparent', code: 'text-[#525252]', who: 'text-[#404040]', swatch: 'bg-[#F5F5F5] border-gray-500', tone: 'grey' },
 };
 const ORDER: St[] = ['in', 'arriving', 'held', 'vacant', 'blocked'];
 
@@ -89,8 +89,8 @@ export function OccupancyPage() {
   const pickHall = (id: string) => { const nh = HALLS.find((x) => x.id === id)!; setHid(id); setBlock(nh.blocks[0]); };
 
   const tiles: [string, number, string][] = [
-    ['Beds', h.beds, 'text-[#111827]'], ['In residence', h.inRes, 'text-[#087A43]'], ['Arriving this week', h.arriving, 'text-[#1F45E0]'],
-    ['Vacant', h.vacant, 'text-[#E5530C]'], ['Blocked', h.blocked, 'text-[#111827]'],
+    ['Beds', h.beds, 'text-[#0A0A0A]'], ['In residence', h.inRes, 'text-[#087A43]'], ['Arriving this week', h.arriving, 'text-[#1F45E0]'],
+    ['Vacant', h.vacant, 'text-[#E5530C]'], ['Blocked', h.blocked, 'text-[#0A0A0A]'],
   ];
 
   /* Empty-states demo: no halls yet, so no plan to show. */
@@ -134,16 +134,16 @@ export function OccupancyPage() {
         <div className="px-[var(--tx,16px)] pt-4 grid grid-cols-5 gap-3">
           {tiles.map(([label, v, c]) => (
             <div key={label} className="rounded-xl border border-line bg-white px-3.5 py-2.5 flex flex-col gap-0.5">
-              <div className="text-xs leading-4 font-medium text-[#646A78]">{label}</div>
+              <div className="text-xs leading-4 font-medium text-[#737373]">{label}</div>
               <div className={cx('text-xl leading-7 font-semibold tabular-nums', c)}>{v.toLocaleString('en-GB')}</div>
             </div>
           ))}
         </div>
 
         <div className="px-[var(--tx,16px)] pt-3.5 flex items-center">
-          <div className="text-sm leading-5 font-semibold text-[#111827]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>
+          <div className="text-sm leading-5 font-semibold text-[#0A0A0A]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>
           <div className="ml-auto flex items-center gap-4">
-            {ORDER.map((s) => { const I = ST[s].icon; return <span key={s} className="flex items-center gap-1.5 text-xs leading-4 text-[#646A78]"><I size={14} className={ST[s].code} />{ST[s].label}</span>; })}
+            {ORDER.map((s) => { const I = ST[s].icon; return <span key={s} className="flex items-center gap-1.5 text-xs leading-4 text-[#737373]"><I size={14} className={ST[s].code} />{ST[s].label}</span>; })}
           </div>
         </div>
 
@@ -154,7 +154,7 @@ export function OccupancyPage() {
               if (!fr.length) return null;
               return (
                 <section key={floor} className="flex flex-col gap-2">
-                  <div className="flex items-baseline gap-2"><h3 className="text-sm leading-5 font-semibold text-[#111827]">{floor}</h3><span className="text-xs leading-4 text-[#646A78]">{summary(fr)}</span></div>
+                  <div className="flex items-baseline gap-2"><h3 className="text-sm leading-5 font-semibold text-[#0A0A0A]">{floor}</h3><span className="text-xs leading-4 text-[#737373]">{summary(fr)}</span></div>
                   <div className="grid grid-cols-10 gap-2">
                     {fr.map((x) => (
                       <button key={x.code} type="button" aria-label={`${x.code} · ${ST[x.st].label}${x.who ? ` · ${x.who}` : ''}`} onClick={() => toast(`${h.name} · ${x.code}`, { description: x.who ? `${ST[x.st].label} · ${x.who}` : ST[x.st].label })}
@@ -175,7 +175,7 @@ export function OccupancyPage() {
                 { key: 'code', label: 'Room', render: (x) => <span className="font-medium">{x.code}</span> },
                 { key: 'floor', label: 'Floor', render: (x) => x.floor },
                 { key: 'st', label: 'Status', render: (x) => <Pill tone={ST[x.st].tone}>{ST[x.st].label}</Pill> },
-                { key: 'who', label: 'Resident', render: (x) => x.who ?? <span className="text-[#646A78]">—</span> },
+                { key: 'who', label: 'Resident', render: (x) => x.who ?? <span className="text-[#737373]">—</span> },
               ]} />
           </div>
         )}

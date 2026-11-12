@@ -9,8 +9,10 @@ const Tabs = TabsPrimitive.Root
 
 /* The raised white "selected" pill. With `slide` (the default) it is one element under the tabs that moves to the
    active tab, so switching tabs slides it across instead of jumping. Underline-style lists pass slide={false}. */
-/* 3755:15922: white, 1px #DFE2E7, two soft drops. */
-const PILL = "bg-background border border-[#DFE2E7] shadow-[0_2px_5px_rgba(3,7,18,0.04),0_1px_2px_rgba(3,7,18,0.06)]"
+/* 3755:15922: white, 1px #E5E5E5, two soft drops. */
+/* Amber Connect segmented control: white r7, one soft drop, no edge. */
+/* Connect segmented control (Settings sub-tabs): #F5F5F5 track, 4px inset and gap, r10; the selected segment is white r10 with a 0 1px 3px drop. */
+const PILL = "bg-background shadow-[0_1px_3px_rgba(0,0,0,0.1)]"
 const SlideCtx = React.createContext(false)
 
 type Pill = { x: number; y: number; w: number; h: number; animate: boolean }
@@ -50,7 +52,7 @@ const TabsList = React.forwardRef<
     <TabsPrimitive.List
       ref={setRefs}
       className={cn(
-        /* 2820:111 segmented track: 32px #F3F4F6, 4px inset, 10px radius */ "relative inline-flex items-center gap-0.5 p-1 rounded-[10px] bg-secondary text-muted-foreground shadow-[0_1px_0_#FFFFFF,inset_0_0_0_1px_rgba(3,7,18,0.04),inset_0_1px_2px_rgba(3,7,18,0.07)]",
+        /* 2820:111 segmented track: 32px #F5F5F5, 4px inset, 10px radius */ "relative inline-flex items-center gap-1 p-1 rounded-[10px] bg-[#F5F5F5] text-[#737373]",
         className
       )}
       {...props}
@@ -58,7 +60,7 @@ const TabsList = React.forwardRef<
       {slide && pill && (
         <span
           aria-hidden
-          className={cn("pointer-events-none absolute left-0 top-0 rounded-md", PILL)}
+          className={cn("pointer-events-none absolute left-0 top-0 rounded-[10px]", PILL)}
           style={{
             width: pill.w,
             height: pill.h,
@@ -83,8 +85,8 @@ const TabsTrigger = React.forwardRef<
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        /* 24px tabs, 6px radius (track radius minus the 4px inset), 14px medium; the selected one is raised white (the sliding pill, or its own fill) */ "relative group inline-flex h-6 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm leading-5 font-medium transition-colors duration-150 hover:text-[#111827] outline-none [html[data-kbd]_&:focus-visible]:ring-2 [html[data-kbd]_&:focus-visible]:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-[#111827]",
-        !slide && "data-[state=active]:bg-background data-[state=active]:shadow-[inset_0_0_0_1px_#DFE2E7,0_2px_5px_rgba(3,7,18,0.04),0_1px_2px_rgba(3,7,18,0.06)]",
+        /* 24px tabs, 6px radius (track radius minus the 4px inset), 14px medium; the selected one is raised white (the sliding pill, or its own fill) */ "relative group inline-flex h-7 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] px-2 text-sm leading-5 font-medium transition-colors duration-150 hover:text-[#0A0A0A] outline-none [html[data-kbd]_&:focus-visible]:ring-2 [html[data-kbd]_&:focus-visible]:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-[#0A0A0A]",
+        !slide && "data-[state=active]:bg-background data-[state=active]:shadow-[0_1px_3px_rgba(0,0,0,0.1)]",
         className
       )}
       {...props}

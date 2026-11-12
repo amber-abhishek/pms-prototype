@@ -84,13 +84,13 @@ function Behaviour() {
           </tr></thead>
           <tbody>
             {portal.campuses.map((c) => (
-              <tr key={c.id} className="border-b border-[#F3F4F6] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-1">
+              <tr key={c.id} className="border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-1">
                 <td className="!pl-4"><Checkbox aria-label={`Show ${c.name}`} checked={c.ticked} disabled={c.isDefault} onCheckedChange={(v) => tick(c, (v === true))} /></td>
                 <td><div className="leading-tight font-medium">{c.name}{c.isDefault && <div className="text-xs text-gray-500">Default campus</div>}</div></td>
-                <td>{c.ticked && regionOf(c) ? regionOf(c) : <span className="text-[#646A78]">—</span>}</td>
+                <td>{c.ticked && regionOf(c) ? regionOf(c) : <span className="text-[#737373]">—</span>}</td>
                 <td>{c.ticked && c.match === 'Exact' && <Tag tone="green">Exact</Tag>}{c.ticked && c.match === 'Nearest' && <Tag tone="grey" outline>Nearest, {c.km} km</Tag>}{c.ticked && c.match === 'Manual' && <Tag tone="blue">Manual</Tag>}</td>
                 <td><Combo value={c.override} options={AMBER_REGIONS} onPick={(v) => override(c, v)} icon={MapPin} /></td>
-                <td className="text-right !pr-4">{c.ticked && <button type="button" onClick={() => reresolve(c)} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-[#F3F4F6]"><ArrowsClockwise size={16} />Re-resolve</button>}</td>
+                <td className="text-right !pr-4">{c.ticked && <button type="button" onClick={() => reresolve(c)} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-[#F5F5F5]"><ArrowsClockwise size={16} />Re-resolve</button>}</td>
               </tr>
             ))}
           </tbody>
@@ -127,7 +127,7 @@ function ImageRow({ has, onUpload, onRemove, hint }: { has: boolean; onUpload: (
     <div>
       <div className="flex items-center gap-3">
         {has ? <Thumb tint="#E3EAE6" w={64} h={40} size={16} /> : <span className="w-16 h-10 rounded-lg border border-dashed border-[#8A909C] bg-white" />}
-        {has ? <><Button onClick={onUpload}>Replace image</Button><button type="button" onClick={onRemove} className="h-7 px-2 rounded-lg text-sm text-gray-700 hover:bg-[#F3F4F6] hover:text-ink">Remove</button></>
+        {has ? <><Button onClick={onUpload}>Replace image</Button><button type="button" onClick={onRemove} className="h-7 px-2 rounded-lg text-sm text-gray-700 hover:bg-[#F5F5F5] hover:text-ink">Remove</button></>
           : <Button icon={UploadSimple} onClick={onUpload}>Upload image</Button>}
       </div>
       {hint && <p className="text-xs text-gray-500 mt-2">{hint}</p>}
@@ -372,7 +372,7 @@ function Domain() {
                   <div><div className="text-sm font-medium text-[#E0243A]">We can’t see the TXT record yet</div><div className="text-xs text-gray-500 mt-0.5">Last checked just now. DNS changes can take up to 24 hours; the site stays on {base} until then.</div></div>
                 </div>
               )}
-              <div className="mt-3 rounded-lg border border-line bg-[#FAFAFB] p-3.5">
+              <div className="mt-3 rounded-lg border border-line bg-[#FAFAFA] p-3.5">
                 <div className="text-sm font-medium mb-2.5">Add this TXT record to verify domain ownership</div>
                 {([['Name', TXT.name(p.customDomain ?? '')], ['Value', TXT.value]] as const).map(([k, v]) => (
                   <div key={k} className="h-8 flex items-center gap-4 text-sm"><span className="w-14 text-gray-500">{k}</span><span className="font-mono text-xs flex-1">{v}</span>
@@ -383,7 +383,7 @@ function Domain() {
               <div className="flex gap-2 mt-3">
                 {p.domainState === 'failed' && <Button icon={EnvelopeSimple} onClick={emailIt}>Email this to IT</Button>}
                 <Button variant="primary" icon={p.domainState === 'failed' ? ArrowsClockwise : undefined} onClick={verify}>{p.domainState === 'failed' ? 'Check again' : 'I’ve added the record — verify'}</Button>
-                <button type="button" onClick={remove} className="ml-auto self-center h-7 px-2 rounded-lg text-sm text-gray-500 hover:bg-[#F3F4F6] hover:text-ink">Use a different domain</button>
+                <button type="button" onClick={remove} className="ml-auto self-center h-7 px-2 rounded-lg text-sm text-gray-500 hover:bg-[#F5F5F5] hover:text-ink">Use a different domain</button>
               </div>
             </>
           )}

@@ -40,23 +40,23 @@ export function RentFeesPage() {
         <Table rows={tpls} onRow={setEditing} selected={editing?.id}
           cols={[
             { key: 'n', label: 'Template', render: (t) => <span className="font-medium">{t.name}</span> },
-            { key: 'l', label: 'Length', render: (t) => <span className="text-[#646A78]">{p?.letting === 'Monthly' ? `${Math.round(t.weeks * 12 / 52)} months` : `${t.weeks} weeks`}</span> },
+            { key: 'l', label: 'Length', render: (t) => <span className="text-[#737373]">{p?.letting === 'Monthly' ? `${Math.round(t.weeks * 12 / 52)} months` : `${t.weeks} weeks`}</span> },
             { key: 'r', label: 'Rent', className: 'text-right', render: (t) => <span className="tabular-nums">{p?.letting === 'Monthly' ? `${money(Math.round(t.rent * 52 / 12 * 100) / 100, true)} / mo` : `${money(t.rent)} / wk`}</span> },
             { key: 'd', label: 'Deposit', className: 'text-right', render: (t) => money(t.deposit) },
-            { key: 'b', label: 'Billing', render: (t) => <span className="text-[#646A78]">{t.billing}</span> },
-            { key: 'k', label: 'Linked tenancies', className: 'text-right', render: (t) => <span className="tabular-nums">{t.linked}{t.own ? <span className="text-[#646A78]"> · {t.own} on own</span> : ''}</span> },
+            { key: 'b', label: 'Billing', render: (t) => <span className="text-[#737373]">{t.billing}</span> },
+            { key: 'k', label: 'Linked tenancies', className: 'text-right', render: (t) => <span className="tabular-nums">{t.linked}{t.own ? <span className="text-[#737373]"> · {t.own} on own</span> : ''}</span> },
             { key: 's', label: 'Status', className: 'pl-6', render: (t) => <PropStatus s={t.status} /> },
-            { key: 'e', label: '', className: 'w-16 text-right', render: (t) => <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(t); }} className="h-7 px-2.5 rounded-full border border-transparent text-xs font-medium text-[#111827] hover:bg-[#F3F4F6] hover:border-[#E5E7EB]">Edit</button> },
+            { key: 'e', label: '', className: 'w-16 text-right', render: (t) => <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(t); }} className="h-7 px-2.5 rounded-full border border-transparent text-xs font-medium text-[#0A0A0A] hover:bg-[#F5F5F5] hover:border-[#E5E5E5]">Edit</button> },
           ]}
-          empty={!p ? <Empty title="No properties yet" sub="Tenancy templates belong to a property. Add one first." /> : <div className="p-10 text-center text-sm text-[#646A78]">No templates for {p?.name}. <button type="button" className="text-primary" onClick={() => newTemplate()}>Make one</button></div>} />
+          empty={!p ? <Empty title="No properties yet" sub="Tenancy templates belong to a property. Add one first." /> : <div className="p-10 text-center text-sm text-[#737373]">No templates for {p?.name}. <button type="button" className="text-primary" onClick={() => newTemplate()}>Make one</button></div>} />
       ) : (
         <Table rows={fees} selected={fresh ?? undefined}
           cols={[
             { key: 'f', label: 'Fee', render: (f) => <span className="flex items-center gap-2"><Receipt size={16} className="text-gray-500" /><span className="font-medium">{feeTypes.find((t) => t.id === f.typeId)?.name}</span></span> },
-            { key: 'c', label: 'Calculation', render: (f) => <span className="text-[#646A78]">{feeTypes.find((t) => t.id === f.typeId)?.calc}</span> },
+            { key: 'c', label: 'Calculation', render: (f) => <span className="text-[#737373]">{feeTypes.find((t) => t.id === f.typeId)?.calc}</span> },
             { key: 'a', label: 'Amount', className: 'text-right', render: (f) => <span className="tabular-nums">{f.amount}</span> },
             { key: 'p', label: 'Applies to', className: 'pl-6', render: (f) => <span className="flex items-center gap-1.5">{f.appliesTo ? <Buildings size={14} className="text-gray-400" /> : <Globe size={14} className="text-gray-400" />}{pname(f.appliesTo)}</span> },
-            { key: 'o', label: 'Charged on', render: (f) => <span className="text-[#646A78]">{f.chargedOn}</span> },
+            { key: 'o', label: 'Charged on', render: (f) => <span className="text-[#737373]">{f.chargedOn}</span> },
             { key: 'r', label: 'Refundable', render: (f) => (feeTypes.find((t) => t.id === f.typeId)?.refundable ? 'Yes' : 'No') },
             { key: 'm', label: 'Mandatory', render: (f) => (feeTypes.find((t) => t.id === f.typeId)?.mandatory ? 'Yes' : 'No') },
           ]} empty={<Empty title="No fees yet" sub="Add a fee to charge it on tenancies." />} />
@@ -107,17 +107,17 @@ function TemplateSheet({ t, onClose, nav, isNew, siblings }: { nav?: SheetNav; t
         <div className="space-y-4">
         <Field label="Name"><Input value={v.name} placeholder="e.g. Ensuite single" onChange={(e) => setV({ ...v, name: e.target.value })} /><FieldErr>{errs.name}</FieldErr></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Length"><label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Weeks" value={v.weeks} onChange={(e) => setV({ ...v, weeks: e.target.value.replace(/\D/g, '') })} className="flex-1 min-w-0 outline-none" /><span className="text-[#646A78]">weeks</span></label><FieldErr>{errs.weeks}</FieldErr></Field>
+          <Field label="Length"><label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Weeks" value={v.weeks} onChange={(e) => setV({ ...v, weeks: e.target.value.replace(/\D/g, '') })} className="flex-1 min-w-0 outline-none" /><span className="text-[#737373]">weeks</span></label><FieldErr>{errs.weeks}</FieldErr></Field>
         </div>
         </div>
         </SheetSection>
         <SheetSection title="Money">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Rent"><MoneyInput value={v.rent} onChange={(r) => setV({ ...v, rent: r })} suffix="/ wk" />{errs.rent ? <FieldErr>{errs.rent}</FieldErr> : rentChanged && <span className="block text-xs text-[#646A78] mt-1">Was {money(t.rent)}</span>}</Field>
+          <Field label="Rent"><MoneyInput value={v.rent} onChange={(r) => setV({ ...v, rent: r })} suffix="/ wk" />{errs.rent ? <FieldErr>{errs.rent}</FieldErr> : rentChanged && <span className="block text-xs text-[#737373] mt-1">Was {money(t.rent)}</span>}</Field>
           <Field label="Deposit"><MoneyInput value={v.deposit} onChange={(r) => setV({ ...v, deposit: r })} /><FieldErr>{errs.deposit}</FieldErr></Field>
           <Field label="Billing"><Picker value={v.billing} onChange={(b) => setV({ ...v, billing: b })} options={[{ id: 'Termly', label: 'Termly' }, { id: 'Monthly', label: 'Monthly' }, { id: 'Upfront', label: 'Upfront' }]} /></Field>
         </div>
-        <div className="mt-4 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span className="text-[#646A78]">Sold tenancies never change. Only tenancies nobody has booked yet pick up the new rent.</span></div>
+        <div className="mt-4 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span className="text-[#737373]">Sold tenancies never change. Only tenancies nobody has booked yet pick up the new rent.</span></div>
         </SheetSection>
         <SheetSection title="Availability">
         <div className="grid grid-cols-2 gap-3">
@@ -129,8 +129,8 @@ function TemplateSheet({ t, onClose, nav, isNew, siblings }: { nav?: SheetNav; t
         {t.linked > 0 && (
           <SheetSection title="Who gets the new rent">
             <div className="space-y-2.5 text-sm">
-              <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-primary" /><b className="font-medium">{follow} linked tenancies</b><span className="text-[#646A78]">follow the template</span></div>
-              {t.own > 0 && <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-gray-300" /><b className="font-medium">{t.own} edited on their own</b><span className="text-[#646A78]">keep theirs{t.ownNote ? ` · ${t.ownNote}` : ''}</span></div>}
+              <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-primary" /><b className="font-medium">{follow} linked tenancies</b><span className="text-[#737373]">follow the template</span></div>
+              {t.own > 0 && <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-gray-300" /><b className="font-medium">{t.own} edited on their own</b><span className="text-[#737373]">keep theirs{t.ownNote ? ` · ${t.ownNote}` : ''}</span></div>}
             </div>
           </SheetSection>
         )}
@@ -196,8 +196,8 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
           <Field label="Name"><Input value={nt.name} onChange={(e) => setNt({ ...nt, name: e.target.value })} /><FieldErr>{typeErr}</FieldErr></Field>
           <div><div className="text-sm font-medium text-gray-700 mb-1.5">Calculation</div><Seg value={nt.calc} onChange={(c) => setNt({ ...nt, calc: c })} options={['Flat', 'Percentage', 'Per unit']} className="w-full" /></div>
           <div className="rounded-xl border border-line divide-y divide-line">
-            <div className="h-12 px-3.5 flex items-center"><span className="flex-1"><span className="block text-sm">Mandatory</span><span className="block text-xs text-[#646A78]">Added to every tenancy it applies to</span></span><Switch checked={nt.mandatory} onChange={(m) => setNt({ ...nt, mandatory: m })} label="Mandatory" /></div>
-            <div className="h-12 px-3.5 flex items-center"><span className="flex-1"><span className="block text-sm">Refundable</span><span className="block text-xs text-[#646A78]">Paid back at the end, like a deposit</span></span><Switch checked={nt.refundable} onChange={(r) => setNt({ ...nt, refundable: r })} label="Refundable" /></div>
+            <div className="h-12 px-3.5 flex items-center"><span className="flex-1"><span className="block text-sm">Mandatory</span><span className="block text-xs text-[#737373]">Added to every tenancy it applies to</span></span><Switch checked={nt.mandatory} onChange={(m) => setNt({ ...nt, mandatory: m })} label="Mandatory" /></div>
+            <div className="h-12 px-3.5 flex items-center"><span className="flex-1"><span className="block text-sm">Refundable</span><span className="block text-xs text-[#737373]">Paid back at the end, like a deposit</span></span><Switch checked={nt.refundable} onChange={(r) => setNt({ ...nt, refundable: r })} label="Refundable" /></div>
           </div>
         </div>
       )}
@@ -212,9 +212,9 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Charged on"><Picker value={on} onChange={setOn} options={[{ id: 'Each tenancy', label: 'Each tenancy' }, { id: 'Each room', label: 'Each room' }, { id: 'The property', label: 'The property' }]} /></Field>
-            <Field label="Amount">{type.calc === 'Percentage' ? <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Amount" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 outline-none" /><span className="text-[#646A78]">% of rent</span></label> : <MoneyInput value={amount} onChange={setAmount} suffix={type.calc === 'Per unit' ? 'each' : undefined} />}<FieldErr>{amountErr}</FieldErr></Field>
+            <Field label="Amount">{type.calc === 'Percentage' ? <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Amount" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 outline-none" /><span className="text-[#737373]">% of rent</span></label> : <MoneyInput value={amount} onChange={setAmount} suffix={type.calc === 'Per unit' ? 'each' : undefined} />}<FieldErr>{amountErr}</FieldErr></Field>
           </div>
-          {scope === 'org' && <div className="flex gap-2 text-xs text-[#646A78]"><Warning size={14} className="text-[#F59E0B] shrink-0" />Applies to all {props.length} properties, including new tenancies already in draft.</div>}
+          {scope === 'org' && <div className="flex gap-2 text-xs text-[#737373]"><Warning size={14} className="text-[#F59E0B] shrink-0" />Applies to all {props.length} properties, including new tenancies already in draft.</div>}
         </div>
       )}
     </Modal>
@@ -228,14 +228,14 @@ function FeeTypesSheet({ open, onClose, types }: { open: boolean; onClose: () =>
       <div className="rounded-xl border border-line divide-y divide-line">
         {types.map((t) => (
           <div key={t.id} className="px-3.5 py-3 flex items-center gap-3">
-            <Receipt size={16} className="text-[#646A78]" />
-            <div className="flex-1"><div className="text-sm font-medium">{t.name}</div><div className="text-xs text-[#646A78]">{t.calc}</div></div>
-            <span className="flex items-center gap-1.5 text-xs text-[#646A78]">Mandatory<Switch checked={t.mandatory} onChange={(m) => set('feeTypes', (l) => l.map((x) => (x.id === t.id ? { ...x, mandatory: m } : x)))} label={`${t.name} mandatory`} /></span>
-            <span className={cx('flex items-center gap-1.5 text-xs text-[#646A78]')}>Refundable<Switch checked={t.refundable} onChange={(r) => set('feeTypes', (l) => l.map((x) => (x.id === t.id ? { ...x, refundable: r } : x)))} label={`${t.name} refundable`} /></span>
+            <Receipt size={16} className="text-[#737373]" />
+            <div className="flex-1"><div className="text-sm font-medium">{t.name}</div><div className="text-xs text-[#737373]">{t.calc}</div></div>
+            <span className="flex items-center gap-1.5 text-xs text-[#737373]">Mandatory<Switch checked={t.mandatory} onChange={(m) => set('feeTypes', (l) => l.map((x) => (x.id === t.id ? { ...x, mandatory: m } : x)))} label={`${t.name} mandatory`} /></span>
+            <span className={cx('flex items-center gap-1.5 text-xs text-[#737373]')}>Refundable<Switch checked={t.refundable} onChange={(r) => set('feeTypes', (l) => l.map((x) => (x.id === t.id ? { ...x, refundable: r } : x)))} label={`${t.name} refundable`} /></span>
           </div>
         ))}
       </div>
-      <p className="text-xs text-[#646A78] mt-3 flex gap-1.5"><PencilSimple size={13} />Changes apply to fees added from now on.</p>
+      <p className="text-xs text-[#737373] mt-3 flex gap-1.5"><PencilSimple size={13} />Changes apply to fees added from now on.</p>
     </Sheet>
   );
 }

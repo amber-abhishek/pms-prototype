@@ -73,7 +73,7 @@ function Today() {
         </div>
         <div className="grid grid-cols-3 gap-4">
           <SummaryCard title="Needs your action" foot={first?.due === 'overdue' ? 'Overdue' : 'Due first'} footValue={first ? first.title : 'Nothing due today'} footTone={first?.due === 'overdue' ? 'red' : 'ink'} action={<Button size="sm" onClick={() => nav('/tasks')}>Open tasks</Button>}>
-            <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} overdue`, due[0], '#EF4444'], [`${due[1]} due today`, due[1], '#F59E0B'], [`${due[2]} this week`, due[2], '#D1D5DB']]} />
+            <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} overdue`, due[0], '#EF4444'], [`${due[1]} due today`, due[1], '#F59E0B'], [`${due[2]} this week`, due[2], '#D4D4D4']]} />
           </SummaryCard>
           <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
             <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />
@@ -82,7 +82,7 @@ function Today() {
             <Stats items={[['Open', String(open.length)], ['Urgent', String(urgent), 'red'], ['Overdue', String(overdue)]]} />
           </SummaryCard>
           <SummaryCard title="Arrivals this week" foot="Busiest day" footValue={e ? '—' : 'Sat · 340'} action={<Button size="sm" onClick={() => nav('/residents')}>Check-in</Button>}>
-            <Split value={e ? '0' : '612'} parts={e ? [['0 checked in', 0, '#0B8A4C'], ['0 to come', 0, '#D1D5DB'], ['0 no-shows', 0, '#EF4444']] : [['208 checked in', 208, '#0B8A4C'], ['398 to come', 398, '#D1D5DB'], ['6 no-shows', 6, '#EF4444']]} />
+            <Split value={e ? '0' : '612'} parts={e ? [['0 checked in', 0, '#0B8A4C'], ['0 to come', 0, '#D4D4D4'], ['0 no-shows', 0, '#EF4444']] : [['208 checked in', 208, '#0B8A4C'], ['398 to come', 398, '#D4D4D4'], ['6 no-shows', 6, '#EF4444']]} />
           </SummaryCard>
           <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
             <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'orange'], ['Paid', '1,204']]} />
@@ -121,26 +121,26 @@ function FirstDay() {
       <div className="flex-1 overflow-auto px-14 pt-8 pb-8">
         <div className="max-w-[1040px]">
           <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Priya</h2>
-          <p className="text-sm text-[#646A78] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a cycle exist.</p>
+          <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a cycle exist.</p>
           {/* Five metric tiles waiting for data: grey dash, empty meter where the tile has one, "No data yet". */}
           <div className="grid grid-cols-5 gap-3 mt-5">
             {TILES.map(([label, meter]) => (
               <Card key={label} className="px-4 py-3.5 flex flex-col gap-2">
-                <div className="text-xs font-medium text-[#374151] truncate">{label}</div>
-                <div className="pt-1 text-[26px] leading-[34px] font-semibold text-[#9CA3AF]">—</div>
-                {meter && <div className="h-1.5 rounded-[3px] bg-[#F3F4F6]" />}
-                <div className="text-xs text-[#9CA3AF]">No data yet</div>
+                <div className="text-xs font-medium text-[#404040] truncate">{label}</div>
+                <div className="pt-1 text-[26px] leading-[34px] font-semibold text-[#A3A3A3]">—</div>
+                {meter && <div className="h-1.5 rounded-[3px] bg-[#F5F5F5]" />}
+                <div className="text-xs text-[#A3A3A3]">No data yet</div>
               </Card>
             ))}
           </div>
           <Card className="mt-4 max-w-[640px] pt-4 pb-2 overflow-hidden">
             <div className="flex items-center gap-4 px-5 pb-3">
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-[#374151]">Set up Durham</h3>
-                <p className="text-xs text-[#646A78] mt-0.5">{done} of {steps.length} done · in the order the day-one journey takes</p>
+                <h3 className="text-sm font-medium text-[#404040]">Set up Durham</h3>
+                <p className="text-xs text-[#737373] mt-0.5">{done} of {steps.length} done · in the order the day-one journey takes</p>
               </div>
-              <div className="w-[120px] h-1.5 rounded-[3px] bg-[#F3F4F6] overflow-hidden"><div className="h-full rounded-[3px] bg-[#2563EB]" style={{ width: `${pct}%` }} /></div>
-              <span className="text-xs font-medium text-[#374151] tabular-nums w-[26px] text-right">{pct}%</span>
+              <div className="w-[120px] h-1.5 rounded-[3px] bg-[#F5F5F5] overflow-hidden"><div className="h-full rounded-[3px] bg-[#2563EB]" style={{ width: `${pct}%` }} /></div>
+              <span className="text-xs font-medium text-[#404040] tabular-nums w-[26px] text-right">{pct}%</span>
             </div>
             {steps.map((s) => (
               <div key={s.id} className="flex items-center gap-3 px-5 h-14">
@@ -148,8 +148,8 @@ function FirstDay() {
                   ? <span className="size-5 rounded-full bg-[#E8F7EE] text-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" /></span>
                   : <span className="size-5 rounded-full border border-[#C4C8D0] shrink-0" />}
                 <div className="flex-1 min-w-0">
-                  <div className={cx('text-sm font-medium', s.done ? 'text-[#9CA3AF] line-through' : 'text-ink')}>{s.title}</div>
-                  <div className="text-xs text-[#646A78]">{s.sub}</div>
+                  <div className={cx('text-sm font-medium', s.done ? 'text-[#A3A3A3] line-through' : 'text-ink')}>{s.title}</div>
+                  <div className="text-xs text-[#737373]">{s.sub}</div>
                 </div>
                 {!s.done && s.cta && <Button variant={s.id === next ? 'primary' : 'secondary'} icon={s.id === next ? Plus : undefined} onClick={() => nav(s.to!)}>{s.cta}</Button>}
               </div>

@@ -62,7 +62,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-[#F3F4F6] transition-colors data-[state=selected]:bg-[#EFF6FF] data-[state=selected]:shadow-[inset_2px_0_0_#2563EB]",
+      /* Connect rows: #E5E5E5 rule, hover #FAFAFA at 70% */ "border-b border-[#E5E5E5] transition-colors hover:bg-[#FAFAFA]/70 data-[state=selected]:bg-[#EFF6FF] data-[state=selected]:shadow-[inset_2px_0_0_#2563EB]",
       className
     )}
     {...props}
@@ -77,7 +77,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      /* 2820:111: 36px header, 12px medium #646A78 */ "h-10 bg-background shadow-[inset_0_-1px_0_#E5E7EB] px-4 text-left align-middle text-muted-foreground text-xs font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+      /* Amber Connect table head: 42px #FAFAFA row, Geist Mono 13/20 medium uppercase at 0.02em, #737373 */ "h-[42px] bg-[#FAFAFA] shadow-[inset_0_-1px_0_#E5E5E5] px-4 text-left align-middle text-[#737373] font-mono uppercase text-[13px] leading-5 tracking-[0.02em] font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}
@@ -92,7 +92,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      /* 44px rows, 16px cell sides (2026-11-09: "more breathing space") */ "h-11 px-4 py-2 align-middle [&:has([role=checkbox])]:pr-0",
+      /* Connect data rows: 56px, 14px medium ink */ "h-14 px-4 py-2 align-middle font-medium text-[#0A0A0A] [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}

@@ -18,7 +18,7 @@ const TooltipContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        /* dark tooltip (Linear/Understory pattern): near-black chip, white 12px medium text */ "z-50 overflow-hidden whitespace-nowrap rounded-md bg-[#111827] px-2 py-1 text-xs leading-4 font-medium text-white shadow-[0_4px_12px_-2px_rgba(17,24,39,0.25)] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1 origin-[--radix-tooltip-content-transform-origin]",
+        /* dark tooltip (Linear/Understory pattern): near-black chip, white 12px medium text */ "z-50 overflow-hidden whitespace-nowrap rounded-md bg-[#0A0A0A] px-2 py-1 text-xs leading-4 font-medium text-white shadow-[0_4px_12px_-2px_rgba(17,24,39,0.25)] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1 origin-[--radix-tooltip-content-transform-origin]",
         className
       )}
       {...props}

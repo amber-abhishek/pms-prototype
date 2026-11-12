@@ -10,27 +10,27 @@
   /* shadcn/ui tokens (packages/ui/src/styles/tokens.css names), with the A8 prototype's values. */
   :root {
     --background: 0 0% 100%;
-    --foreground: 224 71% 4%;            /* ink #030712 */
+    --foreground: 0 0% 4%;               /* ink #0A0A0A */
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 0 0% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 0 0% 4%;
     --primary: 221 83% 53%;              /* #2563EB */
     --primary-hover: 224 76% 48%;        /* #1D4ED8 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;            /* #F3F4F6 */
-    --secondary-foreground: 221 39% 11%; /* #111827 */
-    --muted: 220 14% 96%;
-    --muted-foreground: 223 8% 43%;      /* #646A78 */
-    --subtle: 210 20% 98%;               /* #F9FAFB */
-    --accent: 220 14% 96%;               /* menu/option hover */
-    --accent-foreground: 221 39% 11%;
+    --secondary: 0 0% 96%;               /* #F5F5F5 */
+    --secondary-foreground: 0 0% 9%;     /* #171717 */
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;        /* #737373 */
+    --subtle: 0 0% 98%;                  /* #FAFAFA */
+    --accent: 0 0% 96%;                  /* menu/option hover */
+    --accent-foreground: 0 0% 9%;
     --destructive: 353 77% 51%;          /* #E0243A */
     --destructive-foreground: 0 0% 100%;
     --success: 151 85% 29%;              /* #0B8A4C */
     --success-foreground: 0 0% 100%;
-    --border: 220 13% 91%;               /* #E5E7EB */
-    --input: 220 8% 58%;                 /* #8B919D: 3.2:1 on white, so fields read as fields (molades-attack, 2026-11-10) */
+    --border: 0 0% 90%;                  /* #E5E5E5 */
+    --input: 0 0% 83%;                   /* #D4D4D4: Connect fields, a light edge plus a 1px shadow */
     --ring: 221 83% 53%;
     --density-data: 2rem;                /* 32px */
     --density-input: 2rem;               /* the prototype's fields are 32px too */
@@ -111,11 +111,14 @@
    fill  — rows run edge to edge; edge cells 20px so text lines up with the footer; toolbar 20px.
    Fill is the default (screens with no table too). A screen goes inset when it holds an [data-inset] table
    (Table/Grid under 6 columns, Tasks, Activity) and nothing marked [data-fill]. */
-.pms-main { --gx: 0px; --cx: 20px; --tx: 20px; }
-.pms-main:has([data-inset]):not(:has([data-fill])) { --gx: 120px; --cx: 12px; --tx: 120px; }
+/* Amber Connect (2026-11-12): every table runs full-bleed with 24px edge cells, so both modes share one gutter. */
+.pms-main { --gx: 0px; --cx: 24px; --tx: 24px; }
+.pms-main:has([data-inset]):not(:has([data-fill])) { --gx: 0px; --cx: 24px; --tx: 24px; }
 
-/* Sticky table headers: a collapsed-table border stays behind when the header sticks, so the rule is an inset shadow and every cell is opaque (2026-11-09). */
-thead.sticky th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #E5E7EB; background: #fff; }
+/* Sticky table headers: a collapsed-table border stays behind when the header sticks, so the rules are inset shadows
+   and every cell is opaque. Connect head: #FAFAFA band with a line above and below. */
+thead.sticky th, thead th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #E5E5E5, inset 0 1px 0 #E5E5E5; background: #FAFAFA; }
+[data-head] { background: #FAFAFA; box-shadow: inset 0 -1px 0 #E5E5E5, inset 0 1px 0 #E5E5E5; }
 
 /* Overview funnel in dark (Mercury-style): deep, low-chroma steps rising to the softened brand blue. */
 .dark [data-funnel="0"] { background: #222B3D !important; }
@@ -139,16 +142,16 @@ thead.sticky th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #E5E7EB; ba
 .pms-main:has([data-scroller]) [data-page-head] { position: sticky; top: 0; z-index: 20; }
 .pms-main:has([data-scroller]) :is(.overflow-auto, .overflow-y-auto, .overflow-hidden, .min-h-0, .flex-1):has([data-scroller]),
 .pms-main:has([data-scroller]) [data-scroller] { overflow: visible; min-height: auto; flex-shrink: 0; }
-.pms-main:has([data-scroller]) [data-scroller] thead { top: 52px; z-index: 6; }
-.pms-main:has([data-scroller]) [data-scroller] [data-head] { position: sticky; top: 52px; z-index: 6; }
+.pms-main:has([data-scroller]) [data-scroller] thead { top: 56px; z-index: 6; }
+.pms-main:has([data-scroller]) [data-scroller] [data-head] { position: sticky; top: 56px; z-index: 6; }
 .pms-main[data-stuck] [data-scroller] [data-head]::after {
-  content: ''; position: absolute; bottom: -1px; left: calc(-1 * var(--gx, 0px)); right: calc(-1 * var(--gx, 0px)); height: 1px; background: #E5E7EB; pointer-events: none;
+  content: ''; position: absolute; bottom: -1px; left: calc(-1 * var(--gx, 0px)); right: calc(-1 * var(--gx, 0px)); height: 1px; background: #E5E5E5; pointer-events: none;
 }
 .pms-main:has([data-scroller]) [data-foot] { position: sticky; bottom: 0; z-index: 6; }
 .pms-main [data-scroller] thead th { position: relative; }
 .pms-main[data-stuck] [data-scroller] thead th:first-child::before,
 .pms-main[data-stuck] [data-scroller] thead th:last-child::after {
-  content: ''; position: absolute; bottom: 0; height: 1px; width: var(--gx, 0px); background: #E5E7EB; pointer-events: none;
+  content: ''; position: absolute; bottom: 0; height: 1px; width: var(--gx, 0px); background: #E5E5E5; pointer-events: none;
 }
 .pms-main[data-stuck] [data-scroller] thead th:first-child::before { right: 100%; }
 .pms-main[data-stuck] [data-scroller] thead th:last-child::after { left: 100%; }
@@ -162,5 +165,5 @@ thead.sticky th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #E5E7EB; ba
 
 /* Field outlines at 3:1 on white (molades-attack, 2026-11-10). shadcn inputs use the --input token above; the
    hand-built fields (a <label> wrapping an <input>: money, dates, steppers, weeks) get the same colour here.
-   Decorative dashed boxes keep #D1D5DB. Light mode only; dark mode has its own --input. */
-html:not(.dark) label.border-gray-300 { border-color: #8B919D; }
+   Decorative dashed boxes keep #D4D4D4. Light mode only; dark mode has its own --input. */
+html:not(.dark) label.border-gray-300 { border-color: #D4D4D4; }

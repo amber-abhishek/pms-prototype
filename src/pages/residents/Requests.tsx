@@ -39,7 +39,7 @@ export function RequestsList() {
       </>}>
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Open', label: 'Open', count: count('Open') }, { id: 'Waiting', label: 'Waiting on resident', count: count('Waiting') }, { id: 'Approved', label: 'Approved', count: count('Approved') }, { id: 'Declined', label: 'Declined', count: count('Declined') }]} />
       </Toolbar>
-      {f.hall && rows.length > 0 && <div className="h-8 shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] flex items-center text-xs text-[#646A78]">Showing {f.hall}, the halls you look after</div>}
+      {f.hall && rows.length > 0 && <div className="h-8 shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] flex items-center text-xs text-[#737373]">Showing {f.hall}, the halls you look after</div>}
       <Table rows={rows} onRow={(r) => setOpen(r.id)} selected={open ?? undefined} sort={{ key: 'wt', dir: oldest ? 'desc' : 'asc', onToggle: () => setOldest((o) => !o) }}
         empty={<Empty art="requests" icon={ArrowsLeftRight} title={tab === 'Open' ? 'No open requests' : `No ${tab === 'Waiting' ? 'requests waiting on a resident' : tab.toLowerCase() + ' requests'}`}
           sub="Room swaps, guests and early arrivals residents ask for."
@@ -197,8 +197,8 @@ function RequestSheet({ id, onClose , nav }: { nav?: SheetNav;  id: string; onCl
                   <div key={c.label} className="px-3.5 py-2.5 flex items-start gap-2.5">
                     {c.ok ? <CheckCircle size={16} className="text-[#0B8A4C] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#B91C1C] shrink-0 mt-0.5" />}
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-[#111827]">{c.label}</div>
-                      <div className={cx('text-xs mt-0.5', c.ok ? 'text-[#646A78]' : 'text-[#B91C1C]')}>{c.sub}</div>
+                      <div className="text-sm font-medium text-[#0A0A0A]">{c.label}</div>
+                      <div className={cx('text-xs mt-0.5', c.ok ? 'text-[#737373]' : 'text-[#B91C1C]')}>{c.sub}</div>
                     </div>
                   </div>
                 ))}
@@ -213,8 +213,8 @@ function RequestSheet({ id, onClose , nav }: { nav?: SheetNav;  id: string; onCl
                 {r.history.map(([w, t], i) => (
                   <li key={i} className="relative pb-3 last:pb-0">
                     <span aria-hidden className={cx('absolute -left-5 top-1.5 size-[11px] rounded-full border-2 border-white', i === 0 ? 'bg-primary' : 'bg-gray-300')} />
-                    <div className="text-sm text-[#111827]">{w}</div>
-                    <div className="text-xs text-[#646A78] mt-0.5">{t}</div>
+                    <div className="text-sm text-[#0A0A0A]">{w}</div>
+                    <div className="text-xs text-[#737373] mt-0.5">{t}</div>
                   </li>
                 ))}
               </ol>

@@ -26,7 +26,7 @@ export function StructuresPage() {
               { key: 'n', label: 'Layout', render: (s) => <span className="font-semibold">{s.name}</span> },
               { key: 'l', label: 'Levels', render: (s) => <Levels s={s} /> },
               { key: 'p', label: 'Properties', className: 'text-right', render: (s) => <span className={cx('tabular-nums', !s.properties && 'text-gray-400')}>{s.properties}</span> },
-              { key: 'u', label: 'Updated', render: (s) => <span className="text-[#646A78]">{s.updated}</span> },
+              { key: 'u', label: 'Updated', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
             ]} />
       <StructureSheet s={open} nav={open && open !== 'new' ? listNav(structures, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>
@@ -35,12 +35,12 @@ export function StructuresPage() {
 
 function Levels({ s }: { s: Pick<Structure, 'levels'> }) {
   return (
-    /* 3057:2: 22px chips, 8px radius, 12px medium; BSU levels #1F45E0 with a 35% border; 12px #9CA3AF chevrons between. */
+    /* 3057:2: 22px chips, 8px radius, 12px medium; BSU levels #1F45E0 with a 35% border; 12px #A3A3A3 chevrons between. */
     <span className="flex items-center gap-2.5 flex-wrap">
       {s.levels.map((l, i) => (
         <span key={i} className="flex items-center gap-2.5">
           {i > 0 && <CaretRight size={10} className="text-gray-400" />}
-          <span className={cx('h-[22px] px-2 rounded-md border bg-white text-xs font-medium flex items-center', l.bsu ? 'border-[#1F45E059] text-[#1F45E0]' : 'border-line text-[#374151]')}>{l.name}</span>
+          <span className={cx('h-[22px] px-2 rounded-md border bg-white text-xs font-medium flex items-center', l.bsu ? 'border-[#1F45E059] text-[#1F45E0]' : 'border-line text-[#404040]')}>{l.name}</span>
         </span>
       ))}
     </span>
@@ -87,16 +87,16 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
               <div key={l.key} className="h-12 px-3 flex items-center gap-2.5">
                 <span className="text-xs text-gray-400 w-4 tabular-nums">{i + 1}</span>
                 <Input ref={(el: HTMLInputElement | null) => { refs.current[l.key] = el; }} aria-label={`Level ${i + 1}`} value={l.name} onChange={(e) => setLevels((x) => x.map((y) => (y.key === l.key ? { ...y, name: e.target.value } : y)))} className="flex-1" placeholder="Level name" />
-                <span className="flex items-center gap-1.5 text-xs text-[#646A78]">BSU<Switch checked={l.bsu} onChange={(b) => !locked && setLevels((x) => x.map((y) => (y.key === l.key ? { ...y, bsu: b } : y)))} label={`${l.name} bookable`} /></span>
+                <span className="flex items-center gap-1.5 text-xs text-[#737373]">BSU<Switch checked={l.bsu} onChange={(b) => !locked && setLevels((x) => x.map((y) => (y.key === l.key ? { ...y, bsu: b } : y)))} label={`${l.name} bookable`} /></span>
                 {!locked && levels.length > 2 && <button type="button" aria-label={`Remove ${l.name}`} onClick={() => setLevels((x) => x.filter((y) => y.key !== l.key))} className="size-7 rounded-md hover:bg-gray-100 flex items-center justify-center text-gray-400"><Trash size={14} /></button>}
               </div>
             ))}
           </div>
-          {locked ? <p className="mt-2 text-xs text-[#646A78] flex gap-1.5"><Lock size={13} />In use, so you can rename levels but not add, remove or reorder them.</p>
+          {locked ? <p className="mt-2 text-xs text-[#737373] flex gap-1.5"><Lock size={13} />In use, so you can rename levels but not add, remove or reorder them.</p>
             : <Button type="button" size="sm" icon={Plus} className="mt-2" onClick={addLevel}>Add level</Button>}
         </SheetSection>
         <SheetSection title="Preview">
-          <div className="rounded-xl border border-line bg-[#FAFAFB] p-3"><Levels s={{ levels: levels.map((l) => ({ name: l.name || '…', bsu: l.bsu })) }} /></div>
+          <div className="rounded-xl border border-line bg-[#FAFAFA] p-3"><Levels s={{ levels: levels.map((l) => ({ name: l.name || '…', bsu: l.bsu })) }} /></div>
         </SheetSection>
       </div>
     </Sheet>
@@ -118,9 +118,9 @@ export function CustomFieldsPage() {
       <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search fields" />} />
       <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
-              { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#111827] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#646A78] font-mono">{f.key}</span></span> },
-              { key: 't', label: 'Type', render: (f) => <span className="text-[#646A78]">{f.type}</span> },
-              { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <span key={a} className="h-[22px] px-2 rounded-md border border-line bg-white text-xs text-[#111827] flex items-center">{a}</span>)}</span> },
+              { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#737373] font-mono">{f.key}</span></span> },
+              { key: 't', label: 'Type', render: (f) => <span className="text-[#737373]">{f.type}</span> },
+              { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <span key={a} className="h-[22px] px-2 rounded-md border border-line bg-white text-xs text-[#0A0A0A] flex items-center">{a}</span>)}</span> },
             ]} />
       <FieldSheet f={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>
@@ -174,7 +174,7 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
           </div>
         </SheetSection>
         <SheetSection title="Rules">
-        <div className="h-12 px-3 rounded-xl border border-line flex items-center"><span className="flex-1"><span className="block text-sm">Required</span><span className="block text-xs text-[#646A78]">An entity can’t go active while it’s empty</span></span><Switch checked={required} onChange={setRequired} label="Required" /></div>
+        <div className="h-12 px-3 rounded-xl border border-line flex items-center"><span className="flex-1"><span className="block text-sm">Required</span><span className="block text-xs text-[#737373]">An entity can’t go active while it’s empty</span></span><Switch checked={required} onChange={setRequired} label="Required" /></div>
         </SheetSection>
       </div>
     </Sheet>
@@ -200,8 +200,8 @@ export function TagsPage() {
       <Table rows={rows} empty={<Empty title="No tags yet" sub="Tags label properties, like Catered or Postgraduate." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'n', label: 'Tag', render: (t) => <Pill tone={t.tone} outline>{t.label}</Pill> },
-              { key: 'u', label: 'Used on', render: (t) => { const u = used(t); return <span className="text-[#646A78]">{u.length ? `${u.length} ${u.length === 1 ? 'property' : 'properties'}` : 'Not used yet'}</span>; } },
-              { key: 'p', label: 'Properties', render: (t) => <span className="text-[#646A78] truncate block max-w-[420px]">{used(t).map((p) => p.name).join(', ') || '—'}</span> },
+              { key: 'u', label: 'Used on', render: (t) => { const u = used(t); return <span className="text-[#737373]">{u.length ? `${u.length} ${u.length === 1 ? 'property' : 'properties'}` : 'Not used yet'}</span>; } },
+              { key: 'p', label: 'Properties', render: (t) => <span className="text-[#737373] truncate block max-w-[420px]">{used(t).map((p) => p.name).join(', ') || '—'}</span> },
             ]} />
       <TagSheet t={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} usedOn={open && open !== 'new' ? used(open) : []} onClose={() => setOpen(null)} />
     </>
@@ -258,7 +258,7 @@ function TagSheet({ t, usedOn, onClose , nav }: { nav?: SheetNav;  t: TagDef | '
             {TONES.map((c) => (
               <button key={c} type="button" role="radio" aria-checked={tone === c} onClick={() => setTone(c)}
                 className={cx('h-8 pl-2.5 pr-3 rounded-lg border flex items-center gap-1.5 text-sm font-medium transition-colors',
-                  tone === c ? cx(toneCls[c], 'border-current') : 'border-line bg-white text-[#374151] hover:bg-gray-50')}>
+                  tone === c ? cx(toneCls[c], 'border-current') : 'border-line bg-white text-[#404040] hover:bg-gray-50')}>
                 <span className="size-2 rounded-full shrink-0" style={{ background: toneDot[c] }} />
                 {TONE_NAME[c]}
               </button>
@@ -272,12 +272,12 @@ function TagSheet({ t, usedOn, onClose , nav }: { nav?: SheetNav;  t: TagDef | '
                 {usedOn.map((p) => (
                   <div key={p.id} className="h-10 px-3 flex items-center gap-2.5 text-sm">
                     <Buildings size={16} className="text-gray-400 shrink-0" />
-                    <span className="flex-1 truncate text-[#111827]">{p.name}</span>
-                    <span className="text-xs text-[#646A78]">{p.campus}</span>
+                    <span className="flex-1 truncate text-[#0A0A0A]">{p.name}</span>
+                    <span className="text-xs text-[#737373]">{p.campus}</span>
                   </div>
                 ))}
               </div>
-            ) : <div className="h-10 px-3 rounded-xl border border-dashed border-line flex items-center text-sm text-[#646A78]">Not on any property yet</div>}
+            ) : <div className="h-10 px-3 rounded-xl border border-dashed border-line flex items-center text-sm text-[#737373]">Not on any property yet</div>}
           </SheetSection>
         )}
       </div>

@@ -59,11 +59,11 @@ export function CampusesPage() {
         <>
           <Toolbar right={<><Button variant="ghost" icon={BookOpen} onClick={() => setHow(true)}>How campuses work</Button></>} />
           <Table rows={rows} onRow={(c) => nav(`/org/campuses/${c.id}`)} cols={[
-            { key: 'n', label: 'Campus', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#646A78]">{c.address || 'No address yet'}</div></div> },
+            { key: 'n', label: 'Campus', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#737373]">{c.address || 'No address yet'}</div></div> },
             { key: 's', label: 'Status', render: (c) => <Status s={c.status} /> },
             { key: 'c', label: 'City', render: (c) => <span className="text-sm">{c.city || '—'}</span> },
-            { key: 'r', label: 'Amber region', render: (c) => <span className="text-sm text-[#646A78]">{c.amberRegion || '—'}</span> },
-            { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()} className="relative inline-flex after:absolute after:inset-x-0 after:-inset-y-px after:content-['']"><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-[#646A78]">None yet</span>; } },
+            { key: 'r', label: 'Amber region', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
+            { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()} className="relative inline-flex after:absolute after:inset-x-0 after:-inset-y-px after:content-['']"><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-[#737373]">None yet</span>; } },
           ]} />
         </>
       )}
@@ -76,7 +76,7 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
   return (
     <section className="rounded-xl border border-line bg-white p-6">
       <h2 className="text-sm font-semibold">{title}</h2>
-      {sub && <p className="text-sm text-[#646A78] mt-1">{sub}</p>}
+      {sub && <p className="text-sm text-[#737373] mt-1">{sub}</p>}
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -93,7 +93,7 @@ export function CampusForm() {
   const [q, setQ] = useState(existing?.address ?? '');
   const [focus, setFocus] = useState(false);
   const busy = useRef(false);
-  if (id && !existing) return <><Header icon={ICON} crumbs={[{ label: 'Organisation' }, { label: 'Campuses', to: '/org/campuses' }]} title="Not found" /><div className="p-6 text-sm text-[#646A78]">This campus doesn’t exist.</div></>;
+  if (id && !existing) return <><Header icon={ICON} crumbs={[{ label: 'Organisation' }, { label: 'Campuses', to: '/org/campuses' }]} title="Not found" /><div className="p-6 text-sm text-[#737373]">This campus doesn’t exist.</div></>;
 
   const matches = q.trim().length >= 2 && (!place || place.address !== q) ? PLACES.filter((p) => p.address.toLowerCase().includes(q.trim().toLowerCase()) || q.toLowerCase().split(/\s+/).every((w) => p.address.toLowerCase().includes(w))) : [];
   const save = () => {
@@ -115,7 +115,7 @@ export function CampusForm() {
     <>
       <Header icon={ICON} crumbs={[{ label: 'Organisation' }, { label: 'Campuses', to: '/org/campuses' }]} title={existing ? existing.name : 'Add campus'} />
       <div className="flex-1 overflow-auto px-6 py-5">
-        <Link to="/org/campuses" className="relative inline-flex items-center gap-1.5 text-sm text-[#646A78] hover:text-ink after:absolute after:inset-x-0 after:-inset-y-0.5 after:content-['']"><ArrowLeft size={13} />All campuses</Link>
+        <Link to="/org/campuses" className="relative inline-flex items-center gap-1.5 text-sm text-[#737373] hover:text-ink after:absolute after:inset-x-0 after:-inset-y-0.5 after:content-['']"><ArrowLeft size={13} />All campuses</Link>
         <div className="flex items-start gap-4 mt-4 mb-4">
           <div className="flex-1"><TitleH1 className="text-xl font-medium tracking-tight">{existing ? 'Edit campus' : 'Add campus'}</TitleH1></div>
           <Button variant="primary" onClick={save}>{existing ? 'Save campus' : 'Add campus'}</Button>
@@ -125,13 +125,13 @@ export function CampusForm() {
             <label className="block"><span className="block text-sm font-medium text-gray-700 mb-1.5">Name</span><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Durham City" /></label>
             <div className="mt-4"><span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
               <IconSelect ariaLabel="Status" className="w-48" value={status} onChange={(v) => setStatus(v as Campus['status'])} options={['Draft', 'Active', 'Inactive'].map((s) => ({ value: s, label: s }))} /></div>
-            <p className="text-sm text-[#646A78] mt-4 leading-5">Only active campuses show on the student site. Active needs an address.</p>
+            <p className="text-sm text-[#737373] mt-4 leading-5">Only active campuses show on the student site. Active needs an address.</p>
           </Section>
           <Section title="Address" sub="Sets the Amber region for PBSA listings.">
             <span className="block text-sm font-medium text-gray-700 mb-1.5">Address</span>
             <div className="relative">
               <label className="relative flex items-center">
-                <MagnifyingGlass size={14} className="absolute left-2.5 text-[#646A78]" />
+                <MagnifyingGlass size={14} className="absolute left-2.5 text-[#737373]" />
                 <Input value={q} onFocus={() => setFocus(true)} onBlur={() => window.setTimeout(() => setFocus(false), 150)} onChange={(e) => { setQ(e.target.value); setPlace(null); }} placeholder="Search for the campus address" className="pl-8" />
               </label>
               {focus && matches.length > 0 && (
@@ -144,13 +144,13 @@ export function CampusForm() {
             </div>
             <div className="grid grid-cols-4 gap-4 mt-4">
               {([['City', place?.city], ['Region', place?.region], ['Postcode', place?.postcode], ['Country', place?.country]] as const).map(([k, v]) => (
-                <div key={k}><div className="text-sm text-[#646A78]">{k}</div><div className={cx('text-sm mt-1', !v && 'text-[#646A78]')}>{v || '—'}</div></div>
+                <div key={k}><div className="text-sm text-[#737373]">{k}</div><div className={cx('text-sm mt-1', !v && 'text-[#737373]')}>{v || '—'}</div></div>
               ))}
             </div>
-            {place && <p className="text-xs text-[#646A78] mt-4">Amber region: <span className="text-ink font-medium">{place.amberRegion}</span></p>}
+            {place && <p className="text-xs text-[#737373] mt-4">Amber region: <span className="text-ink font-medium">{place.amberRegion}</span></p>}
           </Section>
           <Section title="Images" sub="Optional.">
-            <button type="button" onClick={() => toast('Image upload is off in the prototype')} className="h-24 w-full rounded-lg border border-dashed border-gray-300 text-sm text-[#646A78] flex flex-col items-center justify-center gap-1 hover:bg-gray-50"><ImageSquare size={20} />Drop images or click to upload</button>
+            <button type="button" onClick={() => toast('Image upload is off in the prototype')} className="h-24 w-full rounded-lg border border-dashed border-gray-300 text-sm text-[#737373] flex flex-col items-center justify-center gap-1 hover:bg-gray-50"><ImageSquare size={20} />Drop images or click to upload</button>
           </Section>
         </div>
       </div>

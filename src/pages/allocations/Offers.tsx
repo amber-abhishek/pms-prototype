@@ -179,8 +179,8 @@ export function Offers() {
           </div>
           <Foot right={pages > 1 && <span className="flex items-center gap-1 tabular-nums">
             {page * PAGE + 1}–{Math.min(rows.length, page * PAGE + PAGE)} of {fmtN(rows.length)}
-            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
-            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
+            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
           </span>} />
         </div>
       )}
@@ -214,16 +214,16 @@ function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void 
               const [hall, room] = g.split('|');
               const list = rows.filter((w) => w.hall === hall && w.room === room);
               return [
-                <tr key={g} className="bg-[#F9FAFB] border-b border-[#F3F4F6]"><td colSpan={5} className="h-8 pl-[var(--cx,12px)] pr-3 text-xs"><span className="font-medium">{hall} · {room}</span><span className="text-gray-500"> · {list.length} waiting</span></td></tr>,
+                <tr key={g} className="bg-[#FAFAFA] border-b border-[#F5F5F5]"><td colSpan={5} className="h-8 pl-[var(--cx,12px)] pr-3 text-xs"><span className="font-medium">{hall} · {room}</span><span className="text-gray-500"> · {list.length} waiting</span></td></tr>,
                 ...list.map((w, i) => (
-                  <tr key={w.id} className="border-b border-[#F3F4F6] text-sm">
+                  <tr key={w.id} className="border-b border-[#F5F5F5] text-sm">
                     <td className="h-10 pl-[var(--cx,12px)] font-semibold tabular-nums">{i + 1}</td>
                     <td className="px-3"><span className="flex items-center gap-2 font-medium"><Ini name={w.name} size={24} />{w.name}</span></td>
                     <td className="px-3 text-gray-500">{w.note}</td>
                     <td className="px-3 text-gray-500">{w.joined}</td>
                     <td className="pr-[var(--cx,12px)] text-right">
                       {i === 0 ? <Button size="sm" icon={PaperPlaneTilt} onClick={() => onOffer(w)}>Offer a unit</Button>
-                        : <button type="button" aria-label={`Move ${w.name} up`} title="Move up" onClick={() => moveUp(w)} className="size-7 rounded-lg hover:bg-[#F3F4F6] inline-flex items-center justify-center text-gray-400"><DotsSixVertical size={16} /></button>}
+                        : <button type="button" aria-label={`Move ${w.name} up`} title="Move up" onClick={() => moveUp(w)} className="size-7 rounded-lg hover:bg-[#F5F5F5] inline-flex items-center justify-center text-gray-400"><DotsSixVertical size={16} /></button>}
                     </td>
                   </tr>
                 )),

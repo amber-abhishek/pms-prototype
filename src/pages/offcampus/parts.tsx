@@ -27,10 +27,10 @@ export function Thumb({ tint = '#E8EEF6', w = 40, h = 28, size = 12 }: { tint?: 
 
 /** The "See details" text action at the end of a row. */
 export const RowLink = ({ onClick, children = 'See details' }: { onClick: () => void; children?: ReactNode }) => (
-  <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="h-7 px-2.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-[#F3F4F6]">{children}</button>
+  <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="h-7 px-2.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-[#F5F5F5]">{children}</button>
 );
 
-const toneTile: Record<'blue' | 'green' | 'grey' | 'red', string> = { blue: 'bg-[#D9E3FF] text-primary', green: 'bg-[#E8F7EE] text-[#0B8A4C]', grey: 'bg-[#F3F4F6] text-gray-500', red: 'bg-[#FFE4E8] text-[#E0243A]' };
+const toneTile: Record<'blue' | 'green' | 'grey' | 'red', string> = { blue: 'bg-[#D9E3FF] text-primary', green: 'bg-[#E8F7EE] text-[#0B8A4C]', grey: 'bg-[#F5F5F5] text-gray-500', red: 'bg-[#FFE4E8] text-[#E0243A]' };
 
 /** Confirm/compose dialog as drawn in the flows: icon tile, title, description, body, grey footer. */
 export function ODialog({ open, onClose, title, sub, children, footer, width = 520 }: {
@@ -74,7 +74,7 @@ export function NoteDialog({ open, onClose, icon, title, sub, label, optional, p
     <ODialog open={open} onClose={onClose} icon={icon} tone={danger ? 'red' : optional ? 'grey' : 'blue'} title={title} sub={sub}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant={danger ? 'danger' : 'primary'} onClick={go}>{submit}</Button></>}>
       <label className="block">
-        <span className="block text-sm font-medium text-ink mb-1.5">{label}{optional && <span className="ml-1.5 text-xs font-normal text-[#646A78]">(optional)</span>}</span>
+        <span className="block text-sm font-medium text-ink mb-1.5">{label}{optional && <span className="ml-1.5 text-xs font-normal text-[#737373]">(optional)</span>}</span>
         <textarea ref={ref} rows={4} value={text} placeholder={placeholder} onChange={(e) => { setText(e.target.value); setErr(false); }} className={cx('w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/25 placeholder:text-gray-400 min-h-[88px]', err && 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/25')} />
         {err && <span className="block text-xs text-[#E0243A] mt-1">A message is required.</span>}
       </label>
@@ -102,7 +102,7 @@ export function Combo({ value, options, onPick, noneLabel = 'None', icon: I }: {
         <Command>
           <CommandInput placeholder="Find a region" />
           <CommandList className="p-1">
-            <CommandEmpty className="px-2 h-8 flex items-center text-sm text-[#646A78]">No region matches</CommandEmpty>
+            <CommandEmpty className="px-2 h-8 flex items-center text-sm text-[#737373]">No region matches</CommandEmpty>
             <CommandItem value={`__none ${noneLabel}`} onSelect={() => pick(null)}><X size={14} className="text-gray-400" />{noneLabel}</CommandItem>
             {options.map((o) => (
               <CommandItem key={o} value={o} onSelect={() => pick(o)} className={cx(value === o && 'bg-gray-50')}>
@@ -120,7 +120,7 @@ export function Combo({ value, options, onPick, noneLabel = 'None', icon: I }: {
 export function BulkBar({ count, children, onClear }: { count: number; children: ReactNode; onClear: () => void }) {
   if (!count) return null;
   return (
-    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 h-11 pl-4 pr-2 rounded-xl bg-[#111827] text-white flex items-center gap-3 shadow-pop animate-[pop_.15s_cubic-bezier(0.23,1,0.32,1)]">
+    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 h-11 pl-4 pr-2 rounded-xl bg-[#0A0A0A] text-white flex items-center gap-3 shadow-pop animate-[pop_.15s_cubic-bezier(0.23,1,0.32,1)]">
       <span className="text-sm">{count} selected</span>
       <span className="w-px h-5 bg-white/20" />
       {children}

@@ -129,28 +129,28 @@ function UnitsView({ props }: { props: Property[] }) {
       <div className="flex-1 min-h-0 flex">
         <Tree props={props} sel={sel} go={go} archivedFlats={archivedFlats} />
         <section className="flex-1 min-w-0 flex flex-col">
-          <div className="h-12 shrink-0 px-[var(--tx,16px)] flex items-center gap-2 border-b border-[#F3F4F6]">
+          <div className="h-12 shrink-0 px-[var(--tx,16px)] flex items-center gap-2 border-b border-[#F5F5F5]">
             <Tabs value={tab} onChange={(t) => { setTab(t); setCursor(0); }} tabs={[
               { id: 'all', label: 'All units', count: counts.all }, { id: 'Active', label: 'Active', count: counts.Active }, { id: 'Draft', label: 'Draft', count: counts.Draft }, { id: 'Inactive', label: 'Inactive', count: counts.Inactive }, { id: 'Archived', label: 'Archived', count: counts.Archived },
             ]} />
           </div>
-          <div className="h-11 shrink-0 px-[var(--tx,16px)] flex items-center gap-2 border-b border-[#F3F4F6]">
+          <div className="h-11 shrink-0 px-[var(--tx,16px)] flex items-center gap-2 border-b border-[#F5F5F5]">
             <Menu align="left" width={240} trigger={(o) => (
               <span className="h-7 rounded-lg border border-line bg-white text-xs flex items-stretch overflow-hidden">
-                <button type="button" onClick={o} className="flex items-stretch"><span className="px-2 flex items-center font-medium text-[#374151] border-r border-[#F3F4F6]">Property</span><span className="px-2 flex items-center text-[#646A78] border-r border-[#F3F4F6]">is</span><span className="px-2 flex items-center font-semibold text-[#111827]">{p.name}</span></button>
+                <button type="button" onClick={o} className="flex items-stretch"><span className="px-2 flex items-center font-medium text-[#404040] border-r border-[#F5F5F5]">Property</span><span className="px-2 flex items-center text-[#737373] border-r border-[#F5F5F5]">is</span><span className="px-2 flex items-center font-semibold text-[#0A0A0A]">{p.name}</span></button>
                 <button type="button" aria-label="Pick another property" onClick={o} className="w-6 hover:bg-gray-50 flex items-center justify-center text-gray-400"><X size={10} /></button>
               </span>
             )} items={props.map((x) => ({ label: x.name, icon: Buildings, onClick: () => go({ pid: x.id, bi: 0, floor: x.id === 'col' ? 3 : 1, flat: null }) }))} />
             {tab === 'all' ? (
-              <Menu align="left" width={160} trigger={(o) => <button type="button" onClick={o} className="h-7 px-3 rounded-lg border border-gray-300 text-xs font-medium text-[#646A78] hover:bg-gray-50 flex items-center gap-1.5"><Plus size={12} className="text-gray-400" />Status</button>}
+              <Menu align="left" width={160} trigger={(o) => <button type="button" onClick={o} className="h-7 px-3 rounded-lg border border-gray-300 text-xs font-medium text-[#737373] hover:bg-gray-50 flex items-center gap-1.5"><Plus size={12} className="text-gray-400" />Status</button>}
                 items={(['Active', 'Draft', 'Inactive', 'Archived'] as const).map((s) => ({ label: s, onClick: () => setTab(s) }))} />
             ) : (
-              <span className="h-7 rounded-lg border border-line bg-white text-xs flex items-stretch overflow-hidden"><span className="px-2 flex items-center font-medium text-[#374151] border-r border-[#F3F4F6]">Status</span><span className="px-2 flex items-center text-[#646A78] border-r border-[#F3F4F6]">is</span><span className="px-2 flex items-center font-semibold text-[#111827]">{tab}</span><button type="button" aria-label="Clear status" onClick={() => setTab('all')} className="w-6 hover:bg-gray-50 flex items-center justify-center text-gray-400"><X size={10} /></button></span>
+              <span className="h-7 rounded-lg border border-line bg-white text-xs flex items-stretch overflow-hidden"><span className="px-2 flex items-center font-medium text-[#404040] border-r border-[#F5F5F5]">Status</span><span className="px-2 flex items-center text-[#737373] border-r border-[#F5F5F5]">is</span><span className="px-2 flex items-center font-semibold text-[#0A0A0A]">{tab}</span><button type="button" aria-label="Clear status" onClick={() => setTab('all')} className="w-6 hover:bg-gray-50 flex items-center justify-center text-gray-400"><X size={10} /></button></span>
             )}
             {typeF ? (
-              <span className="h-7 rounded-lg border border-line bg-white text-xs flex items-stretch overflow-hidden"><span className="px-2 flex items-center font-medium text-[#374151] border-r border-[#F3F4F6]">Room type</span><span className="px-2 flex items-center text-[#646A78] border-r border-[#F3F4F6]">is</span><span className="px-2 flex items-center font-semibold text-[#111827]">{typeF}</span><button type="button" aria-label="Clear room type" onClick={() => setTypeF(null)} className="w-6 hover:bg-gray-50 flex items-center justify-center text-gray-400"><X size={10} /></button></span>
+              <span className="h-7 rounded-lg border border-line bg-white text-xs flex items-stretch overflow-hidden"><span className="px-2 flex items-center font-medium text-[#404040] border-r border-[#F5F5F5]">Room type</span><span className="px-2 flex items-center text-[#737373] border-r border-[#F5F5F5]">is</span><span className="px-2 flex items-center font-semibold text-[#0A0A0A]">{typeF}</span><button type="button" aria-label="Clear room type" onClick={() => setTypeF(null)} className="w-6 hover:bg-gray-50 flex items-center justify-center text-gray-400"><X size={10} /></button></span>
             ) : (
-              <Menu align="left" width={200} trigger={(o) => <button type="button" onClick={o} className="h-7 px-3 rounded-lg border border-gray-300 text-xs font-medium text-[#646A78] hover:bg-gray-50 flex items-center gap-1.5"><Plus size={12} className="text-gray-400" />Room type</button>}
+              <Menu align="left" width={200} trigger={(o) => <button type="button" onClick={o} className="h-7 px-3 rounded-lg border border-gray-300 text-xs font-medium text-[#737373] hover:bg-gray-50 flex items-center gap-1.5"><Plus size={12} className="text-gray-400" />Room type</button>}
                 items={ROOM_TYPES.map((t) => ({ label: t, icon: Bed, onClick: () => setTypeF(t) }))} />
             )}
           </div>
@@ -161,7 +161,7 @@ function UnitsView({ props }: { props: Property[] }) {
             <>
               <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-white z-[1]"><tr className="text-left text-xs text-[#646A78]">
+                  <thead className="sticky top-0 bg-white z-[1]"><tr className="text-left text-xs text-[#737373]">
                     <th className="w-12 pl-[var(--cx,12px)] h-9 border-b border-line"><Checkbox aria-label="Select all" checked={!!flatList.length && checked.length === flatList.length} onCheckedChange={(v) => setChecked((v === true) ? flatList.map((u) => u.id) : [])} /></th>
                     {['Unit', 'Room type', `Rent / ${per(p)}`, 'Status', 'Tenancy template'].map((h, i) => <th key={h} className={cx('font-medium h-9 border-b border-line px-3', i === 2 && 'text-right', i === 3 && 'pl-6', i === 4 && 'pr-[var(--cx,12px)]')}>{h}</th>)}
                   </tr></thead>
@@ -170,13 +170,13 @@ function UnitsView({ props }: { props: Property[] }) {
                       <FlatGroup key={f.id} f={f} units={units} cursorId={flatList[cursor]?.id} open={open} checked={checked} setChecked={setChecked} onOpen={(id) => { setOpen(id); setCursor(flatList.findIndex((u) => u.id === id)); }}
                         onFlat={() => go({ flat: +f.id.split('|')[3] })} onArchive={() => setArchiveFlat(f)} />
                     ))}
-                    {!groups.length && <tr><td colSpan={6} className="h-32 text-center text-sm text-[#646A78]">No {tab === 'all' ? '' : tab.toLowerCase() + ' '}units here{typeF ? ` of type ${typeF}` : ''}.</td></tr>}
+                    {!groups.length && <tr><td colSpan={6} className="h-32 text-center text-sm text-[#737373]">No {tab === 'all' ? '' : tab.toLowerCase() + ' '}units here{typeF ? ` of type ${typeF}` : ''}.</td></tr>}
                   </tbody>
                 </table>
               </div>
               {/* Footer only while rows are ticked: the bulk status action. No counts, no shortcut hints. */}
               {checked.length > 0 && (
-                <div className="h-10 shrink-0 px-5 flex items-center gap-3 border-t border-line text-sm text-[#646A78]">
+                <div className="h-10 shrink-0 px-5 flex items-center gap-3 border-t border-line text-sm text-[#737373]">
                     <span className="text-ink font-medium">{checked.length} selected</span>
                     <Menu align="left" width={160} trigger={(o) => <Button size="sm" onClick={o}>Set status</Button>} items={(['Active', 'Inactive', 'Draft'] as UStatus[]).map((s) => ({ label: s, onClick: () => bulkStatus(s) }))} />
                     <button type="button" className="text-primary" onClick={() => setChecked([])}>Clear</button>
@@ -224,14 +224,14 @@ function Tree({ props, sel, go, archivedFlats }: { props: Property[]; sel: Sel; 
   const [open, setOpen] = useState<Record<string, boolean>>({ [sel.pid]: true, [`${sel.pid}|${sel.bi}`]: true, [`${sel.pid}|${sel.bi}|${sel.floor}`]: true });
   const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const row = (depth: number, k: string, I: typeof Bed, label: string, n: number | null, active: boolean, onClick: () => void, leaf = false) => (
-    <div key={k} aria-current={active || undefined} className={cx('h-7 mb-px flex items-center gap-1.5 rounded-lg text-sm pr-2 cursor-pointer', depth === 0 ? 'font-semibold' : 'font-medium', active ? 'bg-[#EFF6FF] text-[#1F45E0]' : 'text-[#111827] hover:bg-gray-100')} style={{ paddingLeft: 6 + depth * 14 }} onClick={onClick}>
-      {leaf ? <span className="w-6 shrink-0" /> : <button type="button" aria-label={open[k] ? 'Collapse' : 'Expand'} aria-expanded={!!open[k]} onClick={(e) => { e.stopPropagation(); tog(k); }} className="-ml-1.5 size-6 shrink-0 rounded-md flex items-center justify-center text-[#646A78] hover:bg-gray-100">{open[k] ? <CaretDown size={12} /> : <CaretRight size={12} />}</button>}
-      <I size={14} className={cx('shrink-0', active ? 'text-[#2B5CFF]' : 'text-gray-500')} /><span className="truncate flex-1">{label}</span>{n != null && <span className={cx('text-xs font-normal tabular-nums', active ? 'text-[#2B5CFF]' : 'text-[#646A78]')}>{n}</span>}
+    <div key={k} aria-current={active || undefined} className={cx('h-7 mb-px flex items-center gap-1.5 rounded-lg text-sm pr-2 cursor-pointer', depth === 0 ? 'font-semibold' : 'font-medium', active ? 'bg-[#EFF6FF] text-[#1F45E0]' : 'text-[#0A0A0A] hover:bg-gray-100')} style={{ paddingLeft: 6 + depth * 14 }} onClick={onClick}>
+      {leaf ? <span className="w-6 shrink-0" /> : <button type="button" aria-label={open[k] ? 'Collapse' : 'Expand'} aria-expanded={!!open[k]} onClick={(e) => { e.stopPropagation(); tog(k); }} className="-ml-1.5 size-6 shrink-0 rounded-md flex items-center justify-center text-[#737373] hover:bg-gray-100">{open[k] ? <CaretDown size={12} /> : <CaretRight size={12} />}</button>}
+      <I size={14} className={cx('shrink-0', active ? 'text-[#2B5CFF]' : 'text-gray-500')} /><span className="truncate flex-1">{label}</span>{n != null && <span className={cx('text-xs font-normal tabular-nums', active ? 'text-[#2B5CFF]' : 'text-[#737373]')}>{n}</span>}
     </div>
   );
   return (
-    <aside className="w-[232px] shrink-0 border-r border-line bg-[#FAFAFB] overflow-auto p-2">
-      <div className="px-2 pt-1 pb-2 text-xs font-medium text-[#646A78]">Hierarchy</div>
+    <aside className="w-[232px] shrink-0 border-r border-line bg-[#FAFAFA] overflow-auto p-2">
+      <div className="px-2 pt-1 pb-2 text-xs font-medium text-[#737373]">Hierarchy</div>
       {props.map((p) => (
         <div key={p.id}>
           {row(0, p.id, Buildings, p.name, p.units, false, () => { tog(p.id); if (p.id !== sel.pid) go({ pid: p.id, bi: 0, floor: 1, flat: null }); })}
@@ -267,23 +267,23 @@ function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFl
   const active = f.units.filter((u) => u.status === 'Active').length;
   return (
     <>
-      <tr className="bg-[#F9FAFB]">
+      <tr className="bg-[#FAFAFA]">
         <td colSpan={6} className="h-8 pl-[var(--cx,12px)] pr-[var(--cx,12px)] border-b border-line">
           <div className="flex items-center gap-2 text-xs">
-            <CaretDown size={12} className="text-gray-400" /><button type="button" onClick={onFlat} className="font-semibold text-[#111827] hover:underline">{f.name}</button><span className="text-[#646A78]">{f.units.length} units · {active} active</span>
-            <span className="ml-auto"><Menu width={180} trigger={(o) => <button type="button" aria-label={`More for ${f.name}`} onClick={o} className="size-6 rounded hover:bg-gray-200 flex items-center justify-center text-[#646A78]"><DotsThree size={16} weight="bold" /></button>}
+            <CaretDown size={12} className="text-gray-400" /><button type="button" onClick={onFlat} className="font-semibold text-[#0A0A0A] hover:underline">{f.name}</button><span className="text-[#737373]">{f.units.length} units · {active} active</span>
+            <span className="ml-auto"><Menu width={180} trigger={(o) => <button type="button" aria-label={`More for ${f.name}`} onClick={o} className="size-6 rounded hover:bg-gray-200 flex items-center justify-center text-[#737373]"><DotsThree size={16} weight="bold" /></button>}
               items={[{ label: 'Open flat', icon: ArrowSquareOut, onClick: onFlat }, 'sep', { label: `Archive ${f.name}…`, icon: Archive, danger: true, onClick: onArchive }]} /></span>
           </div>
         </td>
       </tr>
       {units.map((u) => (
-        <tr key={u.id} onClick={() => onOpen(u.id)} aria-selected={open === u.id} className={cx('border-b border-[#F3F4F6] cursor-pointer', open === u.id ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]' : cursorId === u.id ? 'bg-[#F9FAFB]' : 'hover:bg-[#F9FAFB]')}>
+        <tr key={u.id} onClick={() => onOpen(u.id)} aria-selected={open === u.id} className={cx('border-b border-[#F5F5F5] cursor-pointer', open === u.id ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]' : cursorId === u.id ? 'bg-[#FAFAFA]' : 'hover:bg-[#FAFAFA]')}>
           <td className="pl-[var(--cx,12px)] h-10" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${u.code}`} checked={checked.includes(u.id)} onCheckedChange={() => setChecked((c) => (c.includes(u.id) ? c.filter((x) => x !== u.id) : [...c, u.id]))} /></td>
-          <td className="px-3 font-semibold text-sm text-[#111827]">{u.code}</td>
-          <td className="px-3 text-sm text-[#111827]">{u.type}</td>
-          <td className="px-3 text-right text-sm text-[#111827] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#646A78]">No tenancy</span>}</td>
+          <td className="px-3 font-semibold text-sm text-[#0A0A0A]">{u.code}</td>
+          <td className="px-3 text-sm text-[#0A0A0A]">{u.type}</td>
+          <td className="px-3 text-right text-sm text-[#0A0A0A] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#737373]">No tenancy</span>}</td>
           <td className="px-3 pl-6"><PropStatus s={u.status} /></td>
-          <td className="pl-3 pr-[var(--cx,12px)] text-[#646A78]">{u.template ?? <span className="text-[#646A78]">—</span>}</td>
+          <td className="pl-3 pr-[var(--cx,12px)] text-[#737373]">{u.template ?? <span className="text-[#737373]">—</span>}</td>
         </tr>
       ))}
     </>
@@ -326,7 +326,7 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
       </SheetHero>
       {blocked && (
         <div className="mb-5 rounded-xl border border-[#EF44444D] p-3.5">
-          <div className="flex gap-2.5"><WarningCircle size={18} weight="fill" className="text-[#EF4444] shrink-0" /><div><div className="text-sm font-semibold text-[#E0243A]">{unit.code} can’t be active</div><div className="text-sm text-[#646A78] mt-0.5">Apply the {unit.type} tenancy first, then it goes active.</div></div></div>
+          <div className="flex gap-2.5"><WarningCircle size={18} weight="fill" className="text-[#EF4444] shrink-0" /><div><div className="text-sm font-semibold text-[#E0243A]">{unit.code} can’t be active</div><div className="text-sm text-[#737373] mt-0.5">Apply the {unit.type} tenancy first, then it goes active.</div></div></div>
           <div className="mt-3 flex gap-2 justify-end"><Button size="sm" onClick={() => setBlocked(false)}>Keep as Draft</Button><Button size="sm" variant="primary" onClick={() => applyTenancy(true)}>Apply tenancy</Button></div>
         </div>
       )}
@@ -337,16 +337,16 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
         <div className="space-y-4">
           <Field label="Room type"><Picker value={unit.type} onChange={(v) => { editUnit(unit.id, { type: v }); toast.success(`${unit.code} is now ${v}`); }} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></Field>
           <Field label="Room size *">
-            <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Room size" value={size} onChange={(e) => setSize(e.target.value.replace(/[^0-9.]/g, ''))} onBlur={() => !sizeErr && +size !== unit.size && (editUnit(unit.id, { size: +size }), toast.success(`${unit.code} room size saved · ${+size} m²`))} className="flex-1 outline-none" /><span className="text-[#646A78] text-xs">m²</span></label>
+            <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Room size" value={size} onChange={(e) => setSize(e.target.value.replace(/[^0-9.]/g, ''))} onBlur={() => !sizeErr && +size !== unit.size && (editUnit(unit.id, { size: +size }), toast.success(`${unit.code} room size saved · ${+size} m²`))} className="flex-1 outline-none" /><span className="text-[#737373] text-xs">m²</span></label>
             <FieldErr>{sizeErr && `${sizeErr} Not saved.`}</FieldErr>
           </Field>
         </div>
       </SheetSection>
       <SheetSection title="Tenancy">
         {unit.rent != null ? (
-          <div className="rounded-xl border border-line p-3.5"><div className="text-sm font-medium">{unit.template}</div><div className="text-xs text-[#646A78]">{money(unit.rent)} / {per(p)} · linked to the template</div></div>
+          <div className="rounded-xl border border-line p-3.5"><div className="text-sm font-medium">{unit.template}</div><div className="text-xs text-[#737373]">{money(unit.rent)} / {per(p)} · linked to the template</div></div>
         ) : (
-          <div className="rounded-xl border border-dashed border-gray-300 p-3.5 flex items-center gap-3"><span className="text-sm text-[#646A78] flex-1">No tenancy</span><Button size="sm" onClick={() => applyTenancy(false)}>Apply tenancy</Button></div>
+          <div className="rounded-xl border border-dashed border-gray-300 p-3.5 flex items-center gap-3"><span className="text-sm text-[#737373] flex-1">No tenancy</span><Button size="sm" onClick={() => applyTenancy(false)}>Apply tenancy</Button></div>
         )}
       </SheetSection>
     </Sheet>
@@ -363,9 +363,9 @@ function ArchiveFlatDialog({ flat, onClose, onConfirm }: { flat: Flat | null; on
     <Modal open onClose={onClose} icon={Archive} tone="red" title={`Archive ${flat.name}?`} sub={`${flat.name} and its ${flat.units.length} units leave every list and can’t be let. You can restore them from Archived.`} width={500}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" onClick={() => { if (busy.current) return; busy.current = true; onConfirm(flat); }}>Archive flat and {flat.units.length} units</Button></>}>
       <div className="rounded-xl border border-line divide-y divide-line">
-        {flat.units.map((u) => <div key={u.id} className="h-10 px-3.5 flex items-center gap-3 text-sm"><span className="font-mono w-14">{u.code}</span><span className="flex-1 text-[#646A78]">{u.type}</span><PropStatus s={u.status} /></div>)}
+        {flat.units.map((u) => <div key={u.id} className="h-10 px-3.5 flex items-center gap-3 text-sm"><span className="font-mono w-14">{u.code}</span><span className="flex-1 text-[#737373]">{u.type}</span><PropStatus s={u.status} /></div>)}
       </div>
-      <div className="mt-3 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span><b className="font-semibold text-[#1D4ED8]">{withT} tenancies keep their status</b><span className="block text-[#646A78]">Signed students stay in their rooms; nobody new can book them.</span></span></div>
+      <div className="mt-3 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span><b className="font-semibold text-[#1D4ED8]">{withT} tenancies keep their status</b><span className="block text-[#737373]">Signed students stay in their rooms; nobody new can book them.</span></span></div>
     </Modal>
   );
 }
@@ -377,22 +377,22 @@ function ArchivedTable({ p, rows, onRestore }: { p: Property; rows: ArchivedRow[
     <>
       <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-white"><tr className="text-left text-xs text-[#646A78]">{['Entity', 'Type', 'Status', 'Archived', ''].map((h, i) => <th key={i} className={cx('font-medium h-9 border-b border-line px-3', i === 0 && 'pl-[var(--cx,12px)]', i === 4 && 'pr-[var(--cx,12px)]')}>{h}</th>)}</tr></thead>
+          <thead className="sticky top-0 bg-white"><tr className="text-left text-xs text-[#737373]">{['Entity', 'Type', 'Status', 'Archived', ''].map((h, i) => <th key={i} className={cx('font-medium h-9 border-b border-line px-3', i === 0 && 'pl-[var(--cx,12px)]', i === 4 && 'pr-[var(--cx,12px)]')}>{h}</th>)}</tr></thead>
           <GhostZone.Provider value><tbody>
             {top.map((r) => (
               <tr key={r.id} className="border-b border-line">
-                <td className="pl-[var(--cx,12px)] pr-3 h-10"><span className="flex items-center gap-2">{r.flat ? <Door size={14} className="text-[#646A78]" /> : <Bed size={14} className="text-[#646A78]" />}<span className={r.flat ? 'font-medium' : 'font-mono text-sm'}>{r.name}</span>{r.flat && <span className="text-xs text-[#646A78]">+ {r.units} units</span>}</span></td>
-                <td className="px-3 text-[#646A78]">{r.flat ? 'Flat' : r.type}</td>
+                <td className="pl-[var(--cx,12px)] pr-3 h-10"><span className="flex items-center gap-2">{r.flat ? <Door size={14} className="text-[#737373]" /> : <Bed size={14} className="text-[#737373]" />}<span className={r.flat ? 'font-medium' : 'font-mono text-sm'}>{r.name}</span>{r.flat && <span className="text-xs text-[#737373]">+ {r.units} units</span>}</span></td>
+                <td className="px-3 text-[#737373]">{r.flat ? 'Flat' : r.type}</td>
                 <td className="px-3"><PropStatus s="Archived" /></td>
-                <td className="px-3 text-[#646A78]">{r.who} · {r.when}</td>
+                <td className="px-3 text-[#737373]">{r.who} · {r.when}</td>
                 <td className="pl-3 pr-[var(--cx,12px)] text-right"><Button size="sm" icon={ArrowUUpLeft} onClick={() => onRestore(r)}>Restore…</Button></td>
               </tr>
             ))}
-            {!top.length && <tr><td colSpan={5} className="h-32 text-center text-sm text-[#646A78]">Nothing archived in {p.name}.</td></tr>}
+            {!top.length && <tr><td colSpan={5} className="h-32 text-center text-sm text-[#737373]">Nothing archived in {p.name}.</td></tr>}
           </tbody></GhostZone.Provider>
         </table>
       </div>
-      <div className="h-10 shrink-0 px-5 flex items-center border-t border-line text-sm text-[#646A78]">{rows.length} archived in {p.name}</div>
+      <div className="h-10 shrink-0 px-5 flex items-center border-t border-line text-sm text-[#737373]">{rows.length} archived in {p.name}</div>
     </>
   );
 }
@@ -428,10 +428,10 @@ function RestoreDialog({ p, row, onClose }: { p: Property; row: ArchivedRow | nu
       <div className="mt-4 rounded-xl border border-line divide-y divide-line">
         {units.map((u) => {
           const res: UStatus = to === 'Active' && u.rent == null ? 'Draft' : to;
-          return <div key={u.id} className="h-10 px-3.5 flex items-center gap-3 text-sm"><span className="font-mono w-14">{u.code}</span><span className="flex-1 text-[#646A78]">{res !== to ? 'No tenancy · comes back Draft' : u.type}</span><PropStatus s={res} /></div>;
+          return <div key={u.id} className="h-10 px-3.5 flex items-center gap-3 text-sm"><span className="font-mono w-14">{u.code}</span><span className="flex-1 text-[#737373]">{res !== to ? 'No tenancy · comes back Draft' : u.type}</span><PropStatus s={res} /></div>;
         })}
       </div>
-      {to === 'Active' && noT.length > 0 && <div className="mt-3 flex gap-2 text-xs text-[#646A78]"><Warning size={14} className="text-[#F59E0B] shrink-0" />{noT.map((u) => u.code).join(', ')} has no tenancy, so it comes back Draft.</div>}
+      {to === 'Active' && noT.length > 0 && <div className="mt-3 flex gap-2 text-xs text-[#737373]"><Warning size={14} className="text-[#F59E0B] shrink-0" />{noT.map((u) => u.code).join(', ')} has no tenancy, so it comes back Draft.</div>}
     </Modal>
   );
 }

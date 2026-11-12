@@ -160,7 +160,7 @@ function SectionsEditor() {
               onDrop={(e) => { e.preventDefault(); move(s.id); setDrag(null); }}
               onDragEnd={() => setDrag(null)}
               className={cx('h-10 pl-1.5 pr-2.5 rounded-lg border flex items-center gap-2 transition-colors',
-                sel === s.id ? 'border-[#93C5FD] bg-[#EFF6FF]' : 'border-line bg-white hover:border-[#D1D5DB]', drag === s.id && 'opacity-40')}>
+                sel === s.id ? 'border-[#93C5FD] bg-[#EFF6FF]' : 'border-line bg-white hover:border-[#D4D4D4]', drag === s.id && 'opacity-40')}>
               <DotsSixVertical size={14} className="text-[#7C8391] cursor-grab shrink-0" />
               <button type="button" onClick={() => set({ sel: s.id })} className="flex-1 min-w-0 h-full flex items-center gap-2 text-left focus-visible:outline-none">
                 <I size={16} className={s.on ? 'text-gray-600' : 'text-gray-400'} />
@@ -176,8 +176,8 @@ function SectionsEditor() {
         <div className="flex items-center gap-1 mb-3">
           <div className="flex-1 min-w-0 truncate text-xs font-medium text-gray-500 uppercase tracking-wide">{selLabel}</div>
           {/* Dragging needs a mouse; these move the selected section from the keyboard too. */}
-          <button type="button" aria-label={`Move ${selLabel} up`} disabled={at === 0} onClick={() => step(-1)} className="size-7 rounded-lg text-gray-600 hover:bg-[#F3F4F6] disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowUp size={14} /></button>
-          <button type="button" aria-label={`Move ${selLabel} down`} disabled={at === sections.length - 1} onClick={() => step(1)} className="size-7 rounded-lg text-gray-600 hover:bg-[#F3F4F6] disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowDown size={14} /></button>
+          <button type="button" aria-label={`Move ${selLabel} up`} disabled={at === 0} onClick={() => step(-1)} className="size-7 rounded-lg text-gray-600 hover:bg-[#F5F5F5] disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowUp size={14} /></button>
+          <button type="button" aria-label={`Move ${selLabel} down`} disabled={at === sections.length - 1} onClick={() => step(1)} className="size-7 rounded-lg text-gray-600 hover:bg-[#F5F5F5] disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowDown size={14} /></button>
         </div>
         <SectionOptions id={sel} />
       </div>
@@ -223,7 +223,7 @@ function SectionOptions({ id }: { id: SecId }) {
     </div>
   );
   if (id === 'apply') return <Note tone="blue" icon={Info} title={`Opens the ${s.cycle} cycle`}>Change the cycle in Settings.</Note>;
-  return <p className="text-sm text-[#646A78]">Content for this section is edited in the preview in the real product.</p>;
+  return <p className="text-sm text-[#737373]">Content for this section is edited in the preview in the real product.</p>;
 }
 
 /* ---------------- Theme ---------------- */
@@ -253,7 +253,7 @@ function SettingsEditor() {
     <div className="p-4 flex flex-col gap-5">
       <Field label="Site name"><Input value={s.name} onChange={(e) => s.set({ name: e.target.value })} /></Field>
       <Field label="Address">
-        <div className="h-8 px-2.5 rounded-lg border border-line bg-[#F9FAFB] flex items-center gap-2 text-sm">
+        <div className="h-8 px-2.5 rounded-lg border border-line bg-[#FAFAFA] flex items-center gap-2 text-sm">
           <Globe size={14} className="text-gray-400" /><span className="flex-1 truncate">accommodation.durham.ac.uk</span>
           <button type="button" aria-label="Copy address" onClick={() => toast.success('Address copied')} className="text-gray-500 hover:text-ink"><Copy size={14} /></button>
         </div>
@@ -274,7 +274,7 @@ function SettingsEditor() {
   );
 }
 const Row = ({ title, sub, children }: { title: string; sub: string; children: ReactNode }) => (
-  <div className="flex items-center gap-3"><div className="flex-1"><div className="text-sm font-medium">{title}</div><div className="text-xs text-[#646A78] mt-0.5">{sub}</div></div>{children}</div>
+  <div className="flex items-center gap-3"><div className="flex-1"><div className="text-sm font-medium">{title}</div><div className="text-xs text-[#737373] mt-0.5">{sub}</div></div>{children}</div>
 );
 
 /* ---------------- Live preview ---------------- */
@@ -288,7 +288,7 @@ function Preview() {
   const mobile = device === 'mobile';
   const block = (id: SecId, body: ReactNode) => (
     <section key={id} onClick={() => s.set({ sel: id })}
-      className={cx('relative px-6 py-5 cursor-pointer', s.sel === id ? 'shadow-[inset_0_0_0_1.5px_#93C5FD]' : 'hover:shadow-[inset_0_0_0_1px_#E5E7EB]')}>
+      className={cx('relative px-6 py-5 cursor-pointer', s.sel === id ? 'shadow-[inset_0_0_0_1.5px_#93C5FD]' : 'hover:shadow-[inset_0_0_0_1px_#E5E5E5]')}>
       {s.sel === id && <span className="absolute right-3 top-3"><Pill tone="blue">Editing</Pill></span>}
       {body}
     </section>
@@ -297,8 +297,8 @@ function Preview() {
     hero: (
       <div className="py-3">
         {/* Inside the builder the preview sits under the page's own h1, so its headings step down one level. */}
-        <h2 className={cx('font-semibold text-[#111827]', mobile ? 'text-xl' : 'text-[28px] leading-9')}>{s.headline}</h2>
-        <p className="text-sm text-[#646A78] mt-2 max-w-[520px]">{s.intro}</p>
+        <h2 className={cx('font-semibold text-[#0A0A0A]', mobile ? 'text-xl' : 'text-[28px] leading-9')}>{s.headline}</h2>
+        <p className="text-sm text-[#737373] mt-2 max-w-[520px]">{s.intro}</p>
       </div>
     ),
     halls: (
@@ -307,10 +307,10 @@ function Preview() {
         <div className={cx('grid gap-3', mobile ? 'grid-cols-1' : 'grid-cols-3')}>
           {HALLS.filter((h) => s.hallsMode === 'all' || s.picked.includes(h.name)).map((h) => (
             <div key={h.name} className={cx('border border-line overflow-hidden bg-white', r)}>
-              <div className="h-16 bg-[#F3F4F6] flex items-center justify-center text-gray-400"><Buildings size={20} /></div>
+              <div className="h-16 bg-[#F5F5F5] flex items-center justify-center text-gray-400"><Buildings size={20} /></div>
               <div className="p-3">
                 <div className="text-sm font-semibold">{h.name}</div>
-                {s.prices && <div className="text-xs text-[#646A78] mt-0.5">From £{h.from}/wk · 44 or 51 weeks</div>}
+                {s.prices && <div className="text-xs text-[#737373] mt-0.5">From £{h.from}/wk · 44 or 51 weeks</div>}
                 {s.live && <div className="mt-2 h-6 px-2 rounded-md bg-[#E8F7EE] text-xs font-medium text-[#087A43] flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-[#0B8A4C]" />{h.left} rooms left</div>}
                 {s.floor && <div className="mt-2 text-xs font-medium" style={{ color: brand }}>View floor plan</div>}
               </div>
@@ -319,7 +319,7 @@ function Preview() {
         </div>
       </>
     ),
-    prices: <><h3 className="text-base font-semibold mb-1">Prices & terms</h3><p className="text-sm text-[#646A78]">44-week and 51-week contracts. Bills included. £250 deposit, refunded at the end of your stay.</p></>,
+    prices: <><h3 className="text-base font-semibold mb-1">Prices & terms</h3><p className="text-sm text-[#737373]">44-week and 51-week contracts. Bills included. £250 deposit, refunded at the end of your stay.</p></>,
     apply: (
       <div className={cx('p-4 flex items-center gap-4 text-white', r, mobile && 'flex-col items-start')} style={{ background: brand }}>
         <div className="flex-1"><div className="text-sm font-semibold">Applications for {s.cycle} {CYCLES[s.cycle] ?? 'are open'}</div><div className="text-xs opacity-80 mt-0.5">Choose up to three colleges.</div></div>
@@ -327,30 +327,30 @@ function Preview() {
         <span className={cx('h-8 px-3 text-sm font-medium flex items-center', r)} style={{ background: '#fff', color: brand }}>Apply now</span>
       </div>
     ),
-    faqs: <><h3 className="text-base font-semibold mb-2">FAQs</h3>{['When will I hear back?', 'Can I live with friends?', 'Is there parking?'].map((q) => <div key={q} className="py-2 border-b border-[#F3F4F6] text-sm">{q}</div>)}</>,
-    access: <><h3 className="text-base font-semibold mb-1">Accessibility & support</h3><p className="text-sm text-[#646A78]">Adapted rooms in every college. Tell us what you need when you apply.</p></>,
-    contact: <><h3 className="text-base font-semibold mb-1">Contact</h3><p className="text-sm text-[#646A78]">accommodation@durham.ac.uk · 0191 334 2000</p></>,
+    faqs: <><h3 className="text-base font-semibold mb-2">FAQs</h3>{['When will I hear back?', 'Can I live with friends?', 'Is there parking?'].map((q) => <div key={q} className="py-2 border-b border-[#F5F5F5] text-sm">{q}</div>)}</>,
+    access: <><h3 className="text-base font-semibold mb-1">Accessibility & support</h3><p className="text-sm text-[#737373]">Adapted rooms in every college. Tell us what you need when you apply.</p></>,
+    contact: <><h3 className="text-base font-semibold mb-1">Contact</h3><p className="text-sm text-[#737373]">accommodation@durham.ac.uk · 0191 334 2000</p></>,
   };
   return (
-    <div className="flex-1 min-w-0 bg-[#F9FAFB] overflow-y-auto p-5 flex flex-col gap-3">
+    <div className="flex-1 min-w-0 bg-[#FAFAFA] overflow-y-auto p-5 flex flex-col gap-3">
       <div className="flex items-center">
         <Tabs value={device} onChange={setDevice} tabs={[{ id: 'desktop', label: 'Desktop' }, { id: 'mobile', label: 'Mobile' }]} />
-        <span className="ml-auto text-xs text-[#646A78]">Preview · not live</span>
+        <span className="ml-auto text-xs text-[#737373]">Preview · not live</span>
       </div>
       <div className={cx('shrink-0 mx-auto w-full rounded-xl border border-line bg-white shadow-card overflow-hidden', mobile ? 'max-w-[390px]' : 'max-w-[1040px]')} style={{ fontFamily: font }}>
-        <div className="h-9 px-3 border-b border-line bg-[#F9FAFB] flex items-center gap-1.5">
+        <div className="h-9 px-3 border-b border-line bg-[#FAFAFA] flex items-center gap-1.5">
           <span className="size-2.5 rounded-full bg-[#F87171]" /><span className="size-2.5 rounded-full bg-[#FBBF24]" /><span className="size-2.5 rounded-full bg-[#34D399]" />
-          <span className="ml-3 h-6 px-2.5 rounded-md border border-line bg-white text-xs text-[#646A78] flex items-center truncate">accommodation.durham.ac.uk</span>
+          <span className="ml-3 h-6 px-2.5 rounded-md border border-line bg-white text-xs text-[#737373] flex items-center truncate">accommodation.durham.ac.uk</span>
         </div>
         <header className="h-14 px-6 border-b border-line flex items-center gap-3">
           <span className={cx('size-7 text-white text-sm font-semibold flex items-center justify-center shrink-0', r)} style={{ background: brand }}>D</span>
           <span className="text-sm font-semibold truncate">{s.name}</span>
-          {!mobile && <nav className="ml-auto flex items-center gap-4 text-sm text-[#646A78]"><span>Halls</span><span>Prices</span><span>FAQs</span>
+          {!mobile && <nav className="ml-auto flex items-center gap-4 text-sm text-[#737373]"><span>Halls</span><span>Prices</span><span>FAQs</span>
             {on('apply') && <span className={cx('h-8 px-3 text-white font-medium flex items-center', r)} style={{ background: brand }}>Apply now</span>}</nav>}
         </header>
         <div className="pb-4" style={{ background: `linear-gradient(180deg, ${brand}0D 0, transparent 160px)` }}>
           {s.sections.filter((x) => x.on).map((x) => block(x.id, body[x.id]))}
-          {!s.sections.some((x) => x.on) && <div className="py-16 text-center text-sm text-[#646A78]">Turn on a section to see it here.</div>}
+          {!s.sections.some((x) => x.on) && <div className="py-16 text-center text-sm text-[#737373]">Turn on a section to see it here.</div>}
         </div>
       </div>
     </div>

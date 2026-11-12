@@ -59,14 +59,14 @@ export function PropertiesPage() {
 
   const cols = [
     { key: 'name', label: 'Property', render: (p: Property) => <span className="flex items-center gap-2.5 min-w-0"><IconTile icon={Buildings} /><span className="font-medium truncate max-w-[320px]" title={p.name}>{p.name}</span></span> },
-    { key: 'Campus', label: 'Campus', render: (p: Property) => <span className="text-[#646A78]">{p.campus}</span> },
-    { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#646A78]">{p.structure}</span> },
+    { key: 'Campus', label: 'Campus', render: (p: Property) => <span className="text-[#737373]">{p.campus}</span> },
+    { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#737373]">{p.structure}</span> },
     { key: 'Tags', label: 'Tags', render: (p: Property) => <Tags tags={p.tags} /> },
     { key: 'Units', label: 'Units', className: 'text-right', render: (p: Property) => <span className="tabular-nums">{p.units.toLocaleString('en-GB')}</span> },
     { key: 'Status', label: 'Status', render: (p: Property) => <PropStatus s={p.status} /> },
     {
       key: 'menu', label: '', className: 'w-10', render: (p: Property) => (
-        <Menu width={168} trigger={(o) => <button type="button" aria-label={`More for ${p.name}`} onClick={o} className="size-7 rounded-md hover:bg-gray-100 flex items-center justify-center text-[#646A78]"><DotsThree size={18} weight="bold" /></button>}
+        <Menu width={168} trigger={(o) => <button type="button" aria-label={`More for ${p.name}`} onClick={o} className="size-7 rounded-md hover:bg-gray-100 flex items-center justify-center text-[#737373]"><DotsThree size={18} weight="bold" /></button>}
           items={[{ label: 'Edit', icon: PencilSimple, onClick: () => nav(`/inventory/properties/${p.id}`) }, { label: 'Duplicate', icon: Copy, onClick: () => duplicate(p) }, 'sep', { label: 'Archive', icon: Archive, danger: true, onClick: () => archive(p) }]} />
       ),
     },
@@ -87,7 +87,7 @@ export function PropertiesPage() {
           <div className="max-w-md text-center">
             <EmptyArt />
             <div className="font-semibold mt-5">No properties yet</div>
-            <p className="text-sm text-[#646A78] mt-1">Build one from a layout, or import its rooms from a spreadsheet.</p>
+            <p className="text-sm text-[#737373] mt-1">Build one from a layout, or import its rooms from a spreadsheet.</p>
             <div className="flex justify-center gap-2 mt-4">
               <Button variant="primary" icon={Plus} onClick={() => nav('/inventory/properties/new')}>Add a property</Button>
               <Button icon={UploadSimple} onClick={() => setImport(true)}>Import from a spreadsheet</Button>
@@ -120,7 +120,7 @@ function Display({ hidden, setHidden }: { hidden: string[]; setHidden: (h: strin
     <Popover>
       <PopoverTrigger asChild><Button variant="control" icon={SlidersHorizontal}>Display</Button></PopoverTrigger>
       <PopoverContent align="end" className="w-56 space-y-2">
-        <div className="text-xs font-semibold text-[#646A78] uppercase tracking-wide">Columns</div>
+        <div className="text-xs font-semibold text-[#737373] uppercase tracking-wide">Columns</div>
         {COLS.map((c) => <div key={c}><Check label={c} checked={!hidden.includes(c)} onChange={(v) => setHidden(v ? hidden.filter((h) => h !== c) : [...hidden, c])} /></div>)}
       </PopoverContent>
     </Popover>
@@ -157,8 +157,8 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         footer={<><Button icon={ClockCounterClockwise} onClick={() => { onClose(); nav('/inventory/imports'); }}>View imports</Button><Button variant="primary" onClick={onClose}>Done</Button></>}>
         <div className="mx-auto max-w-[312px] rounded-xl border border-line p-3 flex items-center gap-3">
           <FileCsv size={20} className="text-[#0B8A4C]" />
-          <div className="flex-1 text-center"><div className="text-sm font-medium">st-marys-rooms.csv</div><div className="text-xs text-[#646A78]">144 rows · {structure} layout · uploaded</div></div>
-          <button type="button" aria-label="Cancel import" onClick={() => { useInv.getState().set('imports', (l) => l.filter((x) => x.name !== 'st-marys-rooms.csv')); onClose(); toast('Import cancelled'); }} className="text-[#646A78] hover:text-ink"><X size={14} /></button>
+          <div className="flex-1 text-center"><div className="text-sm font-medium">st-marys-rooms.csv</div><div className="text-xs text-[#737373]">144 rows · {structure} layout · uploaded</div></div>
+          <button type="button" aria-label="Cancel import" onClick={() => { useInv.getState().set('imports', (l) => l.filter((x) => x.name !== 'st-marys-rooms.csv')); onClose(); toast('Import cancelled'); }} className="text-[#737373] hover:text-ink"><X size={14} /></button>
         </div>
       </Modal>
     );
@@ -166,7 +166,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <Modal open={open} onClose={onClose} icon={FileCsv} tone="green" width={600} title="Import a property"
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={UploadSimple} disabled={stage !== 'ok'} onClick={upload}>Upload</Button></>}>
-      <p className="text-sm text-[#646A78] -mt-3 ml-11">One row per room.</p>
+      <p className="text-sm text-[#737373] -mt-3 ml-11">One row per room.</p>
       <div className="space-y-4 mt-4">
         <Field label="Property layout" hint="The template’s columns come from this layout">
           <Picker value={structure} onChange={(v) => { setStructure(v); setStage('pick'); tries.current = 0; }} icon={TreeStructure} options={[{ id: 'College', label: 'College' }, { id: 'House', label: 'House' }]} />
@@ -174,13 +174,13 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         <div className="rounded-xl border border-line p-3.5">
           <div className="flex items-center justify-between"><span className="text-sm font-medium">Template columns</span><Button size="sm" icon={DownloadSimple} onClick={() => toast.success(`${structure.toLowerCase()}-template.csv downloaded`)}>Download template</Button></div>
           <div className="flex flex-wrap gap-1.5 mt-3">{cols.map((c) => <span key={c} className="h-6 px-2 rounded-md border border-line font-mono text-xs flex items-center">{c}</span>)}</div>
-          <p className="text-xs text-[#646A78] mt-2.5">* means required.</p>
+          <p className="text-xs text-[#737373] mt-2.5">* means required.</p>
         </div>
         {stage === 'pick' && (
           <div className="rounded-xl border-2 border-dashed border-gray-200 py-8 flex flex-col items-center text-center">
             <FileText size={24} className="text-gray-400" />
             <div className="text-sm font-medium mt-2">Drop the CSV here</div>
-            <div className="text-xs text-[#646A78]">Up to 5,000 rows and 1 MB</div>
+            <div className="text-xs text-[#737373]">Up to 5,000 rows and 1 MB</div>
             <Button className="mt-3" size="sm" icon={FileText} onClick={choose}>Choose file</Button>
           </div>
         )}
@@ -189,16 +189,16 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
           <div className="rounded-xl border border-[#F5A3A3] overflow-hidden">
             <div className="h-11 px-3.5 flex items-center gap-2 text-sm text-[#E0243A]"><WarningCircle size={16} />3 problems · nothing was uploaded<Button size="sm" variant="ghost" className="ml-auto" icon={DownloadSimple} onClick={() => toast.success('st-marys-rooms-problems.csv downloaded')}>Download list</Button></div>
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-[#646A78] border-y border-line bg-[#F9FAFB]"><th className="font-medium h-9 px-3.5">Where</th><th className="font-medium px-3">Column</th><th className="font-medium px-3">Problem</th></tr></thead>
+              <thead><tr className="text-left text-xs text-[#737373] border-y border-line bg-[#FAFAFA]"><th className="font-medium h-9 px-3.5">Where</th><th className="font-medium px-3">Column</th><th className="font-medium px-3">Problem</th></tr></thead>
               <tbody>
                 {[['Header', 'Column 6', 'Is “Room size”; the template says “Room.roomSize*”'], ['Row 38', 'Room.roomSize*', 'Required, but empty'], ['Row 91', 'Room.accessible', '“maybe” isn’t yes or no']].map(([a, b, c]) => (
-                  <tr key={a} className="border-b border-[#F3F4F6] last:border-0"><td className="h-10 px-3.5 font-medium">{a}</td><td className="px-3 font-mono text-xs">{b}</td><td className="px-3 text-[#646A78]">{c}</td></tr>
+                  <tr key={a} className="border-b border-[#F5F5F5] last:border-0"><td className="h-10 px-3.5 font-medium">{a}</td><td className="px-3 font-mono text-xs">{b}</td><td className="px-3 text-[#737373]">{c}</td></tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="flex items-center gap-3">
-            <p className="flex-1 text-xs text-[#646A78] flex gap-1.5"><Info size={14} className="shrink-0 mt-px" />Fix them in the spreadsheet and choose it again. Nothing is changed for you.</p>
+            <p className="flex-1 text-xs text-[#737373] flex gap-1.5"><Info size={14} className="shrink-0 mt-px" />Fix them in the spreadsheet and choose it again. Nothing is changed for you.</p>
             <Button size="sm" icon={FileText} onClick={choose}>Choose file</Button>
           </div>
         </>)}
@@ -206,7 +206,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
           <FileCard sub="144 rows · 18 KB" onRemove={() => setStage('pick')} />
           <div className="rounded-xl border border-[#86D3A8] p-3.5 flex gap-2.5">
             <CheckCircle size={18} weight="fill" className="text-[#16A34A] shrink-0" />
-            <div><div className="text-sm font-semibold text-[#0B8A4C]">No problems found</div><div className="text-sm text-[#646A78] mt-0.5">Makes 1 new property, 2 blocks, 6 floors, 24 flats and 144 rooms. The rooms get no tenancies.</div></div>
+            <div><div className="text-sm font-semibold text-[#0B8A4C]">No problems found</div><div className="text-sm text-[#737373] mt-0.5">Makes 1 new property, 2 blocks, 6 floors, 24 flats and 144 rooms. The rooms get no tenancies.</div></div>
           </div>
         </>)}
       </div>
@@ -217,8 +217,8 @@ function FileCard({ bad, sub, onRemove }: { bad?: boolean; sub: string; onRemove
   return (
     <div className={cx('rounded-xl border p-3.5 flex items-center gap-3', bad ? 'border-[#F5A3A3]' : 'border-line')}>
       <FileCsv size={20} className={bad ? 'text-[#E0243A]' : 'text-[#0B8A4C]'} />
-      <div className="flex-1"><div className="text-sm font-medium">st-marys-rooms.csv</div><div className="text-xs text-[#646A78]">{sub}</div></div>
-      <button type="button" aria-label="Remove file" onClick={onRemove} className="text-[#646A78] hover:text-ink"><X size={14} /></button>
+      <div className="flex-1"><div className="text-sm font-medium">st-marys-rooms.csv</div><div className="text-xs text-[#737373]">{sub}</div></div>
+      <button type="button" aria-label="Remove file" onClick={onRemove} className="text-[#737373] hover:text-ink"><X size={14} /></button>
     </div>
   );
 }

@@ -22,7 +22,7 @@ const NEUTRAL_HUE = 222;
 const NEUTRAL_SAT = 0.13;
 
 const OVERRIDES = {
-  bg: { '#f7f7f8': '#101217' },
+  bg: { '#fafafa': '#101217' },
 };
 
 const KIND = (prop) => {

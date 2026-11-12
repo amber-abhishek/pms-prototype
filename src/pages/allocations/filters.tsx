@@ -73,13 +73,13 @@ function Panel({ rows, fs, setFs, fields, close }: { rows: App[]; fs: Filters; s
       {fs.order.map((id) => {
         const f = fields.find((x) => x.id === id)!;
         return (
-          <div key={id} className="mx-2 flex items-center gap-2 h-8 px-2 rounded-md hover:bg-[#F3F4F6] group">
+          <div key={id} className="mx-2 flex items-center gap-2 h-8 px-2 rounded-md hover:bg-[#F5F5F5] group">
             <button type="button" className="flex-1 text-left text-sm text-ink truncate flex items-center gap-2" onClick={() => setEdit(id)}><f.icon size={16} className="text-gray-500" />{describe(f, fs.vals[id])}</button>
             <button type="button" aria-label={`Remove ${f.label}`} onClick={() => remove(id)} className="size-6 rounded hover:bg-gray-200 flex items-center justify-center text-gray-500"><X size={12} /></button>
           </div>
         );
       })}
-      <div className="border-t border-[#F3F4F6] my-2" />
+      <div className="border-t border-[#F5F5F5] my-2" />
       <label className="mx-3 h-8 flex items-center gap-2 px-2 rounded-lg border border-line text-sm">
         <MagnifyingGlass size={14} className="text-gray-400" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter by…" className="flex-1 outline-none bg-transparent placeholder:text-gray-400" />
@@ -88,7 +88,7 @@ function Panel({ rows, fs, setFs, fields, close }: { rows: App[]; fs: Filters; s
         <div key={g} className="mt-2">
           <div className="px-3 py-1 text-[11px] font-medium text-gray-400">{g === 'Application' ? 'Add a filter · Application' : g}</div>
           {items.map((f) => (
-            <button key={f.id} type="button" onClick={() => setEdit(f.id)} className="w-[calc(100%-16px)] mx-2 h-8 px-2 rounded-md hover:bg-[#F3F4F6] flex items-center gap-2 text-sm text-ink">
+            <button key={f.id} type="button" onClick={() => setEdit(f.id)} className="w-[calc(100%-16px)] mx-2 h-8 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2 text-sm text-ink">
               <f.icon size={16} className="text-gray-500" />{f.label}{fs.order.includes(f.id) ? <Check size={14} className="ml-auto text-primary" /> : <CaretRight size={12} className="ml-auto text-gray-400" />}
             </button>
           ))}
@@ -112,7 +112,7 @@ function Editor({ field, rows, fs, fields, fromActive, onBack, onApply }: { fiel
   const left = base.filter((a) => matches(a, field, draft)).length;
   return (
     <div>
-      <div className="h-11 px-3 flex items-center gap-2 border-b border-[#F3F4F6] text-sm">
+      <div className="h-11 px-3 flex items-center gap-2 border-b border-[#F5F5F5] text-sm">
         <button type="button" aria-label="Back" onClick={onBack} className="size-6 rounded hover:bg-gray-100 flex items-center justify-center text-gray-500"><ArrowLeft size={13} /></button>
         {fromActive && <span className="text-gray-500">Active filters /</span>}
         <field.icon size={16} className="text-gray-500" /><span className="font-medium">{field.label}</span>
@@ -136,7 +136,7 @@ function Editor({ field, rows, fs, fields, fromActive, onBack, onApply }: { fiel
             </label>
           )}
           {field.options!.filter((o) => o.toLowerCase().includes(q.toLowerCase())).map((o) => (
-            <label key={o} className="mx-2 h-8 px-2 rounded-md hover:bg-[#F3F4F6] flex items-center gap-2.5 text-sm cursor-pointer">
+            <label key={o} className="mx-2 h-8 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2.5 text-sm cursor-pointer">
               {field.kind === 'single'
                 ? <input type="radio" name={field.id} checked={v === o} onChange={() => setV(o)} className="size-4 rounded accent-primary" />
                 : <Checkbox checked={vs.includes(o)} onCheckedChange={(v) => setVs((v === true) ? [...vs, o] : vs.filter((x) => x !== o))} />}
@@ -146,7 +146,7 @@ function Editor({ field, rows, fs, fields, fromActive, onBack, onApply }: { fiel
           {field.hint && <div className="px-4 pt-1 text-xs text-gray-500">{field.hint}</div>}
         </div>
       )}
-      <div className="h-12 px-3 flex items-center gap-2 border-t border-[#F3F4F6]">
+      <div className="h-12 px-3 flex items-center gap-2 border-t border-[#F5F5F5]">
         <span className="text-xs text-gray-500">
           {field.kind === 'multi' ? `${vs.length} selected · ${left} match` : field.kind === 'single' ? (v ? (left ? `${left} match` : 'None match') : 'Pick one') : `${left} match`}
         </span>

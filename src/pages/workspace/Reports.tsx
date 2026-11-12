@@ -73,8 +73,8 @@ export function ReportsLibrary() {
         <Table rows={[{ id: 'sh1' }]} onRow={() => nav('/reports')} cols={[
           { key: 'r', label: 'Report', render: () => <span className="flex items-center gap-2.5"><span className="size-7 rounded-lg bg-[#DBEAFE] flex items-center justify-center"><Bed size={14} className="text-[#2563EB]" /></span><span className="text-sm font-medium">Arrivals this week · Collingwood</span></span> },
           { key: 'b', label: 'Shared by', render: () => <span className="flex items-center gap-2 text-sm"><Avatar name="Tom Baker" size={20} />Tom Baker</span> },
-          { key: 'f', label: 'From', render: () => <span className="text-sm text-[#646A78]">Occupancy</span> },
-          { key: 'w', label: 'Shared', render: () => <span className="text-sm text-[#646A78]">12 Sep</span> },
+          { key: 'f', label: 'From', render: () => <span className="text-sm text-[#737373]">Occupancy</span> },
+          { key: 'w', label: 'Shared', render: () => <span className="text-sm text-[#737373]">12 Sep</span> },
         ]} />
       </div>)}
       {fix && <RecipientSheet key={fix.id} s={fix} nav={listNav(schedules, (x) => x.id === fix.id, (x) => setFix(x))} onClose={() => setFix(null)} />}
@@ -88,10 +88,10 @@ function ReportCard({ r, badge, onOpen }: { r: ReportDef; badge?: Schedule; onOp
     <button type="button" onClick={onOpen} className={cx('text-left rounded-xl border border-line bg-white p-4 shadow-tile', pressCard)}>
       <div className="flex items-start gap-2.5">
         <span className="size-8 rounded-lg bg-[#DBEAFE] flex items-center justify-center shrink-0"><I size={16} className="text-[#2563EB]" /></span>
-        <span className="flex-1 min-w-0 leading-tight"><span className="block text-sm font-semibold">{r.name}</span><span className="block text-xs text-[#646A78] mt-0.5">{r.area}</span></span>
+        <span className="flex-1 min-w-0 leading-tight"><span className="block text-sm font-semibold">{r.name}</span><span className="block text-xs text-[#737373] mt-0.5">{r.area}</span></span>
         {badge && <Pill tone="green" icon={Clock}>{badgeLabel(badge)}</Pill>}
       </div>
-      <p className="text-xs text-[#646A78] mt-3 truncate">{r.desc}</p>
+      <p className="text-xs text-[#737373] mt-3 truncate">{r.desc}</p>
     </button>
   );
 }
@@ -157,7 +157,7 @@ function RecipientSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Schedule; on
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="Send to">
           {multi ? <div className="text-sm text-gray-700">{s.sendsTo}</div> : (
-            <label className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-[#646A78]" /><Input value={to} onChange={(e) => setTo(e.target.value)} className="pl-8" /></label>
+            <label className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-[#737373]" /><Input value={to} onChange={(e) => setTo(e.target.value)} className="pl-8" /></label>
           )}
           {bouncedNow && <p className="text-xs text-[#E0243A] mt-1.5">{s.sendsTo} bounced: the mailbox no longer exists.</p>}
         </SheetSection>
@@ -169,7 +169,7 @@ function RecipientSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Schedule; on
         </SheetSection>
         <SheetSection title="This week">
         <div className="rounded-xl border border-line p-3.5 flex items-center gap-3">
-          <span className="flex-1"><span className="block text-sm font-medium">Send this week’s now</span><span className="block text-xs text-[#646A78] mt-0.5">{bouncedNow ? 'Monday’s copy never arrived' : 'Sends the latest copy straight away'}</span></span>
+          <span className="flex-1"><span className="block text-sm font-medium">Send this week’s now</span><span className="block text-xs text-[#737373] mt-0.5">{bouncedNow ? 'Monday’s copy never arrived' : 'Sends the latest copy straight away'}</span></span>
           <Switch checked={now} onChange={setNow} label="Send this week’s now" />
         </div>
         </SheetSection>
@@ -216,9 +216,9 @@ function Chip({ value, onChange, options, label, icon }: { value: string; onChan
 function Tile({ label, value, color, sub, subColor }: { label: string; value: ReactNode; color?: string; sub?: ReactNode; subColor?: string }) {
   return (
     <div className="rounded-xl border border-line bg-white px-4 py-3">
-      <div className="text-xs font-medium text-[#646A78]">{label}</div>
+      <div className="text-xs font-medium text-[#737373]">{label}</div>
       <div className="text-xl font-semibold mt-1 tabular-nums" style={{ color }}>{value}</div>
-      {sub && <div className="text-xs mt-1 truncate" style={{ color: subColor ?? '#646A78' }}>{sub}</div>}
+      {sub && <div className="text-xs mt-1 truncate" style={{ color: subColor ?? '#737373' }}>{sub}</div>}
     </div>
   );
 }
@@ -260,11 +260,11 @@ export function OccupancyReport() {
         {mine ? <Button icon={Clock} onClick={() => setSheet(true)}>Every {mine.day === '1st' ? '1st of the month' : mine.day} {mine.time}</Button>
           : <Button variant="primary" icon={Clock} onClick={() => setSheet(true)}>Schedule</Button>}
       </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
+      <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
         <Chip icon={CalendarBlank} label="Academic year" value={year} onChange={setYear} options={[CURRENT, '2025/26']} />
         <Chip icon={Buildings} label="Halls" value={hall} onChange={setHall} options={['All halls', ...HALL_ROWS.map((r) => r.hall)]} />
         <Chip icon={CalendarBlank} label="Group by" value={view} onChange={setBy} options={archived ? ['By hall'] : ['By week', 'By hall']} />
-        {archived && <span className="text-xs text-[#646A78] whitespace-nowrap">Archived · final week only</span>}
+        {archived && <span className="text-xs text-[#737373] whitespace-nowrap">Archived · final week only</span>}
       </Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
         <div className="grid grid-cols-5 gap-3">
@@ -277,7 +277,7 @@ export function OccupancyReport() {
         <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">
         <div className="rounded-xl border border-line bg-white p-4 min-w-0">
           <div className="flex items-center"><h2 className="text-sm font-semibold">{view === 'By week' ? 'Beds filled by week' : 'Beds filled by hall'}</h2>
-            <span className="ml-auto flex items-center gap-4 text-xs text-[#646A78]"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#2563EB]" />In residence</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#93C5FD]" />Arriving</span></span></div>
+            <span className="ml-auto flex items-center gap-4 text-xs text-[#737373]"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#2563EB]" />In residence</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#93C5FD]" />Arriving</span></span></div>
           <div className="mt-4 h-[180px] border-b border-line flex items-end justify-around px-6">
             {bars.map((b) => (
               <div key={b.label} className="flex flex-col items-center w-11">
@@ -287,19 +287,19 @@ export function OccupancyReport() {
               </div>
             ))}
           </div>
-          <div className="flex justify-around px-6 mt-2">{bars.map((b) => <span key={b.label} className="w-11 text-center text-xs text-[#646A78] whitespace-nowrap">{b.label}</span>)}</div>
+          <div className="flex justify-around px-6 mt-2">{bars.map((b) => <span key={b.label} className="w-11 text-center text-xs text-[#737373] whitespace-nowrap">{b.label}</span>)}</div>
         </div>
         <div className="rounded-xl border border-line bg-white overflow-hidden flex flex-col">
-          <div className="h-12 px-4 flex items-center border-b border-line"><h2 className="text-sm font-semibold">Voids by property</h2>{!archived && <span className="ml-auto text-xs text-[#646A78]">{WEEKS_LEFT} weeks left on the tenancy</span>}</div>
+          <div className="h-12 px-4 flex items-center border-b border-line"><h2 className="text-sm font-semibold">Voids by property</h2>{!archived && <span className="ml-auto text-xs text-[#737373]">{WEEKS_LEFT} weeks left on the tenancy</span>}</div>
           <table className="w-full text-sm">
-            <thead><tr className="text-xs text-[#646A78] border-b border-line bg-[#F9FAFB]">
+            <thead><tr className="text-xs text-[#737373] border-b border-line bg-[#FAFAFA]">
               <th className="text-left font-medium h-9 pl-4">Property</th><th className="text-right font-medium px-3">Void beds</th><th className="text-left font-medium px-3">Most void type</th><th className="text-right font-medium pr-4">{archived ? 'Rent lost' : 'Rent at risk'}</th>
             </tr></thead>
             <tbody>{voids.map((r) => (
-              <tr key={r.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#FAFAFB] cursor-pointer" onClick={() => openHall(r.id)}>
+              <tr key={r.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => openHall(r.id)}>
                 <td className="h-10 pl-4 font-medium">{r.hall}</td>
                 <td className="text-right px-3 tabular-nums">{r.vac}</td>
-                <td className="px-3 text-[#646A78]">{MONEY[r.id].type}</td>
+                <td className="px-3 text-[#737373]">{MONEY[r.id].type}</td>
                 <td className="text-right pr-4 font-semibold tabular-nums">{gbp(atRisk(r))}</td>
               </tr>
             ))}</tbody>
@@ -308,16 +308,16 @@ export function OccupancyReport() {
         </div>
         <div className="rounded-xl border border-line bg-white overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="text-xs font-medium text-[#646A78] border-b border-line">
+            <thead><tr className="text-xs font-medium text-[#737373] border-b border-line">
               <th className="text-left font-medium h-9 pl-5">Hall</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked', 'Rent roll', 'Rent at risk'].map((h) => <th key={h} className="text-right font-medium px-3">{h}</th>)}<th className="text-left font-medium pl-8 pr-5 w-[220px]">Filled</th>
             </tr></thead>
             <tbody>{rows.map((r) => { const p = pct(r); return (
-              <tr key={r.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#FAFAFB] cursor-pointer" onClick={() => openHall(r.id)}>
+              <tr key={r.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => openHall(r.id)}>
                 <td className="h-10 pl-5 font-medium">{r.hall}</td>
                 {[r.beds, r.res, r.arr, r.vac, r.blk].map((v, i) => <td key={i} className="text-right px-3 tabular-nums">{fmt(v)}</td>)}
                 <td className="text-right px-3 tabular-nums">{gbpM(rentRoll(r))}</td>
                 <td className="text-right px-3 tabular-nums text-[#B91C1C]">{gbp(atRisk(r))}</td>
-                <td className="pl-8 pr-5"><span className="flex items-center gap-2"><span className="w-[107px] h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden"><span className="block h-full rounded-full bg-[#0B8A4C]" style={{ width: `${p}%` }} /></span><span className="text-xs text-[#646A78]">{p}%</span></span></td>
+                <td className="pl-8 pr-5"><span className="flex items-center gap-2"><span className="w-[107px] h-1.5 rounded-full bg-[#F5F5F5] overflow-hidden"><span className="block h-full rounded-full bg-[#0B8A4C]" style={{ width: `${p}%` }} /></span><span className="text-xs text-[#737373]">{p}%</span></span></td>
               </tr>
             ); })}</tbody>
           </table>
@@ -397,9 +397,9 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
           <div className="rounded-[10px] border border-line px-3 py-1">
             {rec.map((r) => (
               <div key={r.id} className="group h-8 flex items-center gap-2.5">
-                {r.count > 1 ? <span className="size-6 rounded-full bg-[#F3F4F6] flex items-center justify-center"><UsersThree size={12} className="text-[#646A78]" /></span> : <Avatar name={r.name} size={24} />}
+                {r.count > 1 ? <span className="size-6 rounded-full bg-[#F5F5F5] flex items-center justify-center"><UsersThree size={12} className="text-[#737373]" /></span> : <Avatar name={r.name} size={24} />}
                 <span className="text-sm font-medium flex-1">{r.name}</span>
-                <span className="text-xs text-[#646A78]">{r.sub}</span>
+                <span className="text-xs text-[#737373]">{r.sub}</span>
                 {r.sub !== 'You' && <button type="button" onClick={() => setRec(rec.filter((x) => x.id !== r.id))} className="text-xs text-gray-400 hover:text-[#E0243A] opacity-0 group-hover:opacity-100 focus:opacity-100">Remove</button>}
               </div>
             ))}
@@ -410,17 +410,17 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
                   if (e.key === 'Escape') setAdding(false);
                 }} ref={(el) => el?.focus()} />
                 {err && <p role="alert" className="text-xs text-[#C11F14] mt-1.5">{err}</p>}
-                {sugg.length > 0 && <div className="mt-1 rounded-lg border border-line divide-y divide-line">{sugg.map((r) => <button key={r.id} type="button" onClick={() => add(r)} className="w-full h-8 px-2.5 flex items-center gap-2 text-left text-sm hover:bg-gray-50">{r.name}<span className="ml-auto text-xs text-[#646A78]">{r.sub}</span></button>)}</div>}
+                {sugg.length > 0 && <div className="mt-1 rounded-lg border border-line divide-y divide-line">{sugg.map((r) => <button key={r.id} type="button" onClick={() => add(r)} className="w-full h-8 px-2.5 flex items-center gap-2 text-left text-sm hover:bg-gray-50">{r.name}<span className="ml-auto text-xs text-[#737373]">{r.sub}</span></button>)}</div>}
               </div>
             ) : <button type="button" onClick={() => setAdding(true)} className="h-8 flex items-center gap-2 text-sm text-primary"><Plus size={13} />Add people or a group</button>}
           </div>
           <div className="mt-3 rounded-lg border border-primary/30 p-3 flex gap-2.5"><Info size={16} className="text-primary shrink-0 mt-0.5" />
-            <div><div className="text-sm font-medium text-primary">Recipients only see halls they have access to</div><div className="text-xs text-[#646A78] mt-0.5">Heads of college get their own college’s rows.</div></div></div>
+            <div><div className="text-sm font-medium text-primary">Recipients only see halls they have access to</div><div className="text-xs text-[#737373] mt-0.5">Heads of college get their own college’s rows.</div></div></div>
         </SheetSection>
         <SheetSection title="Format">
           <div className="grid grid-cols-2 gap-2">
             {([['pdf', 'PDF summary'], ['csv', 'CSV data']] as const).map(([k, l]) => (
-              <div key={k} className="h-10 rounded-[10px] border border-line px-3 flex items-center gap-2"><DownloadSimple size={14} className="text-[#646A78]" /><span className="text-sm font-medium flex-1">{l}</span><Switch checked={fmts[k]} onChange={(v) => setFmts({ ...fmts, [k]: v })} label={l} /></div>
+              <div key={k} className="h-10 rounded-[10px] border border-line px-3 flex items-center gap-2"><DownloadSimple size={14} className="text-[#737373]" /><span className="text-sm font-medium flex-1">{l}</span><Switch checked={fmts[k]} onChange={(v) => setFmts({ ...fmts, [k]: v })} label={l} /></div>
             ))}
           </div>
         </SheetSection>
@@ -455,7 +455,7 @@ export function ApplicationsReport() {
         <Button icon={DownloadSimple} onClick={() => exportOnce(() => toast.success('Applications funnel.csv downloaded'))}>Export CSV</Button>
         <Button icon={ShareNetwork} onClick={() => { void navigator.clipboard?.writeText(location.href).catch(() => {}); toast.success('Link copied', { description: 'People see only the halls they have access to.' }); }}>Share</Button>
       </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
+      <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
         <Chip label="Cycle" value={cycle} onChange={setCycle} options={['2027/28', '2026/27']} />
       </Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
@@ -471,12 +471,12 @@ export function ApplicationsReport() {
             {stages.map(([label, n, c]) => (
               <div key={label} className="grid grid-cols-[110px_1fr_60px] items-center gap-4 text-sm">
                 <span className="font-medium">{label}</span>
-                <div className="h-7 rounded-md bg-[#F3F4F6] overflow-hidden"><div className="h-full rounded-md" style={{ width: `${stages[0][1] ? (n / stages[0][1]) * 100 : 0}%`, background: c }} /></div>
+                <div className="h-7 rounded-md bg-[#F5F5F5] overflow-hidden"><div className="h-full rounded-md" style={{ width: `${stages[0][1] ? (n / stages[0][1]) * 100 : 0}%`, background: c }} /></div>
                 <span className="text-right font-semibold tabular-nums">{stages[0][1] ? Math.round((n / stages[0][1]) * 100) : 0}%</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-[#646A78] mt-5">Median time from application to offer: 6 days. Target: 5.</p>
+          <p className="text-xs text-[#737373] mt-5">Median time from application to offer: 6 days. Target: 5.</p>
         </div>
       </div>
     </>
@@ -560,7 +560,7 @@ export function SimpleReport() {
   const live = useLiveSimple(id);
   const r = live ?? SIMPLE[id];
   const def = REPORTS.find((x) => x.to === `/reports/${id}`);
-  if (!r) return <><Header icon={ChartBar} crumbs={crumbs} title="Report not found" /><div className="p-6 text-sm text-[#646A78]">There’s no report here. Pick one from the library.</div></>;
+  if (!r) return <><Header icon={ChartBar} crumbs={crumbs} title="Report not found" /><div className="p-6 text-sm text-[#737373]">There’s no report here. Pick one from the library.</div></>;
   const I = (def && AREA_ICON[def.id]) ?? ChartBar;
   if (useEmpty.getState().on) return <NoReportData icon={I} title={r.title} />;
   return (
@@ -569,13 +569,13 @@ export function SimpleReport() {
         <Button icon={DownloadSimple} onClick={() => toast.success(`${r.title}.csv downloaded`)}>Export CSV</Button>
         <Button variant="primary" icon={CalendarBlank} onClick={() => toast('Scheduling is set up on Occupancy in the prototype', { description: 'Open Occupancy and choose Schedule.' })}>Schedule</Button>
       </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
+      <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
       <div className="flex-1 overflow-auto p-5 space-y-4">
         <div className="grid grid-cols-4 gap-3">{r.tiles.map(([l, v, c, sub]) => <Tile key={l} label={l} value={v} color={c} sub={sub} />)}</div>
         <div className="rounded-xl border border-line bg-white overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="text-xs text-[#646A78] border-b border-line">{r.cols.map((c, i) => <th key={c} className={cx('font-medium h-9 px-3', i === 0 ? 'text-left pl-5' : 'text-right', i === r.cols.length - 1 && 'pr-5')}>{c}</th>)}</tr></thead>
-            <tbody>{r.rows.map((row) => <tr key={String(row[0])} className="border-b border-[#F3F4F6] last:border-0">{row.map((v, i) => <td key={i} className={cx('h-10 px-3 tabular-nums', i === 0 ? 'pl-5 font-medium' : 'text-right', i === row.length - 1 && 'pr-5')}>{v}</td>)}</tr>)}</tbody>
+            <thead><tr className="text-xs text-[#737373] border-b border-line">{r.cols.map((c, i) => <th key={c} className={cx('font-medium h-9 px-3', i === 0 ? 'text-left pl-5' : 'text-right', i === r.cols.length - 1 && 'pr-5')}>{c}</th>)}</tr></thead>
+            <tbody>{r.rows.map((row) => <tr key={String(row[0])} className="border-b border-[#F5F5F5] last:border-0">{row.map((v, i) => <td key={i} className={cx('h-10 px-3 tabular-nums', i === 0 ? 'pl-5 font-medium' : 'text-right', i === row.length - 1 && 'pr-5')}>{v}</td>)}</tr>)}</tbody>
           </table>
         </div>
       </div>

@@ -4,7 +4,8 @@ import { Buildings, Camera, CheckCircle, Circle, Clock, DeviceMobile, DotsThree,
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
-import { TitleH1, Avatar, Button, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
+import { Avatar, Button, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
+import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
 import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 import { kindIcon } from './Requests';
@@ -88,19 +89,24 @@ export function ResidentDetail() {
     { t: 'ID checked', s: 'Passport or BRP, seen at the desk on arrival', ok: !arriving },
   ];
   const done = items.filter((i) => i.ok).length;
+  /* A centred modal over the Residents list (like a property), not a page of its own. */
   return (
     <>
-      <RHeader icon={Users} crumbs={[['Residents', '/residents']]} title={r.name}>
+      <UIDialog open onOpenChange={(o) => { if (!o) nav('/residents'); }}>
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none">
+      <DialogHeader className="py-3">
+        <DialogTitle>Resident</DialogTitle>
         <Button icon={Envelope} onClick={() => setMsg(true)}>Message</Button>
         {arriving ? <Button variant="primary" icon={r.pending ? Clock : SignIn} disabled={!!r.pending} onClick={() => checkIn.start(r)}>{r.pending === 'payment' ? 'Waiting for payment' : r.pending ? 'Waiting for sign-off' : 'Check in'}</Button>
           : <Button icon={DotsThree} onClick={() => toast('More actions', { description: 'Move room, start move-out, or add a note.' })}>More</Button>}
-      </RHeader>
-      <div className="flex-1 overflow-auto">
+        <DialogCloseButton />
+      </DialogHeader>
+      <div className="flex-1 min-h-0 overflow-auto">
         <div className="px-6 pt-6 pb-5 flex items-start gap-3 border-b border-line">
           <Avatar name={r.name} size={36} />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <TitleH1 className="text-[20px] font-medium tracking-tight mr-1">{r.name}</TitleH1>
+              <h2 className="text-[20px] font-medium tracking-tight mr-1">{r.name}</h2>
               {arriving ? <Pill tone="blue" outline icon={Buildings}>Arriving {r.arrives}</Pill> : <ResStatusPill r={r} />}
               {r.plan && <Pill tone="purple" outline>Accessibility plan</Pill>}
               <Pill tone="blue" outline>{r.year}</Pill>
@@ -178,6 +184,8 @@ export function ResidentDetail() {
           )}
         </div>
       </div>
+      </DialogContent>
+      </UIDialog>
       {checkIn.ui}
       <Modal open={msg} onClose={() => setMsg(false)} title={`Message ${r.name}`} sub={`${r.email} · and the resident portal`}
         footer={<><Button onClick={() => setMsg(false)}>Cancel</Button><Button variant="primary" icon={Envelope} onClick={() => { setMsg(false); toast.success(`Message sent to ${first}`); }}>Send</Button></>}>

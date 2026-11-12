@@ -47,7 +47,7 @@ export function RequestsList() {
         cols={[
           { key: 'ref', label: 'Ref', className: 'w-[90px]', render: (r) => <span className="font-mono text-xs text-gray-500">{r.ref}</span> },
           { key: 'k', label: 'Type', render: (r) => { const I = kindIcon[r.kind]; return <span className="flex items-center gap-2 font-medium"><I size={14} className="text-gray-500" />{r.kind}</span>; } },
-          { key: 'w', label: 'Resident', render: (r) => r.who },
+          { key: 'w', label: 'Resident', render: (r) => <span className="flex items-center gap-2.5 min-w-0"><Person name={r.who} /><span className="font-medium truncate">{r.who}</span></span> },
           { key: 'd', label: 'Detail', render: (r) => <span className="text-gray-500">{r.detail}</span> },
           { key: 'c', label: 'Checks', render: (r) => <Pill tone={r.check.tone} icon={checkIcon(r.check.tone)}>{r.check.label}</Pill> },
           { key: 'wt', label: 'Waiting', className: 'text-right', render: (r) => <span className="text-gray-500">{r.status === 'Approved' || r.status === 'Declined' ? (r.decidedBy ? `${r.status} by ${r.decidedBy.split(' ')[0]}` : r.status) : r.waiting}</span> },

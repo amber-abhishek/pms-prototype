@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowSquareOut, DownloadSimple, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, Table, Tabs } from '../../components/ui';
+import { Avatar, Button, PageHeader, Table, Tabs } from '../../components/ui';
 import { useTab } from '../hooks';
 import { useOc, type Enquiry } from '../../data/offcampus';
 import { EmptyArt, Tag, Title } from './parts';
@@ -56,7 +56,7 @@ export function Enquiries() {
           <Table<Enquiry> fill rows={rows}
             empty={<div className="py-16 text-center text-sm text-gray-500">No enquiries from this source yet.</div>}
             cols={[
-              { key: 's', label: 'Resident', render: (e) => <span className="font-medium">{e.student}</span> },
+              { key: 's', label: 'Resident', render: (e) => <span className="flex items-center gap-2.5 min-w-0"><Avatar name={e.student} size={28} /><span className="font-medium truncate">{e.student}</span></span> },
               { key: 'c', label: 'Contact', render: (e) => <div className="leading-5 py-2"><a href={`mailto:${e.email}`} className="hover:underline">{e.email}</a><div className="text-xs text-gray-500">{e.phone}</div></div> },
               { key: 'p', label: 'Property', render: (e) => e.property },
               { key: 'o', label: 'Source', render: (e) => (e.source === 'Landlord' ? <Tag tone="green">Landlord</Tag> : <Tag tone="blue">Partner halls</Tag>) },

@@ -3,7 +3,7 @@ import { Illustration } from '../../components/Illustration';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Archive, ArrowsDownUp, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, Tag as TagIcon, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
+  Archive, ArrowsDownUp, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
 } from '../../components/icons';
 import { Button, Check, Empty, Field, MultiFilter, PageHeader, SearchInput, Table, cx } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
@@ -100,7 +100,6 @@ export function PropertiesPage() {
   return (
     <>
       <PageHeader icon={Buildings} title="Properties" crumbs={['Inventory']}>
-        <Button icon={TagIcon} onClick={() => nav('/inventory/tags')}>Manage tags</Button>
         {/* While empty, the empty state carries Add and Import; the header doesn't repeat them. */}
         {list.length > 0 && <>
           <Button icon={UploadSimple} onClick={() => setImport(true)}>Import</Button>

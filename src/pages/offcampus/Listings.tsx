@@ -60,7 +60,7 @@ function HmoTab() {
 
   return (
     <>
-      <div className="px-6 py-3 empty:hidden">
+      <div className="px-6 pt-6 pb-2 empty:hidden">
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Paused', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} />
       </div>
       <Table fill rows={rows} footer={false}
@@ -118,7 +118,7 @@ function PbsaTab() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className="px-6 pt-3 space-y-3">
+      <div className="px-6 pt-6 space-y-3">
         <div className="flex items-center gap-2 text-sm">
           {portal.showPbsa ? <CheckCircle size={16} className="text-[#16A34A]" /> : <WarningCircle size={16} className="text-[#F59E0B]" />}
           <span>Partner halls are {portal.showPbsa ? 'shown' : 'not shown'} on your portal.</span>

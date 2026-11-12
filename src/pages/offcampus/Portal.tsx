@@ -23,7 +23,7 @@ export function Portal({ sec }: { sec: Sec }) {
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Off-campus portal" />
         {/* Same segmented tabs as Listings (All · HMO · Amber PBSA). */}
-        <div className="px-6 py-3">
+        <div className="px-6 pt-6 pb-2">
           <Tabs value={sec} onChange={(s) => nav(SECS.find((x) => x.id === s)!.path + search)} tabs={SECS} />
         </div>
         <div className="flex-1 overflow-auto bg-white px-6 pb-6 pt-3">

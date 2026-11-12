@@ -94,7 +94,7 @@ export function ResidentDetail() {
   return (
     <>
       <UIDialog open onOpenChange={(o) => { if (!o) nav('/residents'); }}>
-      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none">
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:0px] [--cx:24px]">
       <DialogHeader className="py-3">
         <DialogTitle>Resident</DialogTitle>
         <Button icon={Envelope} onClick={() => setMsg(true)}>Message</Button>
@@ -103,24 +103,25 @@ export function ResidentDetail() {
         <DialogCloseButton />
       </DialogHeader>
       <div className="flex-1 min-h-0 overflow-auto">
-        <div className="px-6 pt-6 pb-5 flex items-start gap-3 border-b border-line">
-          <Avatar name={r.name} size={36} />
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-[20px] font-medium tracking-tight mr-1">{r.name}</h2>
+        {/* Same hero as the property modal: 64px avatar, 20px name with its tags, 14px grey meta; no rule before the tabs. */}
+        <div className="px-7 pt-6 pb-5 flex items-center gap-4">
+          <Avatar name={r.name} size={64} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h2 className="text-xl leading-7 font-medium tracking-[-0.2px] text-[#0A0A0A]">{r.name}</h2>
               {arriving ? <Pill tone="blue" outline icon={Buildings}>Arriving {r.arrives}</Pill> : <ResStatusPill r={r} />}
               {r.plan && <Pill tone="purple" outline>Accessibility plan</Pill>}
               <Pill tone="blue" outline>{r.year}</Pill>
             </div>
-            <p className="text-sm text-gray-500 mt-1">{r.hall} · {r.room} {r.roomType} · tenancy 19 Sep 2026 – 18 Jun 2027 · {gbp(r.rent)} / wk</p>
+            <p className="mt-1 text-sm leading-5 text-[#737373]">{r.hall} · {r.room} {r.roomType} · tenancy 19 Sep 2026 – 18 Jun 2027 · {gbp(r.rent)} / wk</p>
           </div>
         </div>
         {/* Same underline tabs as the property modal. */}
         <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Payments', label: 'Payments' }, { id: 'Requests', label: `Requests · ${reqs.length}` }, { id: 'Maintenance', label: `Maintenance · ${mts.length}` }, { id: 'Documents', label: 'Documents · 4' }, { id: 'Activity', label: 'Activity' }]} />
-        <div className={['Payments', 'Requests', 'Maintenance', 'Documents'].includes(tab) ? 'pt-2' : 'p-6 max-w-[1200px]'}>
+        <div className={['Payments', 'Requests', 'Maintenance', 'Documents'].includes(tab) ? '' : 'p-7 pt-5'}>
           {tab === 'Overview' && (
-            <div className="grid grid-cols-2 gap-5 items-start">
-              <div className="space-y-4">
+            <div className="grid grid-cols-[1fr_340px] gap-5 items-start">
+              <div className="space-y-5 min-w-0">
                 <Panel title="Before keys" right={`${done} of ${items.length} done`}>
                   <div>
                     {items.map((i) => (

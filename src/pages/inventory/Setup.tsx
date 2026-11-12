@@ -18,7 +18,7 @@ export function StructuresPage() {
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New layout</Button>
       </PageHeader>
       <PageHeading />
-      <div className="shrink-0 px-[var(--tx,16px)] pb-2">
+      <div className="shrink-0 px-[var(--tx,16px)] pt-6 pb-2">
         <Note tone="blue" icon={Info} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
       </div>
       <Table rows={structures} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
@@ -82,9 +82,9 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
         <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Halls with flats" /></Field>
         </SheetSection>
         <SheetSection title="Levels · top first">
-          <div className="rounded-xl border border-line divide-y divide-line">
+          <div className="flex flex-col gap-2">{/* Inputs only: no box or row rules around them. */}
             {levels.map((l, i) => (
-              <div key={l.key} className="h-12 px-3 flex items-center gap-2.5">
+              <div key={l.key} className="flex items-center gap-3">
                 <span className="text-xs text-gray-400 w-4 tabular-nums">{i + 1}</span>
                 <Input ref={(el: HTMLInputElement | null) => { refs.current[l.key] = el; }} aria-label={`Level ${i + 1}`} value={l.name} onChange={(e) => setLevels((x) => x.map((y) => (y.key === l.key ? { ...y, name: e.target.value } : y)))} className="flex-1" placeholder="Level name" />
                 <span className="flex items-center gap-1.5 text-xs text-[#737373]">BSU<Switch checked={l.bsu} onChange={(b) => !locked && setLevels((x) => x.map((y) => (y.key === l.key ? { ...y, bsu: b } : y)))} label={`${l.name} bookable`} /></span>
@@ -96,7 +96,7 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
             : <Button type="button" size="sm" icon={Plus} className="mt-2" onClick={addLevel}>Add level</Button>}
         </SheetSection>
         <SheetSection title="Preview">
-          <div className="rounded-xl border border-line bg-[#FAFAFA] p-3"><Levels s={{ levels: levels.map((l) => ({ name: l.name || '…', bsu: l.bsu })) }} /></div>
+          <Levels s={{ levels: levels.map((l) => ({ name: l.name || "…", bsu: l.bsu })) }} />
         </SheetSection>
       </div>
     </Sheet>
@@ -268,7 +268,7 @@ function TagSheet({ t, usedOn, onClose , nav }: { nav?: SheetNav;  t: TagDef | '
         {!isNew && (
           <SheetSection title={usedOn.length ? `Used on · changes update all ${usedOn.length}` : 'Used on'}>
             {usedOn.length ? (
-              <div className="rounded-xl border border-line divide-y divide-line">
+              <div className="flex flex-col gap-2">{/* Inputs only: no box or row rules around them. */}
                 {usedOn.map((p) => (
                   <div key={p.id} className="h-10 px-3 flex items-center gap-2.5 text-sm">
                     <Buildings size={16} className="text-gray-400 shrink-0" />

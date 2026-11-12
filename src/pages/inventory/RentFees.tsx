@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Empty } from '../../components/ui';
 import { toast } from 'sonner';
 import { Buildings, CalendarBlank, CurrencyGbp, Globe, Info, PencilSimple, Plus, Receipt, Tag as TagIcon, Warning } from '../../components/icons';
-import { Button, Field, Input, PageHeader, Sheet, SheetSection, Switch, Table, Tabs, cx, listNav, type SheetNav, PageHeading } from '../../components/ui';
+import { Button, Field, Input, PageHeader, Sheet, SheetSection, Switch, Table, Tabs, cx, listNav, type SheetNav, Toolbar } from '../../components/ui';
 import { invId, money, useInv, type Fee, type FeeType, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { FieldErr, Modal, MoneyInput, Picker, PropStatus, RadioCard, Seg, isMoney, moneyErr, rangeErr } from './common';
@@ -32,10 +32,10 @@ export function RentFeesPage() {
           <><Button icon={TagIcon} onClick={() => setTypesOpen(true)}>Fee types</Button><Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add fee</Button></>
         )}
       </PageHeader>
-      <PageHeading right={tab === 'templates' && <div className="w-64"><Picker value={pid} onChange={setPid} icon={Buildings} options={props.map((x) => ({ id: x.id, label: x.name }))} /></div>} />
-      <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-2 empty:hidden">
+      {/* One toolbar row: tabs on the left, the property picker on the right. */}
+      <Toolbar right={tab === 'templates' && <div className="w-64"><Picker value={pid} onChange={setPid} icon={Buildings} options={props.map((x) => ({ id: x.id, label: x.name }))} /></div>}>
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'templates', label: 'Tenancy templates', count: tpls.length }, { id: 'fees', label: 'Fees', count: fees.length }]} />
-      </div>
+      </Toolbar>
       {tab === 'templates' ? (
         <Table rows={tpls} onRow={setEditing} selected={editing?.id}
           cols={[

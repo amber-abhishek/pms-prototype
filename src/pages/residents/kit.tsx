@@ -83,9 +83,10 @@ export function ToggleRow({ title, sub, checked, onChange }: { title: string; su
 /** Card with a title row (no border under it), as the detail pages use. */
 export function Panel({ title, right, children, className }: { title: ReactNode; right?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <Card className={cx('p-4', className)}>
-      <div className="flex items-center justify-between mb-3"><h3 className="text-sm font-semibold">{title}</h3>{right && <span className="text-xs text-gray-500">{right}</span>}</div>
-      {children}
+    /* The property modal's card: 48px header (title, grey note on the right) over a light rule, then a 16px-inset body. */
+    <Card className={cx('overflow-hidden', className)}>
+      <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><h3 className="text-sm font-semibold">{title}</h3>{right && <span className="ml-auto text-xs text-[#737373]">{right}</span>}</div>
+      <div className="px-4 py-3">{children}</div>
     </Card>
   );
 }
@@ -93,8 +94,8 @@ export function Panel({ title, right, children, className }: { title: ReactNode;
 /** Label / value rows with a 140px label column. */
 export function KV({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-[140px_1fr] gap-y-3.5 text-sm">
-      {rows.map(([k, v]) => <div key={k} className="contents"><dt className="text-gray-500">{k}</dt><dd className="text-ink">{v}</dd></div>)}
+    <dl className="grid grid-cols-[132px_minmax(0,1fr)] gap-y-3.5 text-sm">
+      {rows.map(([k, v]) => <div key={k} className="contents"><dt className="text-gray-500">{k}</dt><dd className="text-ink min-w-0 break-words">{v}</dd></div>)}
     </dl>
   );
 }

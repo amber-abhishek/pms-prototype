@@ -21,7 +21,7 @@ const buttonVariants = cva(
       variant: {
         default:
           sheen + 'bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0)),linear-gradient(#0C63F8,#0C63F8)] ' +
-          'shadow-[0_1px_2px_rgba(14,18,27,0.24),0_0_0_1px_#1B6DF8]',
+          '!border-[#1B6DF8] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(14,18,27,0.24)]',
         outline: pillOutline,
         tertiary: pillOutline,
         control: pillOutline,
@@ -30,9 +30,9 @@ const buttonVariants = cva(
         'destructive-ghost': 'rounded-lg border border-transparent text-[#DC2626] hover:bg-[#FEF2F2]',
         destructive:
           sheen + 'bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0)),linear-gradient(#DC2626,#DC2626)] ' +
-          'shadow-[0_1px_2px_rgba(14,18,27,0.24),0_0_0_1px_#DC2626]',
+          '!border-[#DC2626] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(14,18,27,0.24)]',
         'destructive-outline': pillOutline.replace('text-[#0A0A0A]', 'text-[#DC2626]'),
-        success: 'rounded-lg bg-[#16A34A] text-success-foreground hover:bg-[#15803D] shadow-[0_0_0_1px_#16A34A,0_1px_2px_rgba(0,0,0,0.12)]',
+        success: 'rounded-lg border border-[#16A34A] bg-[#16A34A] text-success-foreground hover:bg-[#15803D] shadow-[0_1px_2px_rgba(0,0,0,0.12)]',
       },
       /* Connect: 34px buttons with 6/12 padding (primary 6/20), 14px medium; sm for in-row actions. */
       size: { sm: 'h-7 px-2.5 text-[13px]', default: 'h-[34px] px-3 text-sm', lg: 'h-9 px-5 text-sm' },

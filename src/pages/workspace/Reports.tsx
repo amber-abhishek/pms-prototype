@@ -2,11 +2,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  Bed, Buildings, CalendarBlank, ChartBar, ChatCircleText, Clock, CurrencyGbp, DownloadSimple, EnvelopeSimple, Funnel as FunnelIcon, Megaphone, Plus,
+  Bed, Buildings, CalendarBlank, CaretRight, ChartBar, ChatCircleText, Clock, CurrencyGbp, DownloadSimple, EnvelopeSimple, Funnel as FunnelIcon, Megaphone, Plus,
   ShareNetwork, Info, UsersThree, Warning, Wrench, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, pressCard, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { useTab } from '../hooks';
 import { useDb } from '../../data/store';
 import { useAlloc, appCounts, offerCounts } from '../../data/allocations';
@@ -56,9 +56,13 @@ export function ReportsLibrary() {
       </Header>
       {/* Library, Scheduled and Shared with me are rows in the Reports panel, so the page has no tabs. */}
       {tab === 'library' && (
-        <div className="flex-1 overflow-auto p-5">
-          <div className="grid grid-cols-3 gap-4">
-            {list.map((r) => <ReportCard key={r.id} r={r} badge={schedules.find((s) => s.reportId === r.id)} onOpen={() => nav(r.to)} />)}
+        /* Connect 2.0 list page (3120:63572): a centred 900px column, 48px down; title, a rule, then rows 20px apart split by rules. */
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-[900px] mx-auto px-6 pt-12 pb-16">
+            <h2 className="text-base leading-6 font-medium text-[#0A0A0A]">All reports</h2>
+            <ul className="mt-5 border-t border-[#E5E5E5] divide-y divide-[#E5E5E5]">
+              {list.map((r) => <ReportRow key={r.id} r={r} badge={schedules.find((s) => s.reportId === r.id)} onOpen={() => nav(r.to)} />)}
+            </ul>
           </div>
         </div>
       )}
@@ -82,17 +86,23 @@ export function ReportsLibrary() {
   );
 }
 
-function ReportCard({ r, badge, onOpen }: { r: ReportDef; badge?: Schedule; onOpen: () => void }) {
+/* Icon tints alternate blue and purple, as the Connect list does. */
+const AREA_TINT: Record<string, [string, string]> = { occupancy: ['#EFF6FF', '#2563EB'], applications: ['#FAF5FF', '#9333EA'], rent: ['#EFF6FF', '#2563EB'], sla: ['#FAF5FF', '#9333EA'], requests: ['#EFF6FF', '#2563EB'], notices: ['#FAF5FF', '#9333EA'] };
+/** One library row: 48px tinted circle, 16px medium name over a 14px grey line, the schedule tag, and a View button. */
+function ReportRow({ r, badge, onOpen }: { r: ReportDef; badge?: Schedule; onOpen: () => void }) {
   const I = AREA_ICON[r.id] ?? ChartBar;
+  const [bg, fg] = AREA_TINT[r.id] ?? AREA_TINT.occupancy;
   return (
-    <button type="button" onClick={onOpen} className={cx('text-left rounded-xl border border-line bg-white p-4 shadow-tile', pressCard)}>
-      <div className="flex items-start gap-2.5">
-        <span className="size-8 rounded-lg bg-[#DBEAFE] flex items-center justify-center shrink-0"><I size={16} className="text-[#2563EB]" /></span>
-        <span className="flex-1 min-w-0 leading-tight"><span className="block text-sm font-semibold">{r.name}</span><span className="block text-xs text-[#737373] mt-0.5">{r.area}</span></span>
-        {badge && <Pill tone="green" icon={Clock}>{badgeLabel(badge)}</Pill>}
-      </div>
-      <p className="text-xs text-[#737373] mt-3 truncate">{r.desc}</p>
-    </button>
+    <li className="py-5 flex items-center gap-3.5">
+      <span className="size-12 shrink-0 rounded-full border border-[#E5E5E5] shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex items-center justify-center" style={{ background: bg }}>
+        <I size={22} strokeWidth={1.75} style={{ color: fg }} />
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="flex items-center gap-2"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate">{r.name}</span>{badge && <Pill tone="green">{badgeLabel(badge)}</Pill>}</span>
+        <span className="block mt-1 text-sm leading-5 text-[#737373] truncate">{r.desc}</span>
+      </span>
+      <Button icon={null} onClick={onOpen} aria-label={`View ${r.name}`}>View<CaretRight size={16} strokeWidth={1.75} /></Button>
+    </li>
   );
 }
 

@@ -265,7 +265,7 @@ export function FunnelCard({ steps, caption, summary, to }: { steps: [string, nu
 }
 
 /** The card footer's small outline button (Figma "Button · View": 30px, 4/10, r8, 14px medium). */
-export const smallOutline = 'h-[30px] px-2.5 rounded-lg border border-[#E5E5E5] bg-white text-sm font-medium text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F5] inline-flex items-center gap-1.5 whitespace-nowrap active:scale-[0.97] transition-[background-color,transform]';
+export const smallOutline = 'h-[30px] px-2.5 rounded-lg border border-[#E5E5E5] bg-white text-sm font-medium text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F5] dark:hover:bg-[#31353F] inline-flex items-center gap-1.5 whitespace-nowrap active:scale-[0.97] transition-[background-color,transform]';
 export const ViewLink = ({ to, label = 'View' }: { to: string; label?: string }) => <Link to={to} className={smallOutline}>{label}</Link>;
 export const CardButton = ({ onClick, children }: { onClick: () => void; children: ReactNode }) => <button type="button" onClick={onClick} className={smallOutline}>{children}</button>;
 

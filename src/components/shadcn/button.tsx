@@ -8,7 +8,8 @@ import { cn } from '../../lib/cn';
    are the white secondary with a #E5E5E5 edge and a 1px drop; ghosts have no edge until hover. */
 /* Connect outline: 1px #E5E5E5, r8, white, xs drop. Primary: r10, white 16% sheen over #0C63F8, a 12% white edge,
    a 1px #1B6DF8 ring and a cool 24% drop; hover dims to 90%. */
-const pillOutline = 'rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F5]';
+/* Dark: #F5F5F5's twin is the grey band's own colour, so hover steps one shade lighter there. */
+const pillOutline = 'rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F5] dark:hover:bg-[#31353F]';
 /* Figma 3884:39809 "Add property": r8, 32px inside the ring. */
 const sheen = 'rounded-lg border border-white/[0.12] text-white hover:opacity-90 ';
 const buttonVariants = cva(
@@ -26,7 +27,7 @@ const buttonVariants = cva(
         tertiary: pillOutline,
         control: pillOutline,
         secondary: 'rounded-lg bg-secondary text-secondary-foreground hover:bg-[#EBEBEB]',
-        ghost: 'rounded-lg border border-transparent text-[#0A0A0A] hover:bg-[#F5F5F5]',
+        ghost: 'rounded-lg border border-transparent text-[#0A0A0A] hover:bg-[#F5F5F5] dark:hover:bg-[#31353F]',
         'destructive-ghost': 'rounded-lg border border-transparent text-[#DC2626] hover:bg-[#FEF2F2]',
         destructive:
           sheen + 'bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0)),linear-gradient(#DC2626,#DC2626)] ' +

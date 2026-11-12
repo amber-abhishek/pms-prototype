@@ -5,7 +5,7 @@ import { cn } from '../../lib/cn';
 import { GhostZone } from '../headerCtx'
 
 /* shadcn Sheet (Radix Dialog), restyled to the one side-sheet look (2824:497): 8px inset, 12px radius,
-   #E5E5E5 border, 56px header, 20px body padding, 64px footer, #F5F5F5 rules, #0A0A0A at 20% scrim with a light blur.
+   56px header, 20px body padding, 64px footer, #F5F5F5 rules, and the same #0A0A0A 40% scrim as modals (Figma "Dim"), no blur.
    Radix gives it focus trapping, Escape to close, scroll lock and the dialog roles. */
 const Sheet = SheetPrimitive.Root;
 const SheetTrigger = SheetPrimitive.Trigger;
@@ -21,7 +21,7 @@ const SheetOverlay = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Ove
   ({ className, ...props }, ref) => (
     <SheetPrimitive.Overlay
       ref={ref}
-      className={cn('fixed inset-0 z-50 bg-[#171717]/10data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0', className)}
+      className={cn('fixed inset-0 z-50 bg-[#0A0A0A]/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0', className)}
       {...props}
     />
   ),

@@ -14,7 +14,8 @@ export function InventoryRoutes() {
     <Routes>
       <Route index element={<Navigate to="properties" replace />} />
       <Route path="properties" element={<PropertiesPage />} />
-      <Route path="properties/new" element={<AddPropertyWizard />} />
+      {/* The wizard is a centred modal over the Properties list (Figma 3884:40957). */}
+      <Route path="properties/new" element={<><PropertiesPage /><AddPropertyWizard /></>} />
       <Route path="properties/:id" element={<PropertyDetail />} />
       <Route path="units" element={<UnitsPage />} />
       <Route path="occupancy" element={<OccupancyPage />} />

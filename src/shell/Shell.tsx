@@ -372,6 +372,8 @@ function PinPicker() {
   );
 }
 
+/** A Connect profile-menu row: 20px, no padding or hover fill; the text and icon darken when highlighted. */
+const MENU_ROW = 'h-5 p-0 gap-2 rounded-none cursor-pointer text-sm leading-5 text-[#404040] focus:bg-transparent focus:text-[#0A0A0A] [&>svg]:text-[#404040] focus:[&>svg]:text-[#0A0A0A]';
 /** The profile in the sidebar footer (68px, Connect): r10 photo, name, light email, up/down chevrons. Opens the account menu. */
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { role, setRole, reset } = useDb();
@@ -401,36 +403,43 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
           <ChevronsUpDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="text-[#404040] shrink-0" />
         </>}
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-60 p-0 overflow-hidden">
-        <DropdownMenuLabel className="px-5 py-3 font-normal bg-[#F5F5F5] border-b border-[#E5E5E5] flex items-center gap-2.5">
-          <PersonPhoto name={me.name} size={32} />
-          <span className="min-w-0"><span className="block font-medium text-sm text-ink truncate">{me.name}</span><span className="block text-xs text-[#737373] truncate">{me.email}</span></span>
+      {/* Connect profile menu (Amber Connect 2.0, 3095:20192): 240px, r10, #E5E5E5 edge, two soft drops. A #F5F5F5 band
+          (12px padding, 9px gap, r10 photo, 14px medium name, 12px light email), then a 16px body: groups 16px apart split by
+          #E5E5E5 rules, 20px rows 14px apart, each a 16px icon, 8px gap and 14px regular #404040 text. */}
+      <DropdownMenuContent side="top" align="start" sideOffset={8} alignOffset={8} className="w-60 p-0 overflow-hidden rounded-[10px] border-[#E5E5E5] shadow-[0_2px_4px_rgba(0,0,0,0.1),0_4px_6px_rgba(0,0,0,0.1)]">
+        <DropdownMenuLabel className="p-3 font-normal bg-[#F5F5F5] border-b border-[#E5E5E5] flex items-center gap-[9px]">
+          <PersonPhoto name={me.name} size={32} square />
+          <span className="min-w-0"><span className="block text-sm leading-5 font-medium text-[#404040] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#404040] truncate">{me.email}</span></span>
         </DropdownMenuLabel>
-        <div className="p-2">
-          <DropdownMenuLabel className="px-3 pt-1.5 pb-1 font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#737373]">View as (demo)</DropdownMenuLabel>
-          {roles.map((r) => (
-            <DropdownMenuItem key={r.id} className="h-auto items-start px-3 py-1.5 focus:bg-[#F5F5F5]"
-              onSelect={() => { setRole(r.id); nav('/'); toast.success(`Viewing as ${r.label}`); }}>
-              <span className="size-4 mt-0.5 shrink-0">{role === r.id && <CheckIcon size={16} weight="bold" className="text-primary" />}</span>
-              <span><span className="block">{r.label}</span><span className="block text-xs text-[#737373]">{r.sub}</span></span>
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-[14px]">
+            <DropdownMenuLabel className="p-0 font-mono uppercase text-xs leading-4 font-medium tracking-[0.48px] text-[#737373]">View as (demo)</DropdownMenuLabel>
+            {roles.map((r) => (
+              <DropdownMenuItem key={r.id} title={r.sub} className={MENU_ROW}
+                onSelect={() => { setRole(r.id); nav('/'); toast.success(`Viewing as ${r.label}`); }}>
+                <span className="size-4 shrink-0 flex items-center justify-center">{role === r.id && <CheckIcon size={16} weight="bold" className="text-primary" />}</span>
+                <span className="flex-1 truncate">{r.label}</span>
+              </DropdownMenuItem>
+            ))}
+          </div>
+          <DropdownMenuSeparator className="m-0 bg-[#E5E5E5]" />
+          <div className="flex flex-col gap-[14px]">
+            {/* Stays open when toggled, so you see the switch flip and the app change behind it. */}
+            <DropdownMenuItem className={MENU_ROW} onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
+              <Moon size={16} strokeWidth={1.5} /><span className="flex-1">Dark mode</span>
+              <Switch checked={theme === 'dark'} tabIndex={-1} aria-hidden className="pointer-events-none" />
             </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator className="bg-[#E5E5E5]" />
-          {/* Stays open when toggled, so you see the switch flip and the app change behind it. */}
-          <DropdownMenuItem className="px-3 focus:bg-[#F5F5F5]" onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
-            <Moon size={16} strokeWidth={1.5} className="text-[#404040]" /><span className="flex-1">Dark mode</span>
-            <Switch checked={theme === 'dark'} tabIndex={-1} aria-hidden className="pointer-events-none" />
-          </DropdownMenuItem>
-          {/* Demo: every list goes empty so its first-run state shows. Off brings the data back. */}
-          <DropdownMenuItem className="px-3 focus:bg-[#F5F5F5]" onSelect={(e) => { e.preventDefault(); setEmpty(!emptyOn); }}>
-            <Tray size={16} strokeWidth={1.5} className="text-[#404040]" /><span className="flex-1">Empty states</span>
-            <Switch checked={emptyOn} tabIndex={-1} aria-hidden className="pointer-events-none" />
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="bg-[#E5E5E5]" />
-          <DropdownMenuItem className="px-3 focus:bg-[#F5F5F5]" onSelect={() => { reset(); nav('/'); toast.success('Demo data reset'); }}>
-            <ArrowCounterClockwise size={16} strokeWidth={1.5} className="text-[#404040]" />Reset demo data
-          </DropdownMenuItem>
-          <DropdownMenuItem className="px-3 text-[#DC2626] focus:bg-[#F5F5F5] focus:text-[#DC2626]" onSelect={signOut}>
+            {/* Demo: every list goes empty so its first-run state shows. Off brings the data back. */}
+            <DropdownMenuItem className={MENU_ROW} onSelect={(e) => { e.preventDefault(); setEmpty(!emptyOn); }}>
+              <Tray size={16} strokeWidth={1.5} /><span className="flex-1">Empty states</span>
+              <Switch checked={emptyOn} tabIndex={-1} aria-hidden className="pointer-events-none" />
+            </DropdownMenuItem>
+            <DropdownMenuItem className={MENU_ROW} onSelect={() => { reset(); nav('/'); toast.success('Demo data reset'); }}>
+              <ArrowCounterClockwise size={16} strokeWidth={1.5} />Reset demo data
+            </DropdownMenuItem>
+          </div>
+          <DropdownMenuSeparator className="m-0 bg-[#E5E5E5]" />
+          <DropdownMenuItem className={cx(MENU_ROW, 'text-[#DC2626] focus:text-[#B91C1C] [&>svg]:text-[#DC2626]')} onSelect={signOut}>
             <SignOut size={16} strokeWidth={1.5} />Sign out
           </DropdownMenuItem>
         </div>

@@ -185,7 +185,7 @@ export function PageHeading({ title, right, className }: { title?: ReactNode; ri
 /** One toolbar row: tabs on the left, search/filter/display on the right. The title is screen-reader only; `heading={false}` drops it. */
 export function Toolbar({ children, right, className, heading }: { children?: ReactNode; right?: ReactNode; className?: string; heading?: ReactNode | false }) {
   const t = usePageTitle();
-  return <div className={cx(toolbarCls, className)}>{heading !== false && <TitleH1 className="sr-only">{heading ?? t}</TitleH1>}{children}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
+  return <div className={cx(toolbarCls, className)}>{heading !== false && <TitleH1 className="sr-only">{heading ?? t}</TitleH1>}{children}<div className="ml-auto min-w-0 flex items-center gap-2 whitespace-nowrap [&>label]:shrink [&>label]:min-w-[140px]">{right}</div></div>;
 }
 /** Mercury-style metric links above a table: a bold label, then "value label ›" links that filter the table. */
 export type Metric = { label: string; value: ReactNode; tone?: 'red' | 'orange' | 'amber' | 'green'; onClick?: () => void; active?: boolean };
@@ -301,6 +301,7 @@ export function SearchInput({ value, onChange, placeholder = 'Search' }: { value
     </label>
   );
 }
+const FILTER_TRIGGER = 'shrink-0 h-[34px] min-w-[96px] max-w-[280px] pl-3 pr-2.5 rounded-lg border bg-white text-sm font-medium flex items-center justify-between gap-2 hover:bg-[#F5F5F5] transition-colors data-[state=open]:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 /** Amber Connect multi-select filter (its Status dropdown): a 34px bordered trigger reading "Status" or "Status (2)";
  *  a 200px popover of checkbox rows (16px sides, 10px tall padding), each option a plain label or a tinted chip
  *  (13px medium, 2/8 padding, r6, the tone at 10%); a rule, then Clear and Apply side by side. Picks stay a draft until Apply. */
@@ -315,7 +316,7 @@ export function MultiFilter({ label, options, value, onChange, width = 200 }: {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" className={cx('h-[34px] min-w-[96px] pl-3 pr-2.5 rounded-lg border bg-white text-sm font-medium flex items-center justify-between gap-2 hover:bg-[#F5F5F5] transition-colors data-[state=open]:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', on ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
+        <button type="button" className={cx(FILTER_TRIGGER, on ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
           <span>{label}{on && ` (${value.length})`}</span><CaretDown size={16} strokeWidth={1.75} className="opacity-60" />
         </button>
       </PopoverTrigger>
@@ -339,6 +340,50 @@ export function MultiFilter({ label, options, value, onChange, width = 200 }: {
   );
 }
 
+export type SelectOption = { value: string; label?: string; tone?: Tone; meta?: ReactNode };
+/** Amber Connect single-choice dropdown: MultiFilter's 34px trigger and 16/10 popover rows, a blue check on the chosen row;
+ *  a pick applies straight away (one choice needs no Apply). With `label` it is a filter: an "All" row clears it, and the
+ *  trigger turns blue and reads the choice. Without `label` it is a picker (hall, block, year) and shows its value. */
+export function SelectFilter({ label, icon: I, value, options, onChange, width = 220, suffix }: {
+  label?: string; icon?: Icon; value: string; options: SelectOption[]; onChange: (v: string) => void; width?: number; suffix?: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const sel = options.find((o) => o.value === value);
+  const on = !!label && !!sel;
+  const row = (v: string, body: ReactNode, chosen: boolean) => (
+    <button key={v || '_all'} type="button" role="menuitemradio" aria-checked={chosen} onClick={() => { onChange(v); setOpen(false); }}
+      className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F5F5] focus-visible:bg-[#F5F5F5] outline-none transition-colors">
+      <span className="flex-1 min-w-0 flex items-center gap-2">{body}</span>
+      {chosen && <CheckIcon size={16} className="text-[#2563EB] shrink-0" />}
+    </button>
+  );
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label={label ? `${label}: ${sel ? sel.label ?? sel.value : 'All'}` : undefined} className={cx(FILTER_TRIGGER, on ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
+          <span className="flex items-center gap-2 min-w-0">
+            {I && <I size={16} strokeWidth={1.5} className="shrink-0" />}
+            {/* A set filter reads as its value in blue (as Connect's "Status (1)" stays short); the field name is in the aria-label. */}
+            <span className="truncate">{sel ? sel.label ?? sel.value : label ?? value}</span>{suffix}
+          </span>
+          <CaretDown size={16} strokeWidth={1.75} className="opacity-60 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align={label ? 'end' : 'start'} className="p-0 overflow-hidden" style={{ width }}>
+        <div role="menu" aria-label={label} className="max-h-[280px] overflow-y-auto py-1">
+          {label && row('', <span className="text-sm text-[#0A0A0A]">All</span>, !sel)}
+          {options.map((o) => row(o.value, <>
+            {o.tone
+              ? <span className={cx('inline-flex items-center px-2 py-0.5 rounded-md text-[13px] leading-5 font-medium whitespace-nowrap', toneCls[o.tone])}>{o.label ?? o.value}</span>
+              : <span className="text-sm text-[#0A0A0A] truncate">{o.label ?? o.value}</span>}
+            {o.meta != null && <span className="ml-auto font-mono text-xs text-[#737373] tabular-nums">{o.meta}</span>}
+          </>, o.value === value))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /** The list-filter icon with the applied dot on its top-right corner (3755:15832). */
 export function FilterIcon({ on, size = 14, icon: I = FunnelSimple }: { on: boolean; size?: number; icon?: Icon }) {
   return (
@@ -356,44 +401,9 @@ export const optionPill = (on: boolean) => cx(
     : 'text-[#404040] [background:linear-gradient(#FFFFFF,#FFFFFF)_padding-box,linear-gradient(180deg,#F7F8FA,#D3D7DE)_border-box] hover:[background:linear-gradient(#FAFAFA,#FAFAFA)_padding-box,linear-gradient(180deg,#F1F2F5,#C9CED7)_border-box]');
 /** chips: show the options as toggle chips instead of a dropdown (short lists such as Priority). */
 export type FilterDef = { id: string; label: string; options: string[]; chips?: boolean };
+/** One Connect dropdown per field (as Connect's Status filter), each a single choice that applies straight away. */
 export function FilterButton({ defs, value, onChange }: { defs: FilterDef[]; value: Record<string, string>; onChange: (v: Record<string, string>) => void }) {
-  const [open, setOpen] = useState(false);
-  const n = Object.values(value).filter(Boolean).length;
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      {/* 3755:15832: 28px bordered square; applied filters show a 6px #2B5CFF dot on the icon's top-right corner (1.5px white ring), no count. */}
-      <PopoverTrigger asChild>
-        <Button variant="control" size="sm" className={cx(open && 'bg-gray-50')}>
-          <FilterIcon on={n > 0} />
-          Filter{n > 0 && <span className="sr-only">, {n} applied</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="space-y-3">
-        <div className="flex items-center justify-between"><span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Active filters</span>{n > 0 && <button type="button" className="text-xs font-medium text-[#E0243A] hover:text-[#C81E33]" onClick={() => onChange({})}>Clear all</button>}</div>
-        {defs.map((d) => d.chips ? (
-          <div key={d.id} role="group" aria-label={d.label}>
-            <span className="block text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{d.label}</span>
-            <div className="flex flex-wrap gap-1.5">
-              {d.options.map((o) => {
-                const on = value[d.id] === o;
-                return (
-                  <button key={o} type="button" aria-pressed={on} onClick={() => onChange({ ...value, [d.id]: on ? '' : o })}
-                    className={optionPill(on)}>{o}</button>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <Field key={d.id} label={d.label}>
-            <Select value={value[d.id] ?? ''} onChange={(e) => onChange({ ...value, [d.id]: e.target.value })}>
-              <option value="">Any</option>
-              {d.options.map((o) => <option key={o}>{o}</option>)}
-            </Select>
-          </Field>
-        ))}
-      </PopoverContent>
-    </Popover>
-  );
+  return <>{defs.map((d) => <SelectFilter key={d.id} label={d.label} value={value[d.id] ?? ''} options={d.options.map((o) => ({ value: o }))} onChange={(v) => onChange({ ...value, [d.id]: v })} />)}</>;
 }
 
 /* ---------- Table: inset rows, end-to-end footer bar with summary + pager ---------- */

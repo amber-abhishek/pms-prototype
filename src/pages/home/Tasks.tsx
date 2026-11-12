@@ -115,16 +115,18 @@ function MyTasks() {
     <div className="flex-1 min-h-0 flex flex-col">
       <PageHeader icon={CheckCircle} title="My tasks" search><NewTaskButton scope="main" /></PageHeader>
       <HomeBand />
-      <PageHeading right={<>
-        <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />
-      </>} />
-      <div className={cx(toolbarCls, '!pt-0 empty:hidden')}>
+      {/* One toolbar row: tabs on the left, the From and Owner dropdowns on the right. */}
+      <PageHeading />
+      <div className={toolbarCls}>
         <Tabs value={tab} onChange={(v) => { setTab(v); setShowWeek(false); }} tabs={[
           { id: 'mine', label: 'Mine', count: mineCount },
           { id: 'team', label: 'Team', count: openRows.length },
           { id: 'snoozed', label: 'Snoozed', count: snoozedRows.length },
           { id: 'done', label: 'Done', count: (emptyDemo ? 0 : DONE_EARLIER) + doneRows.length },
         ]} />
+        <div className="ml-auto flex items-center gap-2">
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />
+        </div>
       </div>
 
       {caughtUp ? (
@@ -273,7 +275,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
         </div>
       )}
       <PageHeading />
-      <div className={cx(toolbarCls, '!pt-0')}>
+      <div className={toolbarCls}>
         <Tabs value={tab} onChange={setTab} tabs={[
           { id: 'overdue', label: 'Overdue', count: n('overdue') },
           { id: 'today', label: 'Today', count: n('today') },

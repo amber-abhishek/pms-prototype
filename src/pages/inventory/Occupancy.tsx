@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Buildings, CalendarRange, CaretDown, CircleDashed, Grid3x3, Hourglass, House, Prohibit, SignIn, Stack, type Icon } from '../../components/icons';
-import { Button, MultiFilter, PageHeader, cx, type Tone } from '../../components/ui';
-import { Menu } from './common';
+import { Buildings, CalendarRange, CircleDashed, Grid3x3, Hourglass, House, Prohibit, SignIn, Stack, type Icon } from '../../components/icons';
+import { Button, MultiFilter, PageHeader, SelectFilter, cx, type Tone } from '../../components/ui';
 import { useEmpty } from '../../data/empty';
 import { HALL_OCC } from '../../data/occupancy';
 import { EmptyArea } from '../allocations/common';
@@ -102,21 +101,16 @@ export function OccupancyPage() {
   return (
     <>
       <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Inventory']}>
-        <Menu width={140} trigger={(o) => <Button variant="control" icon={CalendarRange} onClick={o}>{year}</Button>} items={['2025/26', '2026/27', '2027/28'].map((y) => ({ label: y, onClick: () => setYear(y) }))} />
+        <SelectFilter icon={CalendarRange} width={160} value={year} onChange={setYear} options={['2025/26', '2026/27', '2027/28'].map((y) => ({ value: y }))} />
         <Button icon={DownloadSimple} onClick={() => toast.success(`${h.name.toLowerCase().replace(/\W+/g, '-')}-occupancy-${year.replace('/', '-')}.csv exported`)}>Export</Button>
       </PageHeader>
 
       {/* Connect toolbar (as Properties, 3884:39809): one 68px row, 16/24 padding, every control 34px.
           Hall and block pick what the plan shows on the left; the Status filter sits on the right. */}
       <div className="shrink-0 px-6 py-4 flex items-center gap-3">
-        <Menu align="left" width={240} trigger={(o) => (
-          <Button variant="control" icon={Buildings} onClick={o}>{h.name}<span className="text-[#737373] font-mono tabular-nums">{h.beds}</span><CaretDown size={16} strokeWidth={1.75} className="opacity-60" /></Button>
-        )} items={HALLS.map((x) => ({ label: `${x.name} · ${x.beds} beds`, onClick: () => pickHall(x.id) }))} />
-        {h.blocks.length > 1 && (
-          <Menu align="left" width={180} trigger={(o) => (
-            <Button variant="control" icon={Stack} onClick={o}>{block}<CaretDown size={16} strokeWidth={1.75} className="opacity-60" /></Button>
-          )} items={h.blocks.map((b) => ({ label: b, onClick: () => setBlock(b) }))} />
-        )}
+        <SelectFilter icon={Buildings} width={260} value={h.id} onChange={pickHall} suffix={<span className="text-[#737373] font-mono tabular-nums">{h.beds}</span>}
+          options={HALLS.map((x) => ({ value: x.id, label: x.name, meta: x.beds }))} />
+        {h.blocks.length > 1 && <SelectFilter icon={Stack} width={180} value={block} onChange={setBlock} options={h.blocks.map((b) => ({ value: b }))} />}
         <div className="ml-auto flex items-center gap-3">
           <MultiFilter label="Status" width={220} value={statusF} onChange={setStatusF} options={ORDER.map((st) => ({ value: ST[st].label, tone: ST[st].tone }))} />
         </div>

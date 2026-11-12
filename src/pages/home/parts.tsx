@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { FolderTabs, GreetingBand } from '../../components/overview';
 import { PersonPhoto } from '../../components/Logo';
 import { useEmpty } from '../../data/empty';
-import { ArrowsLeftRight, Buildings, CaretDown, ChartBar, Check, CheckCircle, FileText, Gear, Lock, MagnifyingGlass, Megaphone, ShieldCheck, Tray, UserMinus, Wrench, type Icon } from '../../components/icons';
-import { Avatar, Button, cx } from '../../components/ui';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
+import { ArrowsLeftRight, Buildings, ChartBar, Check, CheckCircle, FileText, Gear, Lock, MagnifyingGlass, Megaphone, ShieldCheck, Tray, UserMinus, Wrench, type Icon } from '../../components/icons';
+import { Avatar, Button, SelectFilter, cx } from '../../components/ui';
 import { Illustration } from '../../components/Illustration';
 import { ME, PEOPLE, useHome, type DueTone, type FromIcon, type HTask } from '../../data/home';
 
@@ -43,19 +42,8 @@ export function Box({ checked, onChange, label, disabled }: { checked: boolean; 
 
 /** A secondary button that opens a small list of choices. */
 export function MenuButton({ icon, value, options, onChange }: { icon: Icon; value: string; options: string[]; onChange: (v: string) => void }) {
-  /* shadcn DropdownMenu. */
-  return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild><Button variant="control" icon={icon} className="pl-3 pr-2.5 gap-1.5">{value}<CaretDown size={16} strokeWidth={1.5} /></Button></DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
-        {options.map((o) => (
-          <DropdownMenuItem key={o} onSelect={() => onChange(o)} className="px-2.5 justify-between gap-3 focus:bg-gray-50">
-            {o}{o === value && <Check size={14} className="text-primary" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  /* The Connect single-choice dropdown, as a picker. */
+  return <SelectFilter icon={icon} value={value} options={options.map((o) => ({ value: o }))} onChange={onChange} width={200} />;
 }
 
 /** Blue tonal illustration for "all caught up". */

@@ -94,7 +94,7 @@ function Sidebar({ visible, active, collapsed, onToggle }: { visible: Module[]; 
   const top = visible.filter((m) => m.group === 'top');
   const mods = visible.filter((m) => m.group === 'modules');
   const system = visible.filter((m) => m.group === 'bottom');
-  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} chevron={m.group !== 'top'} />;
+  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} chevron={m.id !== 'home'} />;
   return (
     <TooltipProvider delayDuration={300}>
       <aside aria-label="Main" className={cx('shrink-0 h-full flex flex-col bg-[#FAFAFA] border-r border-[#E5E5E5] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]', collapsed ? 'w-[68px]' : 'w-64')}>
@@ -131,7 +131,7 @@ export function Kbd({ children }: { children: ReactNode }) {
 }
 
 /** A module row. The open module lists its pages under it (with their counts); closed ones show a chevron. */
-function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Modules, Organisation and Settings show chevrons; Home and Reports don't (2026-11-12). */ chevron: boolean }) {
+function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Every module with pages shows a chevron, Reports included; Home has none. */ chevron: boolean }) {
   const I = m.icon;
   if (collapsed) {
     return (

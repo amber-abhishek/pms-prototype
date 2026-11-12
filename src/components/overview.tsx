@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ArrowDownRight, ArrowUpRight, Building, CaretDown, ChartColumnIcon, ChartLine, TableIcon, type Icon } from './icons';
 import { Card, cx, Pill, TitleH1 } from './ui';
 
@@ -36,18 +36,43 @@ export function GreetingBand({ title, sub, actions, avatar }: { title: string; s
 
 /** Folder tabs on the #F5F5F5 band (Figma "Tabs", 44px): 200×40 tabs from 24px in; the active one is white with a
  *  #E5E5E5 edge on three sides and r10 top corners, sitting on the band's bottom line so it opens into the page. */
+/* Connect's insights tabs: one SVG outline (the raised tab with r10 corners and outward r10 flares into the base line)
+   slides to the chosen tab in 350ms on cubic-bezier(0.4,0,0.2,1); labels fade #737373 → ink in 300ms. Each tab is a route, so the
+   bar remounts on every switch: it remembers where the tab last was and slides from there. */
+const TAB_W = 200, TAB_H = 40, TAB_R = 10, TAB_PAD = 24, TAB_TOP = 3.5, TAB_Y = TAB_H + 3.5, FAR = 4000;
+const TAB_PATH = [
+  `M ${-FAR} ${TAB_Y}`, `L ${-TAB_R} ${TAB_Y}`, `Q 0 ${TAB_Y} 0 ${TAB_Y - TAB_R}`, `L 0 ${TAB_TOP + TAB_R}`, `Q 0 ${TAB_TOP} ${TAB_R} ${TAB_TOP}`,
+  `L ${TAB_W - TAB_R} ${TAB_TOP}`, `Q ${TAB_W} ${TAB_TOP} ${TAB_W} ${TAB_TOP + TAB_R}`, `L ${TAB_W} ${TAB_Y - TAB_R}`, `Q ${TAB_W} ${TAB_Y} ${TAB_W + TAB_R} ${TAB_Y}`, `L ${FAR} ${TAB_Y}`,
+].join(' ');
+let lastTabX: number | null = null;
 export function FolderTabs({ tabs }: { tabs: { to: string; label: string; count?: number; end?: boolean }[] }) {
+  const { pathname } = useLocation();
+  const idx = Math.max(0, tabs.findIndex((t) => (t.end ? pathname === t.to : pathname === t.to || pathname.startsWith(`${t.to}/`))));
+  const target = TAB_PAD + idx * TAB_W;
+  const [x, setX] = useState(lastTabX ?? target);
+  useEffect(() => {
+    const f = requestAnimationFrame(() => setX(target));
+    lastTabX = target;
+    return () => cancelAnimationFrame(f);
+  }, [target]);
   return (
-    <nav aria-label="Sections" className="relative h-11 shrink-0 bg-[#F5F5F5] px-6 flex items-end">
-      <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-[#E5E5E5]" />
-      {tabs.map((t) => (
-        <NavLink key={t.to} to={t.to} end={t.end}
-          className={({ isActive }) => cx('relative z-[1] w-[200px] h-10 flex items-center justify-center gap-1.5 font-mono uppercase text-sm leading-5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded-t-[10px]',
-            isActive ? 'bg-white text-[#0A0A0A] border border-b-0 border-[#E5E5E5] h-[41px] -mb-px' : 'text-[#737373] hover:text-[#0A0A0A]')}>
-          {t.label}
-          {t.count !== undefined && t.count > 0 && <span className="h-5 min-w-5 px-1.5 rounded-md bg-white font-mono text-xs leading-4 font-medium text-[#525252] flex items-center justify-center">{t.count}</span>}
-        </NavLink>
-      ))}
+    <nav aria-label="Sections" className="relative h-11 shrink-0 bg-[#F5F5F5]">
+      <svg aria-hidden className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+        <g style={{ transform: `translateX(${x}px)` }} className="transition-transform duration-[350ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none">
+          <path d={`${TAB_PATH} L ${FAR} ${TAB_Y + 1} L ${-FAR} ${TAB_Y + 1} Z`} fill="#FFFFFF" />
+          <path d={TAB_PATH} fill="none" stroke="#E5E5E5" strokeWidth={1} />
+        </g>
+      </svg>
+      <div className="relative z-[1] h-full flex items-end" style={{ paddingLeft: TAB_PAD }}>
+        {tabs.map((t, i) => (
+          <NavLink key={t.to} to={t.to} end={t.end}
+            className={cx('h-10 flex items-center justify-center gap-1.5 font-mono uppercase text-sm leading-5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded-t-[10px] transition-colors duration-300',
+              i === idx ? 'text-[#0A0A0A]' : 'text-[#737373] hover:text-[#0A0A0A]')} style={{ width: TAB_W }}>
+            {t.label}
+            {t.count !== undefined && t.count > 0 && <span className={cx('h-5 min-w-5 px-1.5 rounded-md font-mono text-xs leading-4 font-medium text-[#525252] flex items-center justify-center transition-colors duration-300', i === idx ? 'bg-[#F5F5F5]' : 'bg-white')}>{t.count}</span>}
+          </NavLink>
+        ))}
+      </div>
     </nav>
   );
 }

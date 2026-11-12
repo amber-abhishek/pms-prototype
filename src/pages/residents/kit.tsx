@@ -2,7 +2,7 @@ import { useRef, type ReactNode } from 'react';
 import { ArrowRight, CheckCircle, Circle, Image as ImageIcon, XCircle, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
 import { Avatar, Card, PageHeader, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
+import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '../../components/shadcn/sheet';
 
 /** The shared top bar (Figma 3884:39270), with breadcrumbs that link back. */
@@ -34,12 +34,7 @@ export function Modal({ open, onClose, title, sub, children, footer, width = 500
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <div className="p-5 pb-4">
-          <DialogTitle>{title}</DialogTitle>
-          {sub && <DialogDescription>{sub}</DialogDescription>}
-          {children && <div className="mt-4 space-y-3">{children}</div>}
-        </div>
-        <DialogFooter>{footer}</DialogFooter>
+        <DialogFrame title={title} sub={sub} footer={footer}>{children && <div className="space-y-3">{children}</div>}</DialogFrame>
       </DialogContent>
     </Dialog>
   );

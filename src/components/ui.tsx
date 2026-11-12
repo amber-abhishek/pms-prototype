@@ -27,7 +27,7 @@ import { Label } from './shadcn/label';
 import { Switch as UISwitch } from './shadcn/switch';
 import { Checkbox } from './shadcn/checkbox';
 import { Sheet as UISheet, sheetStep, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from './shadcn/sheet';
-import { Dialog as UIDialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './shadcn/dialog';
+import { Dialog as UIDialog, DialogContent, DialogFrame } from './shadcn/dialog';
 import { toneCls, toneDot } from './tones';
 import { rowAttrs, useRowMotion } from './rowMotion';
 import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, CaretUp, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
@@ -596,15 +596,7 @@ export function Dialog({ open, onClose, title, sub, children, footer, width = 48
   return (
     <UIDialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...noDesc(sub)}>
-        <DialogHeader>
-          <div className="flex items-center gap-2.5">
-            <DialogTitle>{title}</DialogTitle>
-            <DialogCloseButton />
-          </div>
-          {sub && <DialogDescription>{sub}</DialogDescription>}
-        </DialogHeader>
-        <DialogBody>{children}</DialogBody>
-        {footer && <DialogFooter>{footer}</DialogFooter>}
+        <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>
       </DialogContent>
     </UIDialog>
   );

@@ -3,7 +3,7 @@ import { Illustration, type Illo } from '../../components/Illustration';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CaretUpDown, Image, X, type Icon } from '../../components/icons';
 import { Button, TitleH1, cx } from '../../components/ui';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
+import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '../../components/shadcn/command';
 import type { Tone } from '../../data/seed';
@@ -40,14 +40,7 @@ export function ODialog({ open, onClose, title, sub, children, footer, width = 5
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <div className="px-5 pt-5 pb-4 overflow-auto">
-          <div className="flex items-center gap-2.5">
-            <DialogTitle>{title}</DialogTitle>
-          </div>
-          {sub && <DialogDescription className="mt-2">{sub}</DialogDescription>}
-          {children && <div className="mt-4">{children}</div>}
-        </div>
-        <DialogFooter>{footer}</DialogFooter>
+        <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>
       </DialogContent>
     </Dialog>
   );

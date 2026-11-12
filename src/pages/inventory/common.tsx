@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
-import { CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, WarningCircle, X, XCircle, Archive, type Icon } from '../../components/icons';
+import { CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, WarningCircle, XCircle, Archive, type Icon } from '../../components/icons';
 import { Status, cx } from '../../components/ui';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import type { PStatus, Tag, UStatus } from '../../data/inventory';
@@ -47,17 +47,13 @@ export function Modal({ open, onClose, title, sub, children, footer, width = 560
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <div className="flex-1 overflow-auto p-5">
-          {title ? (
-            <div className={cx('flex gap-3', center ? 'flex-col items-center text-center' : 'items-start')}>
-              <DialogTitle className="leading-6">{title}</DialogTitle>
-              {!center && <DialogClose aria-label="Close" className="size-7 -my-0.5 -mr-1 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center shrink-0"><X size={16} /></DialogClose>}
-            </div>
-          ) : <DialogTitle className="sr-only">Dialog</DialogTitle>}
-          {sub && <DialogDescription className={cx('mt-1', center && 'text-center')}>{sub}</DialogDescription>}
-          {children && <div className="mt-4">{children}</div>}
-        </div>
-        {footer && <DialogFooter>{footer}</DialogFooter>}
+        {title ? <DialogFrame title={title} sub={sub} footer={footer} close={!center}>{children}</DialogFrame> : (
+          <>
+            <DialogTitle className="sr-only">Dialog</DialogTitle>
+            <DialogBody className={cx(center && 'text-center')}>{sub && <DialogDescription>{sub}</DialogDescription>}{children && <div className={sub ? 'mt-4' : undefined}>{children}</div>}</DialogBody>
+            {footer && <DialogFooter>{footer}</DialogFooter>}
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

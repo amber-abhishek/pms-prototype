@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Check as CheckMark, CheckCircle, Clock, EnvelopeSim
 import { Avatar, Button, Check, Pill, cx } from '../../components/ui';
 import { Popover, PopoverAnchor, PopoverContent } from '../../components/shadcn/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/shadcn/table';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
+import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 import type { Tone } from '../../data/seed';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 
@@ -139,12 +139,7 @@ export function Modal({ open, onClose, title, sub, children, footer, width = 560
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <div className="px-5 pt-5 pb-4">
-          <DialogTitle>{title}</DialogTitle>
-          {sub && <DialogDescription>{sub}</DialogDescription>}
-        </div>
-        <DialogBody className="pt-0">{children}</DialogBody>
-        <DialogFooter>{footer}</DialogFooter>
+        <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>
       </DialogContent>
     </Dialog>
   );

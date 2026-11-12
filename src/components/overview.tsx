@@ -327,29 +327,16 @@ export function Stats({ items }: { items: [string, string, ToneKey?][] }) {
   );
 }
 
-/** Trend line that fills the space left under a card's stats: a 1.5px line over a soft area, an end dot, and a
- *  mono caption with the period on the left and the change on the right. Colours are classes so dark mode converts them. */
-export function Spark({ points, label, delta, good, color = 'blue' }: { points: number[]; label: string; delta?: string; good?: boolean; color?: 'blue' | 'green' }) {
+/** Quiet trend line in the space left under a card's stats: one 1.5px line, nothing else (2026-11-12: "too much is happening").
+ *  Colours are classes so dark mode converts them. */
+export function Spark({ points, color = 'blue' }: { points: number[]; color?: 'blue' | 'green' }) {
   const min = Math.min(...points), max = Math.max(...points), span = max - min || 1;
-  const xy = points.map((v, i) => [(i / (points.length - 1)) * 100, 36 - ((v - min) / span) * 32] as const);
-  const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
-  const [, endY] = xy[xy.length - 1];
-  const c = color === 'green' ? { stroke: 'stroke-[#16A34A]', fill: 'fill-[#16A34A]/10', dot: 'bg-[#16A34A]' } : { stroke: 'stroke-[#2563EB]', fill: 'fill-[#2563EB]/10', dot: 'bg-[#2563EB]' };
-  const up = delta ? !/^[−-]/.test(delta) : false;
-  const A = up ? ArrowUpRight : ArrowDownRight;
+  const line = points.map((v, i) => `${i ? 'L' : 'M'}${((i / (points.length - 1)) * 100).toFixed(2)},${(38 - ((v - min) / span) * 36).toFixed(2)}`).join(' ');
   return (
-    <div className="h-full min-h-0 flex flex-col gap-1.5 pt-3 pb-3">
-      <div className="relative flex-1 min-h-[28px]">
-        <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible" aria-hidden>
-          <path d={`${line} L100,40 L0,40 Z`} className={c.fill} />
-          <path d={line} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className={c.stroke} />
-        </svg>
-        <span className={cx('absolute right-0 size-1.5 rounded-full -translate-y-1/2 translate-x-1/2 ring-2 ring-white', c.dot)} style={{ top: `${(endY / 40) * 100}%` }} />
-      </div>
-      <div className="flex items-center justify-between gap-2 font-mono uppercase text-[11px] leading-4 tracking-[0.04em] text-[#737373]">
-        <span className="truncate">{label}</span>
-        {delta && <span className={cx('flex items-center gap-0.5 font-medium tabular-nums', (good ?? up) ? 'text-[#16A34A]' : 'text-[#DC2626]')}><A size={12} strokeWidth={1.75} />{delta}</span>}
-      </div>
+    <div className="h-full min-h-0 pt-4 pb-4">
+      <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="block size-full min-h-[24px] overflow-visible" aria-hidden>
+        <path d={line} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className={color === 'green' ? 'stroke-[#16A34A]' : 'stroke-[#2563EB]'} />
+      </svg>
     </div>
   );
 }

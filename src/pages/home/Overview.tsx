@@ -85,11 +85,11 @@ function Today() {
             </SummaryCard>
             <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
               <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />
-              {!e && <Spark points={APPS_DAILY} label="New · last 14 days" delta="+8.1%" />}
+              {!e && <Spark points={APPS_DAILY} />}
             </SummaryCard>
             <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
               <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'red'], ['Paid', '1,204']]} />
-              {!e && <Spark points={RENT_WEEKLY} label="Collected · 12 weeks" delta="−1.3%" color="green" />}
+              {!e && <Spark points={RENT_WEEKLY} color="green" />}
             </SummaryCard>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type Ke
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
-import { ArrowCounterClockwise, ChevronDown, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
+import { ArrowCounterClockwise, ChevronDown, ChevronRight, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
 import { modules, moduleFor, pinnable, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
@@ -131,11 +131,9 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="h-5 px-1.5 rounded border border-[#E5E5E5] bg-white font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#737373] flex items-center">{children}</kbd>;
 }
 
-/** A module row. The open module lists its pages under it; the others show their headline count. */
+/** A module row. The open module lists its pages under it (with their counts); closed ones show a chevron. */
 function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean }) {
   const I = m.icon;
-  const lead = m.sections.flatMap((s) => s.items).find((i) => i.count);
-  const n = lead?.count?.(counts);
   if (collapsed) {
     return (
       <Tooltip>
@@ -152,7 +150,8 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
   }
   /* With no pages to list, the module row itself is the selection. */
   /* Home's pages are folder tabs on the page (Figma 3884:39270), so its row stays flat with no sub-list. */
-  const flat = on && (m.id === 'home' || m.sections.every((s) => s.items.length <= 1 && !s.pinned));
+  const single = m.id === 'home' || m.sections.every((s) => s.items.length <= 1 && !s.pinned);
+  const flat = on && single;
   return (
     <>
       <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
@@ -160,8 +159,10 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
         <I size={16} strokeWidth={1.75} absoluteStrokeWidth className={cx('shrink-0', flat && 'text-[#2563EB]')} />
         <span className="flex-1 truncate">{m.label}</span>
         {m.locked && <Lock size={14} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373]" />}
-        {/* Figma 3884:43935: the open module shows a chevron instead of its count. */}
-        {on && !flat ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth /> : !flat && n !== undefined && n > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', lead?.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{n.toLocaleString('en-GB')}</span>}
+        {/* A module with pages shows a chevron, not a count: right when closed, down when open (2026-11-12). */}
+        {!single && (on
+          ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#737373]" />
+          : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#737373] opacity-[0.65]" />)}
       </NavLink>
       {on && !flat && <ModulePages mod={m} counts={counts} />}
     </>

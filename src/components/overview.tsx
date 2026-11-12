@@ -59,8 +59,9 @@ export function FolderTabs({ tabs }: { tabs: { to: string; label: string; count?
     <nav aria-label="Sections" className="relative h-11 shrink-0 bg-[#F5F5F5]">
       <svg aria-hidden className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
         <g style={{ transform: `translateX(${x}px)` }} className="transition-transform duration-[350ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none">
-          <path d={`${TAB_PATH} L ${FAR} ${TAB_Y + 1} L ${-FAR} ${TAB_Y + 1} Z`} fill="#FFFFFF" />
-          <path d={TAB_PATH} fill="none" stroke="#E5E5E5" strokeWidth={1} />
+          <path d={`${TAB_PATH} L ${FAR} ${TAB_Y + 1} L ${-FAR} ${TAB_Y + 1} Z`} style={{ fill: 'hsl(var(--background))' }} />
+          {/* Theme variables, not literal colours: postcss-dark can't give an SVG attribute a dark twin. */}
+          <path d={TAB_PATH} fill="none" style={{ stroke: 'hsl(var(--border))' }} strokeWidth={1} />
         </g>
       </svg>
       <div className="relative z-[1] h-full flex items-end" style={{ paddingLeft: TAB_PAD }}>

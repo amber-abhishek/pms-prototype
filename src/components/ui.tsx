@@ -166,7 +166,7 @@ export function PageHeader({ title, crumbs, children, search, meta }: { icon?: I
 /** Joined header filters (Figma "Button group"): one white r8 box with a #E5E5E5 edge, items split by a 1px rule. */
 export function ButtonGroup({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-stretch h-[34px] rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden [&>*]:!h-8 [&>*]:!rounded-none [&>*]:!border-0 [&>*]:!shadow-none [&>*:not(:last-child)]:!border-r [&>*:not(:last-child)]:!border-[#E5E5E5] [&>*]:!text-[#404040]">
+    <div className="flex items-stretch h-8 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden [&>*]:!h-[30px] [&>*]:!rounded-none [&>*]:!border-0 [&>*]:!shadow-none [&>*:not(:last-child)]:!border-r [&>*:not(:last-child)]:!border-[#E5E5E5] [&>*]:!text-[#404040]">
       {children}
     </div>
   );
@@ -293,15 +293,15 @@ export function SearchInput({ value, onChange, placeholder = 'Search' }: { value
   return (
     /* 2820:111: 28px tall, 220px wide, #D4D4D4 border, 8px radius, 14px grey-400 search icon, 14px text. */
     /* Connect search: 36px, up to 320px, r8, #E5E5E5 edge; focus is a #2563EB edge plus a 1px ring of the same blue. */
-    /* Figma 3884:43935 search: 220×34, r8, 10px sides, #A3A3A3 placeholder; focus = #2563EB edge + 1px ring. */
-    <label className="h-[34px] w-[220px] max-w-full flex items-center gap-2 px-2.5 rounded-lg border border-[#E5E5E5] bg-white text-sm text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[border-color,box-shadow] duration-150 focus-within:border-[#2563EB] focus-within:shadow-[0_0_0_1px_#2563EB]">
-      <MagnifyingGlass size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent outline-none placeholder:text-[#A3A3A3] min-w-0" />
+    /* Connect 2.0 (3095:16041) search: 320×32, 6/6/6/8, r8, 20px #737373 icon and placeholder; focus = #2563EB edge + 1px ring. */
+    <label className="h-8 w-[320px] max-w-full flex items-center gap-1.5 pl-2 pr-1.5 rounded-lg border border-[#E5E5E5] bg-white text-sm text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-[border-color,box-shadow] duration-150 focus-within:border-[#2563EB] focus-within:shadow-[0_0_0_1px_#2563EB]">
+      <MagnifyingGlass size={20} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent outline-none placeholder:text-[#737373] min-w-0" />
       {value && <button type="button" aria-label="Clear" onClick={() => onChange('')}><X size={12} className="text-gray-400" /></button>}
     </label>
   );
 }
-const FILTER_TRIGGER = 'shrink-0 h-[34px] min-w-[96px] max-w-[280px] pl-3 pr-2.5 rounded-lg border bg-white text-sm font-medium flex items-center justify-between gap-2 hover:bg-[#F5F5F5] transition-colors data-[state=open]:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const FILTER_TRIGGER = 'shrink-0 h-8 min-w-[96px] max-w-[280px] px-3 rounded-lg border bg-white text-sm font-medium flex items-center justify-between gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:bg-[#F5F5F5] transition-colors data-[state=open]:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 /** Amber Connect multi-select filter (its Status dropdown): a 34px bordered trigger reading "Status" or "Status (2)";
  *  a 200px popover of checkbox rows (16px sides, 10px tall padding), each option a plain label or a tinted chip
  *  (13px medium, 2/8 padding, r6, the tone at 10%); a rule, then Clear and Apply side by side. Picks stay a draft until Apply. */
@@ -317,7 +317,7 @@ export function MultiFilter({ label, options, value, onChange, width = 200 }: {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button type="button" className={cx(FILTER_TRIGGER, on ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
-          <span>{label}{on && ` (${value.length})`}</span><CaretDown size={16} strokeWidth={1.75} className="opacity-60" />
+          <span>{label}{on && ` (${value.length})`}</span><CaretDown size={20} strokeWidth={1.5} className="text-[#737373]" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="p-0 overflow-hidden" style={{ width }}>
@@ -366,7 +366,7 @@ export function SelectFilter({ label, icon: I, value, options, onChange, width =
             {/* A set filter reads as its value in blue (as Connect's "Status (1)" stays short); the field name is in the aria-label. */}
             <span className="truncate">{sel ? sel.label ?? sel.value : label ?? value}</span>{suffix}
           </span>
-          <CaretDown size={16} strokeWidth={1.75} className="opacity-60 shrink-0" />
+          <CaretDown size={20} strokeWidth={1.5} className="text-[#737373] shrink-0" />
         </button>
       </PopoverTrigger>
       <PopoverContent align={label ? 'end' : 'start'} className="p-0 overflow-hidden" style={{ width }}>
@@ -585,7 +585,7 @@ export function listNav<T>(rows: readonly T[], isCur: (r: T) => boolean, go: (r:
   if (i < 0 || rows.length < 2) return undefined;
   return { prev: i > 0 ? () => go(rows[i - 1]) : undefined, next: i < rows.length - 1 ? () => go(rows[i + 1]) : undefined, pos: `${i + 1} of ${rows.length}` };
 }
-const navBtn = 'size-[30px] rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const navBtn = 'size-7 rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 /** The list row of the open record, outside the sheet: a table row, a list option, or a queue row. */
 const SELECTED_ROW = '[data-state="selected"], [aria-selected="true"], [data-selected]';
 /** Step to another record, then bring its (now highlighted) row into view in the list behind the sheet. */

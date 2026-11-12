@@ -35,7 +35,7 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.C
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          /* Centred with inset + auto margins, not translate: the enter animation sets transform and would knock a translate-centred box off to the right. */ 'fixed inset-0 m-auto h-fit z-50 flex w-[calc(100%-2rem)] max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-[#EBEBEB] bg-background shadow-[0_16px_32px_-12px_rgba(14,18,27,0.1)] outline-none',
+          /* Centred with inset + auto margins, not translate: the enter animation sets transform and would knock a translate-centred box off to the right. */ 'fixed inset-0 m-auto h-fit z-50 flex w-[calc(100%-2rem)] max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-[20px] border border-[#EBEBEB] bg-background shadow-[0_16px_32px_-12px_rgba(14,18,27,0.1)] outline-none',
           /* Modals stay centred (no origin); enter 180ms strong ease-out, exit faster at 120ms. */
           !instant && 'data-[state=open]:duration-[180ms] data-[state=closed]:duration-[120ms] ease-snappy data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-[0.95] data-[state=open]:zoom-in-[0.95]',
           className,
@@ -49,15 +49,15 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.C
 );
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
-/** The #FAFAFA header band: whatever it holds on the left, the close button on the right. */
+/** Connect 2.0 modal header (3134:66031): white, 16px padding, #EBEBEB rule; whatever it holds on the left, the close button on the right. */
 const DialogHeader = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <header className={cn('shrink-0 p-4 flex items-center gap-3.5 bg-[#FAFAFA] border-b border-[#EBEBEB]', className)} {...props}>{children}</header>
+  <header className={cn('shrink-0 p-4 flex items-center gap-3.5 bg-white border-b border-[#EBEBEB]', className)} {...props}>{children}</header>
 );
 DialogHeader.displayName = 'DialogHeader';
 
-/** Connect's close button: 30px, white, 1px #E5E5E5, r8, xs shadow, 16px ✕. */
+/** Connect's close button: 28px, white, 1px #E5E5E5, r8, xs shadow, 16px ✕. */
 const DialogCloseButton = ({ className }: { className?: string }) => (
-  <DialogPrimitive.Close className={cn('size-[30px] shrink-0 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring', className)}>
+  <DialogPrimitive.Close className={cn('size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring', className)}>
     <X size={16} strokeWidth={1.5} />
     <span className="sr-only">Close</span>
   </DialogPrimitive.Close>

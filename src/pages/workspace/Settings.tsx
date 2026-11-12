@@ -25,8 +25,7 @@ const TABS: { id: string; label: string; to: string; icon: Icon; external?: bool
   { id: 'emails', label: 'Emails', to: '/settings/emails', icon: EnvelopeSimple },
 ];
 
-/* Settings page: a plain 20px title (no subtitle), then sections as two columns — what it is on the
-   left, the fields on the right — split by hairlines instead of stacked headings. */
+/* Settings page (Connect 2.0, 3095:22728): a stack of cards, each with a #FAFAFA header band. */
 function Layout({ tab, title, actions, children, wide }: { tab: string; title: string; actions?: ReactNode; children: ReactNode; wide?: boolean }) {
   const t = TABS.find((x) => x.id === tab)!;
   return (
@@ -37,10 +36,10 @@ function Layout({ tab, title, actions, children, wide }: { tab: string; title: s
         <div className="flex-1 overflow-auto">
           <div className={cx('px-8 pt-8 pb-16', wide ? 'max-w-[1080px]' : 'max-w-[960px]')}>
             <TitleH1 className="sr-only">{title}</TitleH1>
-            <div className="-mt-8 divide-y divide-[#E5E5E5]">
-              {/* Anything that isn't a Section (a table, a note, the Emails grid) gets the same 32px band, outside its own box.
-                  A closed dialog renders nothing, so its band is hidden rather than leaving an empty stripe. */}
-              {Children.toArray(children).map((c, i) => (isValidElement(c) && c.type === Section ? c : <div key={i} className="py-8 empty:hidden">{c}</div>))}
+            <div className="-mt-2 flex flex-col gap-4">
+              {/* Anything that isn't a Section (a table, a note, the Emails grid) sits in the stack outside a card.
+                  A closed dialog renders nothing, so its slot is hidden rather than leaving an empty gap. */}
+              {Children.toArray(children).map((c, i) => (isValidElement(c) && c.type === Section ? c : <div key={i} className="empty:hidden">{c}</div>))}
             </div>
           </div>
         </div>
@@ -51,14 +50,15 @@ function Layout({ tab, title, actions, children, wide }: { tab: string; title: s
 
 function Section({ title, sub, children, action, tone }: { title: string; sub?: ReactNode; children?: ReactNode; action?: ReactNode; tone?: 'red' }) {
   return (
-    <section data-tone={tone} className="grid grid-cols-[240px_1fr] gap-x-10 py-8">
-      <div>
-        {/* `tone` kept for callers; the frame (3054:2) keeps the Danger zone title ink. */}
+    /* Connect 2.0 card: r12, 1px #E5E5E5, 0 1 2 at 5%; 44px #FAFAFA header (12/12/12/16) with a 14px medium title. */
+    <section data-tone={tone} className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
+      <header className="min-h-11 py-3 pl-4 pr-3 flex items-center gap-3 bg-[#FAFAFA] border-b border-[#E5E5E5] [&:last-child]:border-b-0">
+        {/* `tone` kept for callers; the Danger zone title stays ink. */}
         <h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">{title}</h2>
-        {sub && <p className="text-xs leading-4 text-[#737373] mt-1">{sub}</p>}
-        {action && <div className="mt-3">{action}</div>}
-      </div>
-      <div className="min-w-0">{children}</div>
+        {sub && <p className="text-sm leading-5 text-[#737373] truncate">{sub}</p>}
+        {action && <div className="ml-auto shrink-0">{action}</div>}
+      </header>
+      {children && <div className="min-w-0 p-4">{children}</div>}
     </section>
   );
 }
@@ -389,7 +389,7 @@ export function SettingsAcademicYear() {
           <thead><tr className="text-xs text-[#737373] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation cycle', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
           <tbody ref={bodyRef}>{yearRows.map(({ row: y, motion }) => (
             <tr key={y.id} {...rowAttrs(y.id, motion)} className="border-b border-[#F5F5F5] last:border-0 text-[#404040]">
-              <td className="h-10 pl-5 font-semibold text-[#0A0A0A]">{y.name}</td><td className="px-3">{y.starts}</td><td className="px-3">{y.ends}</td>
+              <td className="h-10 pl-5 font-medium text-[#0A0A0A]">{y.name}</td><td className="px-3">{y.starts}</td><td className="px-3">{y.ends}</td>
               <td className="px-3"><Pill tone={tone[y.status]} icon={yIcon[y.status]}>{y.status}</Pill></td>
               <td className="px-3">{y.cycle.includes('open') ? <Link to="/allocations/cycles" className="inline-flex items-center h-6 hover:underline">{y.cycle}</Link> : y.cycle}</td>
               <td className="pr-3 text-right"><RowMenu label={`More for ${y.name}`} items={[
@@ -569,7 +569,7 @@ export function SettingsIntegrations() {
           <div key={x.id} className={cx('rounded-xl border bg-white p-4 flex flex-col', x.state === 'failing' ? 'border-[#E0243A4D]' : 'border-line')}>
             <div className="flex items-start gap-3">
               {BRAND[x.id] ? <BrandTile id={x.id} /> : <span className="size-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t[0] }}><I size={16} style={{ color: t[1] }} /></span>}
-              <span className={cx('flex-1 min-w-0', !on && 'self-center')}><span className="block text-sm leading-5 font-semibold text-[#0A0A0A]">{x.name}</span>{on && x.meta && <span className="block text-xs leading-4 text-[#737373] mt-0.5">{x.meta}</span>}</span>
+              <span className={cx('flex-1 min-w-0', !on && 'self-center')}><span className="block text-sm leading-5 font-medium text-[#0A0A0A]">{x.name}</span>{on && x.meta && <span className="block text-xs leading-4 text-[#737373] mt-0.5">{x.meta}</span>}</span>
               {on && (x.state === 'failing' ? <Pill tone="red" icon={Warning}>Failing</Pill> : <Pill tone="green" icon={Check}>Connected</Pill>)}
             </div>
             <p className="text-xs leading-4 text-[#737373] mt-3 flex-1">{x.desc}</p>

@@ -34,8 +34,8 @@ const buttonVariants = cva(
         'destructive-outline': pillOutline.replace('text-[#0A0A0A]', 'text-[#DC2626]'),
         success: 'rounded-lg border border-[#16A34A] bg-[#16A34A] text-success-foreground hover:bg-[#15803D] shadow-[0_1px_2px_rgba(0,0,0,0.12)]',
       },
-      /* Connect: 34px buttons with 6/12 padding (primary 6/20), 14px medium; sm for in-row actions. */
-      size: { sm: 'h-7 px-2.5 text-[13px]', default: 'h-[34px] px-3 text-sm', lg: 'h-9 px-5 text-sm' },
+      /* Connect 2.0: 32px buttons with 6/12 padding, 14px medium; sm (28px) for in-row actions and the pager; lg 36px. */
+      size: { sm: 'h-7 px-2.5 text-sm', default: 'h-8 px-3 text-sm', lg: 'h-9 px-5 text-sm' },
     },
     defaultVariants: { variant: 'default', size: 'default' },
   },

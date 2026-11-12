@@ -146,7 +146,7 @@ export function AddPropertyWizard() {
                       <span className={cx('text-sm leading-[18px] whitespace-nowrap', done || cur ? 'font-medium text-[#0A0A0A]' : 'text-[#737373]')}>{s.title}</span>
                     </span>
                   </button>
-                  {i < STEPS.length - 1 && <span aria-hidden className="flex-1 min-w-4 h-0.5 rounded-[1px]" style={{ background: done ? `linear-gradient(90deg, ${s.tone}, ${STEPS[i + 1].tone})` : '#E5E5E5' }} />}
+                  {i < STEPS.length - 1 && <span aria-hidden className="flex-1 min-w-4 h-0.5 rounded-[1px]" style={{ background: done ? s.tone : '#E5E5E5' }} /* solid, no gradient (2026-11-12) */ />}
                 </li>
               );
             })}

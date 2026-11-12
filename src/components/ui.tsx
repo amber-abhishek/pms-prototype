@@ -244,9 +244,8 @@ export function Stat({ label, value, sub, tone, icon: I }: { label: string; valu
 }
 
 /** Number strip (Connect "Total Amount Pending" row): cells split by dashed rules; 14px grey label, 28px mono figure,
- *  a trend line (▲/▼ in green or red when the sub starts with + or −, else grey), and a 4px bar in the cell's colour. */
+ *  and a trend line (▲/▼ in green or red when the sub starts with + or −, else grey). No colour bar. */
 export type StatItem = { label: string; value: ReactNode; sub?: ReactNode; color?: string; good?: boolean };
-const STAT_BARS = ['#9333EA', '#5BCFE8'];
 export function StatStrip({ items, className }: { items: StatItem[]; className?: string }) {
   return (
     <div className={cx('grid rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] py-5', className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
@@ -259,10 +258,9 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
           <div key={it.label} className={cx('min-w-0 px-5 flex flex-col', i > 0 && 'border-l border-dashed border-[#E5E5E5]')}>
             <div className="text-sm leading-5 text-[#737373] truncate">{it.label}</div>
             <div className="mt-1 font-mono text-[28px] leading-9 font-semibold tracking-tight tabular-nums text-[#0A0A0A] truncate">{it.value}</div>
-            <div className="mt-4 h-5 text-sm leading-5 text-[#737373] truncate">
+            <div className="mt-2 h-5 text-sm leading-5 text-[#737373] truncate">
               {dir ? <><span aria-hidden className="text-[10px] mr-1.5" style={{ color: tc }}>{dir === 'up' ? '▲' : '▼'}</span><span className="font-medium" style={{ color: tc }}>{num}</span> {rest.join(' ')}</> : it.sub}
             </div>
-            <div className="mt-4 h-1 rounded-full" style={{ background: it.color ?? STAT_BARS[i % 2] }} />
           </div>
         );
       })}

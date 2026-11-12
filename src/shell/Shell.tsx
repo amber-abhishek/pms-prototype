@@ -79,6 +79,8 @@ const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1p
 const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
 /* Connect sidebar (127.0.0.1:5180): idle labels #777777, icons #737373 at 65%; hover nudges right 2px and scales 1.02 over 0.3s, no colour change. */
 const IDLE = 'text-[#777777] [&>svg:first-child]:text-[#737373] [&>svg:first-child]:opacity-[0.65] hover:translate-x-0.5 hover:scale-[1.02]';
+/* The open module's row (Inventory while you're in it): near-black text, icon and chevron, unraised (2026-11-12). */
+const OPEN = 'text-[#0A0A0A] [&>svg:first-child]:text-[#0A0A0A]';
 
 function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: Module[]; active: Module; collapsed: boolean; onToggle: () => void; onSearch: () => void }) {
   const counts = useNavCounts();
@@ -155,13 +157,13 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
   return (
     <>
       <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
-        className={cx(ROW, 'h-9 shrink-0 px-2 font-medium', flat ? RAISED : IDLE)}>
+        className={cx(ROW, 'h-9 shrink-0 px-2 font-medium', flat ? RAISED : on ? OPEN : IDLE)}>
         <I size={16} strokeWidth={1.75} absoluteStrokeWidth className={cx('shrink-0', flat && 'text-[#2563EB]')} />
         <span className="flex-1 truncate">{m.label}</span>
         {m.locked && <Lock size={14} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373]" />}
         {/* A module with pages shows a chevron, not a count: right when closed, down when open (2026-11-12). */}
         {!single && (on
-          ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#737373]" />
+          ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#0A0A0A]" />
           : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#737373] opacity-[0.65]" />)}
       </NavLink>
       {on && !flat && <ModulePages mod={m} counts={counts} />}

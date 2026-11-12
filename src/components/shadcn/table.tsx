@@ -77,7 +77,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      /* Amber Connect table head: 42px #FAFAFA row, Geist Mono 13/20 medium uppercase at 0.02em, #737373 */ "h-[42px] bg-[#FAFAFA] shadow-[inset_0_-1px_0_#E5E5E5] px-4 text-left align-middle text-[#737373] font-mono uppercase text-[13px] leading-5 tracking-[0.02em] font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+      /* Amber Connect table head: 42px #FAFAFA row, Geist Mono 13/20 medium uppercase at 0.02em, #737373 */ "h-[42px] bg-[#FAFAFA] shadow-[inset_0_-1px_0_#E5E5E5] px-4 text-left align-middle text-[#737373] font-mono uppercase text-[13px] leading-5 tracking-[0.04em] font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}
@@ -92,7 +92,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      /* Connect data rows: 56px, 14px medium ink */ "h-14 px-4 py-2 align-middle font-medium text-[#0A0A0A] [&:has([role=checkbox])]:pr-0",
+      /* Figma 3884:43935 rows: 14px regular ink (IDs in Geist Mono medium 13) */ "h-14 px-4 py-2 align-middle text-[#0A0A0A] [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}

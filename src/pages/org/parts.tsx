@@ -2,24 +2,16 @@
 import { Fragment, type ReactNode } from 'react';
 import { Illustration, type Illo } from '../../components/Illustration';
 import { DotsThree, type Icon } from '../../components/icons';
-import { CrumbLink, CrumbTitle, Dropdown, cx } from '../../components/ui';
+import { Dropdown, PageHeader, cx } from '../../components/ui';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { X } from '../../components/icons';
 import { DialogClose } from '../../components/shadcn/dialog';
-import { GhostZone, headerZone, usePublishTitle } from '../../components/headerCtx';
 
 /** The 52px header row with clickable breadcrumbs ("Organisation › Roles and access › New role"). */
-export function Header({ icon: I, crumbs, title, children }: { icon?: Icon; crumbs: { label: string; to?: string }[]; title: string; children?: ReactNode }) {
-  usePublishTitle(title);
-  return (
-    <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
-      {I && <I size={16} className="text-[#737373]" />}
-      <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map((c) => <CrumbLink key={c.label} c={c} />)}</div>
-      <CrumbTitle className="text-sm font-normal text-ink">{title}</CrumbTitle>
-      <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
-    </div>
-  );
+export function Header({ icon, crumbs, title, children }: { icon?: Icon; crumbs: { label: string; to?: string }[]; title: string; children?: ReactNode }) {
+  /* The shared top bar (Figma 3884:39270). */
+  return <PageHeader icon={icon} title={title} crumbs={crumbs}>{children}</PageHeader>;
 }
 
 /** The ⋯ row menu (shadcn DropdownMenu): arrow keys, typeahead, Escape. Items with `danger` are red. */

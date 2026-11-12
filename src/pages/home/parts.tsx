@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowsLeftRight, Buildings, ChartBar, Check, CheckCircle, FileText, Gear, Lock, MagnifyingGlass, Megaphone, ShieldCheck, Tray, UserMinus, Wrench, type Icon } from '../../components/icons';
+import { ArrowsLeftRight, Buildings, CaretDown, ChartBar, Check, CheckCircle, FileText, Gear, Lock, MagnifyingGlass, Megaphone, ShieldCheck, Tray, UserMinus, Wrench, type Icon } from '../../components/icons';
 import { Avatar, Button, cx } from '../../components/ui';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Illustration } from '../../components/Illustration';
@@ -42,7 +42,7 @@ export function MenuButton({ icon, value, options, onChange }: { icon: Icon; val
   /* shadcn DropdownMenu. */
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild><Button variant="control" icon={icon}>{value}</Button></DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button variant="control" icon={icon} className="pl-3 pr-2.5 gap-1.5">{value}<CaretDown size={16} strokeWidth={1.5} /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44">
         {options.map((o) => (
           <DropdownMenuItem key={o} onSelect={() => onChange(o)} className="px-2.5 justify-between gap-3 focus:bg-gray-50">

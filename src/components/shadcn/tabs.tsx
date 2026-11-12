@@ -52,7 +52,7 @@ const TabsList = React.forwardRef<
     <TabsPrimitive.List
       ref={setRefs}
       className={cn(
-        /* 2820:111 segmented track: 32px #F5F5F5, 4px inset, 10px radius */ "relative inline-flex items-center gap-1 p-1 rounded-[10px] bg-[#F5F5F5] text-[#737373]",
+        /* 2820:111 segmented track: 32px #F5F5F5, 4px inset, 10px radius */ "relative inline-flex items-center gap-0.5 p-1 rounded-[10px] bg-[#F5F5F5] text-[#737373]",
         className
       )}
       {...props}
@@ -60,7 +60,7 @@ const TabsList = React.forwardRef<
       {slide && pill && (
         <span
           aria-hidden
-          className={cn("pointer-events-none absolute left-0 top-0 rounded-[10px]", PILL)}
+          className={cn("pointer-events-none absolute left-0 top-0 rounded-[7px]", PILL)}
           style={{
             width: pill.w,
             height: pill.h,
@@ -85,7 +85,7 @@ const TabsTrigger = React.forwardRef<
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        /* 24px tabs, 6px radius (track radius minus the 4px inset), 14px medium; the selected one is raised white (the sliding pill, or its own fill) */ "relative group inline-flex h-7 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] px-2 text-sm leading-5 font-medium transition-colors duration-150 hover:text-[#0A0A0A] outline-none [html[data-kbd]_&:focus-visible]:ring-2 [html[data-kbd]_&:focus-visible]:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-[#0A0A0A]",
+        /* 24px tabs, 6px radius (track radius minus the 4px inset), 14px medium; the selected one is raised white (the sliding pill, or its own fill) */ "relative group inline-flex h-7 items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] px-2.5 font-mono uppercase text-xs leading-4 tracking-[0.04em] font-medium transition-colors duration-150 hover:text-[#0A0A0A] outline-none [html[data-kbd]_&:focus-visible]:ring-2 [html[data-kbd]_&:focus-visible]:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-[#0A0A0A]",
         !slide && "data-[state=active]:bg-background data-[state=active]:shadow-[0_1px_3px_rgba(0,0,0,0.1)]",
         className
       )}

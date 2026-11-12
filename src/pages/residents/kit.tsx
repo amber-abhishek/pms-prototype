@@ -1,23 +1,13 @@
 import { useRef, type ReactNode } from 'react';
 import { ArrowRight, CheckCircle, Circle, Image as ImageIcon, XCircle, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Card, CrumbLink, CrumbTitle, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
+import { Avatar, Card, PageHeader, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '../../components/shadcn/sheet';
-import { GhostZone, headerZone, usePublishTitle } from '../../components/headerCtx';
 
-/** The 52px header row, with breadcrumbs that link back. */
-export function RHeader({ icon: I, crumbs, title, meta, children }: { icon: Icon; crumbs: [string, string?][]; title: string; meta?: ReactNode; children?: ReactNode }) {
-  usePublishTitle(title);
-  return (
-    <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
-      <I size={16} className="text-gray-500" />
-      <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map(([label, to]) => <CrumbLink key={label} c={{ label, to }} />)}</div>
-      <CrumbTitle className="text-sm font-normal text-[#0A0A0A]">{title}</CrumbTitle>
-      {meta}
-      <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
-    </div>
-  );
+/** The shared top bar (Figma 3884:39270), with breadcrumbs that link back. */
+export function RHeader({ icon, crumbs, title, meta, children }: { icon: Icon; crumbs: [string, string?][]; title: string; meta?: ReactNode; children?: ReactNode }) {
+  return <PageHeader icon={icon} title={title} crumbs={crumbs.map(([label, to]) => ({ label, to }))} meta={meta}>{children}</PageHeader>;
 }
 
 /** Figma avatar grounds for the named residents (the kit Avatar hashes its own colour). */

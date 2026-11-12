@@ -99,7 +99,7 @@ const statusTone: Record<string, Tone> = {
   New: 'blue', 'In review': 'purple', Offered: 'amber', Accepted: 'green', Waitlisted: 'orange', Declined: 'grey',
   Sent: 'blue', Expired: 'grey', Confirmed: 'green', 'Lease unsigned': 'amber', 'Checked in': 'green', Cancelled: 'grey',
   'In residence': 'green', Arriving: 'blue', Leaving: 'amber', Open: 'red', 'In progress': 'amber', Resolved: 'green',
-  Urgent: 'red', High: 'orange', Normal: 'grey', Pending: 'amber', Approved: 'green', Rejected: 'red', Draft: 'grey', Scheduled: 'blue',
+  Urgent: 'red', High: 'orange', Normal: 'grey', Pending: 'amber', Approved: 'green', Rejected: 'red', Draft: 'amber', Scheduled: 'blue',
   Published: 'green', Inactive: 'grey', Replied: 'green', Closed: 'grey', Occupied: 'blue', Available: 'green', Held: 'amber', Maintenance: 'red', Upcoming: 'purple',
 };
 Object.assign(statusTone, { Active: 'green', Submitted: 'blue', 'Awaiting info': 'amber', Suspended: 'red', Live: 'green', Allocated: 'green', Lapsed: 'grey', 'Lease sent': 'blue', Conflict: 'red', Overdue: 'red', Paused: 'amber' } satisfies Record<string, Tone>);
@@ -129,24 +129,45 @@ export function CrumbLink({ c }: { c: Crumb }) {
   return (
     <span className="flex items-center gap-2 text-[#737373] whitespace-nowrap">
       {to ? <Link to={to} className={cls}>{label}</Link> : onClick ? <button type="button" onClick={onClick} className={cls}>{label}</button> : label}
-      <CaretRight size={14} className="text-gray-400" />
+      <CaretRight size={16} strokeWidth={1.5} className="text-[#737373]" />
     </span>
   );
 }
 /** Amber Connect page header (Figma 3884:39809): 56px #F5F5F5 band with a bottom line; a home link and a divider, then
  *  Geist Mono uppercase crumbs (#737373) and the current page in ink. Actions keep their own variants: bordered
  *  secondaries and one blue primary. */
-export function PageHeader({ title, crumbs, children }: { icon?: Icon; title: string; crumbs?: Crumb[]; children?: ReactNode }) {
+/* Figma 3884:39270 top bar: 56px #F5F5F5 band, 24/16 sides, 12px gap; 20px #404040 house, a 1×20 rule, then
+   Geist Mono Medium 14 uppercase crumbs (#737373 parents with a 16px chevron, the page in #0A0A0A).
+   `search` adds the 280px "Search anything ⌘K" field, which opens the palette. */
+export function PageHeader({ title, crumbs, children, search, meta }: { icon?: Icon; title: string; crumbs?: Crumb[]; children?: ReactNode; search?: boolean; meta?: ReactNode }) {
   usePublishTitle(title);
   return (
-    <div data-page-head className="h-14 shrink-0 border-b border-[#E5E5E5] bg-[#FAFAFA] flex items-center gap-4 px-6">
-      <Link to="/" aria-label="Home" className="size-7 -mx-1 rounded-lg flex items-center justify-center text-[#0A0A0A] hover:bg-black/[0.04] shrink-0"><House size={20} /></Link>
-      <span aria-hidden className="w-px h-4 bg-[#E5E5E5] shrink-0" />
-      <div className="flex items-center gap-2 min-w-0 font-mono uppercase text-sm leading-5 tracking-[0.02em]">
+    <div data-page-head className="h-14 shrink-0 border-b border-[#E5E5E5] bg-[#F5F5F5] flex items-center gap-3 pl-6 pr-4">
+      <Link to="/" aria-label="Home" className="size-7 -mx-1 rounded-lg flex items-center justify-center text-[#404040] hover:bg-black/[0.04] shrink-0"><House size={20} strokeWidth={1.5} /></Link>
+      <span aria-hidden className="w-px h-5 bg-[#E5E5E5] shrink-0" />
+      <div className="flex items-center gap-2 min-w-0 font-mono uppercase text-sm leading-5 font-medium">
         {crumbs?.filter((c) => (typeof c === 'string' ? c : c.label)).map((c, i) => <CrumbLink key={i} c={c} />)}
-        <CrumbTitle className="font-normal text-[#0A0A0A] truncate">{title}</CrumbTitle>
+        <CrumbTitle className="text-[#0A0A0A] truncate">{title}</CrumbTitle>
       </div>
-      <div className="ml-auto flex items-center gap-2">{children}</div>
+      {meta}
+      <div className="ml-auto flex items-center gap-3">
+        {search && (
+          <button type="button" onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            className="h-8 w-[280px] flex items-center gap-1.5 pl-2 pr-1.5 rounded-lg border border-[#E5E5E5] bg-white text-sm leading-5 text-[#737373] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:border-[#D4D4D4]">
+            <MagnifyingGlass size={16} strokeWidth={1.5} className="shrink-0" /><span className="flex-1 text-left">Search anything</span>
+            <kbd className="h-[22px] px-1.5 rounded border border-[#E5E5E5] text-xs leading-4 font-medium text-[#737373] flex items-center">⌘K</kbd>
+          </button>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+/** Joined header filters (Figma "Button group"): one white r8 box with a #E5E5E5 edge, items split by a 1px rule. */
+export function ButtonGroup({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-stretch h-[34px] rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden [&>*]:!h-8 [&>*]:!rounded-none [&>*]:!border-0 [&>*]:!shadow-none [&>*:not(:last-child)]:!border-r [&>*:not(:last-child)]:!border-[#E5E5E5] [&>*]:!text-[#404040]">
+      {children}
     </div>
   );
 }
@@ -279,9 +300,10 @@ export function SearchInput({ value, onChange, placeholder = 'Search' }: { value
   return (
     /* 2820:111: 28px tall, 220px wide, #D4D4D4 border, 8px radius, 14px grey-400 search icon, 14px text. */
     /* Connect search: 36px, up to 320px, r8, #E5E5E5 edge; focus is a #2563EB edge plus a 1px ring of the same blue. */
-    <label className="h-9 w-[320px] max-w-full flex items-center gap-1.5 px-2 rounded-lg border border-[#E5E5E5] bg-white text-sm text-[#0A0A0A] shadow-[0_1px_2px_rgba(10,13,20,0.03)] transition-[border-color,box-shadow] duration-150 focus-within:border-[#2563EB] focus-within:shadow-[0_0_0_1px_#2563EB]">
-      <MagnifyingGlass size={20} className="text-[#737373] shrink-0" />
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent outline-none placeholder:text-gray-400 min-w-0" />
+    /* Figma 3884:43935 search: 220×34, r8, 10px sides, #A3A3A3 placeholder; focus = #2563EB edge + 1px ring. */
+    <label className="h-[34px] w-[220px] max-w-full flex items-center gap-2 px-2.5 rounded-lg border border-[#E5E5E5] bg-white text-sm text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[border-color,box-shadow] duration-150 focus-within:border-[#2563EB] focus-within:shadow-[0_0_0_1px_#2563EB]">
+      <MagnifyingGlass size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent outline-none placeholder:text-[#A3A3A3] min-w-0" />
       {value && <button type="button" aria-label="Clear" onClick={() => onChange('')}><X size={12} className="text-gray-400" /></button>}
     </label>
   );

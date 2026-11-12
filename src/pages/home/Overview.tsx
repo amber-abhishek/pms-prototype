@@ -6,7 +6,7 @@ import { useRms } from '../../data/residents';
 import { useInv } from '../../data/inventory';
 import { useOrg } from '../../data/org';
 import { useAlloc } from '../../data/allocations';
-import { Button, Card, PageHeader, cx } from '../../components/ui';
+import { Button, ButtonGroup, Card, PageHeader, cx } from '../../components/ui';
 import { OverviewPage, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
 import { MenuButton } from './parts';
 import { useEmpty } from '../../data/empty';
@@ -17,9 +17,11 @@ function Header() {
   const [year, setYear] = useState('2026/27');
   const [campus, setCampus] = useState('All campuses');
   return (
-    <PageHeader icon={SquaresFour} title="Overview">
-      <MenuButton icon={CalendarBlank} value={year} options={['2025/26', '2026/27', '2027/28']} onChange={setYear} />
-      <MenuButton icon={MapPin} value={campus} options={['All campuses', ...campuses.map((c) => c.name)]} onChange={setCampus} />
+    <PageHeader icon={SquaresFour} title="Overview" search>
+      <ButtonGroup>
+        <MenuButton icon={CalendarBlank} value={year} options={['2025/26', '2026/27', '2027/28']} onChange={setYear} />
+        <MenuButton icon={MapPin} value={campus} options={['All campuses', ...campuses.map((c) => c.name)]} onChange={setCampus} />
+      </ButtonGroup>
     </PageHeader>
   );
 }

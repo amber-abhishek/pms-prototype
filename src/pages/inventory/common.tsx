@@ -8,8 +8,9 @@ import type { PStatus, Tag, UStatus } from '../../data/inventory';
 
 /* Status pills as the CMS frames draw them: Draft is a white outlined chip. */
 export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' | 'Succeeded' | 'Failed' }) {
-  if (s === 'Draft') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-[#404040]">Draft</span>;
-  if (s === 'Queued') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-[#404040]">Queued</span>;
+  /* Figma 3884:43935: Draft is the amber tag; Queued stays grey. */
+  if (s === 'Draft') return <Status s="Draft" tone="amber" />;
+  if (s === 'Queued') return <Status s="Queued" tone="grey" />;
   if (s === 'Active' || s === 'Succeeded') return <Status s={s} tone="green" icon={CheckCircle} />;
   if (s === 'Inactive') return <Status s="Inactive" tone="grey" icon={MinusCircle} />;
   if (s === 'Archived') return <Status s="Archived" tone="grey" icon={Archive} />;

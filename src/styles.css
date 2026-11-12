@@ -118,6 +118,8 @@
 /* Sticky table headers: a collapsed-table border stays behind when the header sticks, so the rules are inset shadows
    and every cell is opaque. Connect head: #FAFAFA band with a line above and below. */
 thead.sticky th, thead th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #E5E5E5, inset 0 1px 0 #E5E5E5; background: #FAFAFA; }
+/* Figma 3884:43935 column labels, on every table (hand-built heads included): 42px, Geist Mono Medium 13 uppercase, 4% tracking, #737373. */
+.pms-main thead th { height: 42px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: #737373; }
 [data-head] { background: #FAFAFA; box-shadow: inset 0 -1px 0 #E5E5E5, inset 0 1px 0 #E5E5E5; }
 
 /* Overview funnel in dark (Mercury-style): deep, low-chroma steps rising to the softened brand blue. */

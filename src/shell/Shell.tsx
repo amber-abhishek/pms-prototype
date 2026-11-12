@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type Ke
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
-import { ArrowCounterClockwise, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
+import { ArrowCounterClockwise, ChevronDown, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
 import { modules, moduleFor, pinnable, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
@@ -73,11 +73,11 @@ export function Shell() {
   );
 }
 
-/** Connect's selected row: white, 1px #E5E5E5 edge, a small two-layer drop, blue label. */
-const RAISED = 'bg-white border border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#2563EB]';
-/** Rows: 14px medium, 8/12 padding, r8. Hover nudges 2px right (Connect's whileHover x: 2), press shrinks slightly. */
-const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 font-medium outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
-const IDLE = 'text-[#777777] hover:translate-x-0.5 hover:text-[#0A0A0A]';
+/** Figma 3884:39271 selected row: white, 1px #E5E5E5, drops (0 1 3 / 0 1 2 -1 at 10%), ink label; the module icon goes blue. */
+const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#0A0A0A] font-medium';
+/** Rows: 14px, 8px padding, 8px gap, r8, packed with no gap. Hover nudges 2px right (Connect's whileHover x: 2). */
+const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
+const IDLE = 'text-[#3F404D] hover:translate-x-0.5 hover:text-[#0A0A0A]';
 
 function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: Module[]; active: Module; collapsed: boolean; onToggle: () => void; onSearch: () => void }) {
   const counts = useNavCounts();
@@ -86,22 +86,27 @@ function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: 
   return (
     <TooltipProvider delayDuration={300}>
       <aside aria-label="Main" className={cx('shrink-0 h-full flex flex-col bg-[#FAFAFA] border-r border-[#E5E5E5] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]', collapsed ? 'w-[68px]' : 'w-64')}>
-        <div className={cx('h-14 shrink-0 flex items-center border-b border-[#E5E5E5] px-3', collapsed ? 'justify-center' : 'justify-between gap-2')}>
+        {/* Header (Figma 3884:39272): 56px, 16/12 sides, logo + org name + chevron, the collapse square on the right. */}
+        <div className={cx('h-14 shrink-0 flex items-center border-b border-[#E5E5E5]', collapsed ? 'justify-center px-3' : 'gap-2 pl-4 pr-3')}>
           {!collapsed && (
-            <button type="button" className="flex items-center gap-2 min-w-0 rounded-lg pl-1 hover:opacity-80" onClick={() => toast('Durham University is the only organisation on this account')}>
-              <OrgLogo size={24} />
+            <button type="button" className="flex items-center gap-2 min-w-0 rounded-lg hover:opacity-80" onClick={() => toast('Durham University is the only organisation on this account')}>
+              <OrgLogo size={26} />
               <span className="text-sm leading-5 font-semibold text-[#0A0A0A] truncate">Durham University</span>
+              <ChevronDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
             </button>
           )}
           <button type="button" aria-label={collapsed ? 'Show sidebar' : 'Hide sidebar'} title="Toggle sidebar (⌘.)" onClick={onToggle}
-            className="size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F5] flex items-center justify-center">
-            <SidebarSimple size={16} className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
+            className={cx('size-7 shrink-0 rounded-md border border-[#E5E5E5] bg-white text-[#404040] hover:bg-[#F5F5F5] flex items-center justify-center', !collapsed && 'ml-auto')}>
+            <SidebarSimple size={16} strokeWidth={1.5} className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
           </button>
         </div>
-        <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-1 px-2 py-4">
-          <SearchRow collapsed={collapsed} onSearch={onSearch} />
+        {/* Nav (3884:39283): 8/16 padding, 36px rows packed with no gap; "System" label (12px medium #404040, 24px above) before Organisation and Settings. */}
+        <nav className={cx('flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col py-2', collapsed ? 'px-3' : 'px-4')}>
+          {collapsed && <SearchRow collapsed onSearch={onSearch} />}
           {main.map((m) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} />)}
-          {system.length > 0 && <div className={cx('h-px bg-[#E5E5E5] my-2', collapsed ? 'mx-3' : 'mx-3')} aria-hidden />}
+          {system.length > 0 && (collapsed
+            ? <div className="h-px bg-[#E5E5E5] mx-2 my-3" aria-hidden />
+            : <div className="h-12 shrink-0 px-2 pt-6 pb-2 text-xs leading-4 font-medium uppercase text-[#404040]">System</div>)}
           {system.map((m) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} />)}
         </nav>
         <UserMenu collapsed={collapsed} />
@@ -113,8 +118,8 @@ function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: 
 /** Search as the first row, with Connect's ⌘K key cap. */
 function SearchRow({ collapsed, onSearch }: { collapsed: boolean; onSearch: () => void }) {
   const row = (
-    <button type="button" aria-label="Search" onClick={onSearch} className={cx(ROW, IDLE, 'h-9 shrink-0 mb-2', collapsed ? 'justify-center px-2' : 'px-3')}>
-      <MagnifyingGlass size={16} strokeWidth={1.75} className="shrink-0 opacity-80" />
+    <button type="button" aria-label="Search" onClick={onSearch} className={cx(ROW, IDLE, 'h-9 shrink-0 mb-2', collapsed ? 'justify-center px-2' : 'px-2')}>
+      <MagnifyingGlass size={16} strokeWidth={1.5} className="shrink-0" />
       {!collapsed && <><span className="flex-1 text-left">Search</span><Kbd>⌘K</Kbd></>}
     </button>
   );
@@ -136,7 +141,7 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
         <TooltipTrigger asChild>
           <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)}
             className={cx(ROW, 'relative h-9 shrink-0 justify-center px-2', on ? RAISED : IDLE)}>
-            <I size={16} strokeWidth={1.75} className={on ? '' : 'opacity-65'} />
+            <I size={16} strokeWidth={1.5} className={on ? 'text-[#2563EB]' : ''} />
             {m.locked && <span className="absolute right-1 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
           </NavLink>
         </TooltipTrigger>
@@ -149,11 +154,12 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
   return (
     <>
       <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
-        className={cx(ROW, 'h-9 shrink-0 px-3', flat ? RAISED : on ? 'text-[#0A0A0A]' : IDLE)}>
-        <I size={16} strokeWidth={1.75} className={cx('shrink-0', !on && 'opacity-65')} />
+        className={cx(ROW, 'h-9 shrink-0 px-2 font-medium', flat ? RAISED : IDLE)}>
+        <I size={16} strokeWidth={1.5} className={cx('shrink-0', flat && 'text-[#2563EB]')} />
         <span className="flex-1 truncate">{m.label}</span>
-        {m.locked && <Lock size={14} className="text-[#A3A3A3]" />}
-        {!on && n !== undefined && n > 0 && <span className={cx('font-mono text-xs tabular-nums', lead?.alert ? 'text-[#DC2626]' : 'text-[#A3A3A3]')}>{n.toLocaleString('en-GB')}</span>}
+        {m.locked && <Lock size={14} strokeWidth={1.5} className="text-[#737373]" />}
+        {/* Figma 3884:43935: the open module shows a chevron instead of its count. */}
+        {on && !flat ? <ChevronDown size={16} strokeWidth={1.5} /> : n !== undefined && n > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', lead?.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{n.toLocaleString('en-GB')}</span>}
       </NavLink>
       {on && !flat && <ModulePages mod={m} counts={counts} />}
     </>
@@ -163,10 +169,11 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
 /** The open module's pages, on a guide line under its row (lined up with the module icon). */
 function ModulePages({ mod, counts }: { mod: Module; counts: NavCounts }) {
   return (
-    <div className="relative ml-5 pl-2.5 pb-1 flex flex-col gap-1 before:absolute before:left-0 before:top-0 before:bottom-1 before:w-px before:bg-[#E5E5E5]">
+    /* Figma "Sub · Inventory": 24px indent, 2px top / 6px bottom, 2px gap; the 1px #E5E5E5 rail sits 15px in, under the module icon. */
+    <div className="relative pl-6 pt-0.5 pb-1.5 flex flex-col gap-0.5 before:absolute before:left-[15px] before:top-0.5 before:bottom-1.5 before:w-px before:bg-[#E5E5E5]">
       {mod.sections.map((s, i) => s.pinned ? <PinnedSection key={i} counts={counts} /> : (
         <Fragment key={i}>
-          {s.label && <div className="h-7 mt-1 px-3 flex items-center font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#A3A3A3]">{s.label}</div>}
+          {s.label && <div className="h-7 mt-1 px-2 flex items-center text-xs leading-4 font-medium text-[#737373]">{s.label}</div>}
           {s.items.map((it) => <PanelRow key={it.label} it={it} count={it.count?.(counts)} locked={mod.locked} mode={mod.id === 'home' ? 'plain' : 'module'} />)}
         </Fragment>
       ))}
@@ -225,12 +232,13 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
     <>
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
-      {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#A3A3A3]')}>{count}</span>}
+      {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>}
     </>
   );
   const tabNow = new URLSearchParams(href.split('?')[1] ?? '').get('tab');
   const rowSel = on && (!open || (!!it.landing && !tabNow));
-  const cls = cx(ROW, 'h-9 shrink-0 px-3', rowSel ? RAISED : on ? 'text-[#0A0A0A]' : IDLE, disabled && 'opacity-60 cursor-default hover:translate-x-0');
+  /* Sub rows (3884:43935): 32px, 6/8 padding, Geist Regular 14 #3F404D; the selected one is the raised white row. */
+  const cls = cx(ROW, 'h-8 shrink-0 px-2', rowSel ? RAISED : on ? 'text-[#0A0A0A] font-medium' : IDLE, disabled && 'opacity-60 cursor-default hover:translate-x-0');
   if (disabled) return <div className={cls} aria-disabled>{inner}</div>;
   const curTab = tabNow ?? (it.landing ? undefined : it.sub?.[0].tab);
   return (
@@ -240,16 +248,16 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
         {mode === 'pinned' && <RowAction label="Unpin" onClick={() => pinToggle(it)}><PinOff size={14} /></RowAction>}
       </div>
       {open && (
-        <div className="relative ml-3 pl-2.5 flex flex-col gap-1 before:absolute before:left-0 before:top-0 before:bottom-1 before:w-px before:bg-[#E5E5E5]">
+        <div className="relative ml-3 pl-2.5 flex flex-col gap-0.5 before:absolute before:left-0 before:top-0 before:bottom-1 before:w-px before:bg-[#E5E5E5]">
           {it.sub!.map((v) => {
             const to = `${it.to}?tab=${encodeURIComponent(v.tab)}`;
             const sel = curTab === v.tab;
             const n = v.count?.(counts);
             return (
               <NavLink key={v.tab} to={to} draggable={false} aria-current={sel ? 'page' : undefined} onClick={() => usePins.getState().go(to, mode === 'pinned' ? it.to : null)}
-                className={cx(ROW, 'h-9 px-3', sel ? RAISED : IDLE)}>
+                className={cx(ROW, 'h-8 px-2', sel ? RAISED : IDLE)}>
                 <span className="flex-1 truncate">{v.label}</span>
-                {n !== undefined && n > 0 && <span className="font-mono text-xs tabular-nums text-[#A3A3A3]">{n}</span>}
+                {n !== undefined && n > 0 && <span className="font-mono text-xs font-normal tabular-nums text-[#737373]">{n}</span>}
               </NavLink>
             );
           })}
@@ -291,7 +299,7 @@ function PinnedSection({ counts }: { counts: NavCounts }) {
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="h-7 mt-1 pl-3 pr-1 flex items-center justify-between font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#A3A3A3]">
+      <div className="h-7 mt-1 pl-2 pr-1 flex items-center justify-between text-xs leading-4 font-medium text-[#737373]">
         Pinned
         <PinPicker />
       </div>
@@ -379,11 +387,12 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
   return (
     <>
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger aria-label="Account" className={cx('h-[68px] shrink-0 border-t border-[#E5E5E5] flex items-center gap-2 p-4 outline-none transition-colors duration-150 data-[state=open]:bg-[#F4F4F5] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring text-left', collapsed && 'justify-center px-0')}>
+      {/* Profile (3884:39336): 59px so its line meets the page footer's; 16px sides, 10px gap, round photo. */}
+      <DropdownMenuTrigger aria-label="Account" className={cx('h-[59px] shrink-0 border-t border-[#E5E5E5] flex items-center gap-2.5 px-4 outline-none transition-colors duration-150 hover:bg-black/[0.02] data-[state=open]:bg-[#F4F4F5] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring text-left', collapsed && 'justify-center px-0')}>
         <PersonPhoto name={me.name} size={32} />
         {!collapsed && <>
-          <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#404040] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#737373] truncate">{me.email}</span></span>
-          <ChevronsUpDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+          <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#737373] truncate">{me.email}</span></span>
+          <ChevronsUpDown size={16} strokeWidth={1.5} className="text-[#404040] shrink-0" />
         </>}
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-60 p-0 overflow-hidden">

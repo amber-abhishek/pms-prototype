@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarBlank, MagicWand, MapPin, PaperPlaneTilt, Tray } from '../../components/icons';
-import { Button, PageHeader } from '../../components/ui';
+import { Button, ButtonGroup, PageHeader } from '../../components/ui';
 import { OverviewPage, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
 import { useDb } from '../../data/store';
 import { MenuButton } from '../home/parts';
@@ -50,9 +50,11 @@ export function AllocOverview() {
   const points = POINTS.map((p, i) => (i === POINTS.length - 1 ? { ...p, value: ac.allocated, note: `${fmtN(ac.allocated)} beds allocated` } : p));
   return (
     <>
-      <PageHeader icon={Tray} title="Applications" crumbs={['Allocations']}>
-        <MenuButton icon={CalendarBlank} value={year} options={['2025/26', '2026/27', '2027/28']} onChange={setYear} />
-        <MenuButton icon={MapPin} value={campus} options={['All campuses', ...campuses.map((c) => c.name)]} onChange={setCampus} />
+      <PageHeader icon={Tray} title="Applications" crumbs={['Allocations']} search>
+        <ButtonGroup>
+          <MenuButton icon={CalendarBlank} value={year} options={['2025/26', '2026/27', '2027/28']} onChange={setYear} />
+          <MenuButton icon={MapPin} value={campus} options={['All campuses', ...campuses.map((c) => c.name)]} onChange={setCampus} />
+        </ButtonGroup>
       </PageHeader>
       <OverviewPage title={`${year} allocations`} sub={e ? (hasProps ? 'Open a cycle to start taking applications' : 'Add a property, then open a cycle to start taking applications') : `Offers go out until 30 Nov · ${fmtN(ac.review)} ${ac.review === 1 ? 'application' : 'applications'} waiting`} actions={e ? (
         /* First login: the next real steps, in order. A cycle needs an active property, so that comes first. */

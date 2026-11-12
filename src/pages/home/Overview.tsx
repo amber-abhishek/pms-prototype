@@ -33,7 +33,7 @@ export function Overview() {
   return <Today />;
 }
 
-/* ---------- 3783:47863 · Start the day: occupancy trend, pre-let, funnel, six summary cards ---------- */
+/* ---------- 3783:47863 · Start the day: occupancy trend, pre-let, funnel, three summary cards ---------- */
 const DAYS = Array.from({ length: 30 }, (_, i) => new Date(Date.UTC(2026, 7, 16 + i)));
 const dayLabel = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 /* Beds let: slow first week, a block of college offers on 23 Aug, a late-applicant batch on 5 Sep. */
@@ -51,8 +51,6 @@ const PRELET = [
 function Today() {
   const nav = useNavigate();
   const open = useRms((st) => st.faults).filter((f) => f.status !== 'Fixed');
-  const urgent = open.filter((f) => f.priority === 'Urgent').length;
-  const overdue = open.filter((f) => f.slaMins < 0).length;
   /* Empty-states demo: a workspace with no beds, applications or residents yet, so every number reads zero. */
   const e = useEmpty((s) => s.on);
   /* The same open tasks My tasks counts: Priya's, not done, not snoozed. */
@@ -85,17 +83,8 @@ function Today() {
             <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
               <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />
             </SummaryCard>
-            <SummaryCard title="Maintenance" tag={P(urgent, 'urgent')} foot="Oldest unassigned" footValue={open.length ? 'Leaking radiator · 2 h' : 'None'} footTone={open.length ? 'red' : 'ink'} action={<ViewLink to="/residents/maintenance" />}>
-              <Stats items={[['Open', String(open.length)], ['Urgent', String(urgent), urgent ? 'red' : undefined], ['Overdue', String(overdue)]]} />
-            </SummaryCard>
-            <SummaryCard title="Arrivals this week" foot="Busiest day" footValue={e ? '—' : 'Sat · 340'} action={<ViewLink to="/residents" label="Check-in" />}>
-              <Split value={e ? '0' : '612'} parts={e ? [['0 checked in', 0, 'green'], ['0 to come', 0, 'grey'], ['0 no-shows', 0, 'red']] : [['208 checked in', 208, 'green'], ['398 to come', 398, 'grey'], ['6 no-shows', 6, 'red']]} />
-            </SummaryCard>
             <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
               <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'red'], ['Paid', '1,204']]} />
-            </SummaryCard>
-            <SummaryCard title="Requests" foot="Next notice" footValue={e ? 'None scheduled' : 'Move-in notice · Wed 09:00'} action={<ViewLink to="/residents/requests" />}>
-              <Stats items={e ? [['Open', '0'], ['Room swaps', '0'], ['Draft notices', '0']] : [['Open', '9'], ['Room swaps', '3'], ['Draft notices', '1']]} />
             </SummaryCard>
           </div>
         </div>

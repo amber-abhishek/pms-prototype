@@ -91,8 +91,8 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
               </div>
             ))}
           </div>
-          {locked ? <p className="mt-2 text-xs text-[#737373] flex gap-1.5"><Lock size={13} />In use, so you can rename levels but not add, remove or reorder them.</p>
-            : <Button type="button" size="sm" icon={Plus} className="mt-2" onClick={addLevel}>Add level</Button>}
+          {locked ? <p className="mt-4 ml-7 text-xs text-[#737373] flex gap-1.5"><Lock size={13} />In use, so you can rename levels but not add, remove or reorder them.</p>
+            : <Button type="button" size="sm" icon={Plus} className="mt-4 ml-7" onClick={addLevel}>Add level</Button>}
         </SheetSection>
         <SheetSection title="Preview">
           <Levels s={{ levels: levels.map((l) => ({ name: l.name || "…", bsu: l.bsu })) }} />

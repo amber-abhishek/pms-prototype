@@ -452,11 +452,11 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, page
   const footer = (
     /* Connect footer: #E5E5E5 top rule, 24px sides, 14px #737373 "Showing 10 of 25 entries" on the left;
        "‹ Previous · 1 2 3 … · Next ›" on the right, the current page a 28px blue-tinted square. */
-    <div data-foot className={cx('shrink-0 px-6 flex items-center gap-2 border-t border-line text-sm text-[#737373] bg-white', pages > 1 ? 'h-[68px]' : 'h-12')}>
-      {showFooter && summary ? <span>{summary}</span> : pages > 1 && <span>Showing {shown.length} of {rows.length} entries</span>}
+    <div data-foot className={cx('shrink-0 px-6 flex items-center gap-2 border-t border-line text-sm text-[#737373] bg-white', card ? 'h-12' : 'h-[59px]')}>
+      <span>{showFooter && summary ? summary : `Showing ${shown.length} of ${rows.length} entries`}</span>
       <div className="ml-auto flex items-center gap-1.5">
         {footerRight}
-        {pages > 1 && <nav aria-label="Pages" className="flex items-center gap-1">
+        {paginate && <nav aria-label="Pages" className="flex items-center gap-1">
           <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className={cx(PAGER_STEP, 'mr-1')}><CaretLeft size={16} strokeWidth={1.75} />Previous</button>
           {pageList(pages, page).map((p, i) => p === '…'
             ? <span key={`e${i}`} className="w-5 text-center text-[#0A0A0A]">…</span>
@@ -467,8 +467,8 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, page
       </div>
     </div>
   );
-  /* No left-side counts (2026-11-09): the footer shows only for real text (summary/footerRight) or to page. */
-  const foot = (showFooter && (summary || footerRight)) || pages > 1 ? footer : null;
+  /* Connect logic: the footer always shows the count and the pager (Previous 1 Next, even on one page); footer={false} hides it unless there is more than one page. */
+  const foot = showFooter || pages > 1 ? footer : null;
   if (card) return <Card className="overflow-hidden">{table}{foot}</Card>;
   /* Inset Mercury-style: the rows sit inside the --gx gutter (set on <main> from data-gx); the footer stays end to end. */
   return <div {...((fill ?? cols.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="flex-1 min-h-0 flex flex-col"><div data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">{table}</div>{foot}</div>;

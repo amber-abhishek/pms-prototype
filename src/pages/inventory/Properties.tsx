@@ -131,7 +131,7 @@ export function PropertiesPage() {
               <Display hidden={hidden} setHidden={setHidden} />
             </div>
           </div>
-          <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)} paginate={rows.length > 50}
+          <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)}
             empty={<Empty title="No properties match" sub="Try another campus or clear the search." />}
             summary={`Showing ${rows.length} of ${list.length} properties`} />
         </>

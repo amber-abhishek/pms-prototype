@@ -699,8 +699,8 @@ export function SheetHero({ name, meta, avatar = true, action, children }: { nam
 /** Connect drawer section: a full-width #FAFAFA strip with the Geist Mono uppercase title, then a 20px body over a #E5E5E5 rule. */
 export function SheetSection({ title, rows, children }: { title: string; rows?: [string, ReactNode][]; children?: ReactNode }) {
   return (
-    <section className="-mx-5 first:-mt-5 last:-mb-5 [&:not(:last-child)]:border-b border-[#E5E5E5]">
-      <h3 className="px-5 py-1.5 bg-[#FAFAFA] font-mono text-xs leading-4 font-medium uppercase tracking-[0.04em] text-[#737373]">{title}</h3>
+    <section className="-mx-5 first:-mt-5 last:-mb-5">
+      <h3 className="h-9 px-5 flex items-center bg-[#FAFAFA] font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#171717]">{title}</h3>
       <div className="p-5">
         {rows && <DL rows={rows} />}
         {children && <div className={rows ? 'mt-4' : undefined}>{children}</div>}

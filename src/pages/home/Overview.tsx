@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CalendarBlank, Check, MapPin, Megaphone, Plus, SquaresFour, Tray, Wrench } from '../../components/icons';
+import { CalendarBlank, Check, MapPin, Plus, SquaresFour } from '../../components/icons';
 import { useDb } from '../../data/store';
 import { useRms } from '../../data/residents';
 import { useInv } from '../../data/inventory';
 import { useOrg } from '../../data/org';
 import { useAlloc } from '../../data/allocations';
-import { Button, ButtonGroup, Card, PageHeader, cx } from '../../components/ui';
-import { OverviewPage, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
-import { MenuButton } from './parts';
+import { Button, ButtonGroup, Card, PageHeader, Pill, cx } from '../../components/ui';
+import { RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
+import { HomeBand, MenuButton } from './parts';
 import { useEmpty } from '../../data/empty';
 import { ME, useHome } from '../../data/home';
 
@@ -59,41 +59,41 @@ function Today() {
   const mine = useHome((s) => s.rows.main).filter((r) => !r.done && !r.snoozed && r.owner === ME);
   const due = (['overdue', 'today', 'week'] as const).map((d) => mine.filter((r) => r.due === d).length);
   const first = mine.find((r) => r.due === 'overdue') ?? mine.find((r) => r.due === 'today');
+  const P = (n: number, l: string) => n > 0 ? <Pill tone="red">{n} {l}</Pill> : undefined;
   return (
     <>
       <Header />
-      <OverviewPage title="Good morning, Priya" sub={e ? 'Monday 14 September' : 'Monday 14 September · 5 days to move-in weekend'} actions={<>
-        <Button variant="primary" icon={Tray} onClick={() => nav('/allocations/applications?tab=To%20review')}>Review applications</Button>
-        <Button variant="tertiary" icon={Wrench} onClick={() => nav('/residents/maintenance?log=1')}>Log a fault</Button>
-        <Button variant="tertiary" icon={Megaphone} onClick={() => nav('/residents/notices')}>Send a notice</Button>
-      </>}>
-        <div className="grid grid-cols-[minmax(0,1fr)_384px] gap-4">
-          <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="−18 released" kind="line" chartOnly
-            points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />
-          <RankCard title="Pre-let by property" note="target 90%" more={2} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/inventory/properties')}>Add a property</Button></>} moreLabel="View all properties" moreTo="/inventory/properties"
-            rows={e ? [] : PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/inventory/properties?open=${h.id}` }))} />
+      <div className="flex-1 overflow-auto flex flex-col">
+        <HomeBand />
+        <div className="p-6 flex flex-col gap-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">
+            <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="18 released" kind="line" chartOnly
+              points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />
+            <RankCard title="Pre-let by property" note="Target 90%" more={2} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/inventory/properties')}>Add a property</Button></>} moreLabel="View all properties" moreTo="/inventory/properties"
+              rows={e ? [] : PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/inventory/properties?open=${h.id}` }))} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <SummaryCard title="Needs your action" tag={P(due[0], 'overdue')} foot={first?.due === 'overdue' ? 'Overdue' : 'Due first'} footValue={first ? first.title : 'Nothing due today'} footTone={first?.due === 'overdue' ? 'red' : 'ink'} action={<ViewLink to="/tasks" label="Open tasks" />}>
+              <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} overdue`, due[0], 'red'], [`${due[1]} due today`, due[1], 'amber'], [`${due[2]} this week`, due[2], 'grey']]} />
+            </SummaryCard>
+            <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
+              <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />
+            </SummaryCard>
+            <SummaryCard title="Maintenance" tag={P(urgent, 'urgent')} foot="Oldest unassigned" footValue={open.length ? 'Leaking radiator · 2 h' : 'None'} footTone={open.length ? 'red' : 'ink'} action={<ViewLink to="/residents/maintenance" />}>
+              <Stats items={[['Open', String(open.length)], ['Urgent', String(urgent), urgent ? 'red' : undefined], ['Overdue', String(overdue)]]} />
+            </SummaryCard>
+            <SummaryCard title="Arrivals this week" foot="Busiest day" footValue={e ? '—' : 'Sat · 340'} action={<ViewLink to="/residents" label="Check-in" />}>
+              <Split value={e ? '0' : '612'} parts={e ? [['0 checked in', 0, 'green'], ['0 to come', 0, 'grey'], ['0 no-shows', 0, 'red']] : [['208 checked in', 208, 'green'], ['398 to come', 398, 'grey'], ['6 no-shows', 6, 'red']]} />
+            </SummaryCard>
+            <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
+              <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'red'], ['Paid', '1,204']]} />
+            </SummaryCard>
+            <SummaryCard title="Requests" foot="Next notice" footValue={e ? 'None scheduled' : 'Move-in notice · Wed 09:00'} action={<ViewLink to="/residents/requests" />}>
+              <Stats items={e ? [['Open', '0'], ['Room swaps', '0'], ['Draft notices', '0']] : [['Open', '9'], ['Room swaps', '3'], ['Draft notices', '1']]} />
+            </SummaryCard>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <SummaryCard title="Needs your action" foot={first?.due === 'overdue' ? 'Overdue' : 'Due first'} footValue={first ? first.title : 'Nothing due today'} footTone={first?.due === 'overdue' ? 'red' : 'ink'} action={<Button size="sm" onClick={() => nav('/tasks')}>Open tasks</Button>}>
-            <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} overdue`, due[0], '#EF4444'], [`${due[1]} due today`, due[1], '#F59E0B'], [`${due[2]} this week`, due[2], '#D4D4D4']]} />
-          </SummaryCard>
-          <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
-            <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />
-          </SummaryCard>
-          <SummaryCard title="Maintenance" foot="Oldest unassigned" footValue={open.length ? 'Leaking radiator · 2 h' : 'None'} footTone={open.length ? 'red' : 'ink'} action={<ViewLink to="/residents/maintenance" />}>
-            <Stats items={[['Open', String(open.length)], ['Urgent', String(urgent), 'red'], ['Overdue', String(overdue)]]} />
-          </SummaryCard>
-          <SummaryCard title="Arrivals this week" foot="Busiest day" footValue={e ? '—' : 'Sat · 340'} action={<Button size="sm" onClick={() => nav('/residents')}>Check-in</Button>}>
-            <Split value={e ? '0' : '612'} parts={e ? [['0 checked in', 0, '#0B8A4C'], ['0 to come', 0, '#D4D4D4'], ['0 no-shows', 0, '#EF4444']] : [['208 checked in', 208, '#0B8A4C'], ['398 to come', 398, '#D4D4D4'], ['6 no-shows', 6, '#EF4444']]} />
-          </SummaryCard>
-          <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
-            <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'orange'], ['Paid', '1,204']]} />
-          </SummaryCard>
-          <SummaryCard title="Requests" foot="Next notice" footValue={e ? 'None scheduled' : 'Move-in notice · Wed 09:00'} action={<ViewLink to="/residents/requests" />}>
-            <Stats items={e ? [['Open', '0'], ['Room swaps', '0'], ['Draft notices', '0']] : [['Open', '9'], ['Room swaps', '3'], ['Draft notices', '1']]} />
-          </SummaryCard>
-        </div>
-      </OverviewPage>
+      </div>
     </>
   );
 }

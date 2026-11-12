@@ -6,7 +6,7 @@ import { Button, Empty, Field, FilterButton, Input, PageHeader, Select, Sheet, S
 import { useOpen } from '../hooks';
 import { useEmpty } from '../../data/empty';
 import { DONE_EARLIER, EXTRAS, ME, PEOPLE, TOM_HIDDEN, useHome, type CaseId, type Due, type HTask } from '../../data/home';
-import { Box, CaughtUp, DuePill, Who, fromIcon } from './parts';
+import { Box, CaughtUp, DuePill, HomeBand, Who, fromIcon } from './parts';
 import { ROW_IN_MS, TaskSheet, useChange, useReturned } from './TaskSheet';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { SnoozeMenu, useSnooze } from './Snooze';
@@ -114,6 +114,7 @@ function MyTasks() {
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <PageHeader icon={CheckCircle} title="My tasks"><NewTaskButton scope="main" /></PageHeader>
+      <HomeBand />
       <PageHeading right={<>
         <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />
       </>} />

@@ -122,6 +122,15 @@ export const modules: Module[] = [
     ],
   },
   {
+    id: 'site', label: 'Booking site', icon: Monitor, home: '/site', group: 'modules', roles: ['admin'], subtitle: 'accommodation.durham.ac.uk',
+    match: starts('/site'),
+    sections: [{ items: [
+      { label: 'Pages', to: '/site', icon: FileText },
+      { label: 'Theme', to: '/site/theme', icon: Palette },
+      { label: 'Settings', to: '/site/settings', icon: Settings },
+    ] }],
+  },
+  {
     id: 'reports', label: 'Reports', icon: ChartColumn, home: '/reports', group: 'modules', roles: ['admin'],
     match: starts('/reports'),
     sections: [{ items: [
@@ -129,15 +138,6 @@ export const modules: Module[] = [
       { label: 'Library', to: '/reports/library', icon: FileText },
       { label: 'Scheduled', to: '/reports/library?tab=scheduled', icon: Calendar, count: (c) => c.schedules },
       { label: 'Shared with me', to: '/reports/library?tab=shared', icon: Users },
-    ] }],
-  },
-  {
-    id: 'site', label: 'Booking site', icon: Monitor, home: '/site', group: 'modules', roles: ['admin'], subtitle: 'accommodation.durham.ac.uk',
-    match: starts('/site'),
-    sections: [{ items: [
-      { label: 'Pages', to: '/site', icon: FileText },
-      { label: 'Theme', to: '/site/theme', icon: Palette },
-      { label: 'Settings', to: '/site/settings', icon: Settings },
     ] }],
   },
   {

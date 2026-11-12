@@ -4,6 +4,7 @@ import { ClockCounterClockwise, type Icon } from '../components/icons';
 import { useDb } from '../data/store';
 import { Avatar, Empty, PageHeader, Pill, SearchInput, Table, Tabs, Toolbar } from '../components/ui';
 import { TasksPage } from './home/Tasks';
+import { HomeBand } from './home/parts';
 
 export { Overview } from './home/Overview';
 
@@ -21,6 +22,8 @@ const dayOf = (w: string) => (/^\d{1,2}:\d{2}$/.test(w) ? 'Today' : w === 'Just 
 const timeOf = (w: string) => (/^\d{1,2}:\d{2}$/.test(w) ? w : w === 'Just now' ? w : w.split(', ')[1] ?? '');
 
 export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise }: { title?: string; icon?: Icon }) {
+  /* Home's Activity tab carries the greeting band; the Organisation log doesn't. */
+  const band = title === 'Activity';
   const activity = useDb((s) => s.activity);
   const [area, setArea] = useState('All');
   const [q, setQ] = useState('');
@@ -30,6 +33,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
   return (
     <>
       <PageHeader icon={icon} title={title} />
+      {band && <HomeBand />}
       <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Person or action" />}>
         <Tabs value={area} onChange={setArea} tabs={areas.map((x) => ({ id: x, label: x, count: x === 'All' ? activity.length : activity.filter((a) => a.area === x).length }))} />
       </Toolbar>

@@ -8,8 +8,9 @@ export function OrgLogo({ size = 24 }: { size?: number }) {
 }
 
 /** The signed-in person's photo (demo: Priya has one), else initials on a soft ground. */
-export function PersonPhoto({ name, size = 32 }: { name: string; size?: number }) {
-  if (name === 'Priya Shah') return <img src={`${import.meta.env.BASE_URL}avatars/priya.jpg`} alt="" width={size} height={size} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
+export function PersonPhoto({ name, size = 32, square }: { name: string; size?: number; /** r10 tile instead of a circle (the Overview greeting). */ square?: boolean }) {
+  const shape = square ? 'rounded-[10px]' : 'rounded-full';
+  if (name === 'Priya Shah') return <img src={`${import.meta.env.BASE_URL}avatars/priya.jpg`} alt="" width={size} height={size} className={shape + ' object-cover shrink-0'} style={{ width: size, height: size }} />;
   const ini = name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-  return <span className="rounded-full bg-[#C0DBFF] text-[#123768] font-medium flex items-center justify-center shrink-0" style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}>{ini}</span>;
+  return <span className={shape + ' bg-[#C0DBFF] text-[#123768] font-medium flex items-center justify-center shrink-0'} style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}>{ini}</span>;
 }

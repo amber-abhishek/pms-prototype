@@ -150,7 +150,8 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
     );
   }
   /* With no pages to list, the module row itself is the selection. */
-  const flat = on && m.sections.every((s) => s.items.length <= 1 && !s.pinned);
+  /* Home's pages are folder tabs on the page (Figma 3884:39270), so its row stays flat with no sub-list. */
+  const flat = on && (m.id === 'home' || m.sections.every((s) => s.items.length <= 1 && !s.pinned));
   return (
     <>
       <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
@@ -159,7 +160,7 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
         <span className="flex-1 truncate">{m.label}</span>
         {m.locked && <Lock size={14} strokeWidth={1.5} className="text-[#737373]" />}
         {/* Figma 3884:43935: the open module shows a chevron instead of its count. */}
-        {on && !flat ? <ChevronDown size={16} strokeWidth={1.5} /> : n !== undefined && n > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', lead?.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{n.toLocaleString('en-GB')}</span>}
+        {on && !flat ? <ChevronDown size={16} strokeWidth={1.5} /> : !flat && n !== undefined && n > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', lead?.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{n.toLocaleString('en-GB')}</span>}
       </NavLink>
       {on && !flat && <ModulePages mod={m} counts={counts} />}
     </>

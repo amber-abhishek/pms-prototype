@@ -141,7 +141,7 @@ export function Modal({ open, onClose, title, sub, children, footer, width = 560
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
         <div className="px-5 pt-5 pb-4">
           <DialogTitle>{title}</DialogTitle>
-          {sub && <DialogDescription className="mt-1.5">{sub}</DialogDescription>}
+          {sub && <DialogDescription>{sub}</DialogDescription>}
         </div>
         <DialogBody className="pt-0">{children}</DialogBody>
         <DialogFooter>{footer}</DialogFooter>

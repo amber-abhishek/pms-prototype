@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarPlus, CaretLeft, CaretRight, CheckCircle, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
+import { CalendarPlus, CaretLeft, CaretRight, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
@@ -240,14 +240,14 @@ function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBook
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('Chose another university');
   return (
-    <Sheet open onClose={onClose} nav={nav} width={500} title="Offer"
+    <Sheet open onClose={onClose} nav={nav} width={560} title="Offer"
       footer={o.status === 'open' ? (declining ? <><Button onClick={() => setDeclining(false)}>Back</Button><Button variant="danger" onClick={() => onDecline(reason)}>Record decline</Button></> : <>
-        <Button variant="danger-ghost" onClick={() => setDeclining(true)}>Declined</Button>
-        <Button variant="ghost" className="mr-auto" onClick={onLapse}>Let it lapse</Button>
+        <Button variant="danger-ghost" className="mr-auto" onClick={() => setDeclining(true)}>Declined</Button>
         <Button onClick={onExtend}>Extend 2 days</Button>
-        <Button variant="success" icon={CheckCircle} onClick={() => { onAccept(); onClose(); }}>Accepted</Button>
+        <Button variant="success" onClick={() => { onAccept(); onClose(); }}>Accepted</Button>
       </>) : o.status === 'accepted' ? <Button variant="primary" onClick={onBooking}>Open booking</Button> : <Button onClick={onClose}>Close</Button>}>
-      <SheetHero name={o.name} meta={`${hallFull[o.hall]} · ${o.unit}`}>
+      <SheetHero name={o.name} meta={`${hallFull[o.hall]} · ${o.unit}`}
+        action={o.status === 'open' && !declining && <Button size="sm" onClick={onLapse}>Let it lapse</Button>}>
         <St s={ST[o.status]} />
       </SheetHero>
       {o.status === 'open' && (o.leftH ?? 99) < 24 && <div className="mb-5"><Note tone="red" icon={HourglassMedium} title={`Expires in ${fmtLeft(o.leftH ?? 0)}`}>Lapses at {o.expires?.split(' ').slice(-1)[0]} if {o.name.split(' ')[0]} doesn’t reply; the unit goes to the waitlist.</Note></div>}

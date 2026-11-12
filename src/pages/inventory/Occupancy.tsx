@@ -1,17 +1,16 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Buildings, CalendarRange, CaretDown, CircleDashed, Grid3x3, Hourglass, House, List, Prohibit, SignIn, Stack, type Icon } from '../../components/icons';
-import { Button, MultiFilter, PageHeader, Pill, Table, cx, type Tone } from '../../components/ui';
-import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
+import { Buildings, CalendarRange, CaretDown, CircleDashed, Grid3x3, Hourglass, House, Prohibit, SignIn, Stack, type Icon } from '../../components/icons';
+import { Button, MultiFilter, PageHeader, cx, type Tone } from '../../components/ui';
 import { Menu } from './common';
 import { useEmpty } from '../../data/empty';
 import { HALL_OCC } from '../../data/occupancy';
 import { EmptyArea } from '../allocations/common';
 import { useNavigate } from 'react-router-dom';
-import { DownloadSimple, LayoutGrid } from '../../components/icons';
+import { DownloadSimple } from '../../components/icons';
 
 /* Occupancy, floor plan (frame 3355:105349): hall tabs with bed counts, five stat tiles, then one
-   block's floors as rows of room tiles coloured by status. "List" shows the same rooms as a table. */
+   block's floors as rows of room tiles coloured by status. */
 
 type St = 'in' | 'arriving' | 'held' | 'vacant' | 'blocked';
 type Room = { code: string; st: St; who?: string; floor: string };
@@ -76,7 +75,6 @@ function summary(rooms: Room[]) {
 export function OccupancyPage() {
   const [hid, setHid] = useState('ust');
   const [year, setYear] = useState('2026/27');
-  const [view, setView] = useState<'plan' | 'list'>('plan');
   const h = HALLS.find((x) => x.id === hid)!;
   /* Block is a picker (the plan shows one block at a time), not a filter; Status is the one filter and starts empty. */
   const [blockSel, setBlock] = useState('Block G');
@@ -109,7 +107,7 @@ export function OccupancyPage() {
       </PageHeader>
 
       {/* Connect toolbar (as Properties, 3884:39809): one 68px row, 16/24 padding, every control 34px.
-          Hall and block pick what the plan shows on the left; the Status filter and the view switch sit on the right. */}
+          Hall and block pick what the plan shows on the left; the Status filter sits on the right. */}
       <div className="shrink-0 px-6 py-4 flex items-center gap-3">
         <Menu align="left" width={240} trigger={(o) => (
           <Button variant="control" icon={Buildings} onClick={o}>{h.name}<span className="text-[#737373] font-mono tabular-nums">{h.beds}</span><CaretDown size={16} strokeWidth={1.75} className="opacity-60" /></Button>
@@ -121,13 +119,6 @@ export function OccupancyPage() {
         )}
         <div className="ml-auto flex items-center gap-3">
           <MultiFilter label="Status" width={220} value={statusF} onChange={setStatusF} options={ORDER.map((st) => ({ value: ST[st].label, tone: ST[st].tone }))} />
-          <UITabs value={view} onValueChange={(v) => setView(v as typeof view)}>
-            <TabsList aria-label="View" className="h-[34px]">
-              {([['plan', 'Floor plan', LayoutGrid], ['list', 'List', List]] as const).map(([id, label, I]) => (
-                <TabsTrigger key={id} value={id} className="h-[26px] gap-1.5 text-xs"><I size={14} />{label}</TabsTrigger>
-              ))}
-            </TabsList>
-          </UITabs>
         </div>
       </div>
 
@@ -148,7 +139,6 @@ export function OccupancyPage() {
           </div>
         </div>
 
-        {view === 'plan' ? (
           <div className="px-[var(--tx,16px)] py-3 flex flex-col gap-4">
             {FLOORS.map(([floor]) => {
               const fr = rooms.filter((x) => x.floor === floor);
@@ -169,17 +159,6 @@ export function OccupancyPage() {
               );
             })}
           </div>
-        ) : (
-          <div className="pt-3">
-            <Table footer={false} rows={rooms.map((x) => ({ ...x, id: x.code }))}
-              cols={[
-                { key: 'code', label: 'Room', render: (x) => <span className="font-medium">{x.code}</span> },
-                { key: 'floor', label: 'Floor', render: (x) => x.floor },
-                { key: 'st', label: 'Status', render: (x) => <Pill tone={ST[x.st].tone}>{ST[x.st].label}</Pill> },
-                { key: 'who', label: 'Resident', render: (x) => x.who ?? <span className="text-[#737373]">—</span> },
-              ]} />
-          </div>
-        )}
       </div>
     </>
   );

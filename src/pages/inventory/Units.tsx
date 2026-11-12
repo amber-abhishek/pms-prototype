@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Archive, ArrowSquareOut, ArrowUUpLeft, ArrowsOutCardinal, Bed, Buildings, CaretDown, CaretRight, Door, DotsThree, Info, LinkSimple, ListDashes, PencilSimple, Plus, Stack, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Button, Field, Input, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetSection, Tabs, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetSection, Tabs, cx, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, flatsOf, money, per, useInv, type ArchivedRow, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
@@ -49,7 +49,7 @@ function UnitsView({ props }: { props: Property[] }) {
     return pid === 'col' ? { pid, bi: 0, floor: 3, flat: null } : { pid, bi: 0, floor: 1, flat: null };
   });
   const [tab, setTab] = useState<TabId>('all');
-  const [typeF, setTypeF] = useState<string | null>(null);
+  const [typeF, setTypeF] = useState<string[]>([]);
   const [cursor, setCursor] = useState(0);
   const [checked, setChecked] = useState<string[]>([]);
   const [archiveFlat, setArchiveFlat] = useState<Flat | null>(null);
@@ -73,7 +73,7 @@ function UnitsView({ props }: { props: Property[] }) {
     : { all: all.length, Active: live.filter((u) => u.status === 'Active').length, Draft: live.filter((u) => u.status === 'Draft').length, Inactive: live.filter((u) => u.status === 'Inactive').length, Archived: archRows.length };
   const [q, setQ] = useState('');
   const ql = q.trim().toLowerCase();
-  const visible = (u: Unit) => u.status !== 'Archived' && (tab === 'all' || u.status === tab) && (!typeF || u.type === typeF) && (!ql || u.code.toLowerCase().includes(ql) || u.type.toLowerCase().includes(ql));
+  const visible = (u: Unit) => u.status !== 'Archived' && (tab === 'all' || u.status === tab) && (!typeF.length || typeF.includes(u.type)) && (!ql || u.code.toLowerCase().includes(ql) || u.type.toLowerCase().includes(ql));
   const groups = shownFlats.map((f) => ({ f, units: f.units.filter(visible) })).filter((g) => g.units.length || tab === 'all');
   const flatList = groups.flatMap((g) => g.units);
   const openUnit = open ? flats.flatMap((f) => f.units).find((u) => u.id === open) ?? all.find((u) => u.id === open) ?? null : null;
@@ -151,11 +151,7 @@ function UnitsView({ props }: { props: Property[] }) {
             ]} />
             <div className="ml-auto flex items-center gap-2">
               <SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder="Search units" />
-              <Menu width={200} trigger={(o) => (
-                <button type="button" onClick={o} className="h-[34px] min-w-[120px] pl-3 pr-2.5 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-sm font-medium text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-between gap-2">
-                  {typeF ?? 'Room type'}<CaretDown size={16} strokeWidth={1.5} className="text-[#737373]" />
-                </button>
-              )} items={[{ label: 'All room types', onClick: () => setTypeF(null) }, 'sep', ...ROOM_TYPES.map((t) => ({ label: t, icon: Bed, onClick: () => setTypeF(t) }))]} />
+              <MultiFilter label="Room type" width={220} value={typeF} onChange={(v) => { setTypeF(v); setCursor(0); }} options={ROOM_TYPES.map((t) => ({ value: t }))} />
             </div>
           </div>
 
@@ -174,7 +170,7 @@ function UnitsView({ props }: { props: Property[] }) {
                       <FlatGroup key={f.id} f={f} units={units} cursorId={flatList[cursor]?.id} open={open} checked={checked} setChecked={setChecked} onOpen={(id) => { setOpen(id); setCursor(flatList.findIndex((u) => u.id === id)); }}
                         onFlat={() => go({ flat: +f.id.split('|')[3] })} onArchive={() => setArchiveFlat(f)} />
                     ))}
-                    {!groups.length && <tr><td colSpan={6} className="h-32 text-center text-sm text-[#737373]">No {tab === 'all' ? '' : tab.toLowerCase() + ' '}units here{typeF ? ` of type ${typeF}` : ''}.</td></tr>}
+                    {!groups.length && <tr><td colSpan={6} className="h-32 text-center text-sm text-[#737373]">No {tab === 'all' ? '' : tab.toLowerCase() + ' '}units here{typeF.length ? ` of type ${typeF.join(' or ')}` : ''}.</td></tr>}
                   </tbody>
                 </table>
               </div>

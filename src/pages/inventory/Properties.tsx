@@ -3,14 +3,13 @@ import { Illustration } from '../../components/Illustration';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Archive, ArrowsDownUp, Buildings, CaretDown, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, Tag as TagIcon, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
+  Archive, ArrowsDownUp, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, Tag as TagIcon, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
 } from '../../components/icons';
-import { Button, Check, Empty, Field, PageHeader, SearchInput, Table, cx } from '../../components/ui';
+import { Button, Check, Empty, Field, MultiFilter, PageHeader, SearchInput, Table, cx } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
 import { Menu, Modal, Picker, PropStatus, RadioCard, Tags } from './common';
 
-type Tab = 'all' | 'city' | 'queens';
 const COLS = ['Campus', 'Layout', 'Tags', 'Units', 'Status'] as const;
 
 export function PropertiesPage() {
@@ -18,7 +17,6 @@ export function PropertiesPage() {
   const [sp, setSp] = useSearchParams();
   const props = useInv((s) => s.properties);
   const patchProp = useInv((s) => s.patchProp);
-  const [tab, setTab] = useState<Tab>('all');
   const [q, setQ] = useState('');
   const [hidden, setHidden] = useState<string[]>([]);
   const [archiving, setArchiving] = useState<Property | null>(null);
@@ -34,12 +32,13 @@ export function PropertiesPage() {
     setSp((x) => { const n = new URLSearchParams(x); n.delete('archive'); return n; }, { replace: true });
   }, [askArchive]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [layoutF, setLayoutF] = useState<string | null>(null);
-  const [statusF, setStatusF] = useState<string | null>(null);
+  const [campusF, setCampusF] = useState<string[]>([]);
+  const [layoutF, setLayoutF] = useState<string[]>([]);
+  const [statusF, setStatusF] = useState<string[]>([]);
   const [sort, setSort] = useState<{ key: 'name' | 'units'; dir: 1 | -1 } | null>(null);
   const list = useMemo(() => (empty ? [] : props).filter((p) => p.status !== 'Archived'), [props, empty]);
   const rows = list
-    .filter((p) => (tab === 'all' || (tab === 'city' ? p.campus === 'Durham City' : p.campus === 'Queen’s Campus')) && (!layoutF || p.structure === layoutF) && (!statusF || p.status === statusF) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())))
+    .filter((p) => (!campusF.length || campusF.includes(p.campus)) && (!layoutF.length || layoutF.includes(p.structure)) && (!statusF.length || statusF.includes(p.status)) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => !sort ? 0 : sort.dir * (sort.key === 'units' ? a.units - b.units : a.name.localeCompare(b.name)));
   const sortBy = (key: 'name' | 'units') => setSort((s) => (s?.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
   /* Figma 3884:39809 heads: Property and Units carry the ↕ sort glyph, ink while that column sorts the table. */
@@ -126,10 +125,9 @@ export function PropertiesPage() {
           <div className="shrink-0 px-6 py-4 flex items-center gap-3">
             <div className="[&>label]:w-[280px] [&>label]:h-9"><SearchInput value={q} onChange={setQ} placeholder="Search properties" /></div>
             <div className="ml-auto flex items-center gap-3">
-              <DropFilter value={tab === 'all' ? null : tab === 'city' ? 'Durham City' : 'Queen’s Campus'} placeholder="All campuses" all="All campuses"
-                options={['Durham City', 'Queen’s Campus']} onChange={(v) => setTab(v === 'Durham City' ? 'city' : v ? 'queens' : 'all')} />
-              <DropFilter value={layoutF} placeholder="Layout" all="All layouts" options={['College', 'House']} onChange={setLayoutF} />
-              <DropFilter value={statusF} placeholder="Status" all="All statuses" options={['Active', 'Draft', 'Inactive', 'Closed to allocations']} onChange={setStatusF} />
+              <MultiFilter label="Campus" value={campusF} onChange={setCampusF} options={[{ value: 'Durham City' }, { value: 'Queen’s Campus' }]} />
+              <MultiFilter label="Layout" value={layoutF} onChange={setLayoutF} options={[{ value: 'College' }, { value: 'House' }]} />
+              <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={240} options={[{ value: 'Active', tone: 'green' }, { value: 'Draft', tone: 'amber' }, { value: 'Inactive', tone: 'grey' }, { value: 'Closed to allocations', tone: 'amber' }]} />
               <Display hidden={hidden} setHidden={setHidden} />
             </div>
           </div>
@@ -149,17 +147,6 @@ const PHOTO: Record<string, string> = { col: '/properties/p1.jpg', jb: '/propert
 const KICKER: Record<string, string> = { col: '88% pre-let', jb: '83% pre-let', ust: '94% pre-let', ste: '91% pre-let', hb: '86% pre-let', js: '89% pre-let' };
 /** "South Road, Durham DH1 3DF" → "South Road · DH1 3DF". */
 const shortAddress = (a: string) => { const parts = a.split(', '); const pc = parts[parts.length - 1].split(' ').slice(-2).join(' '); return parts.length > 1 ? `${parts[0]} · ${pc}` : a; };
-
-/** Figma 3884:39809 dropdown: 34px, r8, #E5E5E5 edge, 14px medium #404040, chevron; picks one option or clears to all. */
-function DropFilter({ value, placeholder, all, options, onChange }: { value: string | null; placeholder: string; all: string; options: string[]; onChange: (v: string | null) => void }) {
-  return (
-    <Menu width={200} trigger={(o) => (
-      <button type="button" onClick={o} className={cx('h-[34px] pl-3 pr-2.5 rounded-lg border bg-white text-sm font-medium flex items-center gap-1.5 hover:bg-[#F5F5F5]', value ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
-        {value ?? placeholder}<CaretDown size={16} strokeWidth={1.75} className={value ? 'text-[#2563EB]' : 'text-[#404040]'} />
-      </button>
-    )} items={[{ label: all, onClick: () => onChange(null) }, 'sep', ...options.map((x) => ({ label: x, onClick: () => onChange(x) }))]} />
-  );
-}
 
 function Display({ hidden, setHidden }: { hidden: string[]; setHidden: (h: string[]) => void }) {
   /* shadcn Popover. */

@@ -88,7 +88,7 @@ export function LineTabs<T extends string>({ value, onChange, tabs }: { value: T
     <Tabs value={value} onValueChange={(v) => onChange(v as T)}>
       <TabsList slide={false} className="flex justify-start gap-0.5 rounded-none bg-transparent p-0 px-5 border-b border-line">
         {tabs.map((t) => (
-          <TabsTrigger key={t.id} value={t.id} className="h-10 px-2.5 rounded-none -mb-px border-b-2 border-transparent text-[#737373] data-[state=active]:border-[#0A0A0A] data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
+          <TabsTrigger key={t.id} value={t.id} className="h-10 px-2.5 rounded-none -mb-px border-b-2 border-transparent text-[#737373] data-[state=active]:border-[#2563EB] data-[state=active]:text-[#2563EB] data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
         ))}
       </TabsList>
     </Tabs>

@@ -308,6 +308,44 @@ export function SearchInput({ value, onChange, placeholder = 'Search' }: { value
     </label>
   );
 }
+/** Amber Connect multi-select filter (its Status dropdown): a 34px bordered trigger reading "Status" or "Status (2)";
+ *  a 200px popover of checkbox rows (16px sides, 10px tall padding), each option a plain label or a tinted chip
+ *  (13px medium, 2/8 padding, r6, the tone at 10%); a rule, then Clear and Apply side by side. Picks stay a draft until Apply. */
+export function MultiFilter({ label, options, value, onChange, width = 200 }: {
+  label: string; options: { value: string; label?: string; tone?: Tone }[]; value: string[]; onChange: (v: string[]) => void; width?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<string[]>(value);
+  useEffect(() => { if (open) setDraft(value); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const on = value.length > 0;
+  const toggle = (v: string) => setDraft((d) => (d.includes(v) ? d.filter((x) => x !== v) : [...d, v]));
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className={cx('h-[34px] min-w-[96px] pl-3 pr-2.5 rounded-lg border bg-white text-sm font-medium flex items-center justify-between gap-2 hover:bg-[#F5F5F5] transition-colors data-[state=open]:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', on ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
+          <span>{label}{on && ` (${value.length})`}</span><CaretDown size={16} strokeWidth={1.75} className="opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="p-0 overflow-hidden" style={{ width }}>
+        <div className="max-h-[240px] overflow-y-auto py-1">
+          {options.map((o) => (
+            <label key={o.value} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[#F5F5F5] transition-colors">
+              <Checkbox checked={draft.includes(o.value)} onCheckedChange={() => toggle(o.value)} />
+              {o.tone
+                ? <span className={cx('inline-flex items-center px-2 py-0.5 rounded-md text-[13px] leading-5 font-medium whitespace-nowrap', toneCls[o.tone])}>{o.label ?? o.value}</span>
+                : <span className="text-sm text-[#0A0A0A]">{o.label ?? o.value}</span>}
+            </label>
+          ))}
+        </div>
+        <div className="flex gap-2 p-3 border-t border-[#E5E5E5]">
+          <UIButton variant="outline" size="sm" className="flex-1 h-8" onClick={() => { onChange([]); setOpen(false); }}>Clear</UIButton>
+          <UIButton size="sm" className="flex-1 h-8" onClick={() => { onChange(draft); setOpen(false); }}>Apply</UIButton>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /** The list-filter icon with the applied dot on its top-right corner (3755:15832). */
 export function FilterIcon({ on, size = 14, icon: I = FunnelSimple }: { on: boolean; size?: number; icon?: Icon }) {
   return (

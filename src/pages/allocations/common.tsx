@@ -40,7 +40,7 @@ export function LineTabs<T extends string>({ value, onChange, tabs }: { value: T
   return (
     <div className="flex gap-4 border-b border-line">
       {tabs.map((t) => (
-        <button key={t} type="button" onClick={() => onChange(t)} className={cx('h-9 -mb-px border-b-2 text-sm font-medium transition-colors', value === t ? 'border-[#0A0A0A] text-ink' : 'border-transparent text-gray-500 hover:text-ink')}>{t}</button>
+        <button key={t} type="button" onClick={() => onChange(t)} className={cx('h-9 -mb-px border-b-2 text-sm font-medium transition-colors', value === t ? 'border-[#2563EB] text-[#2563EB]' : 'border-transparent text-gray-500 hover:text-ink')}>{t}</button>
       ))}
     </div>
   );

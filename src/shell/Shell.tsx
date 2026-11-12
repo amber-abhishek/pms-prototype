@@ -73,8 +73,8 @@ export function Shell() {
   );
 }
 
-/** Figma 3884:39810 selected row: white, 1px #E5E5E5, drops (0 1 3 / 0 1 2 -1 at 10%), #0A0A0A medium label and icon. */
-const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#0A0A0A] font-medium [&>svg:first-child]:text-[#0A0A0A]';
+/** Figma 3884:39810 selected row: white, 1px #E5E5E5, one soft drop (0 1 2 at 6%; the 10% pair read too dark, 2026-11-12), #0A0A0A medium label and icon. */
+const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(10,13,20,0.06)] text-[#0A0A0A] font-medium [&>svg:first-child]:text-[#0A0A0A]';
 /** Rows: 14px, 8px padding, 8px gap, r8, packed with no gap. Hover nudges 2px right (Connect's whileHover x: 2). */
 const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
 /* Figma 3884:39810: idle module labels #3F404D at 80%, icons solid #3F404D. Hover (Connect) nudges right 2px and scales 1.02 over 0.3s, no colour change. */

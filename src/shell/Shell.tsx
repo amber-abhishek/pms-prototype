@@ -73,12 +73,15 @@ export function Shell() {
   );
 }
 
-/** Figma 3884:39271 selected row: white, 1px #E5E5E5, drops (0 1 3 / 0 1 2 -1 at 10%), ink label; the module icon goes blue. */
-const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#2563EB] font-medium [&>svg:first-child]:text-[#2563EB]';
+/** Figma 3884:39810 selected row: white, 1px #E5E5E5, drops (0 1 3 / 0 1 2 -1 at 10%), #0A0A0A medium label and icon. */
+const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#0A0A0A] font-medium [&>svg:first-child]:text-[#0A0A0A]';
 /** Rows: 14px, 8px padding, 8px gap, r8, packed with no gap. Hover nudges 2px right (Connect's whileHover x: 2). */
 const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
-/* Connect sidebar (127.0.0.1:5180): idle labels #777777, icons #737373 at 65%; hover nudges right 2px and scales 1.02 over 0.3s, no colour change. */
-const IDLE = 'text-[#777777] [&>svg:first-child]:text-[#737373] [&>svg:first-child]:opacity-[0.65] hover:translate-x-0.5 hover:scale-[1.02]';
+/* Figma 3884:39810: idle module labels #3F404D at 80%, icons solid #3F404D. Hover (Connect) nudges right 2px and scales 1.02 over 0.3s, no colour change. */
+const HOVER = 'hover:translate-x-0.5 hover:scale-[1.02]';
+const IDLE = `text-[#3F404D]/80 [&>svg:first-child]:text-[#3F404D] ${HOVER}`;
+/* Page rows under a module: #3F404D at 90%, regular. */
+const IDLE_SUB = `text-[#3F404D]/90 ${HOVER}`;
 /* The open module's row (Inventory while you're in it): near-black text, icon and chevron, unraised (2026-11-12). */
 const OPEN = 'text-[#0A0A0A] [&>svg:first-child]:text-[#0A0A0A]';
 
@@ -142,7 +145,7 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
         <TooltipTrigger asChild>
           <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)}
             className={cx(ROW, 'relative h-9 shrink-0 justify-center px-2', on ? RAISED : IDLE)}>
-            <I size={16} strokeWidth={1.75} absoluteStrokeWidth className={on ? 'text-[#2563EB]' : ''} />
+            <I size={16} strokeWidth={1.75} absoluteStrokeWidth />
             {m.locked && <span className="absolute right-1 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
           </NavLink>
         </TooltipTrigger>
@@ -158,13 +161,13 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
     <>
       <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
         className={cx(ROW, 'h-9 shrink-0 px-2 font-medium', flat ? RAISED : on ? OPEN : IDLE)}>
-        <I size={16} strokeWidth={1.75} absoluteStrokeWidth className={cx('shrink-0', flat && 'text-[#2563EB]')} />
+        <I size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0" />
         <span className="flex-1 truncate">{m.label}</span>
         {m.locked && <Lock size={14} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373]" />}
         {/* A module with pages shows a chevron, not a count: right when closed, down when open (2026-11-12). */}
         {!single && (on
           ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#0A0A0A]" />
-          : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#737373] opacity-[0.65]" />)}
+          : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#3F404D]" />)}
       </NavLink>
       {on && !flat && <ModulePages mod={m} counts={counts} />}
     </>
@@ -243,7 +246,7 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
   const tabNow = new URLSearchParams(href.split('?')[1] ?? '').get('tab');
   const rowSel = on && (!open || (!!it.landing && !tabNow));
   /* Sub rows (3884:43935): 32px, 6/8 padding, Geist Regular 14 #3F404D; the selected one is the raised white row. */
-  const cls = cx(ROW, 'h-8 shrink-0 px-2', rowSel ? RAISED : on ? 'text-[#0A0A0A] font-medium' : IDLE, disabled && 'opacity-60 cursor-default hover:translate-x-0 hover:scale-100');
+  const cls = cx(ROW, 'h-8 shrink-0 px-2', rowSel ? RAISED : on ? 'text-[#0A0A0A] font-medium' : IDLE_SUB, disabled && 'opacity-60 cursor-default hover:translate-x-0 hover:scale-100');
   if (disabled) return <div className={cls} aria-disabled>{inner}</div>;
   const curTab = tabNow ?? (it.landing ? undefined : it.sub?.[0].tab);
   return (
@@ -260,7 +263,7 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
             const n = v.count?.(counts);
             return (
               <NavLink key={v.tab} to={to} draggable={false} aria-current={sel ? 'page' : undefined} onClick={() => usePins.getState().go(to, mode === 'pinned' ? it.to : null)}
-                className={cx(ROW, 'h-8 px-2', sel ? RAISED : IDLE)}>
+                className={cx(ROW, 'h-8 px-2', sel ? RAISED : IDLE_SUB)}>
                 <span className="flex-1 truncate">{v.label}</span>
                 {n !== undefined && n > 0 && <span className="font-mono text-xs font-normal tabular-nums text-[#737373]">{n}</span>}
               </NavLink>

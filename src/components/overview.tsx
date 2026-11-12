@@ -308,7 +308,7 @@ export function SummaryCard({ title, tag, children, foot, footValue, footTone = 
     <Card className="rounded-xl h-[259px] flex flex-col min-w-0">
       <Strip title={title} right={tag} />
       <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col">
-        <div className="flex-1 min-h-0">{children}</div>
+        <div className="flex-1 min-h-0 flex flex-col [&>*:last-child]:flex-1">{children}</div>
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#E5E5E5]">
           <div className="min-w-0"><div className="text-xs leading-4 text-[#737373]">{foot}</div><div className={cx('text-sm leading-5 font-medium truncate', tone[footTone])}>{footValue}</div></div>
           <div className="shrink-0">{action}</div>
@@ -323,6 +323,33 @@ export function Stats({ items }: { items: [string, string, ToneKey?][] }) {
   return (
     <div className="grid grid-cols-3 gap-4">
       {items.map(([l, v, t]) => <div key={l} className="min-w-0 flex flex-col gap-1"><div className="text-sm leading-5 text-[#737373] truncate">{l}</div><div className={cx('text-2xl leading-8 font-semibold tracking-[-0.36px] tabular-nums', tone[t ?? 'ink'])}>{v}</div></div>)}
+    </div>
+  );
+}
+
+/** Trend line that fills the space left under a card's stats: a 1.5px line over a soft area, an end dot, and a
+ *  mono caption with the period on the left and the change on the right. Colours are classes so dark mode converts them. */
+export function Spark({ points, label, delta, good, color = 'blue' }: { points: number[]; label: string; delta?: string; good?: boolean; color?: 'blue' | 'green' }) {
+  const min = Math.min(...points), max = Math.max(...points), span = max - min || 1;
+  const xy = points.map((v, i) => [(i / (points.length - 1)) * 100, 36 - ((v - min) / span) * 32] as const);
+  const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
+  const [, endY] = xy[xy.length - 1];
+  const c = color === 'green' ? { stroke: 'stroke-[#16A34A]', fill: 'fill-[#16A34A]/10', dot: 'bg-[#16A34A]' } : { stroke: 'stroke-[#2563EB]', fill: 'fill-[#2563EB]/10', dot: 'bg-[#2563EB]' };
+  const up = delta ? !/^[−-]/.test(delta) : false;
+  const A = up ? ArrowUpRight : ArrowDownRight;
+  return (
+    <div className="h-full min-h-0 flex flex-col gap-1.5 pt-3 pb-3">
+      <div className="relative flex-1 min-h-[28px]">
+        <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible" aria-hidden>
+          <path d={`${line} L100,40 L0,40 Z`} className={c.fill} />
+          <path d={line} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className={c.stroke} />
+        </svg>
+        <span className={cx('absolute right-0 size-1.5 rounded-full -translate-y-1/2 translate-x-1/2 ring-2 ring-white', c.dot)} style={{ top: `${(endY / 40) * 100}%` }} />
+      </div>
+      <div className="flex items-center justify-between gap-2 font-mono uppercase text-[11px] leading-4 tracking-[0.04em] text-[#737373]">
+        <span className="truncate">{label}</span>
+        {delta && <span className={cx('flex items-center gap-0.5 font-medium tabular-nums', (good ?? up) ? 'text-[#16A34A]' : 'text-[#DC2626]')}><A size={12} strokeWidth={1.75} />{delta}</span>}
+      </div>
     </div>
   );
 }

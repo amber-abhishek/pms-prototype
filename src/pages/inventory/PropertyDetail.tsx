@@ -2,16 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowsLeftRight, Bed, Buildings, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
+  ArrowsLeftRight, Bed, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
   DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, Info, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, Tag as TagIcon, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Avatar, Button, Card, Empty, Field, Input, Note, PageHeader, Sheet, Textarea, cx, Pill, SheetSection } from '../../components/ui';
+import { Avatar, Button, Card, Empty, Field, Input, Note, Sheet, Textarea, cx, Pill, SheetSection } from '../../components/ui';
 import { allUnits, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
 import { EditLink, FieldErr, LineTabs, Menu, Modal, MoneyInput, PropStatus, Progress, RadioCard, Tags, moneyErr, parseDay } from './common';
 import { EmptyArt } from './Properties';
 import { GhostZone } from '../../components/headerCtx';
+import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
 
 type TabId = 'overview' | 'units' | 'tenancies' | 'photos' | 'activity';
 const AMENITIES = ['Laundry', 'Bike store', 'Gym', 'Library', 'Common room', 'Parking', 'Catered option'];
@@ -94,7 +95,11 @@ export function PropertyDetail() {
 
   return (
     <>
-      <PageHeader icon={Buildings} title={p.name} crumbs={['Inventory', 'Properties']}>
+      {/* A centred modal over the Properties list, like Add property: the Connect header band (record type, actions, ✕), then the property. */}
+      <UIDialog open onOpenChange={(o) => { if (!o) nav('/inventory/properties'); }}>
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none">
+      <DialogHeader className="py-3">
+        <DialogTitle>Property</DialogTitle>
         <Menu width={200} trigger={(o) => <button type="button" onClick={o} aria-label="More" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><DotsThree size={16} /></button>} items={[
           { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
           { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
@@ -104,7 +109,8 @@ export function PropertyDetail() {
         ]} />
         <Button icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>
         {p.status === 'Draft' && <Button variant="primary" icon={CheckCircle} onClick={activate}>Make active…</Button>}
-      </PageHeader>
+        <DialogCloseButton />
+      </DialogHeader>
 
       <Modal open={archiveAsk} onClose={() => setArchiveAsk(false)} icon={Archive} width={440} title={`Archive ${p.name}?`}
         sub={p.liveTenancies > 0 ? `${p.liveTenancies} tenancies are live, so it can’t be archived yet. Close it to allocations first, from the Properties list.` : 'It leaves Inventory and can’t be booked. You can undo straight after.'}
@@ -239,6 +245,8 @@ export function PropertyDetail() {
           </div>
         )}
       </div>
+      </DialogContent>
+      </UIDialog>
 
       {/* E2: not ready to go active */}
       <Modal open={checks} onClose={() => setChecks(false)} icon={WarningCircle} tone="amber" title={`${short} can’t go active yet`} sub="Do everything below first." width={520}

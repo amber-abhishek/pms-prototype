@@ -116,7 +116,7 @@ export function PropertyDetail() {
         sub={p.liveTenancies > 0 ? `${p.liveTenancies} tenancies are live, so it can’t be archived yet. Close it to allocations first, from the Properties list.` : 'It leaves Inventory and can’t be booked. You can undo straight after.'}
         footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations…</Button></>
           : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto flex flex-col">
         {/* 2822:71: 64px grey photo tile, 20px semibold title, 14px #737373 meta with 14px grey-400 icons and · separators. */}
         <div className="px-7 pt-6 pb-5 flex items-center gap-4">
           <div className="size-16 rounded-xl bg-[#F5F5F5] border border-line flex items-center justify-center"><Image size={24} className="text-[#94A3B8]" /></div>
@@ -134,7 +134,7 @@ export function PropertyDetail() {
         ]} />
 
         {tab === 'overview' && (
-          <div className="p-7 pt-5 grid grid-cols-[1fr_340px] gap-5 items-start bg-white min-h-full">
+          <div className="p-7 pt-5 grid grid-cols-[1fr_340px] gap-5 items-start bg-white flex-1">
             <div className="space-y-5 min-w-0">
               {building && (
                 <Card className="p-4">
@@ -402,7 +402,7 @@ function PhotosTab({ p }: { p: Property }) {
     window.setTimeout(() => { saving.current = false; }, 300);
   };
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col flex-1">
       <div className="p-6 grid grid-cols-[1fr_340px] gap-5 items-start flex-1">
         <div className="space-y-5 min-w-0">
           <Card>

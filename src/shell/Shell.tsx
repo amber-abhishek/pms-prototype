@@ -238,6 +238,10 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
       {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>}
+      {/* A page with views (Listings: Landlord, Partner halls) gets the module rows' chevron: right when closed, down when open. */}
+      {it.sub && !disabled && (open
+        ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#0A0A0A]" />
+        : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#3F404D]" />)}
     </>
   );
   const tabNow = new URLSearchParams(href.split('?')[1] ?? '').get('tab');

@@ -74,10 +74,11 @@ export function Shell() {
 }
 
 /** Figma 3884:39271 selected row: white, 1px #E5E5E5, drops (0 1 3 / 0 1 2 -1 at 10%), ink label; the module icon goes blue. */
-const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#0A0A0A] font-medium';
+const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] text-[#2563EB] font-medium [&>svg:first-child]:text-[#2563EB]';
 /** Rows: 14px, 8px padding, 8px gap, r8, packed with no gap. Hover nudges 2px right (Connect's whileHover x: 2). */
 const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
-const IDLE = 'text-[#3F404D] hover:translate-x-0.5 hover:text-[#0A0A0A]';
+/* Connect sidebar (127.0.0.1:5180): idle labels #777777, icons #737373 at 65%; hover nudges right 2px and scales 1.02 over 0.3s, no colour change. */
+const IDLE = 'text-[#777777] [&>svg:first-child]:text-[#737373] [&>svg:first-child]:opacity-[0.65] hover:translate-x-0.5 hover:scale-[1.02]';
 
 function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: Module[]; active: Module; collapsed: boolean; onToggle: () => void; onSearch: () => void }) {
   const counts = useNavCounts();
@@ -239,7 +240,7 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
   const tabNow = new URLSearchParams(href.split('?')[1] ?? '').get('tab');
   const rowSel = on && (!open || (!!it.landing && !tabNow));
   /* Sub rows (3884:43935): 32px, 6/8 padding, Geist Regular 14 #3F404D; the selected one is the raised white row. */
-  const cls = cx(ROW, 'h-8 shrink-0 px-2', rowSel ? RAISED : on ? 'text-[#0A0A0A] font-medium' : IDLE, disabled && 'opacity-60 cursor-default hover:translate-x-0');
+  const cls = cx(ROW, 'h-8 shrink-0 px-2', rowSel ? RAISED : on ? 'text-[#0A0A0A] font-medium' : IDLE, disabled && 'opacity-60 cursor-default hover:translate-x-0 hover:scale-100');
   if (disabled) return <div className={cls} aria-disabled>{inner}</div>;
   const curTab = tabNow ?? (it.landing ? undefined : it.sub?.[0].tab);
   return (

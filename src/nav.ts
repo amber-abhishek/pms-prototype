@@ -131,7 +131,7 @@ export const modules: Module[] = [
     ] }],
   },
   {
-    id: 'reports', label: 'Reports', icon: ChartColumn, home: '/reports', group: 'modules', roles: ['admin'],
+    id: 'reports', label: 'Reports', icon: ChartColumn, home: '/reports', group: 'top', roles: ['admin'],
     match: starts('/reports'),
     sections: [{ items: [
       { label: 'Occupancy', to: '/reports', icon: ChartColumn },

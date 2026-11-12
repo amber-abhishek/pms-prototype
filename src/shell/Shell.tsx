@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type Ke
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
-import { ArrowCounterClockwise, ChevronDown, ChevronRight, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, MagnifyingGlass, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
+import { ArrowCounterClockwise, ChevronDown, ChevronRight, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
 import { modules, moduleFor, pinnable, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
@@ -66,29 +66,35 @@ export function Shell() {
 
   return (
     <div className="h-full flex bg-white min-w-[1024px]">
-      <Sidebar visible={visible} active={mod} collapsed={!open} onToggle={() => setOpen((p) => !p)} onSearch={() => setPalette(true)} />
+      <Sidebar visible={visible} active={mod} collapsed={!open} onToggle={() => setOpen((p) => !p)} />
       <main ref={mainRef} onScroll={onMainScroll} className="pms-main flex-1 min-w-0 flex flex-col bg-white">{allowed ? <Outlet key={emptyKey ? 'empty' : 'full'} /> : <NoAccess />}</main>
       <Palette open={palette} onClose={() => setPalette(false)} />
     </div>
   );
 }
 
-/** Figma 3884:39810 selected row: white, 1px #E5E5E5, one soft drop (0 1 2 at 6%; the 10% pair read too dark, 2026-11-12), #0A0A0A medium label and icon. */
-const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(10,13,20,0.06)] text-[#0A0A0A] font-medium [&>svg:first-child]:text-[#0A0A0A]';
+/** Grouped sidebar (Figma 3892:45822) selected row: white, 1px #E5E5E5, one soft drop (0 1 2 at 6%), blue #2563EB medium label and outline icon. */
+const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(10,13,20,0.06)] text-[#2563EB] font-medium [&>svg:first-child]:text-[#2563EB]';
 /** Rows: 14px, 8px padding, 8px gap, r8, packed with no gap. Hover nudges 2px right (Connect's whileHover x: 2). */
 const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
 /* Figma 3884:39810: idle module labels #3F404D at 80%, icons solid #3F404D. Hover (Connect) nudges right 2px and scales 1.02 over 0.3s, no colour change. */
 const HOVER = 'hover:translate-x-0.5 hover:scale-[1.02]';
 const IDLE = `text-[#3F404D]/80 [&>svg:first-child]:text-[#3F404D] ${HOVER}`;
 /* Page rows under a module: #3F404D at 90%, regular. */
-const IDLE_SUB = `text-[#3F404D]/90 ${HOVER}`;
+const IDLE_SUB = `text-[#3F404D]/90 [&>svg:first-child]:text-[#3F404D] ${HOVER}`;
+/** Figma divider: a 1px #E5E5E5 line, 8px in from the rows, 8px above and below. */
+function NavDivider() {
+  return <div className="shrink-0 p-2" aria-hidden><div className="h-px bg-[#E5E5E5]" /></div>;
+}
 /* The open module's row (Inventory while you're in it): near-black text, icon and chevron, unraised (2026-11-12). */
 const OPEN = 'text-[#0A0A0A] [&>svg:first-child]:text-[#0A0A0A]';
 
-function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: Module[]; active: Module; collapsed: boolean; onToggle: () => void; onSearch: () => void }) {
+function Sidebar({ visible, active, collapsed, onToggle }: { visible: Module[]; active: Module; collapsed: boolean; onToggle: () => void }) {
   const counts = useNavCounts();
-  const main = visible.filter((m) => m.group !== 'bottom');
+  const top = visible.filter((m) => m.group === 'top');
+  const mods = visible.filter((m) => m.group === 'modules');
   const system = visible.filter((m) => m.group === 'bottom');
+  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} chevron={m.group === 'modules'} />;
   return (
     <TooltipProvider delayDuration={300}>
       <aside aria-label="Main" className={cx('shrink-0 h-full flex flex-col bg-[#FAFAFA] border-r border-[#E5E5E5] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]', collapsed ? 'w-[68px]' : 'w-64')}>
@@ -106,14 +112,13 @@ function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: 
             <SidebarSimple size={16} strokeWidth={1.75} absoluteStrokeWidth className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
           </button>
         </div>
-        {/* Nav (3884:39283): 8/16 padding, 36px rows packed with no gap; "System" label (12px medium #404040, 24px above) before Organisation and Settings. */}
-        <nav className={cx('flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col py-2', collapsed ? 'px-3' : 'px-4')}>
-          {collapsed && <SearchRow collapsed onSearch={onSearch} />}
-          {main.map((m) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} />)}
-          {system.length > 0 && (collapsed
-            ? <div className="h-px bg-[#E5E5E5] mx-2 my-3" aria-hidden />
-            : <div className="h-12 shrink-0 px-2 pt-6 pb-2 text-xs leading-4 font-medium uppercase text-[#404040]">System</div>)}
-          {system.map((m) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} />)}
+        {/* Grouped nav (Figma 3892:45822): 8/16 padding, 36px rows packed with no gap. Home and Reports, a divider, the
+            modules (chevrons), another divider, then Organisation and Settings. Search lives in the page header. */}
+        <nav aria-label="Modules" className={cx('flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col py-2', collapsed ? 'px-3' : 'px-4')}>
+          {top.map(row)}
+          {top.length > 0 && mods.length > 0 && <NavDivider />}
+          {mods.map(row)}
+          {system.length > 0 && <><NavDivider />{system.map(row)}</>}
         </nav>
         <UserMenu collapsed={collapsed} />
       </aside>
@@ -121,23 +126,12 @@ function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: 
   );
 }
 
-/** Search as the first row, with Connect's ⌘K key cap. */
-function SearchRow({ collapsed, onSearch }: { collapsed: boolean; onSearch: () => void }) {
-  const row = (
-    <button type="button" aria-label="Search" onClick={onSearch} className={cx(ROW, IDLE, 'h-9 shrink-0 mb-2', collapsed ? 'justify-center px-2' : 'px-2')}>
-      <MagnifyingGlass size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0" />
-      {!collapsed && <><span className="flex-1 text-left">Search</span><Kbd>⌘K</Kbd></>}
-    </button>
-  );
-  return collapsed ? <Tooltip><TooltipTrigger asChild>{row}</TooltipTrigger><TooltipContent side="right" sideOffset={8}>Search · ⌘K</TooltipContent></Tooltip> : row;
-}
-
 export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="h-5 px-1.5 rounded border border-[#E5E5E5] bg-white font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#737373] flex items-center">{children}</kbd>;
 }
 
 /** A module row. The open module lists its pages under it (with their counts); closed ones show a chevron. */
-function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean }) {
+function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Only the module group shows chevrons (Figma 3892:45822). */ chevron: boolean }) {
   const I = m.icon;
   if (collapsed) {
     return (
@@ -165,7 +159,7 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
         <span className="flex-1 truncate">{m.label}</span>
         {m.locked && <Lock size={14} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373]" />}
         {/* A module with pages shows a chevron, not a count: right when closed, down when open (2026-11-12). */}
-        {!single && (on
+        {!single && chevron && (on
           ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#0A0A0A]" />
           : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#3F404D]" />)}
       </NavLink>
@@ -236,8 +230,11 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
   /* A page's views open under its row, only while the page is open. */
   const open = !disabled && !!it.sub && within(it.to, pathname);
   const counts = useNavCounts();
+  const PI = it.icon;
   const inner = (
     <>
+      {/* Page rows carry their own outline icon (Figma 3892:45822); Home's pinned list stays text-only. */}
+      {mode === 'module' && <PI size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0" />}
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
       {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>}
@@ -256,7 +253,8 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
         {mode === 'pinned' && <RowAction label="Unpin" onClick={() => pinToggle(it)}><PinOff size={14} /></RowAction>}
       </div>
       {open && (
-        <div className="relative ml-3 pl-2.5 flex flex-col gap-0.5 before:absolute before:left-0 before:top-0 before:bottom-1 before:w-px before:bg-[#E5E5E5]">
+        /* A page's views: the rail sits under the page icon (15px in), their labels line up with the page label. */
+        <div className="relative ml-[15px] pl-[9px] flex flex-col gap-0.5 before:absolute before:left-0 before:top-0 before:bottom-1 before:w-px before:bg-[#E5E5E5]">
           {it.sub!.map((v) => {
             const to = `${it.to}?tab=${encodeURIComponent(v.tab)}`;
             const sel = curTab === v.tab;

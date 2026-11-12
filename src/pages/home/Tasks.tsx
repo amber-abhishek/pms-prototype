@@ -14,7 +14,7 @@ import { SnoozeMenu, useSnooze } from './Snooze';
 /** Sortable column head, same look as `Table sort`: ink label + arrow; click flips the order. */
 function SortHead({ desc, onToggle, children }: { desc: boolean; onToggle: () => void; children: ReactNode }) {
   const A = desc ? ArrowDown : ArrowUp;
-  return <button type="button" onClick={onToggle} aria-label={`Sorted ${desc ? 'latest' : 'soonest'} first, click to flip`} className="inline-flex items-center gap-1 text-[#0A0A0A] font-medium">{children}<A size={12} /></button>;
+  return <button type="button" onClick={onToggle} aria-label={`Sorted ${desc ? 'latest' : 'soonest'} first, click to flip`} className="inline-flex items-center gap-1 font-mono uppercase text-[#0A0A0A] font-medium">{children}<A size={12} /></button>;
 }
 
 const order: Record<Due, number> = { overdue: 0, today: 1, week: 2 };
@@ -136,7 +136,7 @@ function MyTasks() {
         </CaughtUp>
       ) : (
         <div data-inset data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">
-          <div data-head className="grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] h-10 items-center text-xs font-medium text-gray-500 border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-4">
+          <div data-head className="grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] h-[42px] items-center font-mono uppercase text-[13px] leading-5 tracking-[0.02em] font-medium text-[#737373] border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-4">
             <span className="col-span-2 !pl-[var(--cx,12px)]">Task</span><span>From</span><span><SortHead desc={desc} onToggle={() => setDesc((d) => !d)}>{tab === 'done' ? 'Done' : tab === 'snoozed' ? 'Back' : 'Due'}</SortHead></span><span>Owner</span><span />
           </div>
           {tab === 'snoozed' ? (
@@ -151,7 +151,8 @@ function MyTasks() {
               : <Empty art="caughtUp" icon={CheckCircle} title="Nothing due this week" sub="New tasks arrive from Applications, Requests, Maintenance and Bookings." />
           ) : ordered.map(({ g, list }) => (
             <div key={g}>
-              <div className="h-8 pl-[var(--cx,12px)] pr-[var(--cx,12px)] flex items-center text-xs bg-[#FAFAFA] border-b border-line"><span className="font-medium text-ink">{groupLabel[g]}</span><span className="text-gray-500 ml-1">· {list.length}</span></div>
+              {/* Group rows are white so they don't read as a second table header. */}
+              <div className="h-10 pl-[var(--cx,12px)] pr-[var(--cx,12px)] flex items-center gap-1.5 text-sm leading-5 bg-white border-b border-[#E5E5E5]"><span className="font-medium text-ink">{groupLabel[g]}</span><span className="font-mono text-xs text-[#737373] tabular-nums">{list.length}</span></div>
               {list.map((r) => <MainRow key={r.id} t={r} sel={open === r.id} handed={tab === 'mine' && r.owner !== ME} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} />)}
             </div>
           ))}

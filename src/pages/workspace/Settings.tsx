@@ -36,8 +36,8 @@ function Layout({ tab, title, actions, children, wide }: { tab: string; title: s
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 overflow-auto">
           <div className={cx('px-8 pt-8 pb-16', wide ? 'max-w-[1080px]' : 'max-w-[960px]')}>
-            <TitleH1 className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</TitleH1>
-            <div className="mt-6 divide-y divide-[#E5E5E5] border-t border-[#E5E5E5]">
+            <TitleH1 className="sr-only">{title}</TitleH1>
+            <div className="-mt-8 divide-y divide-[#E5E5E5]">
               {/* Anything that isn't a Section (a table, a note, the Emails grid) gets the same 32px band, outside its own box.
                   A closed dialog renders nothing, so its band is hidden rather than leaving an empty stripe. */}
               {Children.toArray(children).map((c, i) => (isValidElement(c) && c.type === Section ? c : <div key={i} className="py-8 empty:hidden">{c}</div>))}

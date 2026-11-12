@@ -174,25 +174,18 @@ export function ButtonGroup({ children }: { children: ReactNode }) {
 /** The row under the page header: tabs on the left, search/filter/display on the right.
  *  24px below the header line, no bottom rule; sides follow the table gutter (--gx: 120px under 6 columns, 16px for 6+). */
 export const toolbarCls = 'shrink-0 px-[var(--tx,16px)] pt-6 pb-2 flex items-center gap-2';
-/** The page heading (Applications › Manual review style): 20px medium ink, its text lined up with the table's first column. */
+/** No visible page heading (Amber Connect has none; the breadcrumb names the page). The title stays as a screen-reader h1,
+ *  and `right` becomes the toolbar row on its own. */
 export function PageHeading({ title, right, className }: { title?: ReactNode; right?: ReactNode; className?: string }) {
   const t = usePageTitle();
-  return (
-    <div className={cx('shrink-0 px-[var(--tx,16px)] pt-6 pb-3 flex items-center gap-2', className)}>
-      <TitleH1 className="text-xl leading-7 font-medium text-ink truncate ml-[calc(var(--gx,16px)+var(--cx,12px)-var(--tx,16px))]">{title ?? t}</TitleH1>
-      {right && <div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div>}
-    </div>
-  );
+  const h1 = <TitleH1 className="sr-only">{title ?? t}</TitleH1>;
+  if (!right) return h1;
+  return <div className={cx(toolbarCls, className)}>{h1}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
 }
-/** Heading row (title left, search/filter/display right), then the tabs row when there are tabs. `heading={false}` drops the title. */
+/** One toolbar row: tabs on the left, search/filter/display on the right. The title is screen-reader only; `heading={false}` drops it. */
 export function Toolbar({ children, right, className, heading }: { children?: ReactNode; right?: ReactNode; className?: string; heading?: ReactNode | false }) {
-  if (heading === false) return <div className={cx(toolbarCls, className)}>{children}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
-  return (
-    <>
-      <PageHeading title={heading} right={right} className={className} />
-      {children && <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-2 empty:hidden">{children}</div>}
-    </>
-  );
+  const t = usePageTitle();
+  return <div className={cx(toolbarCls, className)}>{heading !== false && <TitleH1 className="sr-only">{heading ?? t}</TitleH1>}{children}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
 }
 /** Mercury-style metric links above a table: a bold label, then "value label ›" links that filter the table. */
 export type Metric = { label: string; value: ReactNode; tone?: 'red' | 'orange' | 'amber' | 'green'; onClick?: () => void; active?: boolean };

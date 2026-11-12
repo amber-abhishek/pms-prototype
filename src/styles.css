@@ -179,3 +179,6 @@ html:not(.dark) label.border-gray-300 { border-color: #D4D4D4; }
 
 /* Connect modal and drawer fields are 36px (Add Member: 36px, 12px sides); page toolbars keep 32px beside the 34px buttons. */
 [role=dialog] { --density-input: 2.25rem; }
+
+/* Connect cells are 14px medium ink; grey secondary lines inside them (an address, a "2 days ago") stay regular. */
+table tbody td :is(.text-gray-500, .text-gray-400, .text-muted-foreground, .text-\[\#737373\], .text-\[\#A3A3A3\]):not(.font-medium):not(.font-semibold) { font-weight: 400; }

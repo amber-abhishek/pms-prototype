@@ -74,12 +74,12 @@ export function PropertiesPage() {
       const k = KICKER[p.id] ?? (p.status === 'Active' ? null : 'Not letting 2026/27');
       return (
         <span className="flex items-center gap-4 min-w-0">
-          {PHOTO[p.id] ? <img src={PHOTO[p.id]} alt="" loading="lazy" className="w-[116px] h-[62px] rounded-md object-cover shrink-0 bg-[#F5F5F5]" />
-            : <span className="w-[116px] h-[62px] rounded-md bg-[#F5F5F5] shrink-0 flex items-center justify-center"><Buildings size={20} className="text-[#A3A3A3]" /></span>}
-          <span className="min-w-0 flex flex-col gap-0.5">
-            {k && <span className={cx('text-xs leading-4 font-medium', KICKER[p.id] ? 'text-[#1D4ED8]' : 'text-[#737373]')}>{k}</span>}
-            <span className="font-medium truncate max-w-[260px]" title={p.name}>{p.name}</span>
-            <span className="text-[#737373] truncate max-w-[260px]">{shortAddress(p.address)}</span>
+          {PHOTO[p.id] ? <img src={PHOTO[p.id]} alt="" loading="lazy" className="w-[148px] h-20 rounded-[5px] object-cover shrink-0 bg-[#F5F5F5]" />
+            : <span className="w-[148px] h-20 rounded-[5px] bg-[#F5F5F5] shrink-0 flex items-center justify-center"><Buildings size={20} className="text-[#A3A3A3]" /></span>}
+          <span className="min-w-0 flex flex-col gap-1">
+            {k && <span className={cx('text-xs leading-4 font-medium', KICKER[p.id] ? 'text-[#0284C7]' : 'text-[#737373]')}>{k}</span>}
+            <span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={p.name}>{p.name}</span>
+            <span className="text-sm leading-5 text-[#737373] truncate max-w-[320px]">{shortAddress(p.address)}</span>
           </span>
         </span>
       );

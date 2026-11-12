@@ -11,11 +11,9 @@ import type { Tone } from '../../data/seed';
 /** Big title + description used at the top of every off-campus page. */
 export function Title({ title, sub, children }: { title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
   return (
-    /* Same page heading as every screen (PageHeading): 20px medium ink, lined up with the table's first column. */
-    <div className="px-[var(--tx,16px)] pt-6 pb-3 flex items-center gap-4">
-      <div className="flex-1 min-w-0 ml-[calc(var(--gx,16px)+var(--cx,12px)-var(--tx,16px))]"><TitleH1 className="text-xl leading-7 font-medium text-ink truncate">{title}</TitleH1>{sub && <p className="text-sm text-gray-500 mt-1">{sub}</p>}</div>
-      {children}
-    </div>
+    /* No visible page heading (as Amber Connect): the title is screen-reader only, its actions keep a toolbar row. */
+    children ? <div className="px-[var(--tx,16px)] pt-6 pb-2 flex items-center gap-4"><TitleH1 className="sr-only">{title}</TitleH1>{sub && <span className="sr-only">{sub}</span>}<div className="ml-auto flex items-center gap-2">{children}</div></div>
+      : <TitleH1 className="sr-only">{title}</TitleH1>
   );
 }
 

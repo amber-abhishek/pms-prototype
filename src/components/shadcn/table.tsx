@@ -90,11 +90,13 @@ const DAY = `\\d{1,2} ${MON}(?: \\d{4})?`
 /* Amounts, counts, IDs and dates: Connect sets these in Geist Mono (invoice numbers, dates, totals). */
 const MONO_RE = new RegExp(`^(?:[\\d£$€%.,:+\\-–/×x ()]+(?: ?(?:wk|weeks?|units?|beds?|rooms?|days?))?|${DAY}(?: [–-] ${DAY})?|${MON} \\d{4}|\\d{1,2} ${MON} \\d{1,2}:\\d{2})$`)
 const isMono = (x: unknown) => (typeof x === 'string' || typeof x === 'number') && /\d/.test(String(x)) && MONO_RE.test(String(x).trim())
-/** Cell content that is just a number, an amount or a date, bare or in a plain span (a grey date), gets the mono face. */
+/** Connect data cells: a number, an amount, a date or a duration, bare or in a plain span, is 14px regular Geist Mono in #737373.
+ *  A span that already sets its own colour or weight (a red count, a bold total) keeps it and only gets the mono face. */
+const OWN_LOOK = /\b(?:text-(?:\[#|gray-|red-|green-|blue-|amber-|orange-|ink\b|muted)|font-(?:medium|semibold|bold))/
 export function monoize(v: React.ReactNode): React.ReactNode {
-  if (isMono(v)) return <span className="font-mono tabular-nums">{v}</span>
+  if (isMono(v)) return <span className="font-mono tabular-nums font-normal text-[#737373]">{v}</span>
   if (React.isValidElement<{ className?: string; children?: React.ReactNode }>(v) && v.type === 'span' && isMono(v.props.children))
-    return React.cloneElement(v, { className: cn(v.props.className, 'font-mono tabular-nums') })
+    return React.cloneElement(v, { className: cn(v.props.className, 'font-mono tabular-nums', !OWN_LOOK.test(v.props.className ?? '') && 'font-normal text-[#737373]') })
   return v
 }
 
@@ -105,7 +107,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      /* Connect rows: 56px, 8px between cells (24px at the table's edges, set by the wrapper), 14px regular ink */ "h-14 px-2 py-2 align-middle text-[#0A0A0A] [&:has([role=checkbox])]:pr-0",
+      /* Connect rows: 56px, 8px between cells (24px at the table's edges, set by the wrapper); text 14/20 medium ink (Bookings: IDs, names, listing) */ "h-14 px-2 py-2 align-middle text-sm leading-5 font-medium text-[#0A0A0A] [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}

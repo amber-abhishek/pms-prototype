@@ -175,7 +175,7 @@ function ModulePages({ mod, counts }: { mod: Module; counts: NavCounts }) {
     <div className="relative pl-6 pt-0.5 pb-1.5 flex flex-col gap-0.5 before:absolute before:left-[15px] before:top-0.5 before:bottom-1.5 before:w-px before:bg-[#E5E5E5]">
       {mod.sections.map((s, i) => s.pinned ? <PinnedSection key={i} counts={counts} /> : (
         <Fragment key={i}>
-          {s.label && <div className="h-7 mt-1 px-2 flex items-center text-xs leading-4 font-medium text-[#737373]">{s.label}</div>}
+          {s.label && <div className="h-7 mt-1 px-2 flex items-center text-xs leading-4 font-medium uppercase text-[#737373]">{s.label}</div>}
           {s.items.map((it) => <PanelRow key={it.label} it={it} count={it.count?.(counts)} locked={mod.locked} mode={mod.id === 'home' ? 'plain' : 'module'} />)}
         </Fragment>
       ))}
@@ -301,7 +301,7 @@ function PinnedSection({ counts }: { counts: NavCounts }) {
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="h-7 mt-1 pl-2 pr-1 flex items-center justify-between text-xs leading-4 font-medium text-[#737373]">
+      <div className="h-7 mt-1 pl-2 pr-1 flex items-center justify-between text-xs leading-4 font-medium uppercase text-[#737373]">
         Pinned
         <PinPicker />
       </div>
@@ -398,35 +398,35 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
         </>}
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-60 p-0 overflow-hidden">
-        <DropdownMenuLabel className="px-3 py-3 font-normal bg-[#F5F5F5] border-b border-[#E5E5E5] flex items-center gap-2.5">
+        <DropdownMenuLabel className="px-5 py-3 font-normal bg-[#F5F5F5] border-b border-[#E5E5E5] flex items-center gap-2.5">
           <PersonPhoto name={me.name} size={32} />
           <span className="min-w-0"><span className="block font-medium text-sm text-ink truncate">{me.name}</span><span className="block text-xs text-[#737373] truncate">{me.email}</span></span>
         </DropdownMenuLabel>
-        <div className="p-1.5">
-          <DropdownMenuLabel className="px-2 pt-1 pb-0.5 font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#737373]">View as (demo)</DropdownMenuLabel>
+        <div className="p-2">
+          <DropdownMenuLabel className="px-3 pt-1.5 pb-1 font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#737373]">View as (demo)</DropdownMenuLabel>
           {roles.map((r) => (
-            <DropdownMenuItem key={r.id} className="h-auto items-start px-2 py-1.5 focus:bg-[#F5F5F5]"
+            <DropdownMenuItem key={r.id} className="h-auto items-start px-3 py-1.5 focus:bg-[#F5F5F5]"
               onSelect={() => { setRole(r.id); nav('/'); toast.success(`Viewing as ${r.label}`); }}>
-              <span className="size-4 mt-0.5">{role === r.id && <CheckIcon size={16} weight="bold" className="text-primary" />}</span>
+              <span className="size-4 mt-0.5 shrink-0">{role === r.id && <CheckIcon size={16} weight="bold" className="text-primary" />}</span>
               <span><span className="block">{r.label}</span><span className="block text-xs text-[#737373]">{r.sub}</span></span>
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator className="bg-[#E5E5E5]" />
           {/* Stays open when toggled, so you see the switch flip and the app change behind it. */}
-          <DropdownMenuItem className="px-2 focus:bg-[#F5F5F5]" onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
+          <DropdownMenuItem className="px-3 focus:bg-[#F5F5F5]" onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
             <Moon size={16} strokeWidth={1.5} className="text-[#404040]" /><span className="flex-1">Dark mode</span>
             <Switch checked={theme === 'dark'} tabIndex={-1} aria-hidden className="pointer-events-none" />
           </DropdownMenuItem>
           {/* Demo: every list goes empty so its first-run state shows. Off brings the data back. */}
-          <DropdownMenuItem className="px-2 focus:bg-[#F5F5F5]" onSelect={(e) => { e.preventDefault(); setEmpty(!emptyOn); }}>
+          <DropdownMenuItem className="px-3 focus:bg-[#F5F5F5]" onSelect={(e) => { e.preventDefault(); setEmpty(!emptyOn); }}>
             <Tray size={16} strokeWidth={1.5} className="text-[#404040]" /><span className="flex-1">Empty states</span>
             <Switch checked={emptyOn} tabIndex={-1} aria-hidden className="pointer-events-none" />
           </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-[#E5E5E5]" />
-          <DropdownMenuItem className="px-2 focus:bg-[#F5F5F5]" onSelect={() => { reset(); nav('/'); toast.success('Demo data reset'); }}>
+          <DropdownMenuItem className="px-3 focus:bg-[#F5F5F5]" onSelect={() => { reset(); nav('/'); toast.success('Demo data reset'); }}>
             <ArrowCounterClockwise size={16} strokeWidth={1.5} className="text-[#404040]" />Reset demo data
           </DropdownMenuItem>
-          <DropdownMenuItem className="px-2 text-[#DC2626] focus:bg-[#F5F5F5] focus:text-[#DC2626]" onSelect={signOut}>
+          <DropdownMenuItem className="px-3 text-[#DC2626] focus:bg-[#F5F5F5] focus:text-[#DC2626]" onSelect={signOut}>
             <SignOut size={16} strokeWidth={1.5} />Sign out
           </DropdownMenuItem>
         </div>

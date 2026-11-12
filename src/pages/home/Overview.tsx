@@ -7,7 +7,7 @@ import { useInv } from '../../data/inventory';
 import { useOrg } from '../../data/org';
 import { useAlloc } from '../../data/allocations';
 import { Button, ButtonGroup, Card, PageHeader, Pill, cx } from '../../components/ui';
-import { RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
+import { KpiCards, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
 import { HomeBand, MenuButton } from './parts';
 import { useEmpty } from '../../data/empty';
 import { ME, useHome } from '../../data/home';
@@ -66,6 +66,12 @@ function Today() {
       <div className="flex-1 overflow-auto flex flex-col">
         <HomeBand />
         <div className="p-6 flex flex-col gap-4">
+          <KpiCards items={e ? [{ label: 'Beds let', value: '0' }, { label: 'Applications', value: '0' }, { label: 'Rent collected', value: '£0' }, { label: 'Open repairs', value: '0' }] : [
+            { label: 'Beds let', value: '2,481', delta: '+4.2%', to: '/reports' },
+            { label: 'Applications', value: '3,410', delta: '+8.1%', to: '/allocations/applications' },
+            { label: 'Rent collected', value: '£3.86m', delta: '−1.3%', to: '/reports/rent' },
+            { label: 'Open repairs', value: String(open.length), delta: '−12%', good: true, to: '/residents/maintenance' },
+          ]} />
           <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">
             <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="18 released" kind="line" chartOnly
               points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />

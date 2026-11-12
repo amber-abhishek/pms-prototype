@@ -78,16 +78,48 @@ export function FolderTabs({ tabs }: { tabs: { to: string; label: string; count?
   );
 }
 
-/** The card's mono strip: 33px, 6/20 padding, #FAFAFA, label on the left and a note, range or tag on the right. */
-export function Strip({ title, right }: { title: string; right?: ReactNode }) {
+/** Card header (Connect insights overview): 16px medium title with an optional 14px grey line under it, and a note,
+ *  range or tag on the right. No band and no rule: the card body follows straight on. */
+export function Strip({ title, sub, right }: { title: string; sub?: ReactNode; right?: ReactNode }) {
   return (
-    <div className="h-[33px] shrink-0 px-5 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#E5E5E5] rounded-t-2xl">
-      <h3 className="flex-1 min-w-0 truncate font-mono uppercase text-xs leading-5 font-medium tracking-[0.48px] text-[#171717]">{title}</h3>
-      {right}
+    <div className="shrink-0 px-6 pt-5 flex items-start gap-3">
+      <div className="flex-1 min-w-0">
+        <h3 className="text-base leading-6 font-medium text-[#0A0A0A] truncate">{title}</h3>
+        {sub && <p className="text-sm leading-5 text-[#737373] truncate">{sub}</p>}
+      </div>
+      {right && <div className="shrink-0 min-h-6 flex items-center gap-2">{right}</div>}
     </div>
   );
 }
-const stripNote = 'font-mono uppercase text-xs leading-5 font-medium text-[#737373]';
+const stripNote = 'text-sm leading-5 text-[#737373]';
+
+/** Connect KPI card: mono uppercase label, 32px figure, then a trend arrow, the change in green or red and a grey "vs" line. */
+export type Kpi = { label: string; value: string; delta?: string; good?: boolean; vs?: string; to?: string };
+export function KpiCards({ items }: { items: Kpi[] }) {
+  return (
+    <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+      {items.map((k) => {
+        const up = k.delta ? !/^[−-]/.test(k.delta) : false;
+        const good = k.good ?? up;
+        const A = up ? ArrowUpRight : ArrowDownRight;
+        const body = (
+          <>
+            <div className="font-mono uppercase text-xs leading-4 tracking-[0.04em] font-medium text-[#737373] truncate">{k.label}</div>
+            <div className="mt-3 text-[32px] leading-10 font-semibold tracking-[-0.48px] tabular-nums text-[#0A0A0A] truncate">{k.value}</div>
+            <div className="mt-2 h-5 flex items-center gap-1.5 text-sm leading-5 text-[#737373] whitespace-nowrap">
+              {k.delta && <span className={cx('flex items-center gap-0.5 font-medium tabular-nums', good ? 'text-[#16A34A]' : 'text-[#DC2626]')}><A size={14} strokeWidth={1.75} />{k.delta}</span>}
+              {k.delta && (k.vs ?? 'vs last 30 days')}
+            </div>
+          </>
+        );
+        return k.to
+          ? <Link key={k.label} to={k.to} className={cx(kpiCard, 'hover:shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow')}>{body}</Link>
+          : <div key={k.label} className={kpiCard}>{body}</div>;
+      })}
+    </div>
+  );
+}
+const kpiCard = 'min-w-0 rounded-xl border border-[#E5E5E5] bg-white px-6 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 const tone = { green: 'text-[#16A34A]', orange: 'text-[#DC2626]', red: 'text-[#DC2626]', ink: 'text-[#0A0A0A]' } as const;
 type ToneKey = keyof typeof tone;
@@ -135,12 +167,12 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
   const hx = hover === null ? 0 : kind === 'bar' ? ((hover + 0.5) / n) * 100 : x(hover);
   const last = points[n - 1];
   return (
-    <Card className="flex flex-col min-w-0 h-[337px]">
+    <Card className="rounded-xl flex flex-col min-w-0 h-[349px]">
       <Strip title={title} right={<div className="flex items-center gap-3">
         {!chartOnly && <ViewSwitch value={view} onChange={setView} chart={kind === 'line' ? ChartLine : ChartColumnIcon} />}
         <button type="button" className={cx(stripNote, 'flex items-center gap-1 hover:text-[#0A0A0A]')}>Last 30 days<CaretDown size={14} strokeWidth={1.5} /></button>
       </div>} />
-      <div className="flex-1 min-h-0 p-5 flex flex-col gap-4">
+      <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <span className="flex items-baseline gap-2">
             <span className="text-[32px] leading-10 font-semibold tracking-[-0.48px] tabular-nums text-[#0A0A0A]">{value}</span>
@@ -217,9 +249,9 @@ export type RankRow = { id: string; name: string; value: string; pct: number; wa
 /** Ranked list beside the chart (Figma "Pre-let by property"): grey building, name, 72×4 meter, mono percentage. */
 export function RankCard({ title, note, rows, more, moreLabel, moreTo, empty }: { title: string; note: string; rows: RankRow[]; more: number; moreLabel: string; moreTo: string; /** Shown when there are no rows. */ empty?: ReactNode }) {
   return (
-    <Card className="flex flex-col min-w-0 h-[337px]">
+    <Card className="rounded-xl flex flex-col min-w-0 h-[349px]">
       <Strip title={title} right={<span className={stripNote}>{note}</span>} />
-      {!rows.length && empty ? <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3 text-sm text-[#737373]">{empty}</div> : <div className="flex-1 min-h-0 p-5 flex flex-col">
+      {!rows.length && empty ? <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3 text-sm text-[#737373]">{empty}</div> : <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col">
         <div className="flex flex-col gap-1">
           {rows.map((r) => (
             <Link key={r.id} to={r.to} className="h-[30px] -mx-2 px-2 rounded-lg flex items-center gap-2.5 text-sm hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA]">
@@ -243,9 +275,9 @@ const FUNNEL_FILL = ['#DCE6FF', '#C7D6FE', '#A9C1FC', '#5B8DFF', '#2B5CFF'];
 /** Five steps, conversion from the step before, bars deepen towards the lease. */
 export function FunnelCard({ steps, caption, summary, to }: { steps: [string, number][]; caption: string; summary: string; to: string }) {
   return (
-    <Card className="flex flex-col">
+    <Card className="rounded-xl flex flex-col">
       <Strip title="Allocation funnel" />
-      <div className="p-5">
+      <div className="px-6 pb-6 pt-4">
         <div className="grid grid-cols-5 gap-3">
           {steps.map(([label, n], i) => (
             <Link key={label} to={to} className="min-w-0 group">
@@ -273,9 +305,9 @@ export const CardButton = ({ onClick, children }: { onClick: () => void; childre
  *  line (12px #737373 label over a 14px medium value) with one small outline action. */
 export function SummaryCard({ title, tag, children, foot, footValue, footTone = 'ink', action }: { title: string; tag?: ReactNode; children: ReactNode; foot: string; footValue: string; footTone?: ToneKey; action: ReactNode }) {
   return (
-    <Card className="h-[247px] flex flex-col min-w-0">
+    <Card className="rounded-xl h-[259px] flex flex-col min-w-0">
       <Strip title={title} right={tag} />
-      <div className="flex-1 min-h-0 p-5 flex flex-col">
+      <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col">
         <div className="flex-1 min-h-0">{children}</div>
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#E5E5E5]">
           <div className="min-w-0"><div className="text-xs leading-4 text-[#737373]">{foot}</div><div className={cx('text-sm leading-5 font-medium truncate', tone[footTone])}>{footValue}</div></div>

@@ -4,7 +4,6 @@ import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
 import { Buildings, CaretRight, Info, Lock, Plus, Tag, Textbox, Trash, TreeStructure } from '../../components/icons';
 import { Button, PageHeading, Field, Input, Note, PageHeader, Toolbar, Pill, SearchInput, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
-import { Checkbox } from '../../components/shadcn/checkbox';
 import { invId, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
 import { FieldErr, Modal, Picker } from './common';
 
@@ -144,7 +143,6 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
   if (!f) return null;
   const isNew = f === 'new';
   const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const targets = structures.flatMap((s) => s.levels.filter((l) => l.name !== 'Tenancy').map((l) => `${s.name} › ${l.name}`));
   const nameErr = !name.trim() ? '' : !key ? 'Use letters or numbers in the name.' : fields.some((x) => (isNew || x.id !== f.id) && (x.name.trim().toLowerCase() === name.trim().toLowerCase() || x.key === key)) ? `A field called ${name.trim()} already exists.` : '';
   const del = () => { useInv.getState().set('fields', (l) => l.filter((x) => x.id !== (f as CField).id)); setAsking(false); onClose(); toast.success(`${(f as CField).name} field deleted`); };
   const save = () => {
@@ -169,8 +167,30 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
         </div>
         </SheetSection>
         <SheetSection title="Attached to">
-          <div className="rounded-xl border border-line divide-y divide-line max-h-64 overflow-auto">
-            {targets.map((t) => <label key={t} className="h-10 px-3 flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50"><Checkbox checked={attached.includes(t)} onCheckedChange={(v) => setAttached((v === true) ? [...attached, t] : attached.filter((x) => x !== t))} />{t}</label>)}
+          {/* One line per layout: its level chain as toggle chips (the same chain as the layout preview). Click a level to attach the field there. */}
+          <div className="flex flex-col gap-4">
+            {structures.map((st) => {
+              const lv = st.levels.filter((l) => l.name !== 'Tenancy');
+              const on = lv.filter((l) => attached.includes(`${st.name} › ${l.name}`)).length;
+              return (
+                <div key={st.id}>
+                  <div className="flex items-baseline gap-2 mb-2"><span className="text-sm leading-5 font-medium text-[#0A0A0A]">{st.name}</span>{on > 0 && <span className="font-mono text-xs text-[#737373] tabular-nums">{on}</span>}</div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {lv.map((l, i) => {
+                      const t = `${st.name} › ${l.name}`;
+                      const sel = attached.includes(t);
+                      return (
+                        <span key={t} className="flex items-center gap-1.5">
+                          {i > 0 && <CaretRight size={10} className="text-[#A3A3A3]" />}
+                          <button type="button" aria-pressed={sel} onClick={() => setAttached(sel ? attached.filter((x) => x !== t) : [...attached, t])}
+                            className={cx('h-7 px-2.5 rounded-lg border text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring', sel ? 'bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-medium' : 'bg-white border-[#E5E5E5] text-[#404040] hover:bg-[#F5F5F5]')}>{l.name}</button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </SheetSection>
         <SheetSection title="Rules">

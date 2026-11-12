@@ -25,7 +25,7 @@ const TABS: { id: string; label: string; to: string; icon: Icon; external?: bool
   { id: 'emails', label: 'Emails', to: '/settings/emails', icon: EnvelopeSimple },
 ];
 
-/* Mercury-style settings page: a plain 20px title (no subtitle), then sections as two columns — what it is on the
+/* Settings page: a plain 20px title (no subtitle), then sections as two columns — what it is on the
    left, the fields on the right — split by hairlines instead of stacked headings. */
 function Layout({ tab, title, actions, children, wide }: { tab: string; title: string; actions?: ReactNode; children: ReactNode; wide?: boolean }) {
   const t = TABS.find((x) => x.id === tab)!;

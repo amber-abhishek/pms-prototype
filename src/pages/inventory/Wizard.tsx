@@ -93,7 +93,7 @@ export function AddPropertyWizard() {
   const canNext = step === 0 ? !nameErr : step === 1 ? picked : step === 2 ? unitsOk : step === 3 ? termErrs.length === 0 : true;
   /* Leaving loses every step, so ask first (✕ and Cancel). */
   const [leaving, setLeaving] = useState(false);
-  const leave = () => (step > 0 ? setLeaving(true) : nav('/inventory/properties'));
+  const leave = () => (step > 0 || name.trim() || invNo.trim() ? setLeaving(true) : nav('/inventory/properties'));
 
   const create = () => {
     if (creating.current) return;
@@ -405,7 +405,7 @@ export function AddPropertyWizard() {
         </DialogContent>
       </Modal>
       <Dialog open={leaving} onClose={() => setLeaving(false)} title="Discard this property?" sub="Nothing has been created yet. What you entered in these steps will be lost."
-        footer={<><Button variant="ghost" onClick={() => setLeaving(false)}>Keep editing</Button><Button variant="danger" icon={null} onClick={() => nav('/inventory/properties')}>Discard</Button></>}>{null}</Dialog>
+        footer={<><Button onClick={() => setLeaving(false)}>Keep editing</Button><Button variant="danger" icon={null} onClick={() => nav('/inventory/properties')}>Discard</Button></>}>{null}</Dialog>
     </>
   );
 }

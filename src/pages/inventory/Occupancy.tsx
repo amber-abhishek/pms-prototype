@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Buildings, CalendarRange, CaretDown, CircleDashed, Grid3x3, Hourglass, House, List, Prohibit, SignIn, Stack, type Icon } from '../../components/icons';
-import { Button, FilterButton, PageHeader, Pill, Table, cx, type Tone, PageHeading } from '../../components/ui';
+import { Button, MultiFilter, PageHeader, Pill, Table, cx, type Tone } from '../../components/ui';
 import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import { Menu } from './common';
 import { useEmpty } from '../../data/empty';
@@ -78,12 +78,11 @@ export function OccupancyPage() {
   const [year, setYear] = useState('2026/27');
   const [view, setView] = useState<'plan' | 'list'>('plan');
   const h = HALLS.find((x) => x.id === hid)!;
-  /* Block is a picker (the plan shows one block at a time), not a filter, so Filter only holds Status and starts empty. */
+  /* Block is a picker (the plan shows one block at a time), not a filter; Status is the one filter and starts empty. */
   const [blockSel, setBlock] = useState('Block G');
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [statusF, setStatusF] = useState<string[]>([]);
   const block = h.blocks.includes(blockSel) ? blockSel : h.blocks[0];
-  const status = ORDER.find((s) => ST[s].label === filters.status);
-  const rooms = useMemo(() => roomsFor(h, block).filter((x) => !status || x.st === status), [h, block, status]);
+  const rooms = useMemo(() => roomsFor(h, block).filter((x) => !statusF.length || statusF.includes(ST[x.st].label)), [h, block, statusF]);
   const empty = useEmpty((s) => s.on);
   const nav = useNavigate();
   const pickHall = (id: string) => { const nh = HALLS.find((x) => x.id === id)!; setHid(id); setBlock(nh.blocks[0]); };
@@ -109,25 +108,27 @@ export function OccupancyPage() {
         <Button icon={DownloadSimple} onClick={() => toast.success(`${h.name.toLowerCase().replace(/\W+/g, '-')}-occupancy-${year.replace('/', '-')}.csv exported`)}>Export</Button>
       </PageHeader>
 
-      <PageHeading right={<>
-        <FilterButton defs={[{ id: 'status', label: 'Status', options: ORDER.map((s) => ST[s].label) }]} value={filters} onChange={setFilters} />
-        <UITabs value={view} onValueChange={(v) => setView(v as typeof view)}>
-        <TabsList aria-label="View">
-        {([['plan', 'Floor plan', LayoutGrid], ['list', 'List', List]] as const).map(([id, label, I]) => (
-        <TabsTrigger key={id} value={id} className="gap-1.5 text-xs"><I size={12} />{label}</TabsTrigger>
-        ))}
-        </TabsList>
-        </UITabs>
-      </>} />
-      <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-3">
-        <Menu align="left" width={240} trigger={() => (
-          <Button variant="control" icon={Buildings}>{h.name}<span className="text-gray-500 tabular-nums">{h.beds}</span><CaretDown size={14} className="text-gray-500" /></Button>
+      {/* Connect toolbar (as Properties, 3884:39809): one 68px row, 16/24 padding, every control 34px.
+          Hall and block pick what the plan shows on the left; the Status filter and the view switch sit on the right. */}
+      <div className="shrink-0 px-6 py-4 flex items-center gap-3">
+        <Menu align="left" width={240} trigger={(o) => (
+          <Button variant="control" icon={Buildings} onClick={o}>{h.name}<span className="text-[#737373] font-mono tabular-nums">{h.beds}</span><CaretDown size={16} strokeWidth={1.75} className="opacity-60" /></Button>
         )} items={HALLS.map((x) => ({ label: `${x.name} · ${x.beds} beds`, onClick: () => pickHall(x.id) }))} />
         {h.blocks.length > 1 && (
-          <Menu align="left" width={180} trigger={() => (
-            <Button variant="control" icon={Stack}>{block}<CaretDown size={14} className="text-gray-500" /></Button>
+          <Menu align="left" width={180} trigger={(o) => (
+            <Button variant="control" icon={Stack} onClick={o}>{block}<CaretDown size={16} strokeWidth={1.75} className="opacity-60" /></Button>
           )} items={h.blocks.map((b) => ({ label: b, onClick: () => setBlock(b) }))} />
         )}
+        <div className="ml-auto flex items-center gap-3">
+          <MultiFilter label="Status" width={220} value={statusF} onChange={setStatusF} options={ORDER.map((st) => ({ value: ST[st].label, tone: ST[st].tone }))} />
+          <UITabs value={view} onValueChange={(v) => setView(v as typeof view)}>
+            <TabsList aria-label="View" className="h-[34px]">
+              {([['plan', 'Floor plan', LayoutGrid], ['list', 'List', List]] as const).map(([id, label, I]) => (
+                <TabsTrigger key={id} value={id} className="h-[26px] gap-1.5 text-xs"><I size={14} />{label}</TabsTrigger>
+              ))}
+            </TabsList>
+          </UITabs>
+        </div>
       </div>
 
       <div data-fill className="flex-1 overflow-auto">

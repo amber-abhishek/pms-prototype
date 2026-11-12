@@ -23,8 +23,8 @@ function HowItWorks({ open, onClose }: { open: boolean; onClose: () => void }) {
     <ODialog open={open} onClose={onClose} title="How campuses work" sub="A campus groups halls by place." footer={<Button variant="primary" onClick={onClose}>Got it</Button>}>
       <ul className="space-y-2.5 text-sm text-gray-700 list-disc pl-4">
         <li>Every property belongs to one campus. You pick it when you add the property.</li>
-        <li>The student site lets students browse halls by campus. Only <b>Active</b> campuses appear there.</li>
-        <li>The address decides which Amber region supplies PBSA listings near the campus.</li>
+        <li>The resident site lets residents browse halls by campus. Only <b>Active</b> campuses appear there.</li>
+        <li>The address decides which partner region supplies partner hall listings near the campus.</li>
         <li>Access on a campus covers every hall on it.</li>
       </ul>
     </ODialog>
@@ -62,7 +62,7 @@ export function CampusesPage() {
             { key: 'n', label: 'Campus', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#737373]">{c.address || 'No address yet'}</div></div> },
             { key: 's', label: 'Status', render: (c) => <Status s={c.status} /> },
             { key: 'c', label: 'City', render: (c) => <span className="text-sm">{c.city || '—'}</span> },
-            { key: 'r', label: 'Amber region', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
+            { key: 'r', label: 'Partner region', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
             { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()} className="relative inline-flex after:absolute after:inset-x-0 after:-inset-y-px after:content-['']"><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-[#737373]">None yet</span>; } },
           ]} />
         </>
@@ -107,7 +107,7 @@ export function CampusForm() {
     const rec: Campus = { id: existing?.id ?? oid('c'), name: n, status, ...(place ?? { address: '', city: '', region: '', postcode: '', country: '', amberRegion: '' }) };
     set('campuses', (cs) => (existing ? cs.map((c) => (c.id === existing.id ? rec : c)) : [...cs, rec]));
     audit_(existing ? `edited the campus ${n}` : `added the campus ${n}`, 'Campuses');
-    toast.success(existing ? `${n} saved` : `${n} added`, { description: status === 'Active' ? 'It shows on the student site.' : status === 'Draft' ? 'It’s a draft: make it Active to show it on the student site.' : 'It’s off the student site.' });
+    toast.success(existing ? `${n} saved` : `${n} added`, { description: status === 'Active' ? 'It shows on the resident site.' : status === 'Draft' ? 'It’s a draft: make it Active to show it on the resident site.' : 'It’s off the resident site.' });
     nav('/org/campuses');
   };
 
@@ -125,9 +125,9 @@ export function CampusForm() {
             <label className="block"><span className="block text-sm font-medium text-gray-700 mb-1.5">Name</span><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Durham City" /></label>
             <div className="mt-4"><span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
               <IconSelect ariaLabel="Status" className="w-48" value={status} onChange={(v) => setStatus(v as Campus['status'])} options={['Draft', 'Active', 'Inactive'].map((s) => ({ value: s, label: s }))} /></div>
-            <p className="text-sm text-[#737373] mt-4 leading-5">Only active campuses show on the student site. Active needs an address.</p>
+            <p className="text-sm text-[#737373] mt-4 leading-5">Only active campuses show on the resident site. Active needs an address.</p>
           </Section>
-          <Section title="Address" sub="Sets the Amber region for PBSA listings.">
+          <Section title="Address" sub="Sets the partner region for partner hall listings.">
             <span className="block text-sm font-medium text-gray-700 mb-1.5">Address</span>
             <div className="relative">
               <label className="relative flex items-center">
@@ -147,7 +147,7 @@ export function CampusForm() {
                 <div key={k}><div className="text-sm text-[#737373]">{k}</div><div className={cx('text-sm mt-1', !v && 'text-[#737373]')}>{v || '—'}</div></div>
               ))}
             </div>
-            {place && <p className="text-xs text-[#737373] mt-4">Amber region: <span className="text-ink font-medium">{place.amberRegion}</span></p>}
+            {place && <p className="text-xs text-[#737373] mt-4">Partner region: <span className="text-ink font-medium">{place.amberRegion}</span></p>}
           </Section>
           <Section title="Images" sub="Optional.">
             <button type="button" onClick={() => toast('Image upload is off in the prototype')} className="h-24 w-full rounded-lg border border-dashed border-gray-300 text-sm text-[#737373] flex flex-col items-center justify-center gap-1 hover:bg-gray-50"><ImageSquare size={20} />Drop images or click to upload</button>

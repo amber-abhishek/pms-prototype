@@ -376,7 +376,7 @@ function ArchiveFlatDialog({ flat, onClose, onConfirm }: { flat: Flat | null; on
       <div className="rounded-xl border border-line divide-y divide-line">
         {flat.units.map((u) => <div key={u.id} className="h-10 px-3.5 flex items-center gap-3 text-sm"><span className="font-mono w-14">{u.code}</span><span className="flex-1 text-[#737373]">{u.type}</span><PropStatus s={u.status} /></div>)}
       </div>
-      <div className="mt-3 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span><b className="font-semibold text-[#1D4ED8]">{withT} tenancies keep their status</b><span className="block text-[#737373]">Signed students stay in their rooms; nobody new can book them.</span></span></div>
+      <div className="mt-3 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span><b className="font-semibold text-[#1D4ED8]">{withT} tenancies keep their status</b><span className="block text-[#737373]">Signed residents stay in their rooms; nobody new can book them.</span></span></div>
     </Modal>
   );
 }

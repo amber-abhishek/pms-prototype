@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useWorkspace } from '../data/workspace';
 
 /** The organisation's logo and brand colour. Set once in Settings › General; emails, the booking site and the
-    off-campus portal all read it from here, so a university has one identity. */
+    off-campus portal all read it from here, so an operator has one identity. */
 export const useBrand = () => useWorkspace((s) => s.branding);
 
 /** Read-only row for a screen that uses the shared logo and colour, with the way to change them. */

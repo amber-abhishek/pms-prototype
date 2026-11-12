@@ -113,7 +113,7 @@ function FirstDay() {
   const members = useOrg((s) => s.members.length);
   const cycles = useAlloc((s) => s.cycles.length);
   const steps = [
-    { id: 's1', title: 'Choose the student site domain', sub: 'Portals · durham.amberstudent.com', done: true },
+    { id: 's1', title: 'Choose the resident site domain', sub: 'Portals · durham.residents.app', done: true },
     { id: 's2', title: 'Add campuses', sub: `Organisation · ${campuses} campuses`, done: campuses > 0, cta: 'Add campuses', to: '/org/campuses' },
     { id: 's3', title: 'Add your first property', sub: 'Inventory · guided setup or a spreadsheet', done: props > 0, cta: 'Add a property', to: '/inventory/properties' },
     { id: 's4', title: 'Invite your team', sub: 'Roles and access · wardens, front desk, estates', done: members > 1, cta: 'Invite', to: '/org/people' },

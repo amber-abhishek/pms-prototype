@@ -101,9 +101,9 @@ function Sidebar({ visible, active, collapsed, onToggle }: { visible: Module[]; 
         {/* Header (Figma 3884:39272): 56px, 16/12 sides, logo + org name + chevron, the collapse square on the right. */}
         <div className={cx('h-14 shrink-0 flex items-center border-b border-[#E5E5E5]', collapsed ? 'justify-center px-3' : 'gap-2 pl-4 pr-3')}>
           {!collapsed && (
-            <button type="button" className="flex items-center gap-2 min-w-0 rounded-lg hover:opacity-80" onClick={() => toast('Durham University is the only organisation on this account')}>
+            <button type="button" className="flex items-center gap-2 min-w-0 rounded-lg hover:opacity-80" onClick={() => toast('Durham Residences is the only organisation on this account')}>
               <OrgLogo size={26} />
-              <span className="text-sm leading-5 font-semibold text-[#0A0A0A] truncate">Durham University</span>
+              <span className="text-sm leading-5 font-semibold text-[#0A0A0A] truncate">Durham Residences</span>
               <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373] shrink-0" />
             </button>
           )}

@@ -11,7 +11,7 @@ import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, 
 import { Alert, EmptyState, Header, IconSelect, ODialog, RowMenu } from './parts';
 
 type TabId = 'members' | 'roles' | 'audit';
-const FOOT = 'Members sign in with their university account; a role sets what they can do, halls set where.';
+const FOOT = 'Members sign in with their operator account; a role sets what they can do, halls set where.';
 
 export function RoleTag({ role }: { role?: Role }) {
   if (!role) return <span className="text-gray-400">—</span>;
@@ -176,7 +176,7 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
     if (busy.current) return;
     const e = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { toast.error('Enter an email address'); return; }
-    if (!e.endsWith('@durham.ac.uk')) { toast.error('Use a Durham address', { description: 'Members sign in with their university account.' }); return; }
+    if (!e.endsWith('@durham.ac.uk')) { toast.error('Use a Durham address', { description: 'Members sign in with their operator account.' }); return; }
     busy.current = true;
     const before = snap();
     const name = nameFromEmail(e);

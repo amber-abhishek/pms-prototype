@@ -28,7 +28,7 @@ type Content = {
 };
 type SiteState = Content & {
   sel: SecId;
-  /** What students see now. "Unpublished changes" is what differs from it. */
+  /** What residents see now. "Unpublished changes" is what differs from it. */
   published: Content;
   set: (p: Partial<Content & { sel: SecId }>) => void;
   publish: () => void;
@@ -59,7 +59,7 @@ const draft: Content = {
   intro: 'Applications for 2027/28 open 1 February. Pick up to three colleges and the room type you want.',
   hallsMode: 'all', picked: HALLS.map((h) => h.name), live: true, prices: true, floor: false,
   corners: 'soft', font: 'Geist',
-  name: 'Durham University Accommodation', seo: true, password: false, pw: '', cycle: '2027/28',
+  name: 'Durham Accommodation', seo: true, password: false, pw: '', cycle: '2027/28',
 };
 const KEYS = Object.keys(draft) as (keyof Content)[];
 const pick = (s: Content): Content => Object.fromEntries(KEYS.map((k) => [k, s[k]])) as Content;
@@ -81,7 +81,7 @@ export function publishProblems(s: Content) {
   const on = (id: SecId) => s.sections.some((x) => x.id === id && x.on);
   return [
     !s.sections.some((x) => x.on) && 'Turn on at least one section',
-    s.sections.some((x) => x.on) && !on('apply') && 'Turn on Apply now: it’s how students apply',
+    s.sections.some((x) => x.on) && !on('apply') && 'Turn on Apply now: it’s how residents apply',
     on('hero') && !s.headline.trim() && 'Add a headline',
     on('halls') && s.hallsMode === 'pick' && !s.picked.length && 'Pick at least one hall',
     s.password && s.pw.trim().length < 8 && 'Set a password of 8 characters or more',
@@ -266,7 +266,7 @@ function SettingsEditor() {
       </Row>
       <Row title="Password protect" sub="Only people with the password can see it."><Switch checked={s.password} onChange={(v) => s.set(v ? { password: true, seo: false } : { password: false })} label="Password protect" /></Row>
       {s.password && (
-        <Field label="Site password" hint={s.pw.trim().length >= 8 ? 'Share it with students who should see the site.' : 'At least 8 characters. Needed before you publish.'}>
+        <Field label="Site password" hint={s.pw.trim().length >= 8 ? 'Share it with residents who should see the site.' : 'At least 8 characters. Needed before you publish.'}>
           <Input type="password" autoComplete="new-password" value={s.pw} onChange={(e) => s.set({ pw: e.target.value })} />
         </Field>
       )}

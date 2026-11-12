@@ -425,7 +425,7 @@ function PhotosTab({ p }: { p: Property }) {
             </div>
           </Card>
           <Card className="p-4">
-            <Field label="Description" hint="Shown on the student booking site."><Textarea rows={5} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={`What’s it like to live at ${p.name}?`} /></Field>
+            <Field label="Description" hint="Shown on the resident booking site."><Textarea rows={5} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={`What’s it like to live at ${p.name}?`} /></Field>
             {!desc && <button type="button" className="mt-2 text-sm text-primary" onClick={() => setDesc(`${p.name} sits on Elvet Hill, ten minutes’ walk from the Bill Bryson Library and the Science Site. Rooms are in flats of six with a shared kitchen; every room is ensuite.`)}>Use a starting draft</button>}
           </Card>
         </div>
@@ -560,9 +560,9 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
         <SheetSection title="Apply to">
           <div className="space-y-2">
             <RadioCard checked={apply === 'new'} onClick={() => setApply('new')} title="New tenancies only" sub={`${signed} signed tenancies stay at ${rt.rent != null ? money(rt.rent) : '—'}`} />
-            <RadioCard checked={apply === 'all'} onClick={() => setApply('all')} title="Also signed tenancies" sub={`Changes ${signed} signed contracts · each student is emailed`} />
+            <RadioCard checked={apply === 'all'} onClick={() => setApply('all')} title="Also signed tenancies" sub={`Changes ${signed} signed contracts · each resident is emailed`} />
           </div>
-          {apply === 'all' && <div className="mt-4"><Note tone="amber" icon={Warning} title={`${signed} students have signed at ${rt.rent != null ? money(rt.rent) : '—'}`}>Raising rent on a signed contract needs their agreement. They’re each emailed the change and can object.</Note></div>}
+          {apply === 'all' && <div className="mt-4"><Note tone="amber" icon={Warning} title={`${signed} residents have signed at ${rt.rent != null ? money(rt.rent) : '—'}`}>Raising rent on a signed contract needs their agreement. They’re each emailed the change and can object.</Note></div>}
         </SheetSection>
       </div>
     </Sheet>

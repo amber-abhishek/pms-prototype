@@ -130,7 +130,7 @@ export function ResidentDetail() {
                   : r.checkedIn ? <Note tone="green" icon={CheckCircle} title={`Checked in ${r.checkedIn}`}>{r.checkInNote ?? 'Keys handed over · room condition recorded'}</Note> : null}
               </div>
               <Panel title="Details">
-                <KV rows={[['Student ID', <span className="font-mono text-xs">{r.studentId}</span>], ['Email', r.email], ['Phone', r.phone], ['Course', r.course], ['Emergency contact', r.emergency], ['Application', r.application]]} />
+                <KV rows={[['Resident ID', <span className="font-mono text-xs">{r.studentId}</span>], ['Email', r.email], ['Phone', r.phone], ['Course', r.course], ['Emergency contact', r.emergency], ['Application', r.application]]} />
               </Panel>
             </div>
           )}

@@ -111,8 +111,8 @@ export function RoleEditor() {
           <div>
             <div className="text-sm font-medium mb-2">Personal data</div>
             <div className="rounded-xl border border-line p-3.5 flex items-center gap-3">
-              <span className="flex-1"><span className="block text-sm font-medium">See student IDs and contacts</span><span className="block text-xs text-[#737373] mt-0.5">Needed for check-in</span></span>
-              <Switch checked={pd} onChange={(v) => !locked && setPd(v)} label="See student IDs and contacts" />
+              <span className="flex-1"><span className="block text-sm font-medium">See resident IDs and contacts</span><span className="block text-xs text-[#737373] mt-0.5">Needed for check-in</span></span>
+              <Switch checked={pd} onChange={(v) => !locked && setPd(v)} label="See resident IDs and contacts" />
             </div>
           </div>
           {noFinance && <Alert tone="amber" icon={Warning} title="No finance access">{label === 'This role' ? 'People with this role' : `${label}s`} can see if a resident is in arrears, not the amounts.</Alert>}

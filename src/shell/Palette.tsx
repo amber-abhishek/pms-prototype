@@ -45,7 +45,7 @@ export function Palette({ open, onClose }: { open: boolean; onClose: () => void 
       <DialogContent instant aria-describedby={undefined} className="top-[12vh] bottom-auto mt-0 max-w-xl">
         <DialogTitle className="sr-only">Search</DialogTitle>
         <Command shouldFilter={false} loop className="[&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:px-4 [&_[cmdk-input-wrapper]_svg]:opacity-100 [&_[cmdk-input-wrapper]_svg]:text-gray-400">
-          <CommandInput value={q} onValueChange={setQ} placeholder="Search pages, students, listings…" className="placeholder:text-gray-400"
+          <CommandInput value={q} onValueChange={setQ} placeholder="Search pages, residents, listings…" className="placeholder:text-gray-400"
             trailing={<DialogClose aria-label="Close search (Esc)" className="ml-2 shrink-0 h-5 px-1.5 rounded border border-line bg-white text-[11px] leading-4 font-medium text-[#737373] font-sans hover:bg-gray-50 hover:text-ink">Esc</DialogClose>} />
           <CommandList className="max-h-[50vh] p-1.5">
             <CommandEmpty className="py-10 text-center text-sm text-gray-500">No results for “{q}”</CommandEmpty>

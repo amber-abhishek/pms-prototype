@@ -187,7 +187,7 @@ function EditDates({ c, onClose }: { c: Cycle; onClose: () => void }) {
   return (
     <Dialog open onClose={onClose} title={`Edit dates · ${c.name}`} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => {
       up((d) => ({ cycles: d.cycles.map((x) => (x.id === c.id ? { ...x, opens: v.opens, closes: v.closes, offersFrom: v.offers, starts: v.starts, ends: v.starts } : x)) }));
-      toast.success(`${c.name} dates saved`, { description: 'Students who already applied are emailed if a deadline moved' }); onClose();
+      toast.success(`${c.name} dates saved`, { description: 'Residents who already applied are emailed if a deadline moved' }); onClose();
     }}>Save dates</Button></>}>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Applications open"><Input value={v.opens} onChange={(e) => setV({ ...v, opens: e.target.value })} /></Field>
@@ -216,7 +216,7 @@ function CloseCycle({ c, onClose }: { c: Cycle; onClose: () => void }) {
       apps: x.apps.map((a) => (ids.has(a.id) ? (choice === 'wait' ? { ...a, status: 'waitlist' as const } : { ...a, status: 'rejected' as const, reason: 'Cycle closed · standard email', rejBy: 'Priya Shah', rejOn: TODAY, emailed: true }) : a)),
       waitlist: choice === 'wait' ? [...x.waitlist, ...left.map((a) => ({ id: `w${Date.now()}${a.ref}`, name: a.name, appId: a.id, hall: a.hall, room: a.room, note: `Cycle ${c.name} closed`, joined: TODAY }))] : x.waitlist,
     }));
-    toast.success(`Cycle closed · ${left.length} students ${choice === 'wait' ? 'moved to the waitlist' : 'declined'} and emailed`, { action: undo });
+    toast.success(`Cycle closed · ${left.length} residents ${choice === 'wait' ? 'moved to the waitlist' : 'declined'} and emailed`, { action: undo });
     onClose();
   };
   if (!left.length) {
@@ -227,11 +227,11 @@ function CloseCycle({ c, onClose }: { c: Cycle; onClose: () => void }) {
     );
   }
   return (
-    <Modal open onClose={onClose} tone="amber" icon={Warning} title={`${left.length} applications aren’t reviewed`} sub={`Closing the ${c.name} cycle stops new offers. Decide what happens to these students.`}
+    <Modal open onClose={onClose} tone="amber" icon={Warning} title={`${left.length} applications aren’t reviewed`} sub={`Closing the ${c.name} cycle stops new offers. Decide what happens to these residents.`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant={choice === 'decline' ? 'danger' : 'primary'} icon={choice === 'keep' ? undefined : Lock} onClick={close}>{choice === 'wait' ? `Close and waitlist ${left.length}` : choice === 'decline' ? `Close and decline ${left.length}` : 'Keep it open'}</Button></>}>
       <div className="space-y-2">
       <Radio checked={choice === 'wait'} onChange={() => setChoice('wait')} title="Move them to the waitlist" sub="In the order they applied; they get an email saying so." />
-      <Radio checked={choice === 'decline'} onChange={() => setChoice('decline')} title="Decline with the standard email" sub="They can apply to off-campus housing from the student site." />
+      <Radio checked={choice === 'decline'} onChange={() => setChoice('decline')} title="Decline with the standard email" sub="They can apply to off-campus housing from the resident site." />
       <Radio checked={choice === 'keep'} onChange={() => setChoice('keep')} title="Keep the cycle open" sub="Review them first." />
       </div>
     </Modal>

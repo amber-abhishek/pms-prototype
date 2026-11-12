@@ -80,13 +80,13 @@ export function Reviews() {
     const before = snap();
     goLive(ok);
     const n = ok.length;
-    toast.success(`${n} ${n === 1 ? 'listing' : 'listings'} approved`, { description: held.length ? `Left ticked: ${reasons}.` : 'They are live on the student site.', duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
+    toast.success(`${n} ${n === 1 ? 'listing' : 'listings'} approved`, { description: held.length ? `Left ticked: ${reasons}.` : 'They are live on the resident site.', duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
   });
   const approveOne = (r: Review) => guard(() => {
     if (blockOf(r)) return;
     const before = snap();
     goLive([r.id]); setDlg(null); setOpen(null);
-    toast.success('Listing approved', { description: `${r.title} is live on the student site.`, duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
+    toast.success('Listing approved', { description: `${r.title} is live on the resident site.`, duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
   });
   const requestChanges = (r: Review, note: string) => guard(() => {
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Changes requested' as const, note } : x)));
@@ -187,7 +187,7 @@ export function Reviews() {
               ? <><Button onClick={() => setDlg('changes')}>Request changes</Button><Button variant="primary" onClick={() => sel && approveOne(sel)}>Approve anyway</Button></>
               : <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => sel && approveOne(sel)}>Approve</Button></>}>
         {block ? <Alert tone="red" icon={XCircle} title={block.title}>{block.sub}</Alert>
-          : noPhotos.length ? <Alert tone="amber" icon={ImageIcon} title={`${noPhotos.join(', ')} ${noPhotos.length === 1 ? 'has' : 'have'} no photos`}>Students see a blank tile for {noPhotos.length === 1 ? 'that room' : 'those rooms'}.</Alert> : null}
+          : noPhotos.length ? <Alert tone="amber" icon={ImageIcon} title={`${noPhotos.join(', ')} ${noPhotos.length === 1 ? 'has' : 'have'} no photos`}>Residents see a blank tile for {noPhotos.length === 1 ? 'that room' : 'those rooms'}.</Alert> : null}
       </ODialog>
     </>
   );

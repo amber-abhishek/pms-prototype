@@ -1,5 +1,5 @@
 // Sign-in, invite and the frame around them. Mirrors apps/accounts (LoginPage, TenantPicker, InvitePage):
-// email → 6-digit code → university picker (only for accounts that reach more than one) → "You're in" → the app.
+// email → 6-digit code → operator picker (only for accounts that reach more than one) → "You're in" → the app.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CaretRight, Check, CheckCircle, CircleNotch, EnvelopeSimple, UserCircle, X } from '../../components/icons';
@@ -21,15 +21,14 @@ export function AuthFrame({ children, demo = true }: { children: ReactNode; demo
       <div className="w-full lg:w-[640px] shrink-0 min-h-screen flex flex-col justify-between gap-10 px-6 sm:px-[120px] py-10">
         <div className="flex items-center gap-2.5">
           <span className="size-7 rounded-lg bg-gradient-to-br from-[#2563EB] to-[#7C3AED] text-white text-xs font-bold flex items-center justify-center">D</span>
-          <span className="text-sm leading-5 font-semibold text-ink">Durham University</span>
-          <span className="text-sm leading-5 text-[#A3A3A3]">on Amber</span>
+          <span className="text-sm leading-5 font-semibold text-ink">Durham Residences</span>
         </div>
         <div className="w-full max-w-[400px]">
           {children}
           {demo && <DemoStrip />}
         </div>
         <footer className="flex items-center justify-between text-xs leading-5 text-[#A3A3A3]">
-          <span>© 2026 Amber</span>
+          <span>© 2026 Durham Residences</span>
           <nav className="flex gap-4">{['Privacy', 'Terms', 'Help'].map((l) => <a key={l} href="#/login" className="hover:text-[#737373]">{l}</a>)}</nav>
         </footer>
       </div>
@@ -47,7 +46,7 @@ function DemoStrip() {
   const link = 'text-[#737373] hover:text-ink underline-offset-2 hover:underline';
   return (
     <div className="mt-10 pt-4 border-t border-[#F5F5F5] text-xs leading-5 text-[#A3A3A3]">
-      <div>Prototype · any 6 digits sign you in · <span className="font-mono">{WRONG_CODE}</span> is a wrong code · <span className="font-mono">{EXPIRED_CODE}</span> has expired · an @amberstudent.com email gets the university picker</div>
+      <div>Prototype · any 6 digits sign you in · <span className="font-mono">{WRONG_CODE}</span> is a wrong code · <span className="font-mono">{EXPIRED_CODE}</span> has expired · a @pms.app email gets the operator picker</div>
       <div className="mt-1 flex flex-wrap gap-x-3">
         <a href="#/login" onClick={remember} className={link}>Returning user</a>
         <a href="#/login" onClick={forget} className={link}>First sign-in</a>
@@ -148,7 +147,7 @@ export function Login() {
     const list = [...TENANTS].sort((a, b) => Number(b.id === saved?.tenantId) - Number(a.id === saved?.tenantId));
     return (
       <AuthFrame>
-        <Title title="Choose a university" sub={`Your account has access to ${TENANTS.length} universities.`} />
+        <Title title="Choose an operator" sub={`Your account has access to ${TENANTS.length} operators.`} />
         <div className="space-y-1 -mx-2">
           {list.map((t) => (
             <button key={t.id} type="button" disabled={!!busy} onClick={async () => { setBusy(t.id); await wait(600); setBusy(null); void finish(step.email, t); }}
@@ -179,7 +178,7 @@ export function Login() {
     const iconTile = 'size-9 shrink-0 rounded-full flex items-center justify-center text-[#737373]';
     return (
       <AuthFrame>
-        <Title title="Choose an account" sub="to continue to Durham University" />
+        <Title title="Choose an account" sub="to continue to Durham Residences" />
         <div className="border-y border-[#E5E5E5] divide-y divide-[#E5E5E5]">
           {/* The × to forget this account shows on hover or keyboard focus (always on touch, where there is no hover). */}
           <div className="group relative">
@@ -213,7 +212,7 @@ export function Login() {
         <label htmlFor="email" className="block text-sm font-medium text-ink mb-2">Work email</label>
         <div className="relative">
           <EnvelopeSimple size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#A3A3A3]" />
-          <Input id="email" type="email" autoComplete="email" placeholder="name@university.ac.uk" value={email}
+          <Input id="email" type="email" autoComplete="email" placeholder="name@operator.co.uk" value={email}
             onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
             aria-invalid={!!error} aria-describedby={error ? 'email-error' : undefined}
             className={cx(field, error && 'border-[#E0243A] hover:border-[#E0243A] focus-visible:border-[#E0243A] focus-visible:ring-[#E0243A]/15')} />
@@ -286,7 +285,7 @@ export function Invite() {
   };
   return (
     <AuthFrame>
-      <Title title={expired ? 'This invite has expired' : 'You have been invited'} sub={expired ? 'Invites last 7 days. Ask whoever invited you to send a new one.' : 'Durham University’s housing workspace is ready. Activate your account to sign in and start setting it up.'} />
+      <Title title={expired ? 'This invite has expired' : 'You have been invited'} sub={expired ? 'Invites last 7 days. Ask whoever invited you to send a new one.' : 'Durham Residences’ housing workspace is ready. Activate your account to sign in and start setting it up.'} />
       {expired ? (
         <>
           <Note tone="red" title="Invite expired on 28 Oct 2026">Sent to priya.shah@durham.ac.uk</Note>
@@ -295,7 +294,7 @@ export function Invite() {
       ) : (
         <>
           <dl className="border-b border-[#F5F5F5] text-sm">
-            {([['Email', 'priya.shah@durham.ac.uk'], ['University', 'Durham University'], ['Role', 'Admin'], ['Expires', <>5 Nov 2026 <span className="font-normal text-[#A3A3A3]">· in 7 days</span></>]] as const).map(([k, v]) => (
+            {([['Email', 'priya.shah@durham.ac.uk'], ['Operator', 'Durham Residences'], ['Role', 'Admin'], ['Expires', <>5 Nov 2026 <span className="font-normal text-[#A3A3A3]">· in 7 days</span></>]] as const).map(([k, v]) => (
               <div key={k} className="h-10 flex items-center border-t border-[#F5F5F5]"><dt className="w-28 shrink-0 text-[#737373]">{k}</dt><dd className="min-w-0 truncate font-medium text-ink">{v}</dd></div>
             ))}
           </dl>

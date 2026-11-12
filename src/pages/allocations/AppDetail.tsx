@@ -142,7 +142,7 @@ function reqRows(a: App) {
   return [
     { r: 'Step-free access' as Req, sub: a.reqs.includes('Step-free access') ? 'Disability Support, 20 Oct' : 'Not requested', s: st('Step-free access') },
     { r: 'Medication fridge' as Req, sub: a.reqs.includes('Medication fridge') ? 'GP note, 19 Oct' : 'Not requested', s: st('Medication fridge') },
-    { r: 'Year-round stay' as Req, sub: a.reqs.includes('Year-round stay') ? 'Care leaver · Student Support' : 'Not requested', s: st('Year-round stay') },
+    { r: 'Year-round stay' as Req, sub: a.reqs.includes('Year-round stay') ? 'Care leaver · Resident Support' : 'Not requested', s: st('Year-round stay') },
   ];
 }
 function ReqPill({ s, onCheck }: { s: string; onCheck?: () => void }) {

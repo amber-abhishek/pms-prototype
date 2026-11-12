@@ -238,7 +238,7 @@ function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void 
 
 function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBooking , nav }: { nav?: SheetNav;  o: Offer; onClose: () => void; onAccept: () => void; onLapse: () => void; onDecline: (r: string) => void; onExtend: () => void; onBooking: () => void }) {
   const [declining, setDeclining] = useState(false);
-  const [reason, setReason] = useState('Chose another university');
+  const [reason, setReason] = useState('Chose another operator');
   return (
     <Sheet open onClose={onClose} nav={nav} width={560} title="Offer"
       footer={o.status === 'open' ? (declining ? <><Button onClick={() => setDeclining(false)}>Back</Button><Button variant="danger" onClick={() => onDecline(reason)}>Record decline</Button></> : <>
@@ -253,7 +253,7 @@ function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBook
       {o.status === 'open' && (o.leftH ?? 99) < 24 && <div className="mb-5"><Note tone="red" icon={HourglassMedium} title={`Expires in ${fmtLeft(o.leftH ?? 0)}`}>Lapses at {o.expires?.split(' ').slice(-1)[0]} if {o.name.split(' ')[0]} doesn’t reply; the unit goes to the waitlist.</Note></div>}
       {declining ? (
         <SheetSection title="Decline">
-          <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another university', 'Too expensive', 'Living at home', 'Wanted a different hall', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
+          <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another operator', 'Too expensive', 'Living at home', 'Wanted a different hall', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
         </SheetSection>
       ) : (
         <>

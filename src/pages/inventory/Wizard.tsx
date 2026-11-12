@@ -354,7 +354,7 @@ export function AddPropertyWizard() {
                       {zone && <div className="pl-6"><Pill>Zone · {zone}</Pill></div>}
                     </div>
                   </ACard>
-                  <Note>The pin sets distances on the student site.</Note>
+                  <Note>The pin sets distances on the resident site.</Note>
                 </>
               )}
               {step === 2 && (

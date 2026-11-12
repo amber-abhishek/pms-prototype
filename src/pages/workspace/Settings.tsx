@@ -112,7 +112,7 @@ const SAVED_BY = new Map<DraftKey, string>();
 function theirEdit(k: DraftKey) {
   const s = useWorkspace.getState();
   SAVED_BY.set(k, 'James Reed');
-  if (k === 'general') s.set('general', { ...s.general, name: 'Durham University Accommodation' });
+  if (k === 'general') s.set('general', { ...s.general, name: 'Durham Accommodation' });
   if (k === 'payments') s.set('payments', { ...s.payments, deposit: 300 });
   if (k === 'branding') s.set('branding', { ...s.branding, sender: 'Durham Residences Office' });
   if (k === 'notifs') s.set('notifs', s.notifs.map((n, i) => (i === 0 ? { ...n, email: !n.email } : n)));
@@ -300,9 +300,9 @@ export function SettingsGeneral() {
           <Button variant="danger-outline" icon={Archive} onClick={() => setArchive(true)}>Archive</Button>
         </div>
       </Section>
-      <ODialog open={archive} onClose={() => setArchive(false)} title={`Archive ${general.name}?`} sub="Everyone is signed out and the student and resident portals go offline. Data is kept for 7 years."
-        footer={<><Button onClick={() => setArchive(false)}>Cancel</Button><Button variant="danger" onClick={() => { setArchive(false); toast.error('Only the workspace owner can archive it', { description: 'Ask Amber support to transfer ownership first.' }); }}>Archive workspace</Button></>}>
-        <Alert tone="red" icon={WarningCircle} title="This can’t be undone from here">Only Amber support can restore an archived workspace.</Alert>
+      <ODialog open={archive} onClose={() => setArchive(false)} title={`Archive ${general.name}?`} sub="Everyone is signed out and the resident portals go offline. Data is kept for 7 years."
+        footer={<><Button onClick={() => setArchive(false)}>Cancel</Button><Button variant="danger" onClick={() => { setArchive(false); toast.error('Only the workspace owner can archive it', { description: 'Ask support to transfer ownership first.' }); }}>Archive workspace</Button></>}>
+        <Alert tone="red" icon={WarningCircle} title="This can’t be undone from here">Only support can restore an archived workspace.</Alert>
       </ODialog>
       {dialogs}
     </Layout>
@@ -480,7 +480,7 @@ export function SettingsPayments() {
       <Section title="Provider">
         <div className="rounded-[10px] border border-line px-3.5 h-[60px] flex items-center gap-3">
           <BrandTile id="stripe" />
-          <div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">Stripe</div><div className="text-xs text-[#737373] mt-0.5">Connected 2 Aug 2026 · payouts to Durham University ••4410 · weekly</div></div>
+          <div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">Stripe</div><div className="text-xs text-[#737373] mt-0.5">Connected 2 Aug 2026 · payouts to Durham Residences ••4410 · weekly</div></div>
           <Pill tone="green" icon={Check}>Connected</Pill>
           <Button size="sm" icon={ArrowUpRight} onClick={() => setManage(true)}>Manage</Button>
         </div>
@@ -505,9 +505,9 @@ export function SettingsPayments() {
           <div key={k} className="px-3.5 h-[60px] rounded-[10px] border border-line flex items-center gap-3"><div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">{t}</div><div className="text-xs text-[#737373]">{s}</div></div><Switch checked={d[k]} onChange={(v) => up({ [k]: v })} label={t} /></div>
         ))}</div>
       </Section>
-      <ODialog open={manage} onClose={() => setManage(false)} title="Stripe" sub="Card payments and payouts to the university account."
+      <ODialog open={manage} onClose={() => setManage(false)} title="Stripe" sub="Card payments and payouts to the operator account."
         footer={<><Button variant="danger-ghost" className="mr-auto" onClick={() => { setManage(false); toast.error('Disconnecting Stripe stops card payments', { description: 'Ask Finance (James Reed) to do this.' }); }}>Disconnect</Button><Button variant="primary" onClick={() => { setManage(false); toast('Opening the Stripe dashboard', { description: 'It opens in a new tab in the real product.' }); }}>Open Stripe</Button></>}>
-        <DL rows={[['Account', 'Durham University Residences'], ['Connected', '2 Aug 2026 by James Reed'], ['Payouts', 'Weekly to ••4410'], ['Last payout', '£184,220 on 11 Sep']]} />
+        <DL rows={[['Account', 'Durham Residences'], ['Connected', '2 Aug 2026 by James Reed'], ['Payouts', 'Weekly to ••4410'], ['Last payout', '£184,220 on 11 Sep']]} />
       </ODialog>
       {dialogs}
     </Layout>
@@ -546,9 +546,9 @@ export function SettingsIntegrations() {
     if (guard.current) return; guard.current = true; setBusy(true);
     const before = useWorkspace.getState().integrations;
     window.setTimeout(() => {
-      set('integrations', (xs) => xs.map((x) => (x.id === 'sits' ? { ...x, state: 'connected' as const, meta: 'Synced just now · 41 new students' } : x)));
+      set('integrations', (xs) => xs.map((x) => (x.id === 'sits' ? { ...x, state: 'connected' as const, meta: 'Synced just now · 41 new residents' } : x)));
       setBusy(false); setReconnect(false); guard.current = false;
-      toast.success('SITS reconnected · 41 students synced · 6 applications matched', { action: { label: 'Undo', onClick: () => restore({ integrations: before }) } });
+      toast.success('SITS reconnected · 41 residents synced · 6 applications matched', { action: { label: 'Undo', onClick: () => restore({ integrations: before }) } });
     }, 1200);
   };
   const connect = (x: Integration) => {
@@ -558,8 +558,8 @@ export function SettingsIntegrations() {
   return (
     <Layout wide tab="integrations" title="Integrations">
       {failing && (
-        <Alert tone="red" icon={WarningCircle} title="Student records (SITS) stopped syncing" action={<Button variant="primary" size="sm" onClick={() => setReconnect(true)}>Reconnect</Button>}>
-          The connection token expired on 30 Oct. 3 syncs failed; 41 new students aren’t in Applications yet.
+        <Alert tone="red" icon={WarningCircle} title="Resident records (SITS) stopped syncing" action={<Button variant="primary" size="sm" onClick={() => setReconnect(true)}>Reconnect</Button>}>
+          The connection token expired on 30 Oct. 3 syncs failed; 41 new residents aren’t in Applications yet.
         </Alert>
       )}
       {/* 3060:2: one grid of six cards (connected first), each with a tinted 32px icon tile, title + meta, Connected pill top right,
@@ -578,14 +578,14 @@ export function SettingsIntegrations() {
         ); })}
       </div>
       {!failing && sits?.meta === 'Synced 12 min ago' && (
-        <Alert tone="amber" icon={Warning} title="SITS sync skipped 3 students last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their course record has no term address. Open the sync log to see who.</Alert>
+        <Alert tone="amber" icon={Warning} title="SITS sync skipped 3 residents last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their course record has no term address. Open the sync log to see who.</Alert>
       )}
 
-      <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Student records (SITS)" sub="Sign in with a SITS admin account to run the missed syncs."
+      <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Resident records (SITS)" sub="Sign in with a SITS admin account to run the missed syncs."
         footer={<><Button disabled={busy} onClick={() => setReconnect(false)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={doReconnect}>{busy ? 'Syncing…' : 'Sign in to SITS'}</Button></>}>
-        <DL rows={[['Failed since', '30 Oct, 02:00'], ['Failed syncs', '3'], ['Affects', '41 new students aren’t in Applications']]} />
+        <DL rows={[['Failed since', '30 Oct, 02:00'], ['Failed syncs', '3'], ['Affects', '41 new residents aren’t in Applications']]} />
       </ODialog>
-      <ODialog open={log} onClose={() => setLog(false)} title="SITS sync log · last night" sub="02:00 · 2,412 students checked · 3 skipped" footer={<Button variant="primary" onClick={() => setLog(false)}>Done</Button>}>
+      <ODialog open={log} onClose={() => setLog(false)} title="SITS sync log · last night" sub="02:00 · 2,412 residents checked · 3 skipped" footer={<Button variant="primary" onClick={() => setLog(false)}>Done</Button>}>
         <div className="rounded-lg border border-line divide-y divide-line">{SKIPPED.map(([n, id]) => (
           <div key={id} className="h-11 px-3 flex items-center gap-3 text-sm"><span className="font-medium flex-1">{n}</span><span className="text-[#737373] tabular-nums">{id}</span><Pill tone="amber">No term address</Pill></div>
         ))}</div>

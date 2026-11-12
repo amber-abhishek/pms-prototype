@@ -157,7 +157,7 @@ function ContractorsSheet({ open, onClose }: { open: boolean; onClose: () => voi
   return (
     <SideSheet open={open} onClose={onClose} icon={HardHat} title="Contractors" footer={<Button onClick={onClose}>Close</Button>}>
       <SheetSection title="In-house and contract">
-      {[['Dave Hughes', 'In-house plumber · 2 jobs today', 'In-house'], ['Kim Lowe', 'In-house electrician · off today', 'In-house'], ['Northern Heating Ltd', 'Heating and plumbing · £85 call-out · £120 out of hours', 'Contract'], ['Estates helpdesk', 'University estates team · 3–5 days', 'University'], ['Campus IT', 'Wi-Fi and network', 'University']].map(([n, s, t]) => (
+      {[['Dave Hughes', 'In-house plumber · 2 jobs today', 'In-house'], ['Kim Lowe', 'In-house electrician · off today', 'In-house'], ['Northern Heating Ltd', 'Heating and plumbing · £85 call-out · £120 out of hours', 'Contract'], ['Estates helpdesk', 'Operator estates team · 3–5 days', 'Operator'], ['Campus IT', 'Wi-Fi and network', 'Operator']].map(([n, s, t]) => (
         <div key={n} className="flex items-center gap-3 py-1"><Avatar name={n} size={28} /><div className="flex-1"><div className="text-sm font-medium">{n}</div><div className="text-xs text-gray-500">{s}</div></div><Pill tone="grey" outline>{t}</Pill></div>
       ))}
       </SheetSection>
@@ -382,7 +382,7 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
       { id: 'Dave Hughes', title: 'Dave Hughes · from 18:00', sub: `In-house · residents without hot water for 7 more hours`, avatar: undefined, right: undefined }]
     : [{ id: 'Dave Hughes', title: 'Dave Hughes', sub: `In-house plumber · 2 jobs today · at ${f.where.split(' · ')[0]} now`, avatar: 'Dave Hughes', right: <Pill tone="green" icon={Timer}>Free from 13:00</Pill> },
       { id: 'Northern Heating Ltd', title: 'Northern Heating Ltd', sub: 'Contractor · £85 call-out · next day', avatar: 'Northern Heating', right: <Pill tone="grey" outline icon={FileText}>Contract</Pill> },
-      { id: 'Estates helpdesk', title: 'Estates helpdesk', sub: 'University estates team · 3–5 days', avatar: 'Estates Services', right: undefined }];
+      { id: 'Estates helpdesk', title: 'Estates helpdesk', sub: 'Operator estates team · 3–5 days', avatar: 'Estates Services', right: undefined }];
   const [who, setWho] = useState(opts[0].id);
   const [visit, setVisit] = useState('Today, 14:00–16:00');
   const [sla, setSla] = useState(f.priority === 'Urgent' ? '24 hours · urgent' : '5 days · normal');

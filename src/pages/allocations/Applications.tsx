@@ -71,13 +71,13 @@ export function Applications() {
         </EmptyArea>
       ) : !d.apps.length ? (
         /* First login: nothing has come in yet, whatever the tab. The next step is a cycle to apply to. */
-        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={d.cycles.length ? 'Applications arrive here once students apply through the on-campus portal.' : 'Open a cycle, and applications arrive here once students apply through the on-campus portal.'}>
+        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={d.cycles.length ? 'Applications arrive here once residents apply through the on-campus portal.' : 'Open a cycle, and applications arrive here once residents apply through the on-campus portal.'}>
           {d.cycles.length
             ? <Button onClick={() => { void navigator.clipboard?.writeText('https://accommodation.durham.ac.uk/apply'); toast.success('Portal link copied'); }}>Copy portal link</Button>
             : <Button variant="primary" onClick={() => nav('/allocations/cycles?new=1')}>Open a cycle</Button>}
         </EmptyArea>
       ) : tab === 'To review' && counts.review === 0 ? (
-        <EmptyArea art="queueClear" icon={CheckCircle} title="Queue clear" sub="New applications land here as students apply.">
+        <EmptyArea art="queueClear" icon={CheckCircle} title="Queue clear" sub="New applications land here as residents apply.">
           <Button onClick={() => setTab('Flagged')}>Open flagged · {counts.manual}</Button>
         </EmptyArea>
       ) : split ? (

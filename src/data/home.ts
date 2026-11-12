@@ -91,7 +91,7 @@ const team: HTask[] = [
   t('tm1', 'Assign MT-203 · no power in kitchen', 'maintenance', 'Maintenance · MT-2203', 'overdue', 'Overdue 3h', 'red', 'Grace Evans'),
   t('tm2', 'Approve guest stay for Freya Wilson', 'requests', 'Requests · RQ-121', 'overdue', 'Overdue 1d', 'red', 'Tom Baker'),
   t('tm3', 'Check in 12 late arrivals', 'bookings', 'Bookings · Van Mildert', 'today', 'Today', 'orange', 'Aisha Khan'),
-  t('tm4', 'Allocate 18 rooms for returning students', 'applications', 'Applications · 2027/28', 'today', 'Today', 'orange', 'Aisha Khan'),
+  t('tm4', 'Allocate 18 rooms for returning residents', 'applications', 'Applications · 2027/28', 'today', 'Today', 'orange', 'Aisha Khan'),
   t('tm5', 'Collect keys from Collingwood leavers', 'bookings', 'Bookings · 2026/27', 'today', 'Today', 'orange', 'Tom Baker'),
   t('tm6', 'Replace smoke alarm batteries, Ustinov B block', 'maintenance', 'Maintenance · MT-2288', 'today', 'Today', 'orange', 'Grace Evans'),
   t('tm7', 'Review 4 landlord applications', 'applications', 'Off-campus · landlords', 'today', 'Today', 'orange', 'Ravi Singh'),

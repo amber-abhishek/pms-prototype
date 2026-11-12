@@ -1,4 +1,4 @@
-// Dummy Durham University tenant. Deterministic (seeded) so every reset gives the same demo.
+// Dummy Durham Residences tenant. Deterministic (seeded) so every reset gives the same demo.
 
 let s = 42;
 const rnd = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
@@ -30,7 +30,7 @@ export type Maintenance = { id: string; ref: string; title: string; propertyId: 
 export type ResRequest = { id: string; kind: 'Room swap' | 'Early arrival' | 'Lease change' | 'Guest stay'; who: string; detail: string; status: 'Pending' | 'Approved' | 'Rejected'; submitted: string };
 export type Notice = { id: string; title: string; audience: string; status: 'Draft' | 'Scheduled' | 'Sent'; when: string; body: string };
 export type LandlordApp = { id: string; landlord: string; company: string; email: string; phone: string; properties: number; submitted: string; status: 'Pending' | 'Approved' | 'Rejected'; reason?: string; docs: { name: string; ok: boolean }[] };
-export type Listing = { id: string; title: string; landlord: string; type: 'HMO' | 'Amber PBSA'; area: string; beds: number; rent: number; status: 'In review' | 'Published' | 'Inactive' | 'Rejected'; submitted: string; bills: boolean; distance: string; reason?: string };
+export type Listing = { id: string; title: string; landlord: string; type: 'Landlord' | 'Partner halls'; area: string; beds: number; rent: number; status: 'In review' | 'Published' | 'Inactive' | 'Rejected'; submitted: string; bills: boolean; distance: string; reason?: string };
 export type Enquiry = { id: string; student: string; email: string; listingId: string; received: string; status: 'New' | 'Replied' | 'Closed'; thread: { from: 'student' | 'us'; text: string; at: string }[] };
 export type Task = { id: string; title: string; sub: string; badge: { label: string; tone: Tone }; to: string; done: boolean; icon: 'alert' | 'swap' | 'lease' | 'inbox' | 'notice' | 'landlord' };
 export type Person = { id: string; name: string; email: string; role: string; teams: string[]; lastActive: string };
@@ -113,24 +113,24 @@ export function makeSeed() {
     { id: 'n2', title: 'Fire alarm test — Collingwood', audience: 'Collingwood · 438 residents', status: 'Scheduled', when: 'Mon 21 Sep, 10:00', body: 'The weekly fire alarm test will take place at 10:00. You do not need to leave the building.' },
     { id: 'n3', title: 'Wi-Fi maintenance window', audience: 'All halls · 1,901 residents', status: 'Sent', when: 'Fri 11 Sep, 18:00', body: 'Wi-Fi will be unavailable for 30 minutes from 23:00.' },
   ];
-  const docs = (h: boolean, g: boolean) => [{ name: 'HMO licence', ok: h }, { name: 'Gas safety certificate', ok: g }, { name: 'Proof of ownership', ok: true }];
+  const docs = (h: boolean, g: boolean) => [{ name: 'Landlord licence', ok: h }, { name: 'Gas safety certificate', ok: g }, { name: 'Proof of ownership', ok: true }];
   const landlordApps: LandlordApp[] = [
     { id: 'la1', landlord: 'Rachel Hughes', company: 'Wearside Lettings', email: 'rachel@wearside-lettings.co.uk', phone: '0191 555 0142', properties: 6, submitted: daysAgo(1), status: 'Pending', docs: docs(true, true) },
     { id: 'la2', landlord: 'David Okafor', company: 'Okafor Homes', email: 'david@okaforhomes.com', phone: '07700 900321', properties: 2, submitted: daysAgo(2), status: 'Pending', docs: docs(true, false) },
     { id: 'la3', landlord: 'Sarah Clarke', company: 'Cathedral View Property', email: 'sarah@cathedralview.co.uk', phone: '0191 555 0177', properties: 11, submitted: daysAgo(4), status: 'Pending', docs: docs(true, true) },
-    { id: 'la4', landlord: 'Imran Ahmed', company: 'Viaduct Student Homes', email: 'imran@viaducthomes.co.uk', phone: '07700 900654', properties: 4, submitted: daysAgo(6), status: 'Pending', docs: docs(false, true) },
+    { id: 'la4', landlord: 'Imran Ahmed', company: 'Viaduct Resident Homes', email: 'imran@viaducthomes.co.uk', phone: '07700 900654', properties: 4, submitted: daysAgo(6), status: 'Pending', docs: docs(false, true) },
     { id: 'la5', landlord: 'Helen Walker', company: 'Walker & Co', email: 'helen@walkerco.co.uk', phone: '0191 555 0199', properties: 3, submitted: daysAgo(12), status: 'Approved', docs: docs(true, true) },
-    { id: 'la6', landlord: 'Mark Taylor', company: 'Independent', email: 'mark.taylor@gmail.com', phone: '07700 900111', properties: 1, submitted: daysAgo(15), status: 'Rejected', reason: 'No HMO licence for a 5-bed house.', docs: docs(false, true) },
+    { id: 'la6', landlord: 'Mark Taylor', company: 'Independent', email: 'mark.taylor@gmail.com', phone: '07700 900111', properties: 1, submitted: daysAgo(15), status: 'Rejected', reason: 'No landlord licence for a 5-bed house.', docs: docs(false, true) },
   ];
   const areas = ['Viaduct', 'Gilesgate', 'Claypath', 'Elvet', "Neville's Cross", 'Sherburn Road'];
   const listings: Listing[] = [
-    { id: 'l1', title: '5-bed house, Lawson Terrace', landlord: 'Walker & Co', type: 'HMO', area: 'Viaduct', beds: 5, rent: 128, status: 'In review', submitted: daysAgo(1), bills: true, distance: '0.6 mi to Palace Green' },
-    { id: 'l2', title: '4-bed house, Hawthorn Terrace', landlord: 'Walker & Co', type: 'HMO', area: 'Viaduct', beds: 4, rent: 115, status: 'In review', submitted: daysAgo(1), bills: false, distance: '0.7 mi to Palace Green' },
-    { id: 'l3', title: 'The Woodlands — en-suite rooms', landlord: 'Amber PBSA', type: 'Amber PBSA', area: 'Gilesgate', beds: 212, rent: 189, status: 'In review', submitted: daysAgo(2), bills: true, distance: '1.1 mi to Science Site' },
-    { id: 'l4', title: '6-bed house, Hallgarth Street', landlord: 'Cathedral View Property', type: 'HMO', area: 'Elvet', beds: 6, rent: 135, status: 'In review', submitted: daysAgo(3), bills: true, distance: '0.4 mi to Elvet Riverside' },
+    { id: 'l1', title: '5-bed house, Lawson Terrace', landlord: 'Walker & Co', type: 'Landlord', area: 'Viaduct', beds: 5, rent: 128, status: 'In review', submitted: daysAgo(1), bills: true, distance: '0.6 mi to Palace Green' },
+    { id: 'l2', title: '4-bed house, Hawthorn Terrace', landlord: 'Walker & Co', type: 'Landlord', area: 'Viaduct', beds: 4, rent: 115, status: 'In review', submitted: daysAgo(1), bills: false, distance: '0.7 mi to Palace Green' },
+    { id: 'l3', title: 'The Woodlands — en-suite rooms', landlord: 'Partner halls', type: 'Partner halls', area: 'Gilesgate', beds: 212, rent: 189, status: 'In review', submitted: daysAgo(2), bills: true, distance: '1.1 mi to Science Site' },
+    { id: 'l4', title: '6-bed house, Hallgarth Street', landlord: 'Cathedral View Property', type: 'Landlord', area: 'Elvet', beds: 6, rent: 135, status: 'In review', submitted: daysAgo(3), bills: true, distance: '0.4 mi to Elvet Riverside' },
     ...Array.from({ length: 14 }, (_, i): Listing => {
       const hmo = rnd() < 0.75;
-      return { id: `l${5 + i}`, title: hmo ? `${int(3, 7)}-bed house, ${pick(['Mowbray', 'Waddington', 'Ainsley', 'Allergate', 'John', 'Albert'])} Street` : `${pick(['Kepier Court', 'Rushford Court', 'The Three Tuns', 'Chapel Heights'])} — studios`, landlord: hmo ? pick(['Walker & Co', 'Wearside Lettings', 'Durham Student Lets']) : 'Amber PBSA', type: hmo ? 'HMO' : 'Amber PBSA', area: pick(areas), beds: hmo ? int(3, 7) : int(80, 320), rent: int(105, 240), status: i < 10 ? 'Published' : i < 13 ? 'Inactive' : 'Rejected', submitted: daysAgo(int(10, 60)), bills: rnd() < 0.5, distance: `${(rnd() * 1.6 + 0.2).toFixed(1)} mi to Palace Green` };
+      return { id: `l${5 + i}`, title: hmo ? `${int(3, 7)}-bed house, ${pick(['Mowbray', 'Waddington', 'Ainsley', 'Allergate', 'John', 'Albert'])} Street` : `${pick(['Kepier Court', 'Rushford Court', 'The Three Tuns', 'Chapel Heights'])} — studios`, landlord: hmo ? pick(['Walker & Co', 'Wearside Lettings', 'Durham Resident Lets']) : 'Partner halls', type: hmo ? 'Landlord' : 'Partner halls', area: pick(areas), beds: hmo ? int(3, 7) : int(80, 320), rent: int(105, 240), status: i < 10 ? 'Published' : i < 13 ? 'Inactive' : 'Rejected', submitted: daysAgo(int(10, 60)), bills: rnd() < 0.5, distance: `${(rnd() * 1.6 + 0.2).toFixed(1)} mi to Palace Green` };
     }),
   ];
   const published = listings.filter((l) => l.status === 'Published');
@@ -167,7 +167,7 @@ export function makeSeed() {
     { id: 'ac5', who: 'Grace Evans', what: 'resolved MT-2184 · Mould in shower', when: 'Yesterday', area: 'Residents' },
     { id: 'ac6', who: 'You', what: 'added custom field “Floor area (m²)”', when: '2 days ago', area: 'Inventory' },
   ];
-  const portal = { host: 'durham-homes.ac.uk', verified: true, autoPublishTrusted: false, requireDocs: true, enquiriesEnabled: true, showRent: true, brandColor: '#2563EB', siteName: 'Durham Student Homes', tagline: 'Find a safe, approved student home in Durham' };
+  const portal = { host: 'durham-homes.ac.uk', verified: true, autoPublishTrusted: false, requireDocs: true, enquiriesEnabled: true, showRent: true, brandColor: '#2563EB', siteName: 'Durham Resident Homes', tagline: 'Find a safe, approved home in Durham' };
   return { campuses, structures, customFields, properties, units, cycles, applications, offers, bookings, residents, maintenance, requests, notices, landlordApps, listings, enquiries, tasks, people, activity, portal };
 }
 

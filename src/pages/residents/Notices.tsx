@@ -177,7 +177,7 @@ function Compose({ draft }: { draft?: Notice }) {
           <div className="flex items-center mb-3"><span className="text-sm text-gray-500">Preview as Amira Rahman</span>
             <div className="ml-auto"><Tabs value={view} onChange={setView} tabs={[{ id: 'Email', label: 'Email' }, { id: 'Portal', label: 'Portal' }]} /></div></div>
           <Card className="p-4">
-            <div className="flex items-center gap-2 text-sm font-medium"><span className="size-5 rounded-md bg-[#4F46E5] text-white text-[11px] font-semibold flex items-center justify-center">D</span>Durham University Residences{view === 'Portal' && <span className="ml-auto text-xs text-gray-400 font-normal">Pinned</span>}</div>
+            <div className="flex items-center gap-2 text-sm font-medium"><span className="size-5 rounded-md bg-[#4F46E5] text-white text-[11px] font-semibold flex items-center justify-center">D</span>Durham Residences{view === 'Portal' && <span className="ml-auto text-xs text-gray-400 font-normal">Pinned</span>}</div>
             <div className="text-sm font-semibold mt-3">{title || 'Untitled notice'}</div>
             <div className="text-sm text-gray-700 mt-2.5 whitespace-pre-wrap leading-relaxed">
               {body ? shown.map((s, i) => (i % 2 ? <b key={i} className="font-semibold">{s}</b> : <Fragment key={i}>{s}</Fragment>)) : <span className="text-gray-400">Your message shows here, with merge fields filled in.</span>}

@@ -1,4 +1,4 @@
-// Prototype sign-in state. Mirrors apps/accounts: email → 6-digit code → (university picker) → in.
+// Prototype sign-in state. Mirrors apps/accounts: email → 6-digit code → (operator picker) → in.
 // No real auth: any 6 digits sign you in, except the demo codes below.
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -11,13 +11,13 @@ export const WRONG_CODE = '000000';
 export const EXPIRED_CODE = '999999';
 export const RESEND_SECONDS = 60;
 
-/** Amber staff accounts reach several universities, so they get the picker; everyone else goes straight in. */
+/** Amber staff accounts reach several operators, so they get the picker; everyone else goes straight in. */
 export const TENANTS: Tenant[] = [
-  { id: 'durham', name: 'Durham University', host: 'durham.pms.amberstudent.com' },
-  { id: 'newcastle', name: 'Newcastle University', host: 'newcastle.pms.amberstudent.com' },
-  { id: 'york', name: 'University of York', host: 'york.pms.amberstudent.com' },
+  { id: 'durham', name: 'Durham Residences', host: 'durham.pms.app' },
+  { id: 'newcastle', name: 'Newcastle Residences', host: 'newcastle.pms.app' },
+  { id: 'york', name: 'York Residences', host: 'york.pms.app' },
 ];
-export const needsPicker = (email: string) => /@amberstudent\.com$/i.test(email.trim());
+export const needsPicker = (email: string) => /@pms\.app$/i.test(email.trim());
 
 /** A display name from an email, for the "You're in" line: priya.shah@… → Priya Shah. */
 export const nameFrom = (email: string) =>

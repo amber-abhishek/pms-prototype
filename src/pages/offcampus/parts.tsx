@@ -78,7 +78,7 @@ export function Tag({ tone, icon: I, children, outline }: { tone: Tone; icon?: I
   return <Badge tone={outline ? 'grey' : tone} look={outline ? 'outline' : 'soft'}>{I && <I size={12} />}{children}</Badge>;
 }
 
-/** Typeahead combobox used for the Amber region override. */
+/** Typeahead combobox used for the Partner region override. */
 export function Combo({ value, options, onPick, noneLabel = 'None', icon: I }: { value: string | null; options: string[]; onPick: (v: string | null) => void; noneLabel?: string; icon?: Icon }) {
   /* shadcn Combobox: Popover + Command, so the list filters as you type and arrow keys move through it. */
   const [open, setOpen] = useState(false);

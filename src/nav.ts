@@ -114,7 +114,7 @@ export const modules: Module[] = [
         { label: 'Landlord applications', to: '/offcampus/landlords', icon: UserCheck, count: (c) => c.landlords },
         { label: 'Listing reviews', to: '/offcampus/reviews', icon: ClipboardCheck, count: (c) => c.reviews },
       ] },
-      { label: 'Listings', items: [{ label: 'Listings', to: '/offcampus/listings', icon: LayoutTemplate, sub: [{ label: 'HMO', tab: 'hmo' }, { label: 'Amber PBSA', tab: 'pbsa' }] }] },
+      { label: 'Listings', items: [{ label: 'Listings', to: '/offcampus/listings', icon: LayoutTemplate, sub: [{ label: 'Landlord', tab: 'hmo' }, { label: 'Partner halls', tab: 'pbsa' }] }] },
       { label: 'Portal', items: [
         { label: 'Enquiries', to: '/offcampus/enquiries', icon: MessageSquare, count: (c) => c.enquiries },
         { label: 'Off-campus portal', to: '/offcampus/portal', icon: Settings },

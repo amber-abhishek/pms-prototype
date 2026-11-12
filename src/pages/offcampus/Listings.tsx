@@ -16,7 +16,7 @@ export function Listings() {
       <PageHeader icon={Buildings} crumbs={['Off-campus']} title="Listings" />
       <div className="flex-1 min-h-0 flex flex-col">
         {/* HMO and Amber PBSA live in the side panel under Listings. */}
-        <Title title={src === 'pbsa' ? 'Amber PBSA' : 'HMO listings'} />
+        <Title title={src === 'pbsa' ? 'Partner halls' : 'Landlord listings'} />
         {src === 'pbsa' ? <PbsaTab /> : <HmoTab />}
       </div>
     </>
@@ -41,17 +41,17 @@ function HmoTab() {
     if (busy.current) return; busy.current = true;
     patch(h.id, { status: 'Paused', pausedBy: 'you', reason: reason || undefined });
     setPausing(null); setTab('paused');
-    toast.success('Listing paused', { description: `${h.title} is hidden from students.` });
+    toast.success('Listing paused', { description: `${h.title} is hidden from residents.` });
     setTimeout(() => { busy.current = false; }, 400);
   };
-  const unpause = (h: Hmo) => { patch(h.id, { status: 'Active', pausedBy: undefined, reason: undefined }); toast.success('Listing unpaused', { description: `${h.title} is back on the student site.` }); };
+  const unpause = (h: Hmo) => { patch(h.id, { status: 'Active', pausedBy: undefined, reason: undefined }); toast.success('Listing unpaused', { description: `${h.title} is back on the resident site.` }); };
 
   const archive = (h: Hmo, reason: string) => {
     if (busy.current) return; busy.current = true;
     const before = { status: h.status, pausedBy: h.pausedBy, reason: h.reason };
     patch(h.id, { status: 'Archived', pausedBy: undefined, reason: reason || undefined });
     setArchiving(null);
-    toast.success('Listing archived', { description: `${h.title} is off the student site.`, action: { label: 'Undo', onClick: () => patch(h.id, before) } });
+    toast.success('Listing archived', { description: `${h.title} is off the resident site.`, action: { label: 'Undo', onClick: () => patch(h.id, before) } });
     setTimeout(() => { busy.current = false; }, 400);
   };
   const restore = (h: Hmo) => { patch(h.id, { status: 'Paused', pausedBy: 'you', reason: undefined }); toast.success('Listing restored', { description: `${h.title} is paused. Unpause it to go live.` }); };
@@ -64,7 +64,7 @@ function HmoTab() {
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Paused', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} />
       </div>
       <Table fill rows={rows} footer={false}
-        empty={hmos.length ? <div className="py-16 text-center text-sm text-gray-500">No {tab === 'all' ? '' : `${tab} `}HMO listings.</div> : <Empty art="properties" title="No HMO listings yet" sub="Listings show here once landlords are approved and add their houses." />}
+        empty={hmos.length ? <div className="py-16 text-center text-sm text-gray-500">No {tab === 'all' ? '' : `${tab} `}Landlord listings.</div> : <Empty art="properties" title="No landlord listings yet" sub="Listings show here once landlords are approved and add their houses." />}
         cols={[
           { key: 'p', label: 'Property', render: (h) => <div className="flex items-center gap-2.5 py-1"><Thumb tint={h.tint} /><div className="leading-tight"><div className="font-medium">{h.title}</div><div className="text-xs text-gray-500">{h.town} · {h.type} · {h.beds} bed</div></div></div> },
           { key: 'l', label: 'Landlord', render: (h) => h.landlord },
@@ -80,10 +80,10 @@ function HmoTab() {
                 : <Button size="sm" icon={Archive} onClick={() => setArchiving(h)}>Archive</Button>}
             </div>) },
         ]} />
-      <NoteDialog open={!!pausing} onClose={() => setPausing(null)} icon={Pause} optional title="Pause this listing" sub="It is hidden from students until you resume it."
+      <NoteDialog open={!!pausing} onClose={() => setPausing(null)} icon={Pause} optional title="Pause this listing" sub="It is hidden from residents until you resume it."
         label="Reason (shown on the inventory page)" initial={pausing?.title === '9 Wanless Terrace' ? 'Damp reported in two bedrooms. Hidden until the landlord confirms repairs.' : ''}
         submit="Pause" onSubmit={(r) => pausing && pause(pausing, r)} />
-      <NoteDialog open={!!archiving} onClose={() => setArchiving(null)} icon={Archive} optional danger title="Archive this listing" sub="It comes off the student site and out of Active. You can restore it later."
+      <NoteDialog open={!!archiving} onClose={() => setArchiving(null)} icon={Archive} optional danger title="Archive this listing" sub="It comes off the resident site and out of Active. You can restore it later."
         label="Reason" submit="Archive" onSubmit={(r) => archiving && archive(archiving, r)} />
     </>
   );
@@ -121,11 +121,11 @@ function PbsaTab() {
       <div className="px-6 pt-3 space-y-3">
         <div className="flex items-center gap-2 text-sm">
           {portal.showPbsa ? <CheckCircle size={16} className="text-[#16A34A]" /> : <WarningCircle size={16} className="text-[#F59E0B]" />}
-          <span>Amber PBSA is {portal.showPbsa ? 'shown' : 'not shown'} on your portal.</span>
+          <span>Partner halls are {portal.showPbsa ? 'shown' : 'not shown'} on your portal.</span>
           <Link to="/offcampus/portal" className="text-primary hover:underline">{portal.showPbsa ? 'Change this in Off-campus portal' : 'Turn it on in Off-campus portal'}</Link>
         </div>
         <Tabs value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: pbsa.filter((p) => campuses.some((x) => x.ticked && regionOf(x) === p.region)).length }, { id: 'hidden', label: 'Hidden', count: hidden.length }]} />
-        <div className="text-sm font-semibold pt-1">{view === 'all' ? 'Amber catalogue' : 'Hidden PBSA listings'}</div>
+        <div className="text-sm font-semibold pt-1">{view === 'all' ? 'Partner catalogue' : 'Hidden partner hall listings'}</div>
         {view === 'all' && (
           <Tabs value={campus} onChange={setCampus} tabs={campuses.map((x) => ({ id: x.id, label: x.name, count: x.ticked ? pbsa.filter((p) => p.region === regionOf(x)).length : 0 }))} />
         )}
@@ -133,19 +133,19 @@ function PbsaTab() {
       <div className="mt-3 flex-1 min-h-0 flex flex-col">
         {view === 'hidden' ? (
           <Table fill rows={hidden.map((h) => ({ ...h, id: h.ref }))}
-            empty={<div className="py-16 text-center text-sm text-gray-500">No PBSA listings are hidden.</div>}
+            empty={<div className="py-16 text-center text-sm text-gray-500">No partner hall listings are hidden.</div>}
             cols={[
-              { key: 'r', label: 'PBSA listing', render: (h) => <div className="leading-tight py-1"><div className="font-mono text-sm">{h.ref}</div><div className="text-xs text-gray-500">Amber</div></div> },
+              { key: 'r', label: 'Partner hall listing', render: (h) => <div className="leading-tight py-1"><div className="font-mono text-sm">{h.ref}</div><div className="text-xs text-gray-500">Partner halls</div></div> },
               { key: 'w', label: 'Reason', render: (h) => h.reason },
               { key: 'a', label: 'Marked at', render: (h) => <span className="text-gray-500">{h.at}</span> },
               { key: 'x', label: '', className: 'text-right w-28', render: (h) => <Button size="sm" onClick={() => unhide(h.ref)}>Unhide</Button> },
             ]} />
         ) : !region ? (
           <div className="py-16 text-center text-sm text-gray-500">
-            {c.ticked ? `${c.name} has no Amber region yet.` : `${c.name} isn't ticked for this portal.`} <Link to="/offcampus/portal" className="text-primary hover:underline">Choose campuses in Off-campus portal</Link>
+            {c.ticked ? `${c.name} has no partner region yet.` : `${c.name} isn't ticked for this portal.`} <Link to="/offcampus/portal" className="text-primary hover:underline">Choose campuses in Off-campus portal</Link>
           </div>
         ) : !rows.length ? (
-          <div className="py-16 text-center text-sm text-gray-500">Amber has no halls listed in {region} yet.</div>
+          <div className="py-16 text-center text-sm text-gray-500">No partner halls are listed in {region} yet.</div>
         ) : (
           <>
             <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
@@ -161,7 +161,7 @@ function PbsaTab() {
                         <td className="!pl-[var(--cx,12px)]"><div className="leading-tight"><div className="font-medium">{p.name}</div><div className="font-mono text-xs text-gray-500">{p.ref}</div></div></td>
                         <td>{p.region === 'Newcastle upon Tyne' ? 'Newcastle' : p.region}</td>
                         <td className="text-right">£{p.from} / week</td>
-                        <td><a href={`https://amberstudent.com/places/${p.ref}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">View on Amber</a></td>
+                        <td><a href={`https://partnerhalls.example/places/${p.ref}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">View listing</a></td>
                         <td>{h ? <Tag tone="grey" icon={EyeSlash}>Hidden</Tag> : <Tag tone="green" icon={CheckCircle}>Shown</Tag>}</td>
                         <td className="text-right !pr-[var(--cx,12px)]">{h ? <Button size="sm" onClick={() => unhide(p.ref)}>Unhide</Button> : <Button size="sm" onClick={() => setHiding(p)}>Hide</Button>}</td>
                       </tr>
@@ -179,8 +179,8 @@ function PbsaTab() {
         )}
       </div>
       <NoteDialog open={!!hiding} onClose={() => setHiding(null)} icon={EyeSlash} optional title="Hide this listing"
-        sub="It stops showing on your off-campus site. Amber keeps selling it everywhere else." label="Reason (shown on this page)"
-        initial={hiding?.name === 'The Sidings' ? 'Too far from the city centre for first-year students.' : ''}
+        sub="It stops showing on your off-campus site. It stays listed everywhere else." label="Reason (shown on this page)"
+        initial={hiding?.name === 'The Sidings' ? 'Too far from the city centre for first-year residents.' : ''}
         submit="Hide" onSubmit={(r) => hiding && hide(hiding, r)} />
     </div>
   );

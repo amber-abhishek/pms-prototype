@@ -14,6 +14,8 @@ export type IconProps = {
   style?: CSSProperties;
   color?: string;
   strokeWidth?: number;
+  /** Keep `strokeWidth` in screen pixels at any size (Lucide's absoluteStrokeWidth), as the Connect sidebar does. */
+  absoluteStrokeWidth?: boolean;
   'aria-hidden'?: boolean;
   'aria-label'?: string;
 };

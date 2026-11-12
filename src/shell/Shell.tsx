@@ -93,12 +93,12 @@ function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: 
             <button type="button" className="flex items-center gap-2 min-w-0 rounded-lg hover:opacity-80" onClick={() => toast('Durham University is the only organisation on this account')}>
               <OrgLogo size={26} />
               <span className="text-sm leading-5 font-semibold text-[#0A0A0A] truncate">Durham University</span>
-              <ChevronDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+              <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373] shrink-0" />
             </button>
           )}
           <button type="button" aria-label={collapsed ? 'Show sidebar' : 'Hide sidebar'} title="Toggle sidebar (⌘.)" onClick={onToggle}
             className={cx('size-7 shrink-0 rounded-md border border-[#E5E5E5] bg-white text-[#404040] hover:bg-[#F5F5F5] flex items-center justify-center', !collapsed && 'ml-auto')}>
-            <SidebarSimple size={16} strokeWidth={1.5} className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
+            <SidebarSimple size={16} strokeWidth={1.75} absoluteStrokeWidth className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
           </button>
         </div>
         {/* Nav (3884:39283): 8/16 padding, 36px rows packed with no gap; "System" label (12px medium #404040, 24px above) before Organisation and Settings. */}
@@ -120,7 +120,7 @@ function Sidebar({ visible, active, collapsed, onToggle, onSearch }: { visible: 
 function SearchRow({ collapsed, onSearch }: { collapsed: boolean; onSearch: () => void }) {
   const row = (
     <button type="button" aria-label="Search" onClick={onSearch} className={cx(ROW, IDLE, 'h-9 shrink-0 mb-2', collapsed ? 'justify-center px-2' : 'px-2')}>
-      <MagnifyingGlass size={16} strokeWidth={1.5} className="shrink-0" />
+      <MagnifyingGlass size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0" />
       {!collapsed && <><span className="flex-1 text-left">Search</span><Kbd>⌘K</Kbd></>}
     </button>
   );
@@ -142,7 +142,7 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
         <TooltipTrigger asChild>
           <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)}
             className={cx(ROW, 'relative h-9 shrink-0 justify-center px-2', on ? RAISED : IDLE)}>
-            <I size={16} strokeWidth={1.5} className={on ? 'text-[#2563EB]' : ''} />
+            <I size={16} strokeWidth={1.75} absoluteStrokeWidth className={on ? 'text-[#2563EB]' : ''} />
             {m.locked && <span className="absolute right-1 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
           </NavLink>
         </TooltipTrigger>
@@ -157,11 +157,11 @@ function ModuleRow({ m, on, counts, collapsed }: { m: Module; on: boolean; count
     <>
       <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
         className={cx(ROW, 'h-9 shrink-0 px-2 font-medium', flat ? RAISED : IDLE)}>
-        <I size={16} strokeWidth={1.5} className={cx('shrink-0', flat && 'text-[#2563EB]')} />
+        <I size={16} strokeWidth={1.75} absoluteStrokeWidth className={cx('shrink-0', flat && 'text-[#2563EB]')} />
         <span className="flex-1 truncate">{m.label}</span>
-        {m.locked && <Lock size={14} strokeWidth={1.5} className="text-[#737373]" />}
+        {m.locked && <Lock size={14} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373]" />}
         {/* Figma 3884:43935: the open module shows a chevron instead of its count. */}
-        {on && !flat ? <ChevronDown size={16} strokeWidth={1.5} /> : !flat && n !== undefined && n > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', lead?.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{n.toLocaleString('en-GB')}</span>}
+        {on && !flat ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth /> : !flat && n !== undefined && n > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', lead?.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{n.toLocaleString('en-GB')}</span>}
       </NavLink>
       {on && !flat && <ModulePages mod={m} counts={counts} />}
     </>
@@ -394,7 +394,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
         <PersonPhoto name={me.name} size={32} />
         {!collapsed && <>
           <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#737373] truncate">{me.email}</span></span>
-          <ChevronsUpDown size={16} strokeWidth={1.5} className="text-[#404040] shrink-0" />
+          <ChevronsUpDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="text-[#404040] shrink-0" />
         </>}
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-60 p-0 overflow-hidden">

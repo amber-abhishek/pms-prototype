@@ -6,6 +6,7 @@ import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
 import { Avatar, Button, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
+import { LineTabs } from '../inventory/common';
 import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 import { kindIcon } from './Requests';
@@ -114,9 +115,8 @@ export function ResidentDetail() {
             <p className="text-sm text-gray-500 mt-1">{r.hall} · {r.room} {r.roomType} · tenancy 19 Sep 2026 – 18 Jun 2027 · {gbp(r.rent)} / wk</p>
           </div>
         </div>
-        <div className="px-6 py-3 border-b border-line">
-          <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Payments', label: 'Payments' }, { id: 'Requests', label: 'Requests', count: reqs.length }, { id: 'Maintenance', label: 'Maintenance', count: mts.length }, { id: 'Documents', label: 'Documents', count: 4 }, { id: 'Activity', label: 'Activity' }]} />
-        </div>
+        {/* Same underline tabs as the property modal. */}
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Payments', label: 'Payments' }, { id: 'Requests', label: `Requests · ${reqs.length}` }, { id: 'Maintenance', label: `Maintenance · ${mts.length}` }, { id: 'Documents', label: 'Documents · 4' }, { id: 'Activity', label: 'Activity' }]} />
         <div className={['Payments', 'Requests', 'Maintenance', 'Documents'].includes(tab) ? 'pt-2' : 'p-6 max-w-[1200px]'}>
           {tab === 'Overview' && (
             <div className="grid grid-cols-2 gap-5 items-start">

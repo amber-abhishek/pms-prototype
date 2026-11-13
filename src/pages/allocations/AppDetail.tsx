@@ -87,7 +87,7 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
 /** A flat list row inside a section: leading slot, title + grey sub, trailing slot. Rows split by #F5F5F5 hairlines. */
 function Row({ lead, title, sub, children }: { lead?: ReactNode; title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="min-h-[52px] py-2 flex items-center gap-3 border-b border-[#F5F5F5] last:border-b-0">
+    <div className="min-h-[52px] py-2 first:-mt-2 last:-mb-2 flex items-center gap-3 border-b border-[#F5F5F5] last:border-b-0">
       {lead}
       <div className="min-w-0 flex-1"><div className="text-sm font-medium text-ink truncate">{title}</div>{sub && <div className="text-xs text-gray-500 truncate">{sub}</div>}</div>
       {children}

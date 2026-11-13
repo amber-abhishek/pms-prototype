@@ -53,7 +53,6 @@ export function RentFeesPage() {
             /* The count alone on the first line; tenancies on their own terms go underneath. */
             { key: 'k', label: 'Linked tenancies', render: (t) => <span className="block tabular-nums"><span className="block leading-5">{t.linked}</span>{t.own ? <span className="block text-xs leading-4 text-[#737373]">{t.own} on own terms</span> : null}</span> },
             { key: 's', label: 'Status', render: (t) => <PropStatus s={t.status} /> },
-            { key: 'e', label: '', className: 'w-16 text-right', render: (t) => <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(t); }} className="h-7 px-2.5 rounded-full border border-transparent text-xs font-medium text-[#0A0A0A] hover:bg-[#F5F5F5] hover:border-[#E5E5E5]">Edit</button> },
           ]}
           empty={!p ? <Empty title="No properties yet" sub="Tenancy templates belong to a property. Add one first." /> : <div className="p-10 text-center text-sm text-[#737373]">No templates for {p?.name}. <button type="button" className="text-primary" onClick={() => newTemplate()}>Make one</button></div>} />
       ) : (

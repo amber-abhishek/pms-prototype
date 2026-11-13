@@ -4,7 +4,7 @@ import { ChatText, Clock, DeviceMobile, Envelope, Megaphone, Moon, PaperPlaneTil
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { GROUPS, HALLS, MOVE_IN_BODY, audienceCount, useRms, type Channels, type Notice } from '../../data/residents';
-import { Button, Card, Check as CheckBox, DL, Empty, Field, FilterButton, Input, Note, Pill, Select, Sheet, Switch, Table, Tabs, Textarea, Toolbar, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Button, Card, Check as CheckBox, DL, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, Switch, Table, Tabs, Textarea, Toolbar, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Modal, RHeader, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 
@@ -25,8 +25,8 @@ export function NoticesList() {
   const notices = useRms((s) => s.notices);
   const nav = useNavigate();
   const [tab, setTab] = useTab<Tab>('All');
-  const [f, setF] = useState<Record<string, string>>({});
-  const inHall = notices.filter((n) => !f.hall || n.hall === f.hall);
+  const [f, setF] = useState<Filters>({});
+  const inHall = notices.filter((n) => inFilter(f.hall, n.hall));
   const st: Record<Tab, Notice['status'] | null> = { All: null, Sent: 'Sent', Scheduled: 'Scheduled', Drafts: 'Draft' };
   /* Mercury-style date order: scheduled first (soonest on top), then sent (newest first), drafts last. */
   const rank = (n: Notice) => (n.status === 'Scheduled' ? 0 : n.status === 'Sent' ? 1 : 2);

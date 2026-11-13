@@ -330,8 +330,8 @@ const FILTER_TRIGGER = 'shrink-0 h-8 min-w-[96px] max-w-[280px] px-3 rounded-lg 
 /** Amber Connect multi-select filter (its Status dropdown): a 34px bordered trigger reading "Status" or "Status (2)";
  *  a 200px popover of checkbox rows (16px sides, 10px tall padding), each option a plain label or a tinted chip
  *  (13px medium, 2/8 padding, r6, the tone at 10%); a rule, then Clear and Apply side by side. Picks stay a draft until Apply. */
-export function MultiFilter({ label, options, value, onChange, width = 200 }: {
-  label: string; options: { value: string; label?: string; tone?: Tone }[]; value: string[]; onChange: (v: string[]) => void; width?: number;
+export function MultiFilter({ label, options, value, onChange, width = 200, align = 'end' }: {
+  label: string; options: { value: string; label?: string; tone?: Tone }[]; value: string[]; onChange: (v: string[]) => void; width?: number; align?: 'start' | 'end';
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<string[]>(value);
@@ -345,13 +345,13 @@ export function MultiFilter({ label, options, value, onChange, width = 200 }: {
           <span>{label}{on && ` (${value.length})`}</span><CaretDown size={20} strokeWidth={1.5} className="text-[#737373]" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="p-0 overflow-hidden" style={{ width }}>
+      <PopoverContent align={align} className="p-0 overflow-hidden" style={{ width }}>
         <div className="max-h-[240px] overflow-y-auto py-1">
           {options.map((o) => (
             <label key={o.value} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[#F5F5F5] transition-colors">
               <Checkbox checked={draft.includes(o.value)} onCheckedChange={() => toggle(o.value)} />
               {o.tone
-                ? <span className={cx('inline-flex items-center px-2 py-0.5 rounded-md text-[13px] leading-5 font-medium whitespace-nowrap', toneCls[o.tone])}>{o.label ?? o.value}</span>
+                ? <Pill tone={o.tone}>{o.label ?? o.value}</Pill>
                 : <span className="text-sm text-[#0A0A0A]">{o.label ?? o.value}</span>}
             </label>
           ))}
@@ -401,7 +401,7 @@ export function SelectFilter({ label, icon: I, value, options, onChange, width =
           {label && row('', <span className="text-sm text-[#0A0A0A]">All</span>, !sel)}
           {options.map((o) => row(o.value, <>
             {o.tone
-              ? <span className={cx('inline-flex items-center px-2 py-0.5 rounded-md text-[13px] leading-5 font-medium whitespace-nowrap', toneCls[o.tone])}>{o.label ?? o.value}</span>
+              ? <Pill tone={o.tone}>{o.label ?? o.value}</Pill>
               : <span className="text-sm text-[#0A0A0A] truncate">{o.label ?? o.value}</span>}
             {o.meta != null && <span className="ml-auto font-mono text-xs text-[#737373] tabular-nums">{o.meta}</span>}
           </>, o.value === value))}
@@ -427,10 +427,16 @@ export const optionPill = (on: boolean) => cx(
   on ? 'text-[#2563EB] [background:linear-gradient(#EFF6FF,#EFF6FF)_padding-box,linear-gradient(180deg,#DBEAFE,#93C5FD)_border-box]'
     : 'text-[#404040] [background:linear-gradient(#FFFFFF,#FFFFFF)_padding-box,linear-gradient(180deg,#F7F8FA,#D3D7DE)_border-box] hover:[background:linear-gradient(#FAFAFA,#FAFAFA)_padding-box,linear-gradient(180deg,#F1F2F5,#C9CED7)_border-box]');
 /** chips: show the options as toggle chips instead of a dropdown (short lists such as Priority). */
-export type FilterDef = { id: string; label: string; options: string[]; chips?: boolean };
+export type FilterDef = { id: string; label: string; options: string[]; chips?: boolean; tones?: Record<string, Tone> };
+/** Toolbar filter values: each filter holds the options ticked in its popover (none = all). */
+export type Filters = Record<string, string[]>;
+/** True when a filter is unset or includes `v`. */
+export const inFilter = (sel: string[] | undefined, v: string | null | undefined) => !sel?.length || (v != null && sel.includes(v));
 /** One Connect dropdown per field (as Connect's Status filter), each a single choice that applies straight away. */
-export function FilterButton({ defs, value, onChange }: { defs: FilterDef[]; value: Record<string, string>; onChange: (v: Record<string, string>) => void }) {
-  return <>{defs.map((d) => <SelectFilter key={d.id} label={d.label} value={value[d.id] ?? ''} options={d.options.map((o) => ({ value: o }))} onChange={(v) => onChange({ ...value, [d.id]: v })} />)}</>;
+/** Every toolbar filter is the multi-select popover (checkbox rows, Clear and Apply), one trigger per filter. */
+export function FilterButton({ defs, value, onChange }: { defs: FilterDef[]; value: Filters; onChange: (v: Filters) => void }) {
+  return <>{defs.map((d) => <MultiFilter key={d.id} align="start" label={d.label} width={Math.max(200, ...d.options.map((o) => o.length * 8 + 96))} value={value[d.id] ?? []}
+    options={d.options.map((o) => ({ value: o, tone: d.tones?.[o] }))} onChange={(v) => onChange({ ...value, [d.id]: v })} />)}</>;
 }
 
 /* ---------- Table: inset rows, end-to-end footer bar with summary + pager ---------- */

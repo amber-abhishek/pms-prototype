@@ -4,7 +4,7 @@ import { Buildings, Camera, CheckCircle, Circle, Clock, DeviceMobile, DotsThree,
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
-import { Avatar, Button, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
+import { Avatar, Button, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
 import { LineTabs } from '../inventory/common';
 import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
@@ -37,11 +37,11 @@ export function ResidentsList() {
   const nav = useNavigate();
   const [tab, setTab] = useTab<Tab>('All');
   const [q, setQ] = useState('');
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<Filters>({});
   const checkIn = useCheckIn();
   if (open) return <Navigate to={`/residents/${open}`} replace />;
   const inTab = (r: Resident, t: Tab) => t === 'All' || (t === 'Arriving' ? !!r.arrivingThisWeek : r.status === t);
-  const scoped = residents.filter((r) => (!f.hall || r.hall === f.hall) && (!f.deposit || r.deposit === f.deposit) && (!f.week || (f.week === 'Arriving today' ? r.arrives === 'Today' && !r.checkedIn : f.week === 'Arriving this week' ? !!r.arrivingThisWeek : r.status === 'Leaving')) && (!q.trim() || `${r.name} ${r.email} ${r.room} ${r.hall}`.toLowerCase().includes(q.trim().toLowerCase())));
+  const scoped = residents.filter((r) => inFilter(f.hall, r.hall) && inFilter(f.deposit, r.deposit) && (!f.week?.length || f.week.some((w) => (w === 'Arriving today' ? r.arrives === 'Today' && !r.checkedIn : w === 'Arriving this week' ? !!r.arrivingThisWeek : r.status === 'Leaving'))) && (!q.trim() || `${r.name} ${r.email} ${r.room} ${r.hall}`.toLowerCase().includes(q.trim().toLowerCase())));
   const rows = scoped.filter((r) => inTab(r, tab)).sort((a, b) => (tab === 'Arriving' ? Number(b.arrives === 'Today') - Number(a.arrives === 'Today') : 0));
   return (
     <>

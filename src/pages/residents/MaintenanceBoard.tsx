@@ -58,13 +58,13 @@ function StageGlyph({ col }: { col: ColId }) {
   );
 }
 
-export function MaintenanceBoard({ faults, showResolved, onLog, selected, onOpen }: {
-  faults: Fault[]; showResolved: boolean; onLog: () => void; selected: string | null; onOpen: (id: string) => void;
+export function MaintenanceBoard({ faults, onLog, selected, onOpen }: {
+  faults: Fault[]; onLog: () => void; selected: string | null; onOpen: (id: string) => void;
 }) {
   const update = useRms((s) => s.update);
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<ColId | null>(null);
-  const cols = COLS.filter((c) => showResolved || c.id !== 'fixed');
+  const cols = COLS;
 
   const drop = (col: ColId) => {
     const f = faults.find((x) => x.id === dragId);

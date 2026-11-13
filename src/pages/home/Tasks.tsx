@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlarmClock, AlarmClockOff, ArrowDown, ArrowUp, ArrowsLeftRight, Bell, CalendarBlank, CalendarX, Check, CheckCircle, Plus, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Empty, Field, FilterButton, Input, PageHeader, Select, Sheet, SheetSection, Tabs, cx, toolbarCls, listNav, PageHeading } from '../../components/ui';
+import { Button, Empty, Field, FilterButton, inFilter, type Filters, Input, PageHeader, Select, Sheet, SheetSection, Tabs, cx, toolbarCls, listNav, PageHeading } from '../../components/ui';
 import { useOpen } from '../hooks';
 import { useEmpty } from '../../data/empty';
 import { DONE_EARLIER, EXTRAS, ME, PEOPLE, TOM_HIDDEN, useHome, type CaseId, type Due, type HTask } from '../../data/home';
@@ -76,7 +76,7 @@ function MyTasks() {
   const change = useChange('main');
   const [open, setOpen] = useOpen();
   const [tab, setTab] = useState<MainTab>('mine');
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<Filters>({});
   const [desc, setDesc] = useState(false);
   const [showWeek, setShowWeek] = useState(false);
 
@@ -92,8 +92,8 @@ function MyTasks() {
 
   const shown = useMemo(() => {
     let base = tab === 'mine' ? mineRows : tab === 'team' ? openRows : tab === 'snoozed' ? snoozedRows : doneRows;
-    if (f.from) base = base.filter((r) => r.from?.label.startsWith(f.from));
-    if (f.owner) base = base.filter((r) => r.owner === f.owner);
+    if (f.from?.length) base = base.filter((r) => f.from.some((a) => r.from?.label.startsWith(a)));
+    base = base.filter((r) => inFilter(f.owner, r.owner));
     return base;
   }, [tab, rows, f]); // eslint-disable-line react-hooks/exhaustive-deps
 

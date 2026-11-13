@@ -4,7 +4,7 @@ import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Buildings, ClockCounterClockwise, EnvelopeSimple, Info, PaperPlaneTilt, Plus, Shield, ShieldCheck, User, UserPlus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Field, FilterButton, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Field, FilterButton, inFilter, type Filters, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useTab } from '../hooks';
 import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, snapOrg, undoSince, useOrg, type Member, type Role, type Scenario } from '../../data/org';
@@ -30,7 +30,7 @@ export function AccessPage() {
   const [sp, setSp] = useSearchParams();
   const loc = useLocation();
   const nav = useNavigate();
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<Filters>({});
   const [invite, setInvite] = useState<{ open: boolean; roleId?: string }>({ open: false });
   const [access, setAccess] = useState<{ m: Member; addHall?: string; roleId?: string } | null>(null);
   const [removing, setRemoving] = useState<Member | null>(null);
@@ -48,7 +48,7 @@ export function AccessPage() {
   }, [loc, nav]);
 
   const roleOf = (m: Member) => roles.find((r) => r.id === m.roleId);
-  const shown = members.filter((m) => (!f.role || roleOf(m)?.name === f.role) && (!f.hall || m.halls === 'all' || m.halls.some((h) => hallById(h)?.short === f.hall)) && (!f.status || m.status === f.status));
+  const shown = members.filter((m) => inFilter(f.role, roleOf(m)?.name) && (!f.hall?.length || m.halls === 'all' || m.halls.some((h) => inFilter(f.hall, hallById(h)?.short))) && inFilter(f.status, m.status));
 
   const resend = (m: Member) => {
     const before = snap();

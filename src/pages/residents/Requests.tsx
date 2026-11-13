@@ -4,7 +4,7 @@ import { ArrowsLeftRight, CalendarBlank, Car, Check, CheckCircle, Clock, Envelop
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { useRms, type ReqKind, type ReqStatus, type ResRequest } from '../../data/residents';
-import { Button, Check as CheckBox, Empty, Field, FilterButton, Input, Note, Pill, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, gbp, listNav, type SheetNav } from '../../components/ui';
+import { Button, Check as CheckBox, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, gbp, listNav, type SheetNav } from '../../components/ui';
 import { Modal, Person, RHeader, RoomMove, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 
@@ -23,10 +23,10 @@ export function RequestsList() {
   const setOpen = (id: string | null) => setSp((p) => { const x = new URLSearchParams(p); if (id) x.set('open', id); else x.delete('open'); return x; }, { replace: !id });
   const { requests, patch } = useRms();
   const [tab, setTab] = useTab<Tab>('Open');
-  const [f, setF] = useState<Record<string, string>>({ hall: 'Collingwood' });
+  const [f, setF] = useState<Filters>({ hall: ['Collingwood'] });
   const [oldest, setOldest] = useState(true);
   const [creating, setCreating] = useState(false);
-  const inHall = useMemo(() => requests.filter((r) => (!f.hall || r.hall === f.hall) && (!f.kind || r.kind === f.kind)), [requests, f]);
+  const inHall = useMemo(() => requests.filter((r) => inFilter(f.hall, r.hall) && inFilter(f.kind, r.kind)), [requests, f]);
   const rows = useMemo(() => inHall.filter((r) => r.status === tabStatus[tab]).sort((a, b) => (oldest ? b.waitDays - a.waitDays : a.waitDays - b.waitDays)), [inHall, tab, oldest]);
   const count = (t: Tab) => inHall.filter((r) => r.status === tabStatus[t]).length;
   return (
@@ -39,7 +39,7 @@ export function RequestsList() {
       </>}>
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Open', label: 'Open', count: count('Open') }, { id: 'Waiting', label: 'Waiting on resident', count: count('Waiting') }, { id: 'Approved', label: 'Approved', count: count('Approved') }, { id: 'Declined', label: 'Declined', count: count('Declined') }]} />
       </Toolbar>
-      {f.hall && rows.length > 0 && <div className="shrink-0 -mt-1 pb-4 px-[calc(var(--gx,16px)+var(--cx,12px))] text-xs leading-4 text-[#737373]">Showing {f.hall}, the halls you look after</div>}
+      {f.hall?.length === 1 && rows.length > 0 && <div className="shrink-0 -mt-1 pb-4 px-[calc(var(--gx,16px)+var(--cx,12px))] text-xs leading-4 text-[#737373]">Showing {f.hall[0]}, the halls you look after</div>}
       <Table rows={rows} onRow={(r) => setOpen(r.id)} selected={open ?? undefined} sort={{ key: 'wt', dir: oldest ? 'desc' : 'asc', onToggle: () => setOldest((o) => !o) }}
         empty={<Empty art="requests" icon={ArrowsLeftRight} title={tab === 'Open' ? 'No open requests' : `No ${tab === 'Waiting' ? 'requests waiting on a resident' : tab.toLowerCase() + ' requests'}`}
           sub="Room swaps, guests and early arrivals residents ask for."

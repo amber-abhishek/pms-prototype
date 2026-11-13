@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ArrowsLeftRight, Bell, Check, CircleDashed, DownloadSimple, FileText, PaperPlaneTilt, Plus, Prohibit, Warning, WarningCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Pill, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, Pill, Dialog, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, bookingCounts, fmtN, firstName, hallFull, roomTerms, useAlloc, type Booking, type Conflict, type Data, type Offer } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
@@ -29,11 +29,11 @@ export function Bookings() {
   const tab: TabId = LEGACY[raw] ?? (TABS.includes(raw) ? raw : 'All');
   const [open, setOpen] = useOpen();
   const [q, setQ] = useState('');
-  const [f, setF] = useState<Record<string, string>>({ cycle: '2027/28' });
+  const [f, setF] = useState<Filters>({ cycle: ['2027/28'] });
   const [creating, setCreating] = useState(false);
   const [resolving, setResolving] = useState<Conflict | null>(null);
   const c = bookingCounts(d);
-  const match = (b: Booking) => (!q || `${b.name} ${b.ref} ${b.unit}`.toLowerCase().includes(q.toLowerCase())) && (!f.hall || hallFull[b.hall] === f.hall) && (!f.lease || b.lease === f.lease);
+  const match = (b: Booking) => (!q || `${b.name} ${b.ref} ${b.unit}`.toLowerCase().includes(q.toLowerCase())) && inFilter(f.hall, hallFull[b.hall]) && inFilter(f.lease, b.lease);
   const act = d.bookings.filter((b) => !b.cancelled && match(b));
   const sent = act.filter((b) => b.lease === 'Sent').sort((a, b) => (b.waiting ?? 0) - (a.waiting ?? 0));
   const drafts = act.filter((b) => b.lease === 'Draft');

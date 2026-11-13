@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarPlus, CaretLeft, CaretRight, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, Dialog, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Ini, Person, St, type C } from './common';
@@ -35,12 +35,12 @@ export function Offers() {
   const tab: TabId = LEGACY[raw] ?? (['Recent', 'Open', 'Accepted', 'Declined', 'Lapsed', 'Waitlist'].includes(raw) ? raw : 'Recent');
   const [open, setOpen] = useOpen();
   const [q, setQ] = useState('');
-  const [f, setF] = useState<Record<string, string>>({ cycle: '2027/28' });
+  const [f, setF] = useState<Filters>({ cycle: ['2027/28'] });
   const [adding, setAdding] = useState(false);
   const [offering, setOffering] = useState<Wait | null>(null);
   const c = offerCounts(d);
   const liveCycle = d.cycles.find((x) => x.status === 'open')?.name ?? '2027/28';
-  const match = (x: { name: string; hall: string; cycle?: string }) => (!q || x.name.toLowerCase().includes(q.toLowerCase())) && (!f.hall || hallFull[x.hall] === f.hall) && (!f.cycle || (x.cycle ?? liveCycle) === f.cycle);
+  const match = (x: { name: string; hall: string; cycle?: string }) => (!q || x.name.toLowerCase().includes(q.toLowerCase())) && inFilter(f.hall, hallFull[x.hall]) && inFilter(f.cycle, x.cycle ?? liveCycle);
   const rowsFor = (s: Offer['status']) => d.offers.filter((o) => o.status === s && match(o));
   const [page, setPage] = useState(0);
   const recent = d.recent.map((id) => d.offers.find((o) => o.id === id)).filter((o): o is Offer => !!o && match(o)).filter((o, i, a) => a.indexOf(o) === i);
@@ -175,7 +175,7 @@ export function Offers() {
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
-            {rows.length ? <Grid key={tab} fill cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea art="offers" icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || f.cycle !== liveCycle ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
+            {rows.length ? <Grid key={tab} fill cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea art="offers" icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || (f.cycle?.length !== 1 || f.cycle[0] !== liveCycle) ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
           <Foot right={pages > 1 && <span className="flex items-center gap-1 tabular-nums">
             {page * PAGE + 1}–{Math.min(rows.length, page * PAGE + PAGE)} of {fmtN(rows.length)}

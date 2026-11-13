@@ -193,3 +193,11 @@ table tbody td :is(.text-gray-500, .text-gray-400, .text-muted-foreground, .text
 [role=dialog] [data-scroller] { padding-top: 20px; padding-bottom: 20px; }
 /* A table already inside a card uses the card as its frame: no second border or radius. */
 [role=dialog] [data-card] table { border: 0; border-radius: 0; background: transparent; }
+
+/* One line per header edge (2026-11-13: "feels like it has 2 borders"). The head's lines are the inset shadows on
+   thead th above; hand-built heads also carried border-b / border-y on the row or cells, which stacked a second line. */
+thead tr, thead th { border-top-width: 0 !important; border-bottom-width: 0 !important; }
+/* A table sitting straight inside a rounded card: the card's edge (or the card header's rule) is already the line
+   above the head, so the head keeps only its bottom line. */
+:is([data-card], .rounded-lg, .rounded-xl, .rounded-2xl) > table thead th,
+:is([data-card], .rounded-lg, .rounded-xl, .rounded-2xl) > div > table thead th { box-shadow: inset 0 -1px 0 #E5E5E5; }

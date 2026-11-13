@@ -7,7 +7,7 @@ import {
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { fmtSla, useRms, type Fault, type FaultIcon, type Priority } from '../../data/residents';
-import { Avatar, Button, Card, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Card, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Select, SelectFilter, Sheet, SheetHero, SheetSection, Table, Textarea, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import { Kanban, List } from '../../components/icons';
@@ -93,7 +93,7 @@ export function MaintenanceList() {
           { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
         ]} />
       </>}>
-        {view === 'table' ? <Tabs value={tab} onChange={setTab} tabs={STATUSES.map((t) => ({ id: t, label: t, count: statusCount(t) }))} /> : (
+        {view === 'table' ? <SelectFilter value={tab} onChange={(v) => setTab(v as Tab)} width={240} suffix={<span className="font-mono text-xs text-[#737373] tabular-nums">{statusCount(tab)}</span>} options={STATUSES.map((t) => ({ value: t, meta: statusCount(t) }))} /> : (
           <label className="flex items-center gap-2 text-sm text-[#737373] cursor-pointer select-none whitespace-nowrap">
             <Checkbox checked={showResolved} onCheckedChange={(v) => setShowResolved(v === true)} />Show resolved (7 days)
           </label>

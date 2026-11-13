@@ -451,7 +451,7 @@ const pageList = (n: number, cur: number): (number | '…')[] => {
   return [0, '…', cur, '…', n - 1];
 };
 export type Col<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
-export function Table<T extends { id: string }>({ cols, rows, onRow, empty, pageSize = 50, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
+export function Table<T extends { id: string }>({ cols, rows, onRow, empty, pageSize = 25, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
   cols: Col<T>[]; rows: T[]; onRow?: (r: T) => void; empty?: ReactNode; pageSize?: number; selected?: string;
   /** Footer text on the left, e.g. "7 properties · 2,749 units". Defaults to "N rows". */ summary?: ReactNode;
   /** Render inside a bordered card instead of full-bleed. */ card?: boolean; footerRight?: ReactNode;

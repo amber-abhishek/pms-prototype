@@ -52,7 +52,7 @@ export function ResidentsList() {
       </>}>
         <Tabs value={tab} onChange={setTab} tabs={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ id: t, label: t, count: scoped.filter((r) => inTab(r, t)).length }))} />
       </Toolbar>
-      <Table rows={rows} paginate={false} footer={false} onRow={(r) => nav(`/residents/${r.id}`)}
+      <Table rows={rows} onRow={(r) => nav(`/residents/${r.id}`)}
         summary={`${rows.length} ${rows.length === 1 ? 'resident' : 'residents'}${tab === 'Arriving' ? ` · ${rows.filter((r) => r.checkedIn).length} checked in so far` : ''}`}
         empty={residents.length ? <Empty icon={Users} title="No residents match" sub="Try clearing the search or the filters." /> : <Empty art="team" icon={Users} title="No residents yet" sub="Residents show here once their bookings are confirmed." />}
         cols={[

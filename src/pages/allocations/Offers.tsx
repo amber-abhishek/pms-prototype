@@ -13,7 +13,7 @@ type TabId = 'Recent' | 'Open' | 'Accepted' | 'Declined' | 'Lapsed' | 'Waitlist'
 const LEGACY: Record<string, TabId> = { Sent: 'Open', Expired: 'Lapsed' };
 const ST: Record<Offer['status'], string> = { open: 'Open', accepted: 'Accepted', declined: 'Declined', lapsed: 'Lapsed' };
 const unitOf = (o: { hall: string; unit: string }) => `${o.hall} · ${o.unit}`;
-const PAGE = 50;
+const PAGE = 25;
 /** Generated rows have ids starting with g; the design's rows stay on top. */
 const isGen = (o: Offer) => o.id.startsWith('g');
 const leftCls = (h?: number) => (h === undefined ? '' : h <= 24 ? 'font-semibold text-[#E5530C]' : 'text-ink');

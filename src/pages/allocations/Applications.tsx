@@ -14,7 +14,7 @@ import { applyFilters, describe, fieldsFor, FilterPanel, type Filters } from './
 type TabId = 'To review' | 'Flagged' | 'Allocated' | 'Rejected' | 'All';
 const LEGACY: Record<string, TabId> = { 'Manual review': 'Flagged', New: 'To review', 'In review': 'To review', Offered: 'Allocated', Accepted: 'Allocated', Waitlisted: 'All', Declined: 'Rejected' };
 const tabStatus: Record<TabId, AppStatus | null> = { 'To review': 'review', Flagged: 'manual', Allocated: 'allocated', Rejected: 'rejected', All: null };
-const PAGE = 50;
+const PAGE = 25;
 
 /* "24 Oct" within a cycle → a sortable number: newer cycles first, then the date inside the cycle's
    September-to-August year. A plain string sort put 28 May next to 28 Sep. */

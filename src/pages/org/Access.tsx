@@ -127,7 +127,7 @@ export function AccessPage() {
             <Button icon={Shield} onClick={() => setTab('roles')}>Review roles</Button>
           </EmptyState>
         </div>
-      ) : <Table cols={memberCols} rows={shown} onRow={(m) => setAccess({ m })} selected={access?.m.id} summary={FOOT} pageSize={50} />)}
+      ) : <Table cols={memberCols} rows={shown} onRow={(m) => setAccess({ m })} selected={access?.m.id} summary={FOOT} />)}
 
       {tab === 'roles' && <Table cols={roleCols} rows={roles} onRow={(r) => r.id !== 'admin' ? nav(`/org/people/roles/${r.id}`) : toast('Admin can do everything. It can’t be edited.')} />}
 

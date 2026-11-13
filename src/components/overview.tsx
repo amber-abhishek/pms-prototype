@@ -236,7 +236,7 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
             </div>
             <div />
             <div className="relative font-mono uppercase text-[11px] leading-4 text-[#737373]">
-              {ticks.map((t, i) => <span key={t} className={cx('absolute top-1 whitespace-nowrap', i === 0 ? '' : i === ticks.length - 1 ? '-translate-x-full' : '-translate-x-1/2')} style={{ left: `${(i / (ticks.length - 1)) * 100}%` }}>{t}</span>)}
+              {ticks.map((t, i) => <span key={t} className={cx('absolute top-1 whitespace-nowrap', i === 0 ? '' : i === ticks.length - 1 ? '-translate-x-full' : '-translate-x-1/2')} style={{ left: `${(() => { const at = points.findIndex((p) => p.label === t); return (at >= 0 && points.length > 1 ? at / (points.length - 1) : i / (ticks.length - 1)) * 100; })()}%` }}>{t}</span>)}
             </div>
           </div>
         )}

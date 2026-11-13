@@ -11,9 +11,14 @@ import { FieldErr, Modal, Picker } from './common';
 export function StructuresPage() {
   const structures = useInv((s) => s.structures);
   const [open, setOpen] = useState<Structure | 'new' | null>(null);
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const rows = structures.filter((s) => !needle || [s.name, ...s.levels.map((l) => l.name)].some((v) => v.toLowerCase().includes(needle)));
   return (
     <>
       <PageHeader icon={TreeStructure} title="Property layouts" crumbs={['Inventory']}>
+        {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
+        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search layouts" /></div>
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New layout</Button>
       </PageHeader>
       <PageHeading />
@@ -21,14 +26,14 @@ export function StructuresPage() {
       <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] pt-6 pb-5">
         <Note plain tone="blue" icon={Lock} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
       </div>
-      <Table rows={structures} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
+      <Table rows={rows} empty={<Empty title="No layouts match" sub="Try a layout or level name." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'n', label: 'Layout', render: (s) => <span className="font-semibold">{s.name}</span> },
               { key: 'l', label: 'Levels', render: (s) => <Levels s={s} /> },
               { key: 'p', label: 'Properties', className: 'text-right', render: (s) => <span className={cx('inline-flex items-center gap-1.5 tabular-nums', !s.properties && 'text-gray-400')}>{s.properties > 0 && <Lock size={13} className="text-[#A3A3A3]" aria-label="In use: levels are fixed" />}{s.properties}</span> },
               { key: 'u', label: 'Updated', className: 'pl-12', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
             ]} />
-      <StructureSheet s={open} nav={open && open !== 'new' ? listNav(structures, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
+      <StructureSheet s={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>
   );
 }

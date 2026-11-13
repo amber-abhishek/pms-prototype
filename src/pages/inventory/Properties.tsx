@@ -3,14 +3,18 @@ import { Illustration } from '../../components/Illustration';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Archive, ArrowsDownUp, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
+  Archive, ArrowsDownUp, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, UploadSimple, WarningCircle, X, Clock, CheckCircle,
 } from '../../components/icons';
-import { Button, Check, Empty, Field, MultiFilter, PageHeader, Pill, SearchInput, Table, cx } from '../../components/ui';
+import { Button, Check, Empty, MultiFilter, PageHeader, SearchInput, Table, cx, PIN } from '../../components/ui';
+import { PHOTO } from './photos';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
-import { Menu, Modal, Picker, PropStatus, RadioCard, Tags } from './common';
+import { ACard, FormRow, InvModal, LayoutRadios, Menu, Modal, PropStatus, RadioCard, Tags } from './common';
 
 const COLS = ['Campus', 'Layout', 'Tags', 'Units', 'Status'] as const;
+
+/** The Properties rows in their on-screen order (search, filters, sort), so the property modal's ↑ ↓ steps through what the list shows. */
+export const shownOrder: { ids: string[] } = { ids: [] };
 
 export function PropertiesPage() {
   const nav = useNavigate();
@@ -40,6 +44,7 @@ export function PropertiesPage() {
   const rows = list
     .filter((p) => (!campusF.length || campusF.includes(p.campus)) && (!layoutF.length || layoutF.includes(p.structure)) && (!statusF.length || statusF.includes(p.status)) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => !sort ? 0 : sort.dir * (sort.key === 'units' ? a.units - b.units : a.name.localeCompare(b.name)));
+  shownOrder.ids = rows.map((p) => p.id);
   const sortBy = (key: 'name' | 'units') => setSort((s) => (s?.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
   /* Figma 3884:39809 heads: Property and Units carry the ↕ sort glyph, ink while that column sorts the table. */
   const head = (label: string, key: 'name' | 'units') => (
@@ -74,8 +79,8 @@ export function PropertiesPage() {
       const k = KICKER[p.id] ?? (p.status === 'Active' ? null : 'Not letting 2026/27');
       return (
         <span className="flex items-center gap-4 min-w-0">
-          {PHOTO[p.id] ? <img src={PHOTO[p.id]} alt="" loading="lazy" className="w-[148px] h-20 rounded-[5px] object-cover shrink-0 bg-[#F5F5F5]" />
-            : <span className="w-[148px] h-20 rounded-[5px] bg-[#F5F5F5] shrink-0 flex items-center justify-center"><Buildings size={20} className="text-[#A3A3A3]" /></span>}
+          {PHOTO[p.id] ? <img src={PHOTO[p.id]} alt="" loading="lazy" className="w-[120px] h-16 rounded-[5px] object-cover shrink-0 bg-[#F5F5F5]" />
+            : <span className="w-[120px] h-16 rounded-[5px] bg-[#F5F5F5] shrink-0 flex items-center justify-center"><Buildings size={20} className="text-[#A3A3A3]" /></span>}
           <span className="min-w-0 flex flex-col gap-1">
             {k && <span className={cx('text-xs leading-4 font-medium', KICKER[p.id] ? 'text-[#0284C7]' : 'text-[#737373]')}>{k}</span>}
             <span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={p.name}>{p.name}</span>
@@ -87,8 +92,8 @@ export function PropertiesPage() {
     { key: 'Campus', label: 'Campus', render: (p: Property) => <span className="text-[#404040]">{p.campus}</span> },
     { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#404040]">{p.structure}</span> },
     { key: 'Tags', label: 'Tags', render: (p: Property) => <Tags tags={p.tags} /> },
-    { key: 'Units', label: <span className="flex justify-end">{head('Units', 'units')}</span>, className: 'text-right', render: (p: Property) => <span className="font-medium tabular-nums">{p.units.toLocaleString('en-GB')}</span> },
-    { key: 'Status', label: 'Status', className: 'pl-8', render: (p: Property) => <PropStatus s={p.status} /> },
+    { key: 'Units', label: head('Units', 'units'), render: (p: Property) => <span className="font-medium tabular-nums">{p.units.toLocaleString('en-GB')}</span> },
+    { key: 'Status', label: 'Status', render: (p: Property) => <PropStatus s={p.status} /> },
     {
       key: 'menu', label: <span className="sr-only">Actions</span>, className: 'w-14 text-right', render: (p: Property) => (
         <Menu width={168} trigger={(o) => <button type="button" aria-label={`More for ${p.name}`} onClick={(e) => { e.stopPropagation(); o(); }} className="size-8 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] inline-flex items-center justify-center text-[#404040]"><DotsThree size={16} strokeWidth={1.75} /></button>}
@@ -121,7 +126,7 @@ export function PropertiesPage() {
       ) : (
         <>
           {/* Figma 3884:39809 toolbar: 68px, 16/24 padding; 280×36 search on the left; campus, layout and status dropdowns and Display on the right. */}
-          <div className="shrink-0 px-6 py-4 flex items-center gap-3">
+          <div {...PIN} className="shrink-0 px-6 py-4 flex items-center gap-3">
             <div className="[&>label]:w-[280px] [&>label]:h-9"><SearchInput value={q} onChange={setQ} placeholder="Search properties" /></div>
             <div className="ml-auto flex items-center gap-3">
               <MultiFilter label="Campus" value={campusF} onChange={setCampusF} options={[{ value: 'Durham City' }, { value: 'Queen’s Campus' }]} />
@@ -132,7 +137,7 @@ export function PropertiesPage() {
           </div>
           <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)}
             empty={<Empty title="No properties match" sub="Try another campus or clear the search." />}
-            summary={`Showing ${rows.length} of ${list.length} properties`} />
+            footer="always" summary={rows.length === list.length ? `${list.length} ${list.length === 1 ? 'property' : 'properties'}` : `${rows.length} of ${list.length} properties`} />
         </>
       )}
       <ImportDialog open={importOpen} onClose={() => setImport(false)} />
@@ -141,8 +146,7 @@ export function PropertiesPage() {
   );
 }
 
-/* Dummy row details for the Figma kicker and photo (the backend has neither yet). */
-const PHOTO: Record<string, string> = { col: '/properties/p1.jpg', jb: '/properties/p2.jpg', ust: '/properties/p3.jpg', ste: '/properties/p4.jpg', hb: '/properties/p5.jpg', js: '/properties/p6.jpg', erh: '/properties/p7.jpg' };
+/* Dummy row details for the Figma kicker (the backend has none yet); photos come from ./photos. */
 const KICKER: Record<string, string> = { col: '88% pre-let', jb: '83% pre-let', ust: '94% pre-let', ste: '91% pre-let', hb: '86% pre-let', js: '89% pre-let' };
 /** "South Road, Durham DH1 3DF" → "South Road · DH1 3DF". */
 const shortAddress = (a: string) => { const parts = a.split(', '); const pc = parts[parts.length - 1].split(' ').slice(-2).join(' '); return parts.length > 1 ? `${parts[0]} · ${pc}` : a; };
@@ -197,25 +201,30 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     );
   }
   return (
-    <Modal open={open} onClose={onClose} icon={FileCsv} tone="green" width={600} title="Import a property"
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={UploadSimple} disabled={stage !== 'ok'} onClick={upload}>Upload</Button></>}>
-      <p className="text-sm text-[#737373] -mt-3 ml-11">One row per room.</p>
-      <div className="space-y-4 mt-4">
-        <Field label="Property layout" hint="The template’s columns come from this layout">
-          <Picker value={structure} onChange={(v) => { setStructure(v); setStage('pick'); tries.current = 0; }} icon={TreeStructure} options={[{ id: 'College', label: 'College' }, { id: 'House', label: 'House' }]} />
-        </Field>
-        <div className="rounded-xl border border-line p-3.5">
-          <div className="flex items-center justify-between"><span className="text-sm font-medium">Template columns</span><Button size="sm" icon={DownloadSimple} onClick={() => toast.success(`${structure.toLowerCase()}-template.csv downloaded`)}>Download template</Button></div>
-          <div className="flex flex-wrap gap-1.5 mt-3">{cols.map((c) => <Pill key={c} tone="grey">{c}</Pill>)}</div>
-          <p className="text-xs text-[#737373] mt-2.5">* means required.</p>
-        </div>
-        {stage === 'pick' && (
-          <div className="rounded-xl border-2 border-dashed border-gray-200 py-8 flex flex-col items-center text-center">
-            <FileText size={24} className="text-gray-400" />
-            <div className="text-sm font-medium mt-2">Drop the CSV here</div>
-            <div className="text-xs text-[#737373]">Up to 5,000 rows and 1 MB</div>
-            <Button className="mt-3" size="sm" icon={FileText} onClick={choose}>Choose file</Button>
+    <InvModal open={open} onClose={onClose} width={640} title="Import a property"
+      left={<Button variant="ghost" onClick={onClose}>Cancel</Button>}
+      right={<Button variant="primary" icon={UploadSimple} disabled={stage !== 'ok'} onClick={upload}>Upload</Button>}>
+      {/* Built from the Add property modal's parts (Figma 3884:41314): layout radio cards, a mono-strip card, labelled rows. */}
+      <FormRow label="Property layout">
+        <LayoutRadios value={structure} onChange={(v) => { setStructure(v); setStage('pick'); tries.current = 0; }} />
+      </FormRow>
+      <FormRow label="Template" hint="One row per room · * required">
+        <ACard title={`${structure} · ${cols.length} columns`} right={
+          <button type="button" onClick={() => toast.success(`${structure.toLowerCase()}-template.csv downloaded`)} className="normal-case tracking-normal font-sans text-xs text-[#2563EB] hover:underline underline-offset-2 flex items-center gap-1"><DownloadSimple size={14} strokeWidth={1.5} />Download</button>}>
+          {/* The template's header row and one example room. */}
+          <div className="overflow-x-auto font-mono text-[11px] leading-4 whitespace-nowrap grid" style={{ gridTemplateColumns: cols.map((c) => `minmax(max-content, ${c.length}fr)`).join(' ') }}>
+            {cols.map((c, k) => <span key={c} className={cx('h-8 px-3 flex items-center border-b border-[#E5E5E5] text-[#0A0A0A] font-medium', k < cols.length - 1 && 'border-r')}>{c}</span>)}
+            {(structure === 'College' ? ['St Mary’s', 'A', '1', 'A1', 'A1-01', '12.5', 'no'] : ['Mill Lane', '1', '11.0', 'yes']).map((v, k) => <span key={k} className={cx('h-8 px-3 flex items-center border-[#E5E5E5] text-[#A3A3A3]', k < cols.length - 1 && 'border-r')}>{v}</span>)}
           </div>
+        </ACard>
+      </FormRow>
+      <FormRow label="CSV file" hint={stage === 'pick' ? 'Up to 5,000 rows · 1 MB' : undefined}>
+        <div className="flex flex-col gap-3">
+        {stage === 'pick' && (
+          <button type="button" onClick={choose} className="w-full rounded-xl border border-dashed border-[#D4D4D4] bg-[#FAFAFA] hover:bg-[#F5F5F5] py-6 flex flex-col items-center gap-2.5 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="size-8 rounded-lg bg-white border border-[#E5E5E5] flex items-center justify-center text-[#737373]"><UploadSimple size={16} strokeWidth={1.5} /></span>
+            <span className="text-sm text-[#0A0A0A]">Drop the CSV here or <span className="text-[#2563EB]">choose a file</span></span>
+          </button>
         )}
         {stage === 'problems' && (<>
           <FileCard bad sub="144 rows · 18 KB · 3 problems" onRemove={() => setStage('pick')} />
@@ -225,7 +234,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
               <thead><tr className="text-left text-xs text-[#737373] border-y border-line bg-[#FAFAFA]"><th className="font-medium h-9 px-3.5">Where</th><th className="font-medium px-3">Column</th><th className="font-medium px-3">Problem</th></tr></thead>
               <tbody>
                 {[['Header', 'Column 6', 'Is “Room size”; the template says “Room.roomSize*”'], ['Row 38', 'Room.roomSize*', 'Required, but empty'], ['Row 91', 'Room.accessible', '“maybe” isn’t yes or no']].map(([a, b, c]) => (
-                  <tr key={a} className="border-b border-[#F5F5F5] last:border-0"><td className="h-10 px-3.5 font-medium">{a}</td><td className="px-3 font-mono text-xs">{b}</td><td className="px-3 text-[#737373]">{c}</td></tr>
+                  <tr key={a} className="border-b border-[#F5F5F5] last:border-0"><td className="h-10 px-3.5 font-medium whitespace-nowrap">{a}</td><td className="px-3 font-mono text-xs">{b}</td><td className="px-3 text-[#737373]">{c}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -242,8 +251,9 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
             <div><div className="text-sm font-semibold text-[#0B8A4C]">No problems found</div><div className="text-sm text-[#737373] mt-0.5">Makes 1 new property, 2 blocks, 6 floors, 24 flats and 144 rooms. The rooms get no tenancies.</div></div>
           </div>
         </>)}
-      </div>
-    </Modal>
+        </div>
+      </FormRow>
+    </InvModal>
   );
 }
 function FileCard({ bad, sub, onRemove }: { bad?: boolean; sub: string; onRemove: () => void }) {

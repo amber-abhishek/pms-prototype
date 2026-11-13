@@ -50,7 +50,7 @@ export function RequestsList() {
           { key: 'w', label: 'Resident', render: (r) => <span className="flex items-center gap-2.5 min-w-0"><Person name={r.who} /><span className="font-medium truncate">{r.who}</span></span> },
           { key: 'd', label: 'Detail', render: (r) => <span className="text-gray-500">{r.detail}</span> },
           { key: 'c', label: 'Checks', render: (r) => <Pill tone={r.check.tone} icon={checkIcon(r.check.tone)}>{r.check.label}</Pill> },
-          { key: 'wt', label: 'Waiting', className: 'text-right', render: (r) => <span className="text-gray-500">{r.status === 'Approved' || r.status === 'Declined' ? (r.decidedBy ? `${r.status} by ${r.decidedBy.split(' ')[0]}` : r.status) : r.waiting}</span> },
+          { key: 'wt', label: 'Waiting', render: (r) => <span className="text-gray-500">{r.status === 'Approved' || r.status === 'Declined' ? (r.decidedBy ? `${r.status} by ${r.decidedBy.split(' ')[0]}` : r.status) : r.waiting}</span> },
         ]} />
       {open && requests.some((x) => x.id === open) && <RequestSheet key={open} id={open} nav={listNav(rows, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />}
       <NewRequest open={creating} onClose={() => setCreating(false)} onCreate={(r) => { patch('requests', (rs) => [r, ...rs]); toast.success(`${r.ref} logged`, { description: 'It shows in Open and in My tasks.' }); setCreating(false); }} />

@@ -191,9 +191,9 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
         ) : view === 'table' ? (
           <div className="flex-1 min-h-0 overflow-auto -mx-1 px-1">
             <table className="w-full text-sm">
-              <thead><tr className="h-8"><th className="text-left pl-1">Day</th><th className="text-right">{kind === 'line' ? 'Beds let' : 'Beds allocated'}</th><th className="text-right pr-1">Change</th></tr></thead>
+              <thead><tr className="h-8"><th className="text-left pl-1">Day</th><th className="text-left">{kind === 'line' ? 'Beds let' : 'Beds allocated'}</th><th className="text-left pr-1">Change</th></tr></thead>
               <tbody>{[...points].reverse().map((p) => (
-                <tr key={p.label} className="h-9 border-b border-[#F5F5F5] last:border-0"><td className="pl-1 text-[#404040]">{p.label}</td><td className="text-right tabular-nums text-ink">{p.value.toLocaleString('en-GB')}</td><td className="text-right tabular-nums text-[#737373] pr-1">{p.note}</td></tr>
+                <tr key={p.label} className="h-9 border-b border-[#F5F5F5] last:border-0"><td className="pl-1 text-[#404040]">{p.label}</td><td className="tabular-nums text-ink">{p.value.toLocaleString('en-GB')}</td><td className="tabular-nums text-[#737373] pr-1">{p.note}</td></tr>
               ))}</tbody>
             </table>
           </div>

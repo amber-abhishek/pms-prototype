@@ -21,8 +21,7 @@ const dayOf = (w: string) => (/^\d{1,2}:\d{2}$/.test(w) ? 'Today' : w === 'Just 
 const timeOf = (w: string) => (/^\d{1,2}:\d{2}$/.test(w) ? w : w === 'Just now' ? w : w.split(', ')[1] ?? '');
 
 export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise }: { title?: string; icon?: Icon }) {
-  /* Home's Activity page keeps header search; the Organisation log doesn't. The greeting band is Overview only (2026-11-13). */
-  const band = title === 'Activity';
+  /* No header search on Activity or the Organisation log (2026-11-13). The greeting band is Overview only. */
   const activity = useDb((s) => s.activity);
   const [area, setArea] = useState('All');
   const [q, setQ] = useState('');
@@ -31,7 +30,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
   const rows = activity.filter((a) => (area === 'All' || a.area === area) && (!query || `${a.who} ${a.what}`.toLowerCase().includes(query)));
   return (
     <>
-      <PageHeader icon={icon} title={title} search={band} />
+      <PageHeader icon={icon} title={title} />
       <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Person or action" />}>
         <Tabs value={area} onChange={setArea} tabs={areas.map((x) => ({ id: x, label: x, count: x === 'All' ? activity.length : activity.filter((a) => a.area === x).length }))} />
       </Toolbar>
@@ -45,7 +44,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
             </span>
           ) },
           { key: 'a', label: 'Area', className: 'w-[160px]', render: (a) => <Pill>{a.area}</Pill> },
-          { key: 't', label: 'Time', className: 'w-[120px] text-right', render: (a) => <span className="text-gray-500 tabular-nums">{timeOf(a.when)}</span> },
+          { key: 't', label: 'Time', className: 'w-[120px]', render: (a) => <span className="text-gray-500 tabular-nums">{timeOf(a.when)}</span> },
         ]} />
     </>
   );

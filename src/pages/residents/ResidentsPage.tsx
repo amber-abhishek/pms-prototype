@@ -4,7 +4,7 @@ import { Buildings, Camera, CheckCircle, Circle, Clock, DeviceMobile, DotsThree,
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
-import { Avatar, Button, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
+import { Avatar, Button, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, SheetNavButtons, Table, Tabs, Textarea, Toolbar, gbp, listNav, SheetHero, SheetSection } from '../../components/ui';
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
 import { LineTabs } from '../inventory/common';
 import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
@@ -30,6 +30,8 @@ export function useCheckIn() {
 
 /* ---------------- List (no frame: same style as the other lists; 3218, 3219, 3221) ---------------- */
 type Tab = 'All' | 'In residence' | 'Arriving' | 'Leaving';
+/** The Residents rows in their on-screen order, so the resident modal's ⌃ ⌄ steps through what the list shows. */
+const shownResidents: { ids: string[] } = { ids: [] };
 export function ResidentsList() {
   const [sp] = useSearchParams();
   const open = sp.get('open');
@@ -43,6 +45,7 @@ export function ResidentsList() {
   const inTab = (r: Resident, t: Tab) => t === 'All' || (t === 'Arriving' ? !!r.arrivingThisWeek : r.status === t);
   const scoped = residents.filter((r) => inFilter(f.hall, r.hall) && inFilter(f.deposit, r.deposit) && (!f.week?.length || f.week.some((w) => (w === 'Arriving today' ? r.arrives === 'Today' && !r.checkedIn : w === 'Arriving this week' ? !!r.arrivingThisWeek : r.status === 'Leaving'))) && (!q.trim() || `${r.name} ${r.email} ${r.room} ${r.hall}`.toLowerCase().includes(q.trim().toLowerCase())));
   const rows = scoped.filter((r) => inTab(r, tab)).sort((a, b) => (tab === 'Arriving' ? Number(b.arrives === 'Today') - Number(a.arrives === 'Today') : 0));
+  shownResidents.ids = rows.map((r) => r.id);
   return (
     <>
       <RHeader icon={Users} crumbs={[]} title="Residents" />
@@ -75,6 +78,7 @@ export function ResidentDetail() {
   const nav = useNavigate();
   const { residents, requests, faults } = useRms();
   const r = residents.find((x) => x.id === id);
+  const stepper = listNav(shownResidents.ids.length ? shownResidents.ids : residents.map((x) => x.id), (x) => x === id, (x) => nav(`/residents/${x}`));
   const [tab, setTab] = useState<DTab>('Overview');
   const [msg, setMsg] = useState(false);
   const checkIn = useCheckIn();
@@ -96,6 +100,7 @@ export function ResidentDetail() {
       <UIDialog open onOpenChange={(o) => { if (!o) nav('/residents'); }}>
       <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:28px] [--cx:20px]">
       <DialogHeader className="py-3">
+        <SheetNavButtons nav={stepper} />
         <DialogTitle>Resident</DialogTitle>
         <Button icon={Envelope} onClick={() => setMsg(true)}>Message</Button>
         {arriving ? <Button variant="primary" icon={r.pending ? Clock : SignIn} disabled={!!r.pending} onClick={() => checkIn.start(r)}>{r.pending === 'payment' ? 'Waiting for payment' : r.pending ? 'Waiting for sign-off' : 'Check in'}</Button>
@@ -151,7 +156,7 @@ export function ResidentDetail() {
             ]} cols={[
               { key: 'i', label: 'Item', render: (x) => x.item },
               { key: 'd', label: 'Due', render: (x) => <span className="text-gray-500">{x.due}</span> },
-              { key: 'a', label: 'Amount', className: 'text-right', render: (x) => <span className="tabular-nums">{gbp(x.amount)}</span> },
+              { key: 'a', label: 'Amount', render: (x) => <span className="tabular-nums">{gbp(x.amount)}</span> },
               { key: 's', label: 'Status', render: (x) => <Pill tone={x.status === 'Paid' ? 'green' : x.status === 'Not paid' ? 'red' : x.status === 'Due' ? 'amber' : 'grey'}>{x.status}</Pill> },
             ]} />
           )}

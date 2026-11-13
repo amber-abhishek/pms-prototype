@@ -128,6 +128,12 @@ thead.sticky th, thead th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #
 /* Figma 3884:43935 column labels, on every table (hand-built heads included): 42px, Geist Mono Medium 13 uppercase, 4% tracking, #737373. */
 .pms-main thead th { height: 42px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: #737373; }
 [data-head] { background: #FAFAFA; box-shadow: inset 0 -1px 0 #E5E5E5, inset 0 1px 0 #E5E5E5; }
+/* A table that is the first thing under the page header sits on the header's own 1px rule; drawing its line above
+   too made a 2px line (2026-11-13). Anything in between (a toolbar, a note) keeps the line. */
+:is([data-page-head] + *, [data-page-head] + * > :first-child, [data-page-head] + .sr-only + *) > [data-scroller]:first-child > :first-child > table:first-child > thead th { box-shadow: inset 0 -1px 0 #E5E5E5; }
+/* Same for a table that opens a bordered card (report tables, the import problems list): the card's top edge is
+   already the line, so the head draws only its bottom rule. */
+:is(.border, .border-y, .border-t) > :is(table:first-child, :first-child > table:first-child) > thead th { box-shadow: inset 0 -1px 0 #E5E5E5; }
 
 /* Overview funnel in dark (Mercury-style): deep, low-chroma steps rising to the softened brand blue. */
 .dark [data-funnel="0"] { background: #222B3D !important; }
@@ -151,8 +157,12 @@ thead.sticky th, thead th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #
 .pms-main:has([data-scroller]) [data-page-head] { position: sticky; top: 0; z-index: 20; }
 .pms-main:has([data-scroller]) :is(.overflow-auto, .overflow-y-auto, .overflow-hidden, .min-h-0, .flex-1):has([data-scroller]),
 .pms-main:has([data-scroller]) [data-scroller] { overflow: visible; min-height: auto; flex-shrink: 0; }
-.pms-main:has([data-scroller]) [data-scroller] thead { top: 56px; z-index: 6; }
-.pms-main:has([data-scroller]) [data-scroller] [data-head] { position: sticky; top: 56px; z-index: 6; }
+.pms-main:has([data-scroller]) [data-scroller] thead { top: calc(56px + var(--tb-h, 0px)); z-index: 6; }
+.pms-main:has([data-scroller]) [data-scroller] [data-head] { position: sticky; top: calc(56px + var(--tb-h, 0px)); z-index: 6; }
+/* The page toolbar (filters, search, Table/Board) pins under the breadcrumb header too (2026-11-13); useToolbarPin
+   publishes its height as --tb-h so the column header sits right under it. */
+.pms-main:has([data-scroller]) [data-toolbar] { position: sticky; top: 56px; z-index: 7; background: #FFFFFF; }
+.dark .pms-main:has([data-scroller]) [data-toolbar] { background: hsl(var(--background)); }
 .pms-main[data-stuck] [data-scroller] [data-head]::after {
   content: ''; position: absolute; bottom: -1px; left: calc(-1 * var(--gx, 0px)); right: calc(-1 * var(--gx, 0px)); height: 1px; background: #E5E5E5; pointer-events: none;
 }
@@ -166,7 +176,7 @@ thead.sticky th, thead th { border-bottom-width: 0; box-shadow: inset 0 -1px 0 #
 .pms-main[data-stuck] [data-scroller] thead th:last-child::after { left: 100%; }
 
 /* Rows scrolled into view by the sheet chevrons clear the sticky page header + column header. */
-[data-state="selected"], [aria-selected="true"], [data-selected] { scroll-margin-top: 96px; scroll-margin-bottom: 16px; }
+[data-state="selected"], [aria-selected="true"], [data-selected] { scroll-margin-top: calc(96px + var(--tb-h, 0px)); scroll-margin-bottom: 16px; }
 
 /* Avatars in dark mode: the pastel grounds are inline styles, so mute them here (2026-11-09: "mute the colors a touch").
    Lower saturation and brightness, and drop the white top highlight that glows on dark. */
@@ -189,10 +199,13 @@ table tbody td :is(.text-gray-500, .text-gray-400, .text-muted-foreground, .text
 [role=dialog] table { border-collapse: separate; border-spacing: 0; border: 1px solid #E5E5E5; border-radius: 12px; overflow: hidden; background: #fff; }
 [role=dialog] thead th { height: 44px; box-shadow: inset 0 -1px 0 #E5E5E5; }
 [role=dialog] tbody td { height: 56px; }
-[role=dialog] tbody tr:not(:last-child) > td { box-shadow: inset 0 -1px 0 #EBEBEB; }
+[role=dialog] tbody tr:not(:last-child) > :is(td, th) { box-shadow: inset 0 -1px 0 #EBEBEB; }
 [role=dialog] [data-scroller] { padding-top: 20px; padding-bottom: 20px; }
 /* A table already inside a card uses the card as its frame: no second border or radius. */
 [role=dialog] [data-card] table { border: 0; border-radius: 0; background: transparent; }
+/* Any bordered box that wraps a table directly is its card too (report tables, the import problems list): without
+   this the box's 1px edge and the table's own 1px edge stacked into a 2px frame (2026-11-13). */
+[role=dialog] :is(.border, .border-y) > :is(table, div > table) { border: 0; border-radius: 0; background: transparent; }
 
 /* One line per header edge (2026-11-13: "feels like it has 2 borders"). The head's lines are the inset shadows on
    thead th above; hand-built heads also carried border-b / border-y on the row or cells, which stacked a second line. */

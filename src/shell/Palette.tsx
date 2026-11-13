@@ -42,7 +42,7 @@ export function Palette({ open, onClose }: { open: boolean; onClose: () => void 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       {/* Opened from ⌘K dozens of times a day, so it appears and disappears instantly (no animation). */}
-      <DialogContent instant aria-describedby={undefined} className="top-[12vh] bottom-auto mt-0 max-w-xl">
+      <DialogContent instant aria-describedby={undefined} className="max-w-xl">
         <DialogTitle className="sr-only">Search</DialogTitle>
         <Command shouldFilter={false} loop className="[&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:px-4 [&_[cmdk-input-wrapper]_svg]:opacity-100 [&_[cmdk-input-wrapper]_svg]:text-gray-400">
           <CommandInput value={q} onValueChange={setQ} placeholder="Search pages, residents, listings…" className="placeholder:text-gray-400"

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Empty } from '../../components/ui';
 import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
-import { Buildings, CaretRight, Lock, Plus, Tag, Textbox, Trash, TreeStructure } from '../../components/icons';
-import { Button, PageHeading, Field, Input, Note, PageHeader, Pill, SearchInput, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Bed, Buildings, CaretRight, Door, DoorOpen, House, Lock, Plus, Stack, Tag, Textbox, Trash, TreeStructure, type Icon } from '../../components/icons';
+import { Checkbox } from '../../components/shadcn/checkbox';
+import { Button, IconTile, PageHeading, Field, Input, Note, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { invId, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
 import { FieldErr, Modal, Picker } from './common';
 
@@ -30,8 +31,8 @@ export function StructuresPage() {
             cols={[
               { key: 'n', label: 'Layout', render: (s) => <span className="font-semibold">{s.name}</span> },
               { key: 'l', label: 'Levels', render: (s) => <Levels s={s} /> },
-              { key: 'p', label: 'Properties', className: 'text-right', render: (s) => <span className={cx('inline-flex items-center gap-1.5 tabular-nums', !s.properties && 'text-gray-400')}>{s.properties > 0 && <Lock size={13} className="text-[#A3A3A3]" aria-label="In use: levels are fixed" />}{s.properties}</span> },
-              { key: 'u', label: 'Updated', className: 'pl-12', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
+              { key: 'p', label: 'Properties', render: (s) => <span className={cx('inline-flex items-center gap-1.5 tabular-nums', !s.properties && 'text-gray-400')}>{s.properties}{s.properties > 0 && <Lock size={13} className="text-[#A3A3A3]" aria-label="In use: levels are fixed" />}</span> },
+              { key: 'u', label: 'Updated', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
             ]} />
       <StructureSheet s={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>
@@ -125,16 +126,18 @@ export function CustomFieldsPage() {
       <PageHeading />
       <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
+              /* Numbered in list order, so a search renumbers what's left. */
+              { key: 'no', label: '#', className: 'w-14', render: (f) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(f) + 1}</span> },
               { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#2563EB] font-mono">{f.key}</span></span> },
               { key: 't', label: 'Type', render: (f) => <span className="text-[#737373]">{f.type}</span> },
-              { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <Pill key={a} tone="grey">{a}</Pill>)}</span> },
+              { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <Pill key={a} tone={lookOf(a.split(' › ').pop() ?? '')[1]}>{a}</Pill>)}</span> },
             ]} />
-      <FieldSheet f={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
+      <FieldSheet f={open} no={open && open !== 'new' ? rows.findIndex((x) => x.id === open.id) + 1 : 0} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>
   );
 }
 
-function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' | null; onClose: () => void }) {
+function FieldSheet({ f, no, onClose , nav }: { nav?: SheetNav; f: CField | 'new' | null; no: number; onClose: () => void }) {
   const structures = useInv((s) => s.structures);
   const [name, setName] = useState('');
   const [type, setType] = useState('Text');
@@ -162,7 +165,7 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
     toast.success(isNew ? `${name.trim()} field created` : `${name.trim()} saved`);
   };
   return (
-    <Sheet open onClose={onClose} nav={nav} title={isNew ? 'New field' : f.name} sub={isNew ? undefined : <span className="font-mono">{f.key}</span>} width={480}
+    <Sheet open onClose={onClose} nav={nav} title={isNew ? 'New field' : no > 0 ? `Field #${no}` : 'Field'} width={480}
       footer={<>{!isNew && <Button variant="danger-ghost" className="mr-auto" onClick={() => setAsking(true)}>Delete</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim() || !!nameErr} onClick={save}>{isNew ? 'Create field' : 'Save'}</Button></>}>
       {!isNew && <Modal open={asking} onClose={() => setAsking(false)} icon={Trash} width={440} title={`Delete ${f.name}?`}
         sub={f.attached.length ? `It’s on ${f.attached.join(', ')}. Every value already entered for it is deleted too.` : 'It isn’t attached to anything yet.'}
@@ -175,37 +178,68 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
         </div>
         </SheetSection>
         <SheetSection title="Attached to">
-          {/* One line per layout: its level chain as toggle chips (the same chain as the layout preview). Click a level to attach the field there. */}
-          <div className="flex flex-col gap-4">
-            {structures.map((st) => {
-              const lv = st.levels.filter((l) => l.name !== 'Tenancy');
-              const on = lv.filter((l) => attached.includes(`${st.name} › ${l.name}`)).length;
-              return (
-                <div key={st.id}>
-                  <div className="flex items-baseline gap-2 mb-2"><span className="text-sm leading-5 font-medium text-[#0A0A0A]">{st.name}</span>{on > 0 && <span className="font-mono text-xs text-[#737373] tabular-nums">{on}</span>}</div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {lv.map((l, i) => {
-                      const t = `${st.name} › ${l.name}`;
-                      const sel = attached.includes(t);
-                      return (
-                        <span key={t} className="flex items-center gap-1.5">
-                          {i > 0 && <CaretRight size={10} className="text-[#A3A3A3]" />}
-                          <button type="button" aria-pressed={sel} onClick={() => setAttached(sel ? attached.filter((x) => x !== t) : [...attached, t])}
-                            className={cx('h-7 px-2.5 rounded-lg border text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring', sel ? 'bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-medium' : 'bg-white border-[#E5E5E5] text-[#404040] hover:bg-[#F5F5F5]')}>{l.name}</button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <AttachGrid structures={structures} attached={attached} onChange={setAttached} />
         </SheetSection>
         <SheetSection title="Rules">
         <div className="h-12 px-3 rounded-xl border border-line flex items-center"><span className="flex-1"><span className="block text-sm">Required</span><span className="block text-xs text-[#737373]">An entity can’t go active while it’s empty</span></span><Switch checked={required} onChange={setRequired} label="Required" /></div>
         </SheetSection>
       </div>
     </Sheet>
+  );
+}
+
+/* Figma 3934:52927 (V3 · Grid): layouts down the side, every level across the top, a box where a layout has that
+   level and a dash where it doesn't. Ticking a box attaches the field to that level of that layout. */
+const LEVEL_LOOK: Record<string, [Icon, Tone]> = { Building: [Buildings, 'blue'], Floor: [Stack, 'purple'], Flat: [DoorOpen, 'amber'], Room: [Bed, 'green'], Studio: [Door, 'orange'], House: [House, 'blue'] };
+const lookOf = (level: string): [Icon, Tone] => LEVEL_LOOK[level] ?? [Stack, 'grey'];
+function AttachGrid({ structures, attached, onChange }: { structures: Structure[]; attached: string[]; onChange: (v: string[]) => void }) {
+  /* Every level any layout has, in the order they first appear; Tenancy is a record, not a place, so it never shows. */
+  const levels: string[] = [];
+  for (const st of structures) for (const l of st.levels) if (l.name !== 'Tenancy' && !levels.includes(l.name)) levels.push(l.name);
+  const toggle = (t: string) => onChange(attached.includes(t) ? attached.filter((x) => x !== t) : [...attached, t]);
+  const picked = levels.map((lv) => [lv, structures.filter((st) => attached.includes(`${st.name} › ${lv}`)).length] as const).filter(([, n]) => n > 0);
+  return (
+    <div className="space-y-3">
+      {/* What it's on, read first; the grid below is where it's changed. */}
+      {picked.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">{picked.map(([lv, n]) => <Pill key={lv} tone={lookOf(lv)[1]}>{lv} · {n} {n === 1 ? 'layout' : 'layouts'}</Pill>)}</div>
+      )}
+      <div className="rounded-xl border border-[#E5E5E5] bg-white overflow-hidden">
+        <table className="w-full table-fixed text-sm">
+          <colgroup><col />{levels.map((lv) => <col key={lv} className="w-[47px]" />)}<col className="w-2" /></colgroup>
+          <thead>
+            <tr className="bg-[#FAFAFA]">
+              <th scope="col" className="h-16 pl-3.5 text-left font-mono text-xs font-medium uppercase tracking-[0.48px] text-[#737373]">Layout</th>
+              {levels.map((lv) => { const [I, tone] = lookOf(lv); return (
+                <th key={lv} scope="col" className="x-keep font-normal"><span className="flex flex-col items-center gap-1"><IconTile icon={I} tone={tone} size={22} /><span className="text-[11px] leading-[14px] text-[#737373]">{lv}</span></span></th>
+              ); })}
+              <th aria-hidden />
+            </tr>
+          </thead>
+          <tbody>
+            {structures.map((st) => (
+              <tr key={st.id}>
+                <th scope="row" className="h-14 pl-3.5 text-left font-normal">
+                  <span className="block text-sm leading-5 font-medium text-[#0A0A0A] truncate">{st.name}</span>
+                  <span className="block text-xs leading-4 text-[#737373]">{st.properties} {st.properties === 1 ? 'property' : 'properties'}</span>
+                </th>
+                {levels.map((lv) => {
+                  const t = `${st.name} › ${lv}`;
+                  return (
+                    <td key={lv} className="text-center">
+                      {st.levels.some((l) => l.name === lv)
+                        ? <Checkbox aria-label={`${lv} in ${st.name}`} checked={attached.includes(t)} onCheckedChange={() => toggle(t)} className="mx-auto" />
+                        : <span aria-label={`${st.name} has no ${lv.toLowerCase()}`} title={`${st.name} has no ${lv.toLowerCase()}`} className="text-[#D4D4D4] cursor-default">—</span>}
+                    </td>
+                  );
+                })}
+                <td aria-hidden />
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -229,6 +263,7 @@ export function TagsPage() {
       <PageHeading />
       <Table rows={rows} empty={<Empty title="No tags yet" sub="Tags label properties, like Catered or Postgraduate." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
+              { key: 'no', label: '#', className: 'w-14', render: (t) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(t) + 1}</span> },
               { key: 'n', label: 'Tag', render: (t) => <Pill tone={t.tone} outline>{t.label}</Pill> },
               { key: 'u', label: 'Used on', render: (t) => { const u = used(t); return <span className="text-[#737373]">{u.length ? `${u.length} ${u.length === 1 ? 'property' : 'properties'}` : 'Not used yet'}</span>; } },
               { key: 'p', label: 'Properties', render: (t) => <span className="text-[#737373] truncate block max-w-[420px]">{used(t).map((p) => p.name).join(', ') || '—'}</span> },

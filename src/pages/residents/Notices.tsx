@@ -48,8 +48,8 @@ export function NoticesList() {
         cols={[
           { key: 't', label: 'Notice', className: 'max-w-[320px]', render: (n) => <span className="block truncate font-medium" title={n.title}>{n.title}</span> },
           { key: 'a', label: 'Audience', className: 'max-w-[240px]', render: (n) => <span className="block truncate text-gray-500" title={n.audience}>{n.audience}</span> },
-          { key: 'n', label: 'Residents', className: 'text-right w-[100px]', render: (n) => n.count.toLocaleString('en-GB') },
-          { key: 's', label: 'Status', className: 'w-[150px] pl-6', render: statusPill },
+          { key: 'n', label: 'Residents', className: 'w-[100px]', render: (n) => n.count.toLocaleString('en-GB') },
+          { key: 's', label: 'Status', className: 'w-[150px]', render: statusPill },
           { key: 'o', label: 'Opened', className: 'w-[240px]', render: (n) => n.opened !== undefined ? <span className="flex items-center gap-3"><span className="w-[104px] h-1.5 rounded-full bg-gray-100 overflow-hidden"><span className="block h-full rounded-full bg-[#0B8A4C]" style={{ width: `${n.opened}%` }} /></span><span className="text-xs text-gray-500">{n.opened}%</span></span> : <span className="text-gray-400">—</span> },
         ]} />
       {openN && <NoticeSheet key={openN.id} n={openN} nav={listNav(rows.filter((x) => x.status !== 'Draft'), (x) => x.id === openN.id, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />}

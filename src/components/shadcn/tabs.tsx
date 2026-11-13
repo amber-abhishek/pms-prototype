@@ -14,13 +14,15 @@ const Tabs = TabsPrimitive.Root
 /* Connect segmented control (Settings sub-tabs): #F5F5F5 track, 4px inset and gap, r10; the selected segment is white r10 with a 0 1px 3px drop. */
 /* Connect 2.0 "Advance Tabs" (3095:16041): the selected tab is white r10 with 0 1 2 -1 and 0 1 3 0 drops at 10%. */
 const PILL = "bg-background shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)]"
-const SlideCtx = React.createContext(false)
+/** `slide`: true = the raised pill slides; "underline" = a 2px blue bar slides along the bottom; false = no slider. */
+type Slide = boolean | "underline"
+const SlideCtx = React.createContext<Slide>(false)
 
 type Pill = { x: number; y: number; w: number; h: number; animate: boolean }
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & { slide?: boolean }
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & { slide?: Slide }
 >(({ className, children, slide = true, ...props }, ref) => {
   const listRef = React.useRef<HTMLDivElement | null>(null)
   const setRefs = (el: HTMLDivElement | null) => {
@@ -61,11 +63,12 @@ const TabsList = React.forwardRef<
       {slide && pill && (
         <span
           aria-hidden
-          className={cn("pointer-events-none absolute left-0 top-0 rounded-[10px]", PILL)}
+          className={cn("pointer-events-none absolute left-0 top-0", slide === "underline" ? "z-[1] bg-[#2563EB]" : cn("rounded-[10px]", PILL))}
           style={{
             width: pill.w,
-            height: pill.h,
-            transform: `translate(${pill.x}px, ${pill.y}px)`,
+            height: slide === "underline" ? 2 : pill.h,
+            /* Underline: 1px above the list's bottom rule and 1px over it, as the old 2px tab border did. */
+            transform: `translate(${pill.x}px, ${slide === "underline" ? pill.y + pill.h - 1 : pill.y}px)`,
             /* Strong ease-out, 200ms: starts moving straight away, settles softly. */
             transition: pill.animate ? "transform 200ms cubic-bezier(0.23, 1, 0.32, 1), width 200ms cubic-bezier(0.23, 1, 0.32, 1)" : "none",
           }}

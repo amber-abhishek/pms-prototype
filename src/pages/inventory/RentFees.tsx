@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Empty } from '../../components/ui';
 import { toast } from 'sonner';
-import { Buildings, CalendarBlank, CurrencyGbp, Globe, Info, PencilSimple, Plus, Receipt, Tag as TagIcon, Warning } from '../../components/icons';
-import { Button, Field, Input, PageHeader, Sheet, SheetSection, Switch, Table, Tabs, cx, listNav, type SheetNav, Toolbar } from '../../components/ui';
+import { Bed, Buildings, CalendarBlank, CurrencyGbp, DoorOpen, Globe, Info, Key, Money, PencilSimple, Plus, Receipt, Shield, ShieldCheck, Shower, Sun, Tag as TagIcon, Warning, type Icon } from '../../components/icons';
+import type { Tone } from '../../data/seed';
+import { Button, Field, IconTile, Input, PageHeader, Sheet, SheetSection, Switch, Table, Tabs, cx, listNav, type SheetNav, Toolbar } from '../../components/ui';
 import { invId, money, useInv, type Fee, type FeeType, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { FieldErr, Modal, MoneyInput, Picker, PropStatus, RadioCard, Seg, isMoney, moneyErr, rangeErr } from './common';
 
 type TabId = 'templates' | 'fees';
+/* Row icons, coloured (2026-11-13): a template by its room kind, a fee by what it covers. Unknown ones stay grey. */
+const tplIcon = (name: string): [Icon, Tone] =>
+  /ensuite/i.test(name) ? [Shower, 'blue'] : /studio/i.test(name) ? [DoorOpen, 'purple'] : /summer|short/i.test(name) ? [Sun, 'amber'] : /single|double|room/i.test(name) ? [Bed, 'green'] : [Receipt, 'grey'];
+const feeIcon = (name = ''): [Icon, Tone] =>
+  /insurance/i.test(name) ? [ShieldCheck, 'blue'] : /admin|booking/i.test(name) ? [Receipt, 'purple'] : /damage/i.test(name) ? [Shield, 'amber'] : /key|store/i.test(name) ? [Key, 'green'] : [Money, 'grey'];
 
 export function RentFeesPage() {
   const [tab, setTab] = useTab<TabId>('templates');
@@ -39,23 +45,24 @@ export function RentFeesPage() {
       {tab === 'templates' ? (
         <Table rows={tpls} onRow={setEditing} selected={editing?.id}
           cols={[
-            { key: 'n', label: 'Template', render: (t) => <span className="font-medium">{t.name}</span> },
+            { key: 'n', label: 'Template', render: (t) => { const [I, tone] = tplIcon(t.name); return <span className="flex items-center gap-2.5"><IconTile icon={I} tone={tone} /><span className="font-medium">{t.name}</span></span>; } },
             { key: 'l', label: 'Length', render: (t) => <span className="text-[#737373]">{p?.letting === 'Monthly' ? `${Math.round(t.weeks * 12 / 52)} months` : `${t.weeks} weeks`}</span> },
-            { key: 'r', label: 'Rent', className: 'text-right', render: (t) => <span className="tabular-nums">{p?.letting === 'Monthly' ? `${money(Math.round(t.rent * 52 / 12 * 100) / 100, true)} / mo` : `${money(t.rent)} / wk`}</span> },
-            { key: 'd', label: 'Deposit', className: 'text-right', render: (t) => money(t.deposit) },
+            { key: 'r', label: 'Rent', render: (t) => <span className="tabular-nums">{p?.letting === 'Monthly' ? `${money(Math.round(t.rent * 52 / 12 * 100) / 100, true)} / mo` : `${money(t.rent)} / wk`}</span> },
+            { key: 'd', label: 'Deposit', render: (t) => money(t.deposit) },
             { key: 'b', label: 'Billing', render: (t) => <span className="text-[#737373]">{t.billing}</span> },
-            { key: 'k', label: 'Linked tenancies', className: 'text-right', render: (t) => <span className="tabular-nums">{t.linked}{t.own ? <span className="text-[#737373]"> · {t.own} on own</span> : ''}</span> },
-            { key: 's', label: 'Status', className: 'pl-6', render: (t) => <PropStatus s={t.status} /> },
+            /* The count alone on the first line; tenancies on their own terms go underneath. */
+            { key: 'k', label: 'Linked tenancies', render: (t) => <span className="block tabular-nums"><span className="block leading-5">{t.linked}</span>{t.own ? <span className="block text-xs leading-4 text-[#737373]">{t.own} on own terms</span> : null}</span> },
+            { key: 's', label: 'Status', render: (t) => <PropStatus s={t.status} /> },
             { key: 'e', label: '', className: 'w-16 text-right', render: (t) => <button type="button" onClick={(e) => { e.stopPropagation(); setEditing(t); }} className="h-7 px-2.5 rounded-full border border-transparent text-xs font-medium text-[#0A0A0A] hover:bg-[#F5F5F5] hover:border-[#E5E5E5]">Edit</button> },
           ]}
           empty={!p ? <Empty title="No properties yet" sub="Tenancy templates belong to a property. Add one first." /> : <div className="p-10 text-center text-sm text-[#737373]">No templates for {p?.name}. <button type="button" className="text-primary" onClick={() => newTemplate()}>Make one</button></div>} />
       ) : (
         <Table rows={fees} selected={fresh ?? undefined}
           cols={[
-            { key: 'f', label: 'Fee', render: (f) => <span className="flex items-center gap-2"><Receipt size={16} className="text-gray-500" /><span className="font-medium">{feeTypes.find((t) => t.id === f.typeId)?.name}</span></span> },
+            { key: 'f', label: 'Fee', render: (f) => { const n = feeTypes.find((t) => t.id === f.typeId)?.name; const [I, tone] = feeIcon(n); return <span className="flex items-center gap-2.5"><IconTile icon={I} tone={tone} /><span className="font-medium">{n}</span></span>; } },
             { key: 'c', label: 'Calculation', render: (f) => <span className="text-[#737373]">{feeTypes.find((t) => t.id === f.typeId)?.calc}</span> },
-            { key: 'a', label: 'Amount', className: 'text-right', render: (f) => <span className="tabular-nums">{f.amount}</span> },
-            { key: 'p', label: 'Applies to', className: 'pl-6', render: (f) => <span className="flex items-center gap-1.5">{f.appliesTo ? <Buildings size={14} className="text-gray-400" /> : <Globe size={14} className="text-gray-400" />}{pname(f.appliesTo)}</span> },
+            { key: 'a', label: 'Amount', render: (f) => <span className="tabular-nums">{f.amount}</span> },
+            { key: 'p', label: 'Applies to', render: (f) => <span className="flex items-center gap-1.5">{f.appliesTo ? <Buildings size={14} className="text-gray-400" /> : <Globe size={14} className="text-gray-400" />}{pname(f.appliesTo)}</span> },
             { key: 'o', label: 'Charged on', render: (f) => <span className="text-[#737373]">{f.chargedOn}</span> },
             { key: 'r', label: 'Refundable', render: (f) => (feeTypes.find((t) => t.id === f.typeId)?.refundable ? 'Yes' : 'No') },
             { key: 'm', label: 'Mandatory', render: (f) => (feeTypes.find((t) => t.id === f.typeId)?.mandatory ? 'Yes' : 'No') },

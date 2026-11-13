@@ -1,7 +1,8 @@
 import { Fragment, type ReactNode } from 'react';
-import { CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, WarningCircle, XCircle, Archive, type Icon } from '../../components/icons';
-import { Status, cx } from '../../components/ui';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
+import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, WarningCircle, XCircle, Archive, type Icon } from '../../components/icons';
+import { ConfirmFrame, Pill, Status, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
+import type { Tone } from '../../data/seed';
+import { Dialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import type { PStatus, Tag, UStatus } from '../../data/inventory';
@@ -40,15 +41,83 @@ export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; to
   return <span className={cx('inline-flex items-center justify-center shrink-0', c, size >= 36 ? 'rounded-[10px]' : 'rounded-lg')} style={{ width: size, height: size }}><I size={size <= 28 ? 14 : size <= 32 ? 16 : Math.round(size * 0.5)} /></span>;
 }
 
+/* ---- Add property design system (Figma "Modal · Add property", 3884:41314), shared by every inventory modal. ---- */
+
+/** Each layout level's tone, used by its pill and tile. */
+export const LV = { Property: 'blue', Block: 'purple', Floor: 'orange', Flat: 'amber', Room: 'green' } as const satisfies Record<string, Tone>;
+export type Level = keyof typeof LV;
+export type Layout = 'College' | 'House';
+const LAYOUTS: [Layout, number, Level[]][] = [['College', 6, ['Property', 'Block', 'Floor', 'Flat', 'Room']], ['House', 2, ['Property', 'Room']]];
+
+/** Property layout radio cards: name, "Used by n", then the level pills joined by carets. */
+export function LayoutRadios({ value, onChange }: { value: Layout; onChange: (l: Layout) => void }) {
+  return (
+    <div role="radiogroup" aria-label="Property layout" className="flex flex-col gap-2">
+      {LAYOUTS.map(([s, n, lv]) => (
+        <div key={s} role="radio" aria-checked={value === s} tabIndex={0} onClick={() => onChange(s)} onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChange(s)}
+          className={cx('rounded-xl border p-4 flex gap-3 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring', value === s ? 'border-[#2563EB] bg-[#2563EB]/[0.03]' : 'border-[#E5E5E5] hover:bg-[#FAFAFA]')}>
+          <span className={cx('size-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0', value === s ? 'border-[#2563EB] bg-[#2563EB]' : 'border-[#D4D4D4] bg-white')}>{value === s && <span className="size-1.5 rounded-full bg-white" />}</span>
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-2"><span className="text-sm font-medium text-[#0A0A0A]">{s}</span><span className="text-xs text-[#737373]">Used by {n} properties</span></div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">{lv.map((l, i) => <span key={l} className="flex items-center gap-1.5">{i > 0 && <CaretRight size={12} strokeWidth={1.5} className="text-[#A3A3A3]" />}<Pill tone={LV[l]}>{l}</Pill></span>)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Card: r12, a 32px #FAFAFA mono strip (grey label, ink value or an action on the right), then its body. */
+export function ACard({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-[#E5E5E5] bg-white overflow-hidden">
+      <div className="h-8 px-3 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#E5E5E5] font-mono uppercase text-xs leading-4 font-medium tracking-[0.48px]">
+        <span className="flex-1 text-[#737373]">{title}</span>{right && <span className="text-[#0A0A0A]">{right}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** A form label (14px Medium) over its control, with an optional 12px grey line under it. */
+export function FormRow({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <div>
+      <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{label}</div>
+      {children}
+      {hint && <p className="text-xs text-[#737373] mt-1.5">{hint}</p>}
+    </div>
+  );
+}
+
+/** The Add property modal frame: 56px header (16px title, plain ✕), a scrolling body, a 64px footer
+ *  (`left`: the ghost Cancel/Back; `right`: the primary action). */
+export function InvModal({ open, onClose, title, width = 600, left, right, children }: { open: boolean; onClose: () => void; title: string; width?: number; left?: ReactNode; right?: ReactNode; children: ReactNode }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent aria-describedby={undefined} style={{ maxWidth: width }} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }}>
+        <div className="h-14 shrink-0 border-b border-[#E5E5E5] pl-6 pr-4 flex items-center gap-3">
+          <DialogTitle className="flex-1 text-base leading-5 font-medium text-[#0A0A0A]">{title}</DialogTitle>
+          <DialogCloseButton />
+        </div>
+        <div className="flex-1 min-h-0 overflow-auto px-6 py-6 flex flex-col gap-6">{children}</div>
+        <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center">{left}<div className="ml-auto flex items-center gap-2">{right}</div></div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* Dialog: title, grey sub, body, grey footer bar. No header icon (2026-11-09); `icon`/`tone` are ignored. */
 export function Modal({ open, onClose, title, sub, children, footer, width = 560, center }: {
   open: boolean; onClose: () => void; icon?: Icon; tone?: 'grey' | 'blue' | 'red' | 'green' | 'amber'; title?: ReactNode; sub?: ReactNode; children?: ReactNode; footer?: ReactNode; width?: number; center?: boolean;
 }) {
-  /* shadcn Dialog. A dialog with no title still needs an accessible name, so it gets a hidden one. */
+  /* shadcn Dialog. A dialog with no title still needs an accessible name, so it gets a hidden one.
+     A question title with a footer is a confirmation, so it takes the shared confirm layout. */
+  const confirm = footer != null && isConfirmTitle(title);
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        {title ? <DialogFrame title={title} sub={sub} footer={footer} close={!center}>{children}</DialogFrame> : (
+      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })} {...(confirm ? noAutoFocus : {})}>
+        {confirm ? <ConfirmFrame title={title} sub={sub} footer={footer}>{children}</ConfirmFrame> : title ? <DialogFrame title={title} sub={sub} footer={footer} close={!center}>{children}</DialogFrame> : (
           <>
             <DialogTitle className="sr-only">Dialog</DialogTitle>
             <DialogBody className={cx(center && 'text-center')}>{sub && <DialogDescription>{sub}</DialogDescription>}{children && <div className={sub ? 'mt-4' : undefined}>{children}</div>}</DialogBody>
@@ -83,12 +152,13 @@ export function Seg<T extends string>({ value, onChange, options, className }: {
 }
 
 /* Underline tabs used on the property page (shadcn Tabs, underline style). */
-export function LineTabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string }[] }) {
+export function LineTabs<T extends string>({ value, onChange, tabs, className }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string }[]; className?: string }) {
   return (
     <Tabs value={value} onValueChange={(v) => onChange(v as T)}>
-      <TabsList slide={false} className="flex h-auto justify-start gap-4 rounded-none bg-transparent p-0 px-5 border-b border-line">
+      {/* The blue underline slides to the picked tab (2026-11-13). */}
+      <TabsList slide="underline" className={cx('flex h-auto justify-start gap-4 rounded-none bg-transparent p-0 px-5 border-b border-line', className)}>
         {tabs.map((t) => (
-          <TabsTrigger key={t.id} value={t.id} className="h-10 px-2.5 rounded-none -mb-px border-b-2 border-transparent text-[#737373] data-[state=active]:border-[#2563EB] data-[state=active]:text-[#2563EB] data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
+          <TabsTrigger key={t.id} value={t.id} className="h-10 px-2.5 rounded-none text-[#737373] hover:text-[#0A0A0A] data-[state=active]:text-[#2563EB] data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
         ))}
       </TabsList>
     </Tabs>

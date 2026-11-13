@@ -237,3 +237,15 @@ export const Wind = wrap(L.Wind);
 export const Wrench = wrap(L.Wrench);
 export const X = wrap(L.X);
 export const XCircle = wrap(L.CircleX);
+/* Sidebar: every row has its own glyph, no icon repeats across modules or pages (2026-11-13). */
+export const Warehouse = wrap(L.Warehouse);
+export const Gauge = wrap(L.Gauge);
+export const Library = wrap(L.Library);
+export const CalendarClock = wrap(L.CalendarClock);
+export const Repeat = wrap(L.Repeat);
+export const BedDouble = wrap(L.BedDouble);
+export const BookUser = wrap(L.BookUser);
+export const ScrollText = wrap(L.ScrollText);
+export const Settings2 = wrap(L.Settings2);
+export const AppWindow = wrap(L.AppWindow);
+export const Hotel = wrap(L.Hotel);

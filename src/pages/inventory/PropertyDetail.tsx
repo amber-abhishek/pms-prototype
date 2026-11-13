@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   ArrowsLeftRight, Bed, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
   DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, Info, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, Tag as TagIcon, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Avatar, Button, Card, Empty, Field, Input, Note, Sheet, Textarea, cx, Pill, SheetSection } from '../../components/ui';
+import { Avatar, Button, Card, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetSection } from '../../components/ui';
 import { allUnits, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
 import { EditLink, FieldErr, LineTabs, Menu, Modal, MoneyInput, PropStatus, Progress, RadioCard, Tags, moneyErr, parseDay } from './common';
-import { EmptyArt } from './Properties';
+import { EmptyArt, shownOrder } from './Properties';
+import { photoOf } from './photos';
 import { GhostZone } from '../../components/headerCtx';
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
 
@@ -26,6 +27,10 @@ export function PropertyDetail() {
   const templates = useMemo(() => allTpl.filter((t) => t.propertyId === id), [allTpl, id]);
   const patchProp = useInv((s) => s.patchProp);
   const nav = useNavigate();
+  const loc = useLocation();
+  /* ↑ ↓ (and the keys) step through the Properties list as it is shown; straight from a link, through every unarchived property. */
+  const allIds = useInv((s) => s.properties).filter((x) => x.status !== 'Archived').map((x) => x.id);
+  const stepper = listNav(shownOrder.ids.length ? shownOrder.ids : allIds, (x) => x === id, (x) => nav(`/inventory/properties/${x}${loc.search}`));
   const [tab, setTab] = useTab<TabId>('overview');
   const [checks, setChecks] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -98,7 +103,8 @@ export function PropertyDetail() {
       {/* A centred modal over the Properties list, like Add property: the Connect header band (record type, actions, ✕), then the property. */}
       <UIDialog open onOpenChange={(o) => { if (!o) nav('/inventory/properties'); }}>
       <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:28px] [--cx:20px]">
-      <DialogHeader className="py-3">
+      <DialogHeader className="py-3 px-6">
+        <SheetNavButtons nav={stepper} />
         <DialogTitle>Property</DialogTitle>
         <Menu width={200} trigger={(o) => <button type="button" onClick={o} aria-label="More" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><DotsThree size={16} /></button>} items={[
           { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
@@ -118,8 +124,11 @@ export function PropertyDetail() {
           : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
       <div className="flex-1 min-h-0 overflow-auto flex flex-col">
         {/* 2822:71: 64px grey photo tile, 20px semibold title, 14px #737373 meta with 14px grey-400 icons and · separators. */}
-        <div className="px-7 pt-6 pb-5 flex items-center gap-4">
-          <div className="size-16 rounded-xl bg-[#F5F5F5] border border-line flex items-center justify-center"><Image size={24} className="text-[#94A3B8]" /></div>
+        <div className="px-6 pt-6 pb-5 flex items-center gap-4">
+          {/* The property's cover photo, as on the Properties list; the grey tile only while it has none. */}
+          {photoOf(p.id)
+            ? <img src={photoOf(p.id)} alt="" className="size-16 shrink-0 rounded-xl border border-line object-cover bg-[#F5F5F5]" />
+            : <div className="size-16 shrink-0 rounded-xl bg-[#F5F5F5] border border-line flex items-center justify-center"><Image size={24} className="text-[#94A3B8]" /></div>}
           <div className="min-w-0">
             <div className="flex items-center gap-2.5"><h2 className="text-xl leading-7 font-medium tracking-[-0.2px] text-[#0A0A0A]">{p.name}</h2><PropStatus s={p.status} /></div>
             <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-[#737373]">
@@ -129,12 +138,12 @@ export function PropertyDetail() {
             </div>
           </div>
         </div>
-        <LineTabs value={tab} onChange={setTab} tabs={[
+        <LineTabs className="px-3.5" value={tab} onChange={setTab} tabs={[
           { id: 'overview', label: 'Overview' }, { id: 'units', label: `Units · ${p.units}` }, { id: 'tenancies', label: 'Tenancies' }, { id: 'photos', label: 'Photos & details' }, { id: 'activity', label: 'Activity' },
         ]} />
 
         {tab === 'overview' && (
-          <div className="p-7 pt-5 grid grid-cols-[1fr_340px] gap-5 items-start bg-white flex-1">
+          <div className="p-6 grid grid-cols-[1fr_340px] gap-5 items-start bg-white flex-1">
             <div className="space-y-5 min-w-0">
               {building && (
                 <Card className="p-4">
@@ -162,15 +171,15 @@ export function PropertyDetail() {
                 <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Units</span></div>
                 {p.blocks.length ? (
                   <table className="w-full text-sm">
-                    <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-5">Block</th><th className="font-medium text-right px-3">Floors</th><th className="font-medium text-right px-3">Rooms</th><th className="font-medium px-3 pl-6">Tenancy template</th><th className="font-medium text-right pr-4">Rent</th></tr></thead>
+                    <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Block</th><th className="font-medium px-3">Floors</th><th className="font-medium px-3">Rooms</th><th className="font-medium px-3">Tenancy template</th><th className="font-medium px-3 pr-4">Rent</th></tr></thead>
                     <tbody>{p.blocks.map((b) => {
                       const t = templates.find((x) => x.name === b.roomType);
                       const rt = p.roomTypes.find((x) => x.name === b.roomType);
                       return (
                         <tr key={b.name} className="border-b border-[#F5F5F5] last:border-0 h-10">
-                          <td className="px-5 font-medium text-[#0A0A0A]">{b.name}</td><td className="text-right px-3 tabular-nums">{p.structure === 'House' ? '—' : b.floors}</td><td className="text-right px-3 tabular-nums">{b.rooms}</td>
-                          <td className="px-3 pl-6 text-[#737373]">{p.tenancies === false ? <span className="text-gray-400">No tenancy</span> : `${b.roomType}${t ? ` · ${t.weeks} wk` : ''}`}</td>
-                          <td className="pr-4 text-right">{p.tenancies === false ? '—' : t ? `${money(t.rent)} / ${per(p)} · ${t.weeks} wk` : rt?.rent ? `${money(rt.rent)} / ${per(p)}` : '—'}</td>
+                          <td className="px-4 font-medium text-[#0A0A0A]">{b.name}</td><td className="px-3 tabular-nums">{p.structure === 'House' ? '—' : b.floors}</td><td className="px-3 tabular-nums">{b.rooms}</td>
+                          <td className="px-3 text-[#737373]">{p.tenancies === false ? <span className="text-gray-400">No tenancy</span> : `${b.roomType}${t ? ` · ${t.weeks} wk` : ''}`}</td>
+                          <td className="px-3 pr-4">{p.tenancies === false ? '—' : t ? `${money(t.rent)} / ${per(p)} · ${t.weeks} wk` : rt?.rent ? `${money(rt.rent)} / ${per(p)}` : '—'}</td>
                         </tr>
                       );
                     })}</tbody>
@@ -205,15 +214,15 @@ export function PropertyDetail() {
           <div className="p-6 space-y-5">
             {p.tenancies === false && <Note tone="amber" icon={WarningCircle} title="These rooms have no tenancy yet">Apply a tenancy template to each room type before the property can go active.</Note>}
             <Card className="overflow-hidden">
-              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Room types</span><span className="ml-2 text-sm text-[#737373]">Rent applies to every room of that type</span></div>
+              <div className="h-14 px-4 flex items-center gap-3 border-b border-[#F5F5F5]"><div className="min-w-0"><div className="text-sm leading-5 font-semibold">Room types</div><div className="mt-1 text-xs leading-4 text-[#737373] truncate">Rent applies to every room of that type</div></div></div>
               <table className="w-full text-sm">
-                <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Room type</th><th className="font-medium text-right">Rooms</th><th className="font-medium pl-8">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="pr-4" /></tr></thead>
+                <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Room type</th><th className="font-medium px-3">Rooms</th><th className="font-medium px-3">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="pr-4" /></tr></thead>
                 <GhostZone.Provider value><tbody>
                   {p.roomTypes.map((r) => (
                     <tr key={r.name} className="border-b border-[#F5F5F5] last:border-0 h-12">
                       <td className="px-4"><span className="flex items-center gap-2 text-sm font-medium"><Bed size={15} className="text-[#737373]" />{r.name}</span></td>
-                      <td className="text-right tabular-nums">{r.rooms}</td>
-                      <td className="pl-8">{r.rent == null ? <span className="text-[#E0243A]">No rent</span> : r.next ? <span>{money(r.rent)} / {per(p) === 'wk' ? 'week' : 'month'} <span className="text-gray-400">→</span> <b className="font-medium">{money(r.next.rent)}</b> <span className="text-[#737373]">from {r.next.from} for new tenancies</span></span> : `${money(r.rent)} / ${per(p) === 'wk' ? 'week' : 'month'}`}</td>
+                      <td className="px-3 tabular-nums">{r.rooms}</td>
+                      <td className="px-3">{r.rent == null ? <span className="text-[#E0243A]">No rent</span> : r.next ? <span>{money(r.rent)} / {per(p) === 'wk' ? 'week' : 'month'} <span className="text-gray-400">→</span> <b className="font-medium">{money(r.next.rent)}</b> <span className="text-[#737373]">from {r.next.from} for new tenancies</span></span> : `${money(r.rent)} / ${per(p) === 'wk' ? 'week' : 'month'}`}</td>
                       <td className="pr-4 text-right"><Button size="sm" icon={null} onClick={() => setRentFor(r)}>Change rent</Button></td>
                     </tr>
                   ))}
@@ -307,7 +316,7 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
         </Note>
       ) : null}
       <Card className="overflow-hidden">
-        <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Rooms</span><span className="ml-2 text-sm text-[#737373]">{p.units} in {p.blocks.length} {p.blocks.length === 1 ? 'block' : 'blocks'}</span>
+        <div className="h-14 px-4 flex items-center gap-3 border-b border-[#F5F5F5]"><div className="min-w-0"><div className="text-sm leading-5 font-semibold">Rooms</div><div className="mt-1 text-xs leading-4 text-[#737373] truncate">{p.units} in {p.blocks.length} {p.blocks.length === 1 ? 'block' : 'blocks'}</div></div>
           <div className="ml-auto flex gap-2"><Button size="sm" variant="ghost" icon={UploadSimple} onClick={onImport}>Import</Button></div></div>
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Room</th><th className="font-medium">Block · flat</th><th className="font-medium">Room type</th><th className="font-medium">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="font-medium pr-4">Status</th></tr></thead>
@@ -406,13 +415,15 @@ function PhotosTab({ p }: { p: Property }) {
       <div className="p-6 grid grid-cols-[1fr_340px] gap-5 items-start flex-1">
         <div className="space-y-5 min-w-0">
           <Card>
-            <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Photos</span><span className="ml-2 text-sm text-[#737373]">{photos ? `${photos} · the first is the cover` : 'None yet'}</span><Button size="sm" icon={UploadSimple} className="ml-auto" onClick={() => setPhotos(photos ? photos + 1 : 7)}>Add photos</Button></div>
+            <div className="h-14 px-4 flex items-center gap-3 border-b border-[#F5F5F5]"><div className="min-w-0"><div className="text-sm leading-5 font-semibold">Photos</div><div className="mt-1 text-xs leading-4 text-[#737373] truncate">{photos ? `${photos} · the first is the cover` : 'None yet'}</div></div><Button size="sm" icon={UploadSimple} className="ml-auto" onClick={() => setPhotos(photos ? photos + 1 : 7)}>Add photos</Button></div>
             <div className="p-4">
               {photos ? (
                 <div className="grid grid-cols-4 gap-3">
                   {Array.from({ length: Math.min(photos, 8) }, (_, i) => (
-                    <div key={i} className={cx('relative rounded-lg bg-[#EFF6FF] border border-line flex items-center justify-center', i === 0 ? 'col-span-2 row-span-2 aspect-[4/3]' : 'aspect-[4/3]')}>
-                      <Image size={i === 0 ? 32 : 20} className="text-[#93C5FD]" />
+                    <div key={i} className={cx('relative overflow-hidden rounded-lg bg-[#EFF6FF] border border-line flex items-center justify-center', i === 0 ? 'col-span-2 row-span-2 aspect-[4/3]' : 'aspect-[4/3]')}>
+                      {photoOf(p.id, i)
+                        ? <img src={photoOf(p.id, i)} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
+                        : <Image size={i === 0 ? 32 : 20} className="text-[#93C5FD]" />}
                       {i === 0 && <span className="absolute left-2 top-2"><Pill outline>Cover</Pill></span>}
                     </div>
                   ))}

@@ -49,7 +49,7 @@ export function Cycles() {
             <Grid fill rows={cycles} onRow={(c) => setTab(isLive(c) ? 'Live' : 'Closed')} cols={[
               { key: 'n', label: 'Cycle', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
               { key: 'w', label: 'Window', render: (c) => <span className="text-gray-500">{c.opens} – {c.ends}</span> },
-              { key: 'a', label: 'Applications', className: 'text-right', render: (c) => fmtN(c.apps) },
+              { key: 'a', label: 'Applications', render: (c) => fmtN(c.apps) },
               { key: 'b', label: 'Beds allocated', render: bar },
               { key: 's', label: 'Status', render: (c) => <St s={label(c)} /> },
             ]} />
@@ -66,9 +66,9 @@ export function Cycles() {
             <Grid fill rows={closed} cols={[
               { key: 'n', label: 'Cycle', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
               { key: 'w', label: 'Window', render: (c) => <span className="text-gray-500">{c.opens} – {c.ends}</span> },
-              { key: 'a', label: 'Applications', className: 'text-right', render: (c) => fmtN(c.apps) },
+              { key: 'a', label: 'Applications', render: (c) => fmtN(c.apps) },
               { key: 'b', label: 'Beds allocated', render: (c) => `${fmtN(c.allocated)} of ${fmtN(c.beds)}` },
-              { key: 'o', label: 'Occupancy', className: 'text-right', render: (c) => c.occupancy ?? `${((c.allocated / c.beds) * 100).toFixed(1)}%` },
+              { key: 'o', label: 'Occupancy', render: (c) => c.occupancy ?? `${((c.allocated / c.beds) * 100).toFixed(1)}%` },
               { key: 'c', label: 'Closed', render: (c) => <span className="text-gray-500">{c.closedOn}</span> },
             ]} />
           </div>

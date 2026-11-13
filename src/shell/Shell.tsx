@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../com
 import { Popover, PopoverContent, PopoverTrigger } from '../components/shadcn/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../components/shadcn/command';
 import { Palette } from './Palette';
+import { useNavOpen } from '../data/navOpen';
 import { Switch } from '../components/shadcn/switch';
 import { useTheme } from '../data/theme';
 import { useEmpty } from '../data/empty';
@@ -33,7 +34,7 @@ export function Shell() {
   const onMainScroll = () => {
     const m = mainRef.current; if (!m) return;
     const th = m.querySelector('[data-scroller] thead, [data-scroller] [data-head]');
-    const stuck = !!th && m.scrollTop > 0 && th.getBoundingClientRect().top - m.getBoundingClientRect().top <= 56.5;
+    const stuck = !!th && m.scrollTop > 0 && th.getBoundingClientRect().top - m.getBoundingClientRect().top <= 56.5 + (parseFloat(m.style.getPropertyValue('--tb-h')) || 0);
     if (stuck !== m.hasAttribute('data-stuck')) m.toggleAttribute('data-stuck', stuck);
   };
   useEffect(() => { const m = mainRef.current; if (m) { m.scrollTop = 0; m.removeAttribute('data-stuck'); } }, [pathname]);
@@ -73,8 +74,8 @@ export function Shell() {
   );
 }
 
-/** Connect 2.0 sidebar (3095:16041) selected row: white, 1px #E5E5E5, 0 1 2 -1 and 0 1 3 0 drops at 10%, ink medium label, blue #2563EB icon. */
-const RAISED = 'bg-white !border-[#E5E5E5] shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)] text-[#0A0A0A] font-medium [&>svg:first-child]:text-[#2563EB]';
+/** Connect 2.0 sidebar (3095:16041) selected row: white, 1px #E5E5E5, 0 1 2 -1 and 0 1 3 0 drops at 10%, blue #2563EB medium label and icon (2026-11-13). */
+const RAISED = 'bg-white !border-[#E5E5E5] shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)] text-[#2563EB] font-medium [&>svg:first-child]:text-[#2563EB]';
 /** Rows: 14px, 8px padding, 8px gap, r8, packed with no gap. Hover nudges 2px right (Connect's whileHover x: 2). */
 const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
 /* Figma 3884:39810: idle module labels #3F404D at 80%, icons solid #3F404D. Hover (Connect) nudges right 2px and scales 1.02 over 0.3s, no colour change. */
@@ -89,32 +90,44 @@ function NavDivider() {
 /* The open module's row (Inventory while you're in it): near-black text, icon and chevron, unraised (2026-11-12). */
 const OPEN = 'text-[#0A0A0A] [&>svg:first-child]:text-[#0A0A0A]';
 
-function Sidebar({ visible, active, collapsed, onToggle }: { visible: Module[]; active: Module; collapsed: boolean; onToggle: () => void }) {
+function Sidebar({ visible, active, collapsed: target, onToggle }: { visible: Module[]; active: Module; collapsed: boolean; onToggle: () => void }) {
   const counts = useNavCounts();
+  /* Opening switches to the full layout at once and the width grows over it, so the labels sweep in. Closing plays that
+     backwards: the full layout stays while the width shrinks over it, and the icon-only layout takes over at the end. */
+  const [folded, setFolded] = useState(target);
+  useLayoutEffect(() => {
+    if (!target) { setFolded(false); return; }
+    const t = window.setTimeout(() => setFolded(true), 200);
+    return () => window.clearTimeout(t);
+  }, [target]);
+  /* The rows and the profile keep their full width while the edge moves, so it clips them; nothing re-truncates mid-way. */
+  const collapsed = folded;
+  /* One module open at a time: arriving in a module (by picking one of its pages) closes the rest, peeks included. */
+  useLayoutEffect(() => { useNavOpen.getState().arrive(active.id); }, [active.id]);
   const top = visible.filter((m) => m.group === 'top');
   const mods = visible.filter((m) => m.group === 'modules');
   const system = visible.filter((m) => m.group === 'bottom');
-  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} chevron />;
+  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} onExpand={onToggle} chevron />;
   return (
     <TooltipProvider delayDuration={300}>
-      <aside aria-label="Main" className={cx('shrink-0 h-full flex flex-col bg-[#FAFAFA] border-r border-[#E5E5E5] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]', collapsed ? 'w-[68px]' : 'w-64')}>
+      <aside aria-label="Main" className={cx('shrink-0 h-full flex flex-col overflow-hidden bg-[#FAFAFA] border-r border-[#E5E5E5] transition-[width] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]', target ? 'w-[68px]' : 'w-64')}>
         {/* Header (Figma 3884:39272): 56px, 16/12 sides, logo + org name + chevron, the collapse square on the right. */}
         <div className={cx('h-14 shrink-0 flex items-center border-b border-[#E5E5E5]', collapsed ? 'justify-center px-3' : 'gap-2 pl-4 pr-3')}>
           {!collapsed && (
             /* One organisation on this account, so the name is a plain label: no switcher chevron (2026-11-13). */
             <div className="flex items-center gap-2 min-w-0">
               <OrgLogo size={26} />
-              <span className="text-sm leading-5 font-semibold text-[#0A0A0A] truncate">Durham Residences</span>
+              <span className="text-sm leading-5 font-semibold text-[#0A0A0A] whitespace-nowrap overflow-hidden">Durham Residences</span>
             </div>
           )}
-          <button type="button" aria-label={collapsed ? 'Show sidebar' : 'Hide sidebar'} title="Toggle sidebar (⌘.)" onClick={onToggle}
+          <button type="button" aria-label={target ? 'Show sidebar' : 'Hide sidebar'} title="Toggle sidebar (⌘.)" onClick={onToggle}
             className={cx('size-7 shrink-0 rounded-md border border-[#E5E5E5] bg-white text-[#404040] hover:bg-[#F5F5F5] flex items-center justify-center', !collapsed && 'ml-auto')}>
-            <SidebarSimple size={16} strokeWidth={1.5} absoluteStrokeWidth className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
+            <SidebarSimple size={16} strokeWidth={1.5} absoluteStrokeWidth className={cx('transition-transform duration-200', target && '-scale-x-100')} />
           </button>
         </div>
         {/* Grouped nav (Figma 3892:45822): 8/16 padding, 36px rows packed with no gap. Home and Reports, a divider, the
             modules (chevrons), another divider, then Organisation and Settings. Search lives in the page header. */}
-        <nav aria-label="Modules" className={cx('flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col py-2', collapsed ? 'px-3' : 'px-4')}>
+        <nav aria-label="Modules" className={cx('flex-1 min-h-0 shrink-0 overflow-y-auto overflow-x-hidden flex flex-col py-2', collapsed ? 'w-[68px] px-3' : 'w-64 px-4')}>
           {top.map(row)}
           {top.length > 0 && mods.length > 0 && <NavDivider />}
           {mods.map(row)}
@@ -130,45 +143,114 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="h-5 px-1.5 rounded border border-[#E5E5E5] bg-white font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#737373] flex items-center">{children}</kbd>;
 }
 
-/** A module row. The open module lists its pages under it (with their counts); closed ones show a chevron. */
-function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Every module with pages shows a chevron, Home and Reports included. */ chevron: boolean }) {
+/** Work waiting in a module, for its closed row: every page count except sizes (7 properties). Red when any of it is an alert (repairs). */
+function rollup(m: Module, counts: NavCounts) {
+  let n = 0; let alert = false;
+  for (const s of m.sections) for (const it of s.items) {
+    if (it.total || !it.count) continue;
+    const c = it.count(counts);
+    if (c > 0) { n += c; if (it.alert) alert = true; }
+  }
+  return { n, alert };
+}
+
+/** Every page of a module, flattened with its section labels, for the collapsed sidebar's flyout. */
+function Flyout({ m, counts }: { m: Module; counts: NavCounts }) {
+  return (
+    <div className="flex flex-col gap-0.5 min-w-[200px]">
+      <div className="h-7 px-2 flex items-center text-xs leading-4 font-medium uppercase tracking-[0.48px] font-mono text-[#737373]">{m.label}</div>
+      {m.sections.filter((s) => !s.pinned).map((s, i) => (
+        <Fragment key={i}>
+          {s.label && i > 0 && <div className="h-6 mt-1 px-2 flex items-center text-xs leading-4 text-[#737373]">{s.label}</div>}
+          {s.items.filter((it) => !it.soon).map((it) => {
+            const PI = it.icon; const c = it.count?.(counts);
+            return (
+              <NavLink key={it.to} to={it.to} end onClick={() => usePins.getState().go(it.to, null)}
+                className={({ isActive }) => cx('h-8 px-2 flex items-center gap-2 rounded-md text-sm leading-5 outline-none hover:bg-[#F5F5F5] focus-visible:ring-2 focus-visible:ring-ring', isActive ? 'text-[#2563EB] font-medium [&>svg]:text-[#2563EB]' : 'text-[#3F404D]')}>
+                <PI size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />
+                <span className="flex-1 truncate">{it.label}</span>
+                {c !== undefined && c > 0 && <span className={cx('font-mono text-xs tabular-nums', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{c}</span>}
+              </NavLink>
+            );
+          })}
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+/** A module row (Figma 3924:50640). A module with pages opens or closes its list in place and never changes the page;
+    only a page row under it navigates. One module is open at a time, plus at most one you opened to look (data/navOpen); a closed one
+    shows its rolled-up count. ← / → close and open from the keyboard; ⌥-click on the chevron closes all the others. */
+function ModuleRow({ m, on, counts, collapsed, onExpand, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Opens the folded sidebar. */ onExpand: () => void; /** Every module with pages shows a chevron, Home and Reports included. */ chevron: boolean }) {
   const I = m.icon;
+  const single = m.sections.every((s) => s.items.length <= 1 && !s.pinned);
+  const isOpen = useNavOpen((s) => s.open.includes(m.id));
   if (collapsed) {
+    const glyph = (<>
+      <I size={16} strokeWidth={1.5} absoluteStrokeWidth />
+      {m.locked && <span className="absolute right-1 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
+    </>);
+    const cls = cx(ROW, 'relative h-9 shrink-0 justify-center px-2', on ? RAISED : IDLE);
+    /* A module with pages doesn't change the page: clicking its icon unfolds the sidebar with that module open
+       (or pick a page straight from the hover flyout). A single page (Overview) still goes there. */
+    const link = single
+      ? <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)} className={cls}>{glyph}</NavLink>
+      : <button type="button" aria-label={`Open ${m.label}`} onClick={() => { useNavOpen.getState().set(m.id, true); onExpand(); }} className={cls}>{glyph}</button>;
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)}
-            className={cx(ROW, 'relative h-9 shrink-0 justify-center px-2', on ? RAISED : IDLE)}>
-            <I size={16} strokeWidth={1.5} absoluteStrokeWidth />
-            {m.locked && <span className="absolute right-1 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
-          </NavLink>
-        </TooltipTrigger>
-        <TooltipContent side="right" sideOffset={8}>{m.label}{m.locked && <span className="text-gray-400"> · locked</span>}</TooltipContent>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        {/* Collapsed: a module with pages shows a flyout of them on hover; a single page keeps the dark name tooltip. */}
+        {single || m.locked
+          ? <TooltipContent side="right" sideOffset={8}>{m.label}{m.locked && <span className="text-gray-400"> · locked</span>}</TooltipContent>
+          : <TooltipContent side="right" sideOffset={10} align="start" className="bg-white text-[#0A0A0A] border border-[#E5E5E5] rounded-xl p-1.5 whitespace-normal font-normal shadow-[0_8px_24px_-6px_rgba(17,24,39,0.16)]"><Flyout m={m} counts={counts} /></TooltipContent>}
       </Tooltip>
     );
   }
-  /* With no pages to list, the module row itself is the selection. */
-  /* Home opens like any module (2026-11-13): Overview, My tasks and Activity list under it instead of folder tabs on the page. */
-  const single = m.sections.every((s) => s.items.length <= 1 && !s.pinned);
   const flat = on && single;
+  /* A single-page row (My tasks) carries its page's count; a closed module carries the work waiting inside it. */
+  const n = single ? m.sections[0]?.items[0]?.count?.(counts) : undefined;
+  const sum = !single && !isOpen ? rollup(m, counts) : { n: 0, alert: false };
+  const toggle = (e: { altKey: boolean }) => {
+    const st = useNavOpen.getState();
+    if (e.altKey) st.only(m.id); else st.set(m.id, !isOpen);
+  };
+  const keys = (e: ReactKeyboardEvent) => {
+    if (single) return;
+    if (e.key === 'ArrowRight' && !isOpen) { e.preventDefault(); useNavOpen.getState().set(m.id, true); }
+    if (e.key === 'ArrowLeft' && isOpen) { e.preventDefault(); useNavOpen.getState().set(m.id, false); }
+  };
+  const hasChev = !single && chevron;
+  const label = (<>
+    <I size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />
+    <span className="flex-1 truncate">{m.label}</span>
+    {n !== undefined && n > 0 && <span className="font-mono text-xs font-normal tabular-nums text-[#737373]">{n}</span>}
+    {sum.n > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', sum.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{sum.n}</span>}
+    {m.locked && <Lock size={14} strokeWidth={1.5} absoluteStrokeWidth className="text-[#737373]" />}
+  </>);
+  /* A single page (Overview, My tasks, Activity) is a link. A module with pages has no page of its own, so its row
+     only opens or closes the list under it (2026-11-13): the page changes once you pick one of its pages. */
+  if (single) {
+    return (
+      <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
+        className={cx(ROW, 'h-9 shrink-0 px-2 font-medium', flat ? RAISED : IDLE)}>{label}</NavLink>
+    );
+  }
   return (
     <>
-      <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
-        className={cx(ROW, 'h-9 shrink-0 px-2 font-medium', flat ? RAISED : on ? OPEN : IDLE)}>
-        <I size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />
-        <span className="flex-1 truncate">{m.label}</span>
-        {m.locked && <Lock size={14} strokeWidth={1.5} absoluteStrokeWidth className="text-[#737373]" />}
-        {/* A module with pages shows a chevron, not a count: right when closed, down when open (2026-11-12). */}
-        {!single && chevron && (on
-          ? <ChevronDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />
-          : <ChevronRight size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />)}
-      </NavLink>
-      {on && !flat && <ModulePages mod={m} counts={counts} />}
+      <button type="button" onClick={toggle} onKeyDown={keys} aria-expanded={isOpen} title="⌥-click to close the others"
+        className={cx(ROW, 'group/mod h-9 shrink-0 px-2 font-medium text-left', on || isOpen ? OPEN : IDLE)}>
+        {label}
+        {hasChev && (isOpen
+          ? <ChevronDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3] group-hover/mod:text-[#0A0A0A]" />
+          : <ChevronRight size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3] group-hover/mod:text-[#0A0A0A]" />)}
+      </button>
+      {isOpen && <ModulePages mod={m} counts={counts} />}
     </>
   );
 }
 
-/** The open module's pages, on a guide line under its row (lined up with the module icon). */
+/** An open module's pages, on a guide line under its row (lined up with the module icon). */
 function ModulePages({ mod, counts }: { mod: Module; counts: NavCounts }) {
   return (
     /* Figma "Sub · Inventory": 24px indent, 2px top / 6px bottom, 2px gap; the 1px #E5E5E5 rail sits 15px in, under the module icon. */
@@ -400,7 +482,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
     <>
     <DropdownMenu modal={false}>
       {/* Profile (3884:39336): 59px so its line meets the page footer's; 16px sides, 10px gap, round photo. */}
-      <DropdownMenuTrigger aria-label="Account" className={cx('h-[59px] shrink-0 border-t border-[#E5E5E5] flex items-center gap-2.5 px-4 outline-none transition-colors duration-150 hover:bg-black/[0.02] data-[state=open]:bg-[#F4F4F5] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring text-left', collapsed && 'justify-center px-0')}>
+      <DropdownMenuTrigger aria-label="Account" className={cx('h-[59px] shrink-0 border-t border-[#E5E5E5] flex items-center gap-2.5 px-4 outline-none transition-colors duration-150 hover:bg-black/[0.02] data-[state=open]:bg-[#F4F4F5] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring text-left', collapsed ? 'w-[68px] justify-center px-0' : 'w-64')}>
         <PersonPhoto name={me.name} size={32} />
         {!collapsed && <>
           <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#737373] truncate">{me.email}</span></span>

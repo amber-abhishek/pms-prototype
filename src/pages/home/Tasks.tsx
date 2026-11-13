@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlarmClock, AlarmClockOff, ArrowDown, ArrowUp, ArrowsLeftRight, Bell, CalendarBlank, CalendarX, Check, CheckCircle, Plus, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Empty, Field, FilterButton, inFilter, type Filters, Input, PageHeader, Select, Sheet, SheetSection, Tabs, cx, toolbarCls, listNav, PageHeading } from '../../components/ui';
+import { Button, Empty, Field, FilterButton, inFilter, type Filters, Input, PageHeader, Select, Sheet, SheetSection, Tabs, cx, toolbarCls, PIN, listNav, PageHeading } from '../../components/ui';
 import { useOpen } from '../hooks';
 import { useEmpty } from '../../data/empty';
 import { DONE_EARLIER, EXTRAS, ME, PEOPLE, TOM_HIDDEN, useHome, type CaseId, type Due, type HTask } from '../../data/home';
@@ -116,7 +116,7 @@ function MyTasks() {
       <PageHeader icon={CheckCircle} title="My tasks" search><NewTaskButton scope="main" /></PageHeader>
       {/* One toolbar row: tabs on the left, the From and Owner dropdowns on the right. */}
       <PageHeading />
-      <div className={toolbarCls}>
+      <div {...PIN} className={toolbarCls}>
         <Tabs value={tab} onChange={(v) => { setTab(v); setShowWeek(false); }} tabs={[
           { id: 'mine', label: 'Mine', count: mineCount },
           { id: 'team', label: 'Team', count: openRows.length },
@@ -275,7 +275,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
         </div>
       )}
       <PageHeading />
-      <div className={toolbarCls}>
+      <div {...PIN} className={toolbarCls}>
         <Tabs value={tab} onChange={setTab} tabs={[
           { id: 'overdue', label: 'Overdue', count: n('overdue') },
           { id: 'today', label: 'Today', count: n('today') },
@@ -317,8 +317,10 @@ function TeamBoard({ scope }: { scope: CaseId }) {
       {sel.length > 0 && !showBanner && (
         <div className="h-12 shrink-0 px-5 flex items-center gap-3 border-t border-line text-sm">
           <span className="text-gray-600">{sel.length} selected</span>
-          <Button size="sm" icon={Check} onClick={() => { change((rs) => rs.map((r) => (sel.includes(r.id) ? { ...r, done: true, doneBy: ME } : r)), `${sel.length} marked as done`); setSel([]); }}>Mark done</Button>
-          <Button size="sm" variant="ghost" onClick={() => setSel([])}>Clear</Button>
+          <span className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="danger-ghost" icon={null} onClick={() => setSel([])}>Clear</Button>
+            <Button size="sm" icon={Check} onClick={() => { change((rs) => rs.map((r) => (sel.includes(r.id) ? { ...r, done: true, doneBy: ME } : r)), `${sel.length} marked as done`); setSel([]); }}>Mark done</Button>
+          </span>
         </div>
       )}
       <TaskSheet scope={scope} task={task} nav={listNav(moving.map((m) => m.row), (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />

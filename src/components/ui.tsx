@@ -27,10 +27,10 @@ import { Label } from './shadcn/label';
 import { Switch as UISwitch } from './shadcn/switch';
 import { Checkbox } from './shadcn/checkbox';
 import { Sheet as UISheet, sheetStep, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from './shadcn/sheet';
-import { Dialog as UIDialog, DialogContent, DialogFrame } from './shadcn/dialog';
+import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogDescription, DialogFrame, DialogTitle } from './shadcn/dialog';
 import { toneCls, toneDot } from './tones';
 import { rowAttrs, useRowMotion } from './rowMotion';
-import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
+import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, CaretUp, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
 import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag, House } from './icons';
 export { toneCls, toneDot, toneLine } from './tones';
 import type { Tone } from '../data/seed';
@@ -85,6 +85,12 @@ export function Button({ variant: asked = 'secondary', size = 'md', icon, childr
 
 /* ---------- Pills: shadcn Badge with the vibrant tones (./tones) ---------- */
 /** Pill: 22px, 8px radius, 12px medium. `outline` is the tag style (white ground, tone border at 35%). */
+/** Each tone's avatar colour, so an icon tile takes the avatar finish in the same hue. */
+const TONE_FG: Record<Tone, string> = { blue: '#2563EB', green: '#0B8A4C', amber: '#C47A00', orange: '#E5530C', red: '#E0243A', purple: '#8B2CF5', grey: '#64748B' };
+/** A row's icon (2026-11-13): 28px r8 tile, 16px icon, with the avatar finish (tint gradient, top highlight, tinted ring). */
+export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; tone?: Tone; size?: number }) {
+  return <span className="rounded-lg flex items-center justify-center shrink-0" style={{ width: size, height: size, ...avatarFx(TONE_FG[tone] ?? TONE_FG.grey) }}><I size={Math.round(size * 0.57)} strokeWidth={1.75} /></span>;
+}
 export function Pill({ tone = 'grey', icon: I, dot, outline, children }: { tone?: Tone; icon?: Icon; dot?: boolean; outline?: boolean; children: ReactNode }) {
   return (
     <Badge tone={tone} look={outline ? 'outline' : 'soft'}>
@@ -174,18 +180,33 @@ export function ButtonGroup({ children }: { children: ReactNode }) {
 /** The row under the page header: tabs on the left, search/filter/display on the right.
  *  24px below the header line, no bottom rule; sides follow the table gutter (--gx: 120px under 6 columns, 16px for 6+). */
 export const toolbarCls = 'shrink-0 px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-2';
+/** A page toolbar (filters, search, view switch) pins under the breadcrumb header while the page scrolls, and the
+ *  column header pins under it (styles.css). Its height varies (wrapping, !py-3), so it publishes it on <main> as
+ *  --tb-h for the column header's offset. Spread on the toolbar row: <div {...PIN} className=…>. One toolbar per page. */
+let pinRO: ResizeObserver | null = null;
+let pinMain: HTMLElement | null = null;
+const pinRef = (el: HTMLDivElement | null) => {
+  pinRO?.disconnect(); pinRO = null;
+  pinMain?.style.removeProperty('--tb-h'); pinMain = null;
+  const main = el?.closest<HTMLElement>('.pms-main');
+  if (!el || !main) return;
+  pinMain = main;
+  const set = () => main.style.setProperty('--tb-h', `${el.offsetHeight}px`);
+  set(); pinRO = new ResizeObserver(set); pinRO.observe(el);
+};
+export const PIN = { ref: pinRef, 'data-toolbar': '' } as const;
 /** No visible page heading (Amber Connect has none; the breadcrumb names the page). The title stays as a screen-reader h1,
  *  and `right` becomes the toolbar row on its own. */
 export function PageHeading({ title, right, className }: { title?: ReactNode; right?: ReactNode; className?: string }) {
   const t = usePageTitle();
   const h1 = <TitleH1 className="sr-only">{title ?? t}</TitleH1>;
   if (!right) return h1;
-  return <div className={cx(toolbarCls, className)}>{h1}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
+  return <div {...PIN} className={cx(toolbarCls, className)}>{h1}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
 }
 /** One toolbar row: tabs on the left, search/filter/display on the right. The title is screen-reader only; `heading={false}` drops it. */
 export function Toolbar({ children, right, className, heading }: { children?: ReactNode; right?: ReactNode; className?: string; heading?: ReactNode | false }) {
   const t = usePageTitle();
-  return <div className={cx(toolbarCls, className)}>{heading !== false && <TitleH1 className="sr-only">{heading ?? t}</TitleH1>}{children}<div className="ml-auto min-w-0 flex items-center gap-2 whitespace-nowrap [&>label]:shrink [&>label]:min-w-[140px]">{right}</div></div>;
+  return <div {...PIN} className={cx(toolbarCls, className)}>{heading !== false && <TitleH1 className="sr-only">{heading ?? t}</TitleH1>}{children}<div className="ml-auto min-w-0 flex items-center gap-2 whitespace-nowrap [&>label]:shrink [&>label]:min-w-[140px]">{right}</div></div>;
 }
 /** Mercury-style metric links above a table: a bold label, then "value label ›" links that filter the table. */
 export type Metric = { label: string; value: ReactNode; tone?: 'red' | 'orange' | 'amber' | 'green'; onClick?: () => void; active?: boolean };
@@ -248,16 +269,17 @@ export function Stat({ label, value, sub, tone, icon: I }: { label: string; valu
 export type StatItem = { label: string; value: ReactNode; sub?: ReactNode; color?: string; good?: boolean };
 export function StatStrip({ items, className }: { items: StatItem[]; className?: string }) {
   return (
-    <div className={cx('grid rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] py-5', className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
-      {items.map((it, i) => {
+    /* One card per number (2026-11-13), 16px apart, rather than one strip split by dashed rules. */
+    <div className={cx('grid gap-4', className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+      {items.map((it) => {
         const s = typeof it.sub === 'string' ? it.sub : null;
         const dir = s && /^[+▲]/.test(s) ? 'up' : s && /^[−▼-]/.test(s) ? 'down' : null;
         const tc = (it.good ?? dir === 'up') ? '#16A34A' : '#DC2626';
         const [num, ...rest] = dir && s ? s.replace(/^[+−▲▼-]\s*/, '').split(' ') : [];
         return (
-          <div key={it.label} className={cx('min-w-0 px-5 flex flex-col', i > 0 && 'border-l border-dashed border-[#E5E5E5]')}>
+          <div key={it.label} className="min-w-0 p-5 flex flex-col rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
             <div className="text-sm leading-5 text-[#737373] truncate">{it.label}</div>
-            <div className="mt-1 font-mono text-[28px] leading-9 font-semibold tracking-tight tabular-nums text-[#0A0A0A] truncate">{it.value}</div>
+            <div className="mt-1 font-mono text-[28px] leading-9 font-semibold tracking-tight tabular-nums text-[#0A0A0A] truncate" style={it.color ? { color: it.color } : undefined}>{it.value}</div>
             <div className="mt-2 h-5 text-sm leading-5 text-[#737373] truncate">
               {dir ? <><span aria-hidden className="text-[10px] mr-1.5" style={{ color: tc }}>{dir === 'up' ? '▲' : '▼'}</span><span className="font-medium" style={{ color: tc }}>{num}</span> {rest.join(' ')}</> : it.sub}
             </div>
@@ -282,8 +304,15 @@ const avatarGround: Record<string, [string, string]> = {
   '#E5530C': ['#FFF0E0', '#FFDDBA'], '#0E7A80': ['#E3F6F6', '#C8ECEC'], '#8B2CF5': ['#F1E7FF', '#E2CFFF'], '#6E3BD8': ['#F1E7FF', '#E2CFFF'],
   '#C0266D': ['#FDEDF4', '#FAD5E6'], '#0B8A4C': ['#E8F7EE', '#CDEEDB'], '#1F45E0': ['#EAF0FF', '#D3E0FF'], '#C47A00': ['#FFF6E0', '#FFE9B8'],
   '#E0243A': ['#FEEFEE', '#FCD9D9'], '#A3A3A3': ['#F5F5F5', '#E5E5E5'],
-  '#2563EB': ['#EAF0FF', '#D3E0FF'], '#DB2777': ['#FDEDF4', '#FAD5E6'], '#64748B': ['#F5F5F5', '#E5E5E5'],
+  '#2563EB': ['#EAF0FF', '#D3E0FF'], '#DB2777': ['#FDEDF4', '#FAD5E6'], '#64748B': ['#F5F5F5', '#E5E5E5'], '#9333EA': ['#F1E7FF', '#E2CFFF'],
 };
+/** The avatar finish for any round tile in a colour: a top-to-bottom tint gradient, a white top highlight and a
+ *  1px ring of the colour at 20%. Icon discs use it so they match the avatars. */
+export function avatarFx(color: string) {
+  const fg = color.toUpperCase();
+  const [a, b] = avatarGround[fg] ?? ['#F5F5F5', '#E5E5E5'];
+  return { color: fg, background: `linear-gradient(180deg, ${a}, ${b})`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px ${fg}33` };
+}
 export function Avatar({ name, size = 24, color }: { name: string; size?: number; color?: string }) {
   const i = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % avatarBg.length;
   const ini = name.split(/\s+/).filter((w) => /[A-Za-z]/.test(w[0] ?? '')).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
@@ -380,8 +409,12 @@ export function SelectFilter({ label, icon: I, value, options, onChange, width =
   const row = (v: string, body: ReactNode, chosen: boolean) => (
     <button key={v || '_all'} type="button" role="menuitemradio" aria-checked={chosen} onClick={() => { onChange(v); setOpen(false); }}
       className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F5F5] focus-visible:bg-[#F5F5F5] outline-none transition-colors">
+      {/* Same rows as MultiFilter (2026-11-13): a 20px control on the left where its checkbox sits — here a radio,
+          as one choice applies straight away — instead of a check on the right. */}
+      <span aria-hidden className={cx('size-5 shrink-0 rounded-full border flex items-center justify-center', chosen ? 'border-primary bg-primary' : 'border-input bg-background')}>
+        {chosen && <span className="size-2 rounded-full bg-white" />}
+      </span>
       <span className="flex-1 min-w-0 flex items-center gap-2">{body}</span>
-      {chosen && <CheckIcon size={16} className="text-[#2563EB] shrink-0" />}
     </button>
   );
   return (
@@ -455,7 +488,8 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
   cols: Col<T>[]; rows: T[]; onRow?: (r: T) => void; empty?: ReactNode; pageSize?: number; selected?: string;
   /** Footer text on the left, e.g. "7 properties · 2,749 units". Defaults to "N rows". */ summary?: ReactNode;
   /** Render inside a bordered card instead of full-bleed. */ card?: boolean; footerRight?: ReactNode;
-  /** false hides the footer (settings card tables, 3057:2 / 3058:2, have none). It still shows when there is more than one page, with only the range and the ‹ › pager. */ footer?: boolean;
+  /** false hides the footer (settings card tables, 3057:2 / 3058:2, have none). It still shows when there is more than one page, with only the range and the ‹ › pager.
+      'always' keeps the summary footer even on a single page (Properties shows its count, 2026-11-13). */ footer?: boolean | 'always';
   /** false shows every row and drops the pager; the footer keeps only the summary. */ paginate?: boolean;
   /** Content under the last row, inside the scroll area (a note about the list). */ after?: ReactNode;
   /** Fill mode: rows run edge to edge (no side gutter). Default: on for 6+ columns. The whole screen follows it (see styles.css). */ fill?: boolean;
@@ -478,7 +512,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
       ) : c.label}</TableHead>)}</TableRow></TableHeader>
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }, ri) => (
-          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} aria-selected={selected === r.id || undefined} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow && 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]', (group || ri === items.length - 1) && 'border-b-0')}>
+          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} aria-selected={selected === r.id || undefined} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow ? 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]' : 'hover:bg-transparent', (group || ri === items.length - 1) && 'border-b-0')}>
             {group && <TableCell className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'text-[#737373] whitespace-nowrap border-b', ri === items.length - 1 || group.get(items[ri + 1].row) === group.get(r) ? 'border-transparent' : 'border-[#F5F5F5]', group.className)}>{ri === 0 || group.get(items[ri - 1].row) !== group.get(r) ? group.get(r) : null}</TableCell>}
             {cols.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === cols.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), i === cols.length - 1 && c.label === '' && 'row-act', group && ri < items.length - 1 && 'border-b border-[#F5F5F5]', c.className)}>{muteDash(c.render(r))}</TableCell>)}
           </TableRow>
@@ -504,8 +538,10 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
       </div>
     </div>
   );
-  /* Connect logic: the footer always shows the count; the pager only when there is more than one page; footer={false} hides it unless there is more than one page. */
-  const foot = showFooter || pages > 1 ? footer : null;
+  /* The footer earns its row only with a pager (more than one page) or footer actions. Summary text alone
+     ("Showing 6 of 6", "Latest 100 imports") never keeps it on a single page (2026-11-13).
+     footer={false} still hides the summary and actions, but never the pager. */
+  const foot = pages > 1 || showFooter === 'always' || (showFooter && footerRight != null) ? footer : null;
   if (card) return <Card className="overflow-hidden">{table}{foot}</Card>;
   /* Inset Mercury-style: the rows sit inside the --gx gutter (set on <main> from data-gx); the footer stays end to end. */
   return <div {...((fill ?? cols.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="flex-1 min-h-0 flex flex-col"><div data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">{table}{after && <div className="pt-6 pb-6 px-[var(--cx,12px)]">{after}</div>}</div>{foot}</div>;
@@ -632,6 +668,7 @@ function step(go: () => void) {
   }));
 }
 /** Header chevrons (Connect drawer: two 30px bordered buttons before the title): ↑/↓ or K/J step through the list without closing the sheet. */
+/** Previous / next record as ⌃ ⌄: every panel steps up and down its list, never left and right (2026-11-13). */
 export function SheetNavButtons({ nav }: { nav?: SheetNav }) {
   useEffect(() => {
     if (!nav) return;
@@ -647,8 +684,8 @@ export function SheetNavButtons({ nav }: { nav?: SheetNav }) {
   if (!nav) return null;
   return (
     <div className="flex items-center gap-3 shrink-0">
-      <button type="button" className={navBtn} onClick={() => nav.prev && step(nav.prev)} disabled={!nav.prev} aria-label={nav.pos ? `Previous (${nav.pos})` : 'Previous'} title="Previous (↑)"><CaretLeft size={16} strokeWidth={1.75} /></button>
-      <button type="button" className={navBtn} onClick={() => nav.next && step(nav.next)} disabled={!nav.next} aria-label={nav.pos ? `Next (${nav.pos})` : 'Next'} title="Next (↓)"><CaretRight size={16} strokeWidth={1.75} /></button>
+      <button type="button" className={navBtn} onClick={() => nav.prev && step(nav.prev)} disabled={!nav.prev} aria-label={nav.pos ? `Previous (${nav.pos})` : 'Previous'} title="Previous (↑)"><CaretUp size={16} strokeWidth={1.75} /></button>
+      <button type="button" className={navBtn} onClick={() => nav.next && step(nav.next)} disabled={!nav.next} aria-label={nav.pos ? `Next (${nav.pos})` : 'Next'} title="Next (↓)"><CaretDown size={16} strokeWidth={1.75} /></button>
     </div>
   );
 }
@@ -678,10 +715,52 @@ export function Sheet({ open, onClose, title, sub, children, footer, width = 520
 /** 3032:2 / 2825:897: 16px semibold title, optional 14px #737373 `sub`; 64px #FAFAFA footer.
  *  Modals carry no header icon (2026-11-07); `icon` and `tone` are accepted for old call sites and ignored. */
 export function Dialog({ open, onClose, title, sub, children, footer, width = 480 }: { open: boolean; onClose: () => void; title: string; sub?: ReactNode; icon?: Icon; tone?: Tone; children: ReactNode; footer?: ReactNode; width?: number }) {
+  const confirm = footer != null && isConfirmTitle(title);
   return (
     <UIDialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent style={{ maxWidth: width }} {...noDesc(sub)}>
-        <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>
+      <DialogContent style={{ maxWidth: width }} {...noDesc(sub)} {...(confirm ? noAutoFocus : {})}>
+        {confirm ? <ConfirmFrame title={title} sub={sub} footer={footer}>{children}</ConfirmFrame> : <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>}
+      </DialogContent>
+    </UIDialog>
+  );
+}
+
+/** A dialog that asks the user to confirm something has a question for a title ("Delete Kitchen shared with?").
+ *  Every such dialog — Confirm, Dialog and inventory's Modal alike — uses ConfirmFrame (2026-11-13). */
+export const isConfirmTitle = (t: ReactNode) => typeof t === 'string' && t.trim().endsWith('?');
+/** Confirm dialogs open without a focus ring on either button. */
+export const noAutoFocus = { onOpenAutoFocus: (e: Event) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); } };
+/** The confirm layout: 56px header (16px title, bordered ✕), the consequence as grey text plus any `children`,
+ *  then a 64px footer with both buttons on the right: the safe choice, then the action (2026-11-13). */
+export function ConfirmFrame({ title, sub, children, footer }: { title: ReactNode; sub?: ReactNode; children?: ReactNode; footer: ReactNode }) {
+  const body = Children.toArray(children).length > 0;
+  return (
+    <>
+      <div className="h-14 shrink-0 border-b border-[#E5E5E5] pl-6 pr-4 flex items-center gap-3">
+        <DialogTitle className="flex-1 text-base leading-5 font-medium text-[#0A0A0A]">{title}</DialogTitle>
+        <DialogCloseButton />
+      </div>
+      {(sub || body) && (
+        <div className="px-6 py-5 flex flex-col gap-4">
+          {sub && <DialogDescription>{sub}</DialogDescription>}
+          {children}
+        </div>
+      )}
+      <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center justify-end gap-2 [&_button>svg]:hidden">{footer}</div>
+    </>
+  );
+}
+
+/** Confirm (2026-11-13), in the Add property modal's frame: 56px header (16px title, plain ✕), a grey line and
+ *  optional `children` (what the choice affects), then a 64px footer with both buttons on the right: the safe choice as a white bordered button, then the
+ *  confirming one (red when `danger`). Opens without a focus ring on either button. */
+export function Confirm({ open, onClose, title, sub, danger, cancel = 'Cancel', confirm, onConfirm, children }: {
+  open: boolean; onClose: () => void; title: string; sub?: ReactNode; icon?: Icon; danger?: boolean; cancel?: string; confirm: string; onConfirm: () => void; children?: ReactNode;
+}) {
+  return (
+    <UIDialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent style={{ maxWidth: 440 }} {...noDesc(sub)} {...noAutoFocus}>
+        <ConfirmFrame title={title} sub={sub} footer={<><Button onClick={onClose}>{cancel}</Button><Button variant={danger ? 'danger' : 'primary'} icon={null} onClick={onConfirm}>{confirm}</Button></>}>{children}</ConfirmFrame>
       </DialogContent>
     </UIDialog>
   );

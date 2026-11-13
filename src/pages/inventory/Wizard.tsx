@@ -5,20 +5,26 @@ import { toast } from 'sonner';
 import {
   Bed, Buildings, CalendarBlank, CaretDown, CaretRight, Check, CircleDashed, ClipboardCheck, DotsThree, DoorOpen, FileText, MagnifyingGlass, MapPin, Minus, Plus, Receipt, Stack, Trash, WarningCircle, X, type Icon,
 } from '../../components/icons';
-import { Button, Dialog, Field, Input, cx, Pill } from '../../components/ui';
+import { Button, Confirm, Field, Input, cx, Pill, toneCls, toneDot } from '../../components/ui';
 import { Dialog as Modal, DialogContent, DialogTitle } from '../../components/shadcn/dialog';
 import { invId, useInv, type Property, type Template } from '../../data/inventory';
-import { Menu, MoneyInput, Picker, Seg, Stepper } from './common';
+import { ACard, LV, LayoutRadios, Menu, MoneyInput, Picker, Seg, Stepper, type Level } from './common';
 
 type WBlock = { key: string; name: string; floors: number; flats: number; rpf: number; roomType: string; size: string; floorPat: string; flatPat: string; roomPat: string };
 type Terms = { weeks: string; rent: string; deposit: string };
 const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
 const DEF_TERMS: Record<string, Terms> = { 'Ensuite single': { weeks: '51', rent: '212', deposit: '250' }, 'Standard single': { weeks: '44', rent: '168', deposit: '250' }, Studio: { weeks: '51', rent: '246', deposit: '300' } };
-/* Figma 3884:40957–42635: each step has its own colour, carried by its tile, its STEP label, the connector and its Review label. */
-const STEPS: { title: string; tone: string; icon: Icon }[] = [
-  { title: 'Basics', tone: '#2563EB', icon: Buildings }, { title: 'Location', tone: '#DB2777', icon: MapPin }, { title: 'Units', tone: '#7C3AED', icon: Bed },
-  { title: 'Rent & terms', tone: '#D97706', icon: Receipt }, { title: 'Review', tone: '#16A34A', icon: ClipboardCheck },
+/* Figma 3884:40957–42635. Steps stay grey and black (2026-11-13): the colour lives in the step content, not the stepper. */
+const STEPS: { title: string; icon: Icon }[] = [
+  { title: 'Basics', icon: Buildings }, { title: 'Location', icon: MapPin }, { title: 'Units', icon: Bed },
+  { title: 'Rent & terms', icon: Receipt }, { title: 'Review', icon: ClipboardCheck },
 ];
+/* One colour per level, from the tag-pill tones (2026-11-13): the layout cards, the previews, the Units tree and its
+   counts all use it, so a level reads the same everywhere in the flow. */
+/** A level's icon on its tone at 10%, as the tag pills. */
+const LevelTile = ({ level, icon: I, size = 24 }: { level: Level; icon: Icon; size?: number }) => (
+  <span className={cx('rounded-md flex items-center justify-center shrink-0', toneCls[LV[level]])} style={{ width: size, height: size }}><I size={Math.round(size * 0.6)} strokeWidth={1.5} /></span>
+);
 const rooms = (b: WBlock, house: boolean) => (house ? b.rpf : b.floors * b.flats * b.rpf);
 const isNum = (v: string) => /^\d+(\.\d+)?$/.test(v.trim());
 const parseDate = (v: string) => { if (!/^\d{1,2} [A-Za-z]{3,9} \d{4}$/.test(v.trim())) return null; const t = Date.parse(v); return Number.isNaN(t) ? null : t; };
@@ -127,10 +133,10 @@ export function AddPropertyWizard() {
         <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[960px] h-[min(840px,calc(100vh-32px))] max-h-none">
           <div className="h-14 shrink-0 border-b border-[#E5E5E5] pl-6 pr-4 flex items-center gap-3">
             <DialogTitle className="flex-1 text-base leading-5 font-medium text-[#0A0A0A]">Add property</DialogTitle>
-            <button type="button" aria-label="Close" onClick={leave} className="size-8 rounded-lg hover:bg-[#F5F5F5] flex items-center justify-center text-[#737373]"><X size={16} strokeWidth={1.5} /></button>
+            <button type="button" aria-label="Close" onClick={leave} className="size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring"><X size={16} strokeWidth={1.5} /></button>
           </div>
 
-          {/* Stepper: 68px #FAFAFA band. Done = 12% tint + check, current = solid tile with a 4px glow, next = white outline. */}
+          {/* Stepper: 68px #FAFAFA band. Done = grey tile + check, current = black tile with a soft 4px glow, next = white outline. */}
           <ol className="h-[68px] shrink-0 bg-[#FAFAFA] border-b border-[#E5E5E5] px-6 flex items-center gap-3">
             {STEPS.map((s, i) => {
               const done = i < step, cur = i === step;
@@ -138,16 +144,15 @@ export function AddPropertyWizard() {
               return (
                 <li key={s.title} className={cx('flex items-center gap-3 min-w-0', i < STEPS.length - 1 && 'flex-1')}>
                   <button type="button" disabled={i > step} onClick={() => setStep(i)} className="flex items-center gap-2.5 shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default">
-                    <span className={cx('size-8 rounded-lg flex items-center justify-center', !done && !cur && 'bg-white border border-[#E5E5E5] text-[#A3A3A3]')}
-                      style={done ? { background: `${s.tone}1F`, color: s.tone } : cur ? { background: s.tone, color: '#fff', boxShadow: `0 0 0 4px ${s.tone}2E` } : undefined}>
+                    <span className={cx('size-8 rounded-lg flex items-center justify-center', done ? 'bg-[#EBEBEB] text-[#0A0A0A]' : cur ? 'bg-[#0A0A0A] text-white shadow-[0_0_0_4px_rgba(10,10,10,0.08)]' : 'bg-white border border-[#E5E5E5] text-[#A3A3A3]')}>
                       <I size={16} strokeWidth={1.5} />
                     </span>
                     <span className="flex flex-col gap-px text-left">
-                      <span className="font-mono uppercase text-[11px] leading-[14px] font-medium tracking-[0.44px]" style={{ color: done || cur ? s.tone : '#A3A3A3' }}>Step 0{i + 1}</span>
+                      <span className={cx('font-mono uppercase text-[11px] leading-[14px] font-medium tracking-[0.44px]', done || cur ? 'text-[#737373]' : 'text-[#A3A3A3]')}>Step 0{i + 1}</span>
                       <span className={cx('text-sm leading-[18px] whitespace-nowrap', done || cur ? 'font-medium text-[#0A0A0A]' : 'text-[#737373]')}>{s.title}</span>
                     </span>
                   </button>
-                  {i < STEPS.length - 1 && <span aria-hidden className="flex-1 min-w-4 h-0.5 rounded-[1px]" style={{ background: done ? s.tone : '#E5E5E5' }} /* solid, no gradient (2026-11-12) */ />}
+                  {i < STEPS.length - 1 && <span aria-hidden className="flex-1 min-w-4 h-0.5 rounded-[1px]" style={{ background: done ? '#0A0A0A' : '#E5E5E5' }} /* solid, no gradient (2026-11-12) */ />}
                 </li>
               );
             })}
@@ -171,18 +176,7 @@ export function AddPropertyWizard() {
                   </div>
                   <div>
                     <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">Property layout</div>
-                    <div role="radiogroup" aria-label="Property layout" className="flex flex-col gap-2">
-                      {([['College', 6, ['Property', 'Block', 'Floor', 'Flat', 'Room']], ['House', 2, ['Property', 'Room']]] as const).map(([s, n, lv]) => (
-                        <div key={s} role="radio" aria-checked={structure === s} tabIndex={0} onClick={() => setStructure(s)} onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && setStructure(s)}
-                          className={cx('rounded-xl border p-4 flex gap-3 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring', structure === s ? 'border-[#2563EB]' : 'border-[#E5E5E5] hover:bg-[#FAFAFA]')}>
-                          <span className={cx('size-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0', structure === s ? 'border-[#2563EB] bg-[#2563EB]' : 'border-[#D4D4D4] bg-white')}>{structure === s && <span className="size-1.5 rounded-full bg-white" />}</span>
-                          <div className="min-w-0">
-                            <div className="flex items-baseline gap-2"><span className="text-sm font-medium text-[#0A0A0A]">{s}</span><span className="text-xs text-[#737373]">Used by {n} properties</span></div>
-                            <div className="flex flex-wrap items-center gap-1.5 mt-2">{lv.map((l, i) => <span key={l} className="flex items-center gap-1.5">{i > 0 && <CaretRight size={12} strokeWidth={1.5} className="text-[#A3A3A3]" />}<Pill>{l}</Pill></span>)}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <LayoutRadios value={structure} onChange={setStructure} />
                     <button type="button" onClick={() => nav('/inventory/structures')} className="mt-3 text-sm text-[#2563EB] hover:underline underline-offset-2 flex items-center gap-1.5"><Plus size={14} strokeWidth={1.5} />New property layout</button>
                   </div>
                 </div>
@@ -228,7 +222,7 @@ export function AddPropertyWizard() {
                   {blocks.map((b) => openBlock === b.key ? (
                     <div key={b.key} className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                       <div className="h-[52px] pl-3.5 pr-2.5 flex items-center gap-2.5 border-b border-[#E5E5E5]">
-                        <Buildings size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+                        <LevelTile level="Block" icon={Buildings} />
                         <Input aria-label="Block name" ref={(el: HTMLInputElement | null) => { nameRefs.current[b.key] = el; }} value={b.name} onChange={(e) => upd(b.key, { name: e.target.value })} className="h-8 w-[200px]" />
                         <span className="ml-auto font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, house))} rooms</span>
                         <Menu width={160} trigger={(o) => <button type="button" aria-label="Block menu" onClick={o} className="size-7 rounded-md hover:bg-[#F5F5F5] flex items-center justify-center text-[#737373]"><DotsThree size={16} /></button>}
@@ -247,7 +241,7 @@ export function AddPropertyWizard() {
                     </div>
                   ) : (
                     <button key={b.key} type="button" onClick={() => setOpenBlock(b.key)} className="w-full h-[52px] shrink-0 rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] px-3.5 flex items-center gap-2.5 text-left hover:bg-[#FAFAFA]">
-                      <Buildings size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+                      <LevelTile level="Block" icon={Buildings} />
                       <span className="text-sm font-medium text-[#0A0A0A] whitespace-nowrap">{b.name}</span>
                       <span className="flex-1 min-w-0 text-xs text-[#737373] truncate">{blockErr(b) ? <span className="text-[#DC2626]">Needs a fix</span> : <>{house ? `${b.rpf} rooms` : `${b.floors} floors × ${b.flats} flats × ${b.rpf} rooms`} · {b.roomType}</>}</span>
                       <span className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, house))} rooms</span><CaretDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
@@ -270,13 +264,13 @@ export function AddPropertyWizard() {
                       <table className="w-full text-sm table-fixed">
                         <colgroup><col /><col className="w-12" /><col className="w-[72px]" /><col className="w-[108px]" /><col className="w-[116px]" /></colgroup>
                         <thead><tr className="text-left bg-[#FAFAFA] border-b border-[#E5E5E5] font-mono uppercase text-xs tracking-[0.48px] text-[#737373] [&>th]:font-medium [&>th]:h-9">
-                          <th className="pl-3.5">Room type</th><th className="text-right pr-2">Rooms</th><th className="px-1">Weeks</th><th className="px-1">Rent / {letting === 'Weekly' ? 'wk' : 'mo'}</th><th className="px-1 pr-3">Deposit</th>
+                          <th className="pl-3.5">Room type</th><th className="px-1">Rooms</th><th className="px-1">Weeks</th><th className="px-1">Rent / {letting === 'Weekly' ? 'wk' : 'mo'}</th><th className="px-1 pr-3">Deposit</th>
                         </tr></thead>
                         <tbody>
                           {types.map((t) => (
                             <tr key={t.name} className="border-b border-[#E5E5E5] last:border-0">
-                              <td className="h-14 pl-3.5"><span className="flex items-center gap-2 font-medium text-[#0A0A0A]"><Bed size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" /><span className="truncate">{t.name}</span></span></td>
-                              <td className="text-right pr-2 text-[#404040] tabular-nums">{fmt(t.rooms)}</td>
+                              <td className="h-14 pl-3.5"><span className="flex items-center gap-2 font-medium text-[#0A0A0A]"><LevelTile level="Room" icon={Bed} /><span className="truncate">{t.name}</span></span></td>
+                              <td className="px-1 text-[#404040] tabular-nums">{fmt(t.rooms)}</td>
                               <td className="px-1"><Input className="h-8" aria-label={`${t.name} weeks`} value={t.weeks} onChange={(e) => setTerm(t.name, 'weeks', e.target.value.replace(/\D/g, ''))} /></td>
                               <td className="px-1"><MoneyInput value={t.rent} onChange={(v) => setTerm(t.name, 'rent', v)} /></td>
                               <td className="px-1 pr-3"><MoneyInput value={t.deposit} onChange={(v) => setTerm(t.name, 'deposit', v)} /></td>
@@ -296,7 +290,7 @@ export function AddPropertyWizard() {
                     <Err>{dateErr}</Err>
                   </div>
                   <div className="rounded-xl border border-[#E5E5E5] px-4 py-3 flex items-center gap-3">
-                    <Receipt size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+                    <span className="size-7 rounded-md flex items-center justify-center shrink-0 bg-[#D97706]/10 text-[#9A5B00]"><Receipt size={16} strokeWidth={1.5} /></span>
                     <div className="flex-1 min-w-0"><div className="text-sm font-medium text-[#0A0A0A]">Organisation-wide fees apply</div><div className="text-xs text-[#737373]">Contents insurance · £45 per tenancy</div></div>
                     <button type="button" onClick={() => nav('/inventory/rent-fees?tab=fees')} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Rent and fees</button>
                   </div>
@@ -313,7 +307,7 @@ export function AddPropertyWizard() {
                       ['Rent & terms', `${types.length} templates · ${fmt(total)} draft tenancies`, types.map((t) => `${t.name.split(' ')[0]} £${t.rent} · ${t.weeks} wk`).join(' · '), 3],
                     ] as const).map(([k, a, b, s]) => (
                       <div key={k} className="px-3.5 py-3.5 grid grid-cols-[120px_minmax(0,1fr)_auto] gap-3 items-center">
-                        <span className="font-mono uppercase text-xs font-medium tracking-[0.48px]" style={{ color: STEPS[s].tone }}>{k}</span>
+                        <span className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#737373]">{k}</span>
                         <span className="min-w-0"><span className="block text-sm font-medium text-[#0A0A0A] truncate">{a}</span><span className="block text-xs text-[#737373] truncate">{b}</span></span>
                         <button type="button" onClick={() => setStep(s)} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Edit</button>
                       </div>
@@ -333,11 +327,11 @@ export function AddPropertyWizard() {
               {step === 0 && (
                 <>
                   <ACard title="Preview">
-                    <div className="p-3 flex flex-col gap-2.5 text-sm">
+                    <div className="p-3 flex flex-col gap-2 text-sm">
                       {(structure === 'College' ? [['Property', name || 'Untitled', Buildings], ['Block', 'e.g. Main House', Buildings], ['Floor', 'e.g. Floor 1', Stack], ['Flat', 'e.g. Flat 1', DoorOpen], ['Room', 'e.g. Room 1', Bed]] as const
                         : [['Property', name || 'Untitled', Buildings], ['Room', 'e.g. Room 1', Bed]] as const).map(([l, ex, I], i) => (
                         <div key={l} className="flex items-center gap-2" style={{ paddingLeft: i * 16 }}>
-                          <I size={16} strokeWidth={1.5} className={l === 'Room' ? 'text-[#2563EB]' : 'text-[#737373]'} /><span className="font-medium text-[#0A0A0A]">{l}</span><span className="text-xs text-[#737373] truncate">{ex}</span>
+                          <LevelTile level={l} icon={I} /><span className="font-medium text-[#0A0A0A]">{l}</span><span className="text-xs text-[#737373] truncate">{ex}</span>
                         </div>
                       ))}
                     </div>
@@ -349,9 +343,9 @@ export function AddPropertyWizard() {
                 <>
                   <ACard title="Preview">
                     <div className="p-3 flex flex-col gap-2 text-sm">
-                      <div className="flex items-center gap-2"><Buildings size={16} strokeWidth={1.5} className="text-[#737373]" /><span className="font-medium text-[#0A0A0A]">{name || 'Untitled'}</span></div>
-                      <div className="flex items-center gap-2 text-[#404040]"><MapPin size={16} strokeWidth={1.5} className="text-[#737373]" />{picked ? 'Elvet Hill Road, Durham DH1 3LR' : 'No address yet'}</div>
-                      {zone && <div className="pl-6"><Pill>Zone · {zone}</Pill></div>}
+                      <div className="flex items-center gap-2"><LevelTile level="Property" icon={Buildings} /><span className="font-medium text-[#0A0A0A]">{name || 'Untitled'}</span></div>
+                      <div className="flex items-center gap-2 text-[#404040]"><span className="size-6 rounded-md flex items-center justify-center shrink-0 bg-[#DB2777]/10 text-[#BE185D]"><MapPin size={14} strokeWidth={1.5} /></span>{picked ? 'Elvet Hill Road, Durham DH1 3LR' : 'No address yet'}</div>
+                      {zone && <div className="pl-8"><Pill>Zone · {zone}</Pill></div>}
                     </div>
                   </ACard>
                   <Note>The pin sets distances on the resident site.</Note>
@@ -361,7 +355,7 @@ export function AddPropertyWizard() {
                 <>
                   <ACard title="Preview" right={`${fmt(total)} rooms`}><div className="p-2"><PreviewTree blocks={blocks} house={house} /></div></ACard>
                   <div className="flex flex-wrap gap-1.5">
-                    {([[blocks.length, 'blocks'], ...(house ? [] : [[floors, 'floors'], [flats, 'flats']]), [total, 'rooms']] as [number, string][]).map(([n, l]) => <Pill key={l}>{fmt(n)} {l}</Pill>)}
+                    {([[blocks.length, 'blocks', 'Block'], ...(house ? [] : [[floors, 'floors', 'Floor'], [flats, 'flats', 'Flat']]), [total, 'rooms', 'Room']] as [number, string, Level][]).map(([n, l, lv]) => <Pill key={l} tone={LV[lv]}>{fmt(n)} {l}</Pill>)}
                   </div>
                   <Note>{'{n}'} counts up from 1 under each parent. Rename single rooms later in Inventory.</Note>
                 </>
@@ -385,7 +379,7 @@ export function AddPropertyWizard() {
                   <ol className="flex flex-col gap-4">
                     {[['Property', 'Saved as a draft with its address and zone.'], ['Templates', `${types.length === 2 ? 'Two' : types.length} tenancy templates are made for ${short}.`], ['Rooms and tenancies', `${blocks.length} blocks, ${floors} floors, ${fmt(flats)} flats and ${fmt(total)} rooms are built in the background. You get an email when it’s done.`]].map(([a, b], i) => (
                       <li key={a} className="flex gap-3">
-                        <span className={cx('size-5 rounded-full font-mono text-[11px] font-medium flex items-center justify-center shrink-0', i === 0 ? 'bg-[#0A0A0A] text-white' : 'border border-[#D4D4D4] text-[#737373]')}>{i + 1}</span>
+                        <span className={cx('size-5 rounded-full font-mono text-[11px] font-medium flex items-center justify-center shrink-0', i === 0 ? 'bg-[#16A34A] text-white' : 'border border-[#D4D4D4] text-[#737373]')}>{i + 1}</span>
                         <span><span className="block text-sm font-medium text-[#0A0A0A]">{a}</span><span className="block text-xs leading-[18px] text-[#737373] mt-0.5">{b}</span></span>
                       </li>
                     ))}
@@ -404,23 +398,19 @@ export function AddPropertyWizard() {
           </div>
         </DialogContent>
       </Modal>
-      <Dialog open={leaving} onClose={() => setLeaving(false)} title="Discard this property?" sub="Nothing has been created yet. What you entered in these steps will be lost."
-        footer={<><Button onClick={() => setLeaving(false)}>Keep editing</Button><Button variant="danger" icon={null} onClick={() => nav('/inventory/properties')}>Discard</Button></>}>{null}</Dialog>
+      <Confirm open={leaving} onClose={() => setLeaving(false)} danger title="Discard this property?" sub="Nothing has been created yet. What you entered will be lost."
+        cancel="Keep editing" confirm="Discard" onConfirm={() => nav('/inventory/properties')}>
+        {/* What goes: the draft, and how far it got. */}
+        <div className="rounded-xl border border-[#E5E5E5] px-3 py-2.5 flex items-center gap-3">
+          <LevelTile level="Property" icon={Buildings} size={28} />
+          <span className="flex-1 min-w-0 text-sm font-medium text-[#0A0A0A] truncate">{name.trim() || 'Untitled property'}</span>
+          <span className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#737373]">Step 0{step + 1} / 05</span>
+        </div>
+      </Confirm>
     </>
   );
 }
 
-/** Aside card: r12, a 32px #FAFAFA mono strip (grey label, ink value on the right), then its body. */
-function ACard({ title, right, children }: { title: string; right?: string; children: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-[#E5E5E5] bg-white overflow-hidden">
-      <div className="h-8 px-3 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#E5E5E5] font-mono uppercase text-xs leading-4 font-medium tracking-[0.48px]">
-        <span className="flex-1 text-[#737373]">{title}</span>{right && <span className="text-[#0A0A0A]">{right}</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
 const Note = ({ children }: { children: ReactNode }) => <p className="text-xs leading-[18px] text-[#737373]">{children}</p>;
 
 function DateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -462,10 +452,10 @@ function PreviewTree({ blocks, house }: { blocks: WBlock[]; house: boolean }) {
   const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const pat = (p: string, n: number) => p.replace('{n}', String(n));
   /* Figma "Tree": 30px rows, r6, 16px indent per level, 12px caret, 14px icon, mono 12 #737373 counts. */
-  const Row = ({ depth, k, icon: I, label, n, leaf, sub }: { depth: number; k?: string; icon: Icon; label: string; n?: number | string; leaf?: boolean; sub?: string }) => (
+  const Row = ({ depth, k, icon: I, label, n, leaf, sub, level }: { depth: number; k?: string; icon: Icon; label: string; n?: number | string; leaf?: boolean; sub?: string; level: Level }) => (
     <div className="h-[30px] pr-2 flex items-center gap-1.5 text-sm rounded-md hover:bg-[#FAFAFA] cursor-pointer select-none" style={{ paddingLeft: 4 + depth * 16 }} onClick={() => k && tog(k)}>
       {leaf ? <span className="w-3" /> : open[k ?? ''] ? <CaretDown size={12} strokeWidth={1.5} className="text-[#737373]" /> : <CaretRight size={12} strokeWidth={1.5} className="text-[#737373]" />}
-      <I size={14} strokeWidth={1.5} className={leaf ? 'text-[#2563EB]' : 'text-[#737373]'} /><span className={cx('text-[#0A0A0A] truncate', depth === 0 && 'font-medium')}>{label}</span>
+      <I size={14} strokeWidth={1.5} style={{ color: toneDot[LV[level]] }} /><span className={cx('text-[#0A0A0A] truncate', depth === 0 && 'font-medium')}>{label}</span>
       {sub && <span className="text-xs text-[#737373] truncate">{sub.split(' ')[0]}</span>}
       {n !== undefined && <span className="ml-auto font-mono text-xs text-[#737373] tabular-nums">{n}</span>}
     </div>
@@ -474,14 +464,14 @@ function PreviewTree({ blocks, house }: { blocks: WBlock[]; house: boolean }) {
     <div>
       {blocks.map((b) => (
         <div key={b.key}>
-          <Row depth={0} k={b.key} icon={Buildings} label={b.name} n={fmt(rooms(b, house))} />
-          {open[b.key] && (house ? <Row depth={1} icon={Bed} leaf label={`Rooms 1–${b.rpf}`} sub={b.roomType} /> : Array.from({ length: b.floors }, (_, f) => (
+          <Row level="Block" depth={0} k={b.key} icon={Buildings} label={b.name} n={fmt(rooms(b, house))} />
+          {open[b.key] && (house ? <Row level="Room" depth={1} icon={Bed} leaf label={`Rooms 1–${b.rpf}`} sub={b.roomType} /> : Array.from({ length: b.floors }, (_, f) => (
             <div key={f}>
-              <Row depth={1} k={`${b.key}-${f + 1}`} icon={Stack} label={pat(b.floorPat, f + 1)} n={fmt(b.flats * b.rpf)} />
+              <Row level="Floor" depth={1} k={`${b.key}-${f + 1}`} icon={Stack} label={pat(b.floorPat, f + 1)} n={fmt(b.flats * b.rpf)} />
               {open[`${b.key}-${f + 1}`] && Array.from({ length: b.flats }, (_, t) => (
                 <div key={t}>
-                  <Row depth={2} k={`${b.key}-${f + 1}-${t + 1}`} icon={DoorOpen} label={pat(b.flatPat, t + 1)} n={b.rpf} />
-                  {open[`${b.key}-${f + 1}-${t + 1}`] && <Row depth={3} icon={Bed} leaf label={`${b.roomPat.replace(' {n}', 's').replace('{n}', '')} 1–${b.rpf}`} sub={b.roomType} />}
+                  <Row level="Flat" depth={2} k={`${b.key}-${f + 1}-${t + 1}`} icon={DoorOpen} label={pat(b.flatPat, t + 1)} n={b.rpf} />
+                  {open[`${b.key}-${f + 1}-${t + 1}`] && <Row level="Room" depth={3} icon={Bed} leaf label={`${b.roomPat.replace(' {n}', 's').replace('{n}', '')} 1–${b.rpf}`} sub={b.roomType} />}
                 </div>
               ))}
             </div>

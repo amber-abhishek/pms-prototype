@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Archive, ArrowSquareOut, ArrowUUpLeft, ArrowsOutCardinal, Bed, Buildings, CaretDown, CaretRight, Door, DotsThree, Info, LinkSimple, ListDashes, PencilSimple, Plus, Stack, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Button, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetSection, Tabs, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetSection, Tabs, cx, listNav, type SheetNav, PIN } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, flatsOf, money, per, useInv, type ArchivedRow, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
@@ -145,7 +145,7 @@ function UnitsView({ props }: { props: Property[] }) {
             ]} />
           </div>
           {/* Toolbar: status tabs on the left; search and the room-type dropdown together on the right. */}
-          <div className="shrink-0 px-6 pt-3 pb-4 flex items-center gap-2">
+          <div {...PIN} className="shrink-0 px-6 pt-3 pb-4 flex items-center gap-2">
             <Tabs value={tab} onChange={(t) => { setTab(t); setCursor(0); }} tabs={[
               { id: 'all', label: 'All', count: counts.all }, { id: 'Active', label: 'Active', count: counts.Active }, { id: 'Draft', label: 'Draft', count: counts.Draft }, { id: 'Inactive', label: 'Inactive', count: counts.Inactive }, { id: 'Archived', label: 'Archived', count: counts.Archived },
             ]} />
@@ -163,7 +163,7 @@ function UnitsView({ props }: { props: Property[] }) {
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-[1]"><tr className="text-left">
                     <th className="w-12 pl-6"><Checkbox aria-label="Select all" checked={!!flatList.length && checked.length === flatList.length} onCheckedChange={(v) => setChecked((v === true) ? flatList.map((u) => u.id) : [])} /></th>
-                    {['Unit', 'Room type', `Rent / ${per(p)}`, 'Status', 'Tenancy template'].map((h, i) => <th key={h} className={cx('px-3', i === 2 && 'text-right', i === 3 && 'pl-6', i === 4 && 'pr-6')}>{h}</th>)}
+                    {['Unit', 'Room type', `Rent / ${per(p)}`, 'Status', 'Tenancy template'].map((h, i) => <th key={h} className={cx('px-3', i === 4 && 'pr-6')}>{h}</th>)}
                   </tr></thead>
                   <tbody>
                     {groups.map(({ f, units }) => (
@@ -178,8 +178,11 @@ function UnitsView({ props }: { props: Property[] }) {
               <div className="h-[59px] shrink-0 px-6 flex items-center gap-3 border-t border-[#E5E5E5] text-sm text-[#737373]">
                 {checked.length > 0 ? <>
                   <span className="text-ink font-medium">{checked.length} selected</span>
-                  <Menu align="left" width={160} trigger={(o) => <Button size="sm" onClick={o}>Set status</Button>} items={(['Active', 'Inactive', 'Draft'] as UStatus[]).map((s) => ({ label: s, onClick: () => bulkStatus(s) }))} />
-                  <button type="button" className="text-primary" onClick={() => setChecked([])}>Clear</button>
+                  {/* Actions on the right (2026-11-13): Clear in red, then the bulk action. */}
+                  <span className="ml-auto flex items-center gap-2">
+                    <Button size="sm" variant="danger-ghost" icon={null} onClick={() => setChecked([])}>Clear</Button>
+                    <Menu align="right" width={160} trigger={(o) => <Button size="sm" onClick={o}>Set status</Button>} items={(['Active', 'Inactive', 'Draft'] as UStatus[]).map((s) => ({ label: s, onClick: () => bulkStatus(s) }))} />
+                  </span>
                 </> : <span>Showing {flatList.length} of {shownFlats.reduce((n, f) => n + f.units.length, 0)} units on {title}</span>}
               </div>
             </>
@@ -292,7 +295,7 @@ function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFl
           <td className="pl-6 h-12" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${u.code}`} checked={checked.includes(u.id)} onCheckedChange={() => setChecked((c) => (c.includes(u.id) ? c.filter((x) => x !== u.id) : [...c, u.id]))} /></td>
           <td className="px-3 font-mono font-medium text-[13px] text-[#0A0A0A]">{u.code}</td>
           <td className="px-3 text-sm text-[#0A0A0A]">{u.type}</td>
-          <td className="px-3 text-right text-sm text-[#0A0A0A] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#737373]">No tenancy</span>}</td>
+          <td className="px-3 text-sm text-[#0A0A0A] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#737373]">No tenancy</span>}</td>
           <td className="px-3 pl-6"><PropStatus s={u.status} /></td>
           <td className="pl-3 pr-6 text-[#737373]">{u.template ?? <span className="text-[#737373]">—</span>}</td>
         </tr>

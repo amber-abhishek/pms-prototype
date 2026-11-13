@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Empty } from '../../components/ui';
+import { Empty, PIN } from '../../components/ui';
 import { Link } from 'react-router-dom';
 import { Archive, ArrowCounterClockwise, Buildings, CaretLeft, CaretRight, CheckCircle, EyeSlash, Pause, PauseCircle, WarningCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, Table, Tabs } from '../../components/ui';
+import { Button, PageHeader, SearchInput, Table, Tabs } from '../../components/ui';
 import { useTab } from '../hooks';
 import { regionOf, stamp, useOc, type Hmo, type HmoStatus, type Pbsa } from '../../data/offcampus';
-import { NoteDialog, Tag, Thumb, Title } from './parts';
+import { NoteDialog, Tag, Thumb, Title, listingPhoto } from './parts';
 import { GhostZone } from '../../components/headerCtx';
 
 export function Listings() {
@@ -33,7 +33,9 @@ function HmoTab() {
   const [archiving, setArchiving] = useState<Hmo | null>(null);
   const busy = useRef(false);
   const want: Record<HTab, HmoStatus | null> = { all: null, active: 'Active', paused: 'Paused', archived: 'Archived' };
-  const rows = hmos.filter((h) => !want[tab] || h.status === want[tab]);
+  const [q, setQ] = useState('');
+  const t = q.trim().toLowerCase();
+  const rows = hmos.filter((h) => (!want[tab] || h.status === want[tab]) && (!t || `${h.title} ${h.landlord} ${h.town}`.toLowerCase().includes(t)));
   const n = (st: HmoStatus) => hmos.filter((h) => h.status === st).length;
 
   const patch = (id: string, p: Partial<Hmo>) => set('hmos', (hs) => hs.map((h) => (h.id === id ? { ...h, ...p } : h)));
@@ -60,13 +62,16 @@ function HmoTab() {
 
   return (
     <>
-      <div className="px-6 pt-6 pb-4 empty:hidden">
+      <div {...PIN} className="px-6 pt-6 pb-4 flex items-center gap-3 empty:hidden">
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Paused', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} />
+        <div className="ml-auto w-[320px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search address or landlord" /></div>
       </div>
       <Table fill rows={rows} footer={false}
-        empty={hmos.length ? <div className="py-16 text-center text-sm text-gray-500">No {tab === 'all' ? '' : `${tab} `}Landlord listings.</div> : <Empty art="properties" title="No landlord listings yet" sub="Listings show here once landlords are approved and add their houses." />}
+        empty={hmos.length ? <div className="py-16 text-center text-sm text-gray-500">{t ? 'No listing matches that search.' : `No ${tab === 'all' ? '' : `${tab} `}Landlord listings.`}</div> : <Empty art="properties" title="No landlord listings yet" sub="Listings show here once landlords are approved and add their houses." />}
         cols={[
-          { key: 'p', label: 'Property', render: (h) => <div className="flex items-center gap-2.5 py-1"><Thumb tint={h.tint} /><div className="leading-tight"><div className="font-medium">{h.title}</div><div className="text-xs text-gray-500">{h.town} · {h.type} · {h.beds} bed</div></div></div> },
+          { key: 'no', label: '#', className: 'w-14', render: (h) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(h) + 1}</span> },
+          /* Same cell as Properties and Listing reviews: 120×64 photo, 16px medium name, 14px grey line under it. */
+          { key: 'p', label: 'Property', className: 'py-[11px]', render: (h) => <div className="flex items-center gap-4 min-w-0"><Thumb src={listingPhoto(hmos.findIndex((x) => x.id === h.id))} w={120} h={64} /><div className="min-w-0 flex flex-col gap-1"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={h.title}>{h.title}</span><span className="text-sm leading-5 text-[#737373] truncate max-w-[320px]">{h.town} · {h.type} · {h.beds} bed</span></div></div> },
           { key: 'l', label: 'Landlord', render: (h) => h.landlord },
           { key: 's', label: 'Status', render: (h) => h.status === 'Paused'
             ? <div className="py-1"><Tag tone="amber" icon={PauseCircle}>Paused</Tag><div className="text-xs text-gray-500 mt-1">{pausedLine(h)}</div></div>
@@ -151,16 +156,16 @@ function PbsaTab() {
             <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-white"><tr className="text-left text-xs text-gray-500 [&>th]:font-medium [&>th]:h-9 [&>th]:border-b [&>th]:border-line [&>th]:px-3">
-                  <th className="!pl-[var(--cx,12px)]">Listing</th><th>Region</th><th className="text-right">From</th><th /><th>Status</th><th className="w-24" />
+                  <th className="!pl-[var(--cx,12px)]">Listing</th><th>Region</th><th>From</th><th /><th>Status</th><th className="w-24" />
                 </tr></thead>
                 <GhostZone.Provider value><tbody>
                   {shown.map((p) => {
                     const h = isHidden(p.ref);
                     return (
-                      <tr key={p.id} className="border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-1">
-                        <td className="!pl-[var(--cx,12px)]"><div className="leading-tight"><div className="font-medium">{p.name}</div><div className="font-mono text-xs text-gray-500">{p.ref}</div></div></td>
+                      <tr key={p.id} className="border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-[11px]">
+                        <td className="!pl-[var(--cx,12px)]"><div className="flex items-center gap-4 min-w-0"><Thumb src={listingPhoto(rows.indexOf(p) + 3)} w={120} h={64} /><div className="min-w-0 flex flex-col gap-1"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={p.name}>{p.name}</span><span className="text-sm leading-5 text-[#737373]">{p.ref}</span></div></div></td>
                         <td>{p.region === 'Newcastle upon Tyne' ? 'Newcastle' : p.region}</td>
-                        <td className="text-right">£{p.from} / week</td>
+                        <td>£{p.from} / week</td>
                         <td><a href={`https://partnerhalls.example/places/${p.ref}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">View listing</a></td>
                         <td>{h ? <Tag tone="grey" icon={EyeSlash}>Hidden</Tag> : <Tag tone="green" icon={CheckCircle}>Shown</Tag>}</td>
                         <td className="text-right !pr-[var(--cx,12px)]">{h ? <Button size="sm" onClick={() => unhide(p.ref)}>Unhide</Button> : <Button size="sm" onClick={() => setHiding(p)}>Hide</Button>}</td>

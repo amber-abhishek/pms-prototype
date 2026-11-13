@@ -405,12 +405,12 @@ export function SettingsAcademicYear() {
           : <Button size="sm" icon={PencilSimple} onClick={() => { setDraft(toDraft(terms)); setEditing(true); }}>Edit terms</Button>}>
         <div className="rounded-xl border border-line overflow-hidden -mt-1">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Term', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 3 ? 'text-right' : 'text-left')}>{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Term', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-5', 'text-left')}>{h}</th>)}</tr></thead>
           <tbody>{(editing ? draft : toDraft(terms)).map((t, i) => { const te = editing && termTried ? termErrs(t) : undefined; return (
             <tr key={t.id} className="border-b border-[#F5F5F5] last:border-0 text-[#404040]">
               <td className="h-10 pl-5 pr-3 font-medium text-[#0A0A0A]">{t.name}</td>
               {(['starts', 'ends', 'weeks', 'due'] as const).map((k) => (
-                <td key={k} className={cx('px-3', k === 'weeks' && 'text-right tabular-nums')}>{editing ? <Input aria-label={`${t.name} ${k}`} aria-invalid={!!te?.[k]} className={cx('h-8 w-32', bad(te?.[k]))} value={t[k]} onChange={(e) => setDraft(draft.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))} /> : t[k]}</td>
+                <td key={k} className={cx('px-3', k === 'weeks' && 'tabular-nums')}>{editing ? <Input aria-label={`${t.name} ${k}`} aria-invalid={!!te?.[k]} className={cx('h-8 w-32', bad(te?.[k]))} value={t[k]} onChange={(e) => setDraft(draft.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))} /> : t[k]}</td>
               ))}
             </tr>
           ); })}</tbody>

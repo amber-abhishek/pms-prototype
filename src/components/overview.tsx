@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ArrowDownRight, ArrowUpRight, Building, CaretDown, ChartColumnIcon, ChartLine, TableIcon, type Icon } from './icons';
+import { ArrowDownRight, ArrowUpRight, Building, ChartColumnIcon, ChartLine, TableIcon, type Icon } from './icons';
 import { Card, cx, Pill, TitleH1 } from './ui';
 
 /* Overview kit in the Amber Connect language (Figma 3884:39270):
@@ -170,7 +170,6 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
     <Card className="rounded-xl flex flex-col min-w-0 h-[349px]">
       <Strip title={title} right={<div className="flex items-center gap-3">
         {!chartOnly && <ViewSwitch value={view} onChange={setView} chart={kind === 'line' ? ChartLine : ChartColumnIcon} />}
-        <button type="button" className={cx(stripNote, 'flex items-center gap-1 hover:text-[#0A0A0A]')}>Last 30 days<CaretDown size={14} strokeWidth={1.5} /></button>
       </div>} />
       <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col gap-4">
         <div className="flex items-center gap-3">

@@ -77,7 +77,7 @@ export function MaintenanceList() {
       </RHeader>
       {/* Two rows so nothing is cramped (2026-11-13): status tabs and the Table/Board switch on top; search on the left
           and the filters on the right below. */}
-      <Toolbar className="pb-3" right={
+      <Toolbar className="!pb-3" right={
         <UITabs value={view} onValueChange={setView}>
           <TabsList aria-label="View">
             {([['table', 'Table', List], ['board', 'Board', Kanban]] as const).map(([id, label, I]) => (
@@ -92,7 +92,7 @@ export function MaintenanceList() {
           </label>
         )}
       </Toolbar>
-      <Toolbar heading={false} className="pt-0" right={
+      <Toolbar heading={false} className="!pt-0" right={
         <FilterButton value={f} onChange={setF} defs={[
           { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], chips: true },
           { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], chips: true },

@@ -3,7 +3,7 @@ import { Empty } from '../../components/ui';
 import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
 import { Buildings, CaretRight, Lock, Plus, Tag, Textbox, Trash, TreeStructure } from '../../components/icons';
-import { Button, PageHeading, Field, Input, Note, PageHeader, Toolbar, Pill, SearchInput, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Button, PageHeading, Field, Input, Note, PageHeader, Pill, SearchInput, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { invId, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
 import { FieldErr, Modal, Picker } from './common';
 
@@ -113,9 +113,11 @@ export function CustomFieldsPage() {
   return (
     <>
       <PageHeader icon={Textbox} title="Custom fields" crumbs={['Inventory']}>
+        {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
+        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search fields" /></div>
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New field</Button>
       </PageHeader>
-      <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search fields" />} />
+      <PageHeading />
       <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#2563EB] font-mono">{f.key}</span></span> },
@@ -215,9 +217,11 @@ export function TagsPage() {
   return (
     <>
       <PageHeader icon={Tag} title="Tags" crumbs={['Inventory']}>
+        {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
+        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search tags" /></div>
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New tag</Button>
       </PageHeader>
-      <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search tags" />} />
+      <PageHeading />
       <Table rows={rows} empty={<Empty title="No tags yet" sub="Tags label properties, like Catered or Postgraduate." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'n', label: 'Tag', render: (t) => <Pill tone={t.tone} outline>{t.label}</Pill> },

@@ -451,12 +451,13 @@ const pageList = (n: number, cur: number): (number | '…')[] => {
   return [0, '…', cur, '…', n - 1];
 };
 export type Col<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
-export function Table<T extends { id: string }>({ cols, rows, onRow, empty, pageSize = 25, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
+export function Table<T extends { id: string }>({ cols, rows, onRow, empty, after, pageSize = 25, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
   cols: Col<T>[]; rows: T[]; onRow?: (r: T) => void; empty?: ReactNode; pageSize?: number; selected?: string;
   /** Footer text on the left, e.g. "7 properties · 2,749 units". Defaults to "N rows". */ summary?: ReactNode;
   /** Render inside a bordered card instead of full-bleed. */ card?: boolean; footerRight?: ReactNode;
   /** false hides the footer (settings card tables, 3057:2 / 3058:2, have none). It still shows when there is more than one page, with only the range and the ‹ › pager. */ footer?: boolean;
   /** false shows every row and drops the pager; the footer keeps only the summary. */ paginate?: boolean;
+  /** Content under the last row, inside the scroll area (a note about the list). */ after?: ReactNode;
   /** Fill mode: rows run edge to edge (no side gutter). Default: on for 6+ columns. The whole screen follows it (see styles.css). */ fill?: boolean;
   /** Mercury-style sorted column: the header goes ink with a 12px arrow; with onToggle it flips the order. */ sort?: { key: string; dir: 'asc' | 'desc'; onToggle?: () => void };
   /** Mercury-style leading date column: the day shows on the first row of each run, blank below it; row lines inside a run start after the date column, a full line closes the run. */ group?: { label: string; get: (r: T) => string; className?: string };
@@ -507,7 +508,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, page
   const foot = showFooter || pages > 1 ? footer : null;
   if (card) return <Card className="overflow-hidden">{table}{foot}</Card>;
   /* Inset Mercury-style: the rows sit inside the --gx gutter (set on <main> from data-gx); the footer stays end to end. */
-  return <div {...((fill ?? cols.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="flex-1 min-h-0 flex flex-col"><div data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">{table}</div>{foot}</div>;
+  return <div {...((fill ?? cols.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="flex-1 min-h-0 flex flex-col"><div data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">{table}{after && <div className="pt-6 pb-6 px-[var(--cx,12px)]">{after}</div>}</div>{foot}</div>;
 }
 
 /* ---------- Empty state ---------- */

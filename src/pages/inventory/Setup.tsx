@@ -17,14 +17,15 @@ export function StructuresPage() {
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New layout</Button>
       </PageHeader>
       <PageHeading />
-      {/* The levels rule lives where it bites: a lock beside in-use layouts here, the note in the layout sheet. */}
       <div className="shrink-0 h-6" />
-      <Table rows={structures} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
+      {/* The levels rule sits under the list, next to the locked rows it explains, not as a banner above it. */}
+      <Table rows={structures} onRow={setOpen}
+            after={<div className="max-w-[560px]"><Note tone="blue" icon={Lock} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note></div>} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'n', label: 'Layout', render: (s) => <span className="font-semibold">{s.name}</span> },
               { key: 'l', label: 'Levels', render: (s) => <Levels s={s} /> },
               { key: 'p', label: 'Properties', className: 'text-right', render: (s) => <span className={cx('inline-flex items-center gap-1.5 tabular-nums', !s.properties && 'text-gray-400')}>{s.properties > 0 && <Lock size={13} className="text-[#A3A3A3]" aria-label="In use: levels are fixed" />}{s.properties}</span> },
-              { key: 'u', label: 'Updated', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
+              { key: 'u', label: 'Updated', className: 'pl-12', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
             ]} />
       <StructureSheet s={open} nav={open && open !== 'new' ? listNav(structures, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>

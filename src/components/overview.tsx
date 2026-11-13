@@ -45,10 +45,9 @@ const TAB_PATH = [
   `L ${TAB_W - TAB_R} ${TAB_TOP}`, `Q ${TAB_W} ${TAB_TOP} ${TAB_W} ${TAB_TOP + TAB_R}`, `L ${TAB_W} ${TAB_Y - TAB_R}`, `Q ${TAB_W} ${TAB_Y} ${TAB_W + TAB_R} ${TAB_Y}`, `L ${FAR} ${TAB_Y}`,
 ].join(' ');
 let lastTabX: number | null = null;
-/** Folder tabs (Figma 3884:39395). Tabs are routes; `current` picks the open one instead when they share a path (?tab=). */
-export function FolderTabs({ tabs, current }: { tabs: { to: string; label: string; count?: number; end?: boolean }[]; current?: number }) {
+export function FolderTabs({ tabs }: { tabs: { to: string; label: string; count?: number; end?: boolean }[] }) {
   const { pathname } = useLocation();
-  const idx = current ?? Math.max(0, tabs.findIndex((t) => (t.end ? pathname === t.to : pathname === t.to || pathname.startsWith(`${t.to}/`))));
+  const idx = Math.max(0, tabs.findIndex((t) => (t.end ? pathname === t.to : pathname === t.to || pathname.startsWith(`${t.to}/`))));
   const target = TAB_PAD + idx * TAB_W;
   const [x, setX] = useState(lastTabX ?? target);
   useEffect(() => {
@@ -71,7 +70,7 @@ export function FolderTabs({ tabs, current }: { tabs: { to: string; label: strin
             className={cx('h-10 flex items-center justify-center gap-1.5 font-mono uppercase text-sm leading-5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded-t-[10px] transition-colors duration-300',
               i === idx ? 'text-[#0A0A0A]' : 'text-[#737373] hover:text-[#0A0A0A]')} style={{ width: TAB_W }}>
             {t.label}
-            {t.count !== undefined && t.count > 0 && <span className={cx('h-5 min-w-5 px-1.5 rounded-md font-mono text-xs leading-4 font-medium text-[#525252] flex items-center justify-center transition-colors duration-300', i === idx ? 'bg-[#F5F5F5]' : 'bg-white')}>{t.count.toLocaleString('en-GB')}</span>}
+            {t.count !== undefined && t.count > 0 && <span className={cx('h-5 min-w-5 px-1.5 rounded-md font-mono text-xs leading-4 font-medium text-[#525252] flex items-center justify-center transition-colors duration-300', i === idx ? 'bg-[#F5F5F5]' : 'bg-white')}>{t.count}</span>}
           </NavLink>
         ))}
       </div>

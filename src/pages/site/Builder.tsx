@@ -112,7 +112,7 @@ export function SiteBuilder({ tab }: { tab: 'pages' | 'theme' | 'settings' }) {
   return (
     <>
       <PageHeader icon={Monitor} crumbs={['Booking site']} title={title}>
-        {changes > 0 && <span className="h-[22px] px-2 rounded-md bg-[#FFF6E0] text-xs font-medium text-[#B45309] flex items-center gap-1.5 whitespace-nowrap"><span className="size-1.5 rounded-full bg-[#F59E0B]" />{changes} unpublished {changes === 1 ? 'change' : 'changes'}</span>}
+        {changes > 0 && <Pill tone="amber">{changes} unpublished {changes === 1 ? 'change' : 'changes'}</Pill>}
         <Button size="sm" icon={Eye} onClick={() => toast('Preview opens in a new tab in the real product')}>Preview</Button>
         <Button size="sm" variant="primary" icon={UploadSimple} disabled={!changes}
           onClick={publish}>Publish changes</Button>

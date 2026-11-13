@@ -39,7 +39,7 @@ function Levels({ s }: { s: Pick<Structure, 'levels'> }) {
       {s.levels.map((l, i) => (
         <span key={i} className="flex items-center gap-2.5">
           {i > 0 && <CaretRight size={10} className="text-gray-400" />}
-          <span className={cx('h-[22px] px-2 rounded-md border bg-white text-xs font-medium flex items-center', l.bsu ? 'border-[#1F45E059] text-[#1F45E0]' : 'border-line text-[#404040]')}>{l.name}</span>
+          <Pill tone={l.bsu ? 'blue' : 'grey'}>{l.name}</Pill>
         </span>
       ))}
     </span>
@@ -119,7 +119,7 @@ export function CustomFieldsPage() {
             cols={[
               { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#2563EB] font-mono">{f.key}</span></span> },
               { key: 't', label: 'Type', render: (f) => <span className="text-[#737373]">{f.type}</span> },
-              { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <span key={a} className="h-[22px] px-2 rounded-md border border-line bg-white text-xs text-[#0A0A0A] flex items-center">{a}</span>)}</span> },
+              { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <Pill key={a} tone="grey">{a}</Pill>)}</span> },
             ]} />
       <FieldSheet f={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>

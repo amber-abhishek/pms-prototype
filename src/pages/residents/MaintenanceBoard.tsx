@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from 'react';
 import { toast } from 'sonner';
-import { ArrowUp, CircleCheckBig, MapPin, Plus, Siren, Timer, UserPlus } from '../../components/icons';
+import { CircleCheckBig, MapPin, Plus, Timer, UserPlus } from '../../components/icons';
 import { cx, Pill } from '../../components/ui';
 import { fmtSla, useRms, type Fault } from '../../data/residents';
 import { undoToast } from './kit';
@@ -143,8 +143,8 @@ function JobCard({ f, col, selected, dragging, onDrag, onOpen }: {
         dragging && 'opacity-40')}>
       <div className="min-h-[22px] flex items-center justify-between gap-2">
         <span className="font-mono text-xs leading-4 text-[#737373] whitespace-nowrap">{f.ref}</span>
-        {!fixed && f.priority === 'Urgent' && <Chip className="bg-[#FDECEE] text-[#C81E30]"><Siren size={12} />Urgent</Chip>}
-        {!fixed && f.priority === 'High' && <Chip className="bg-[#FFF0E0] text-[#C2410C]"><ArrowUp size={12} />High</Chip>}
+        {!fixed && f.priority === 'Urgent' && <Pill tone="red">Urgent</Pill>}
+        {!fixed && f.priority === 'High' && <Pill tone="orange">High</Pill>}
       </div>
       <div className={cx('text-sm leading-5 font-semibold line-clamp-2', fixed ? 'text-[#525252]' : 'text-ink')}>{f.title}</div>
       <div className="flex items-center gap-1 text-xs leading-4 text-[#737373] min-w-0"><MapPin size={12} className="shrink-0" /><span className="truncate">{f.where}</span></div>
@@ -170,6 +170,3 @@ function JobCard({ f, col, selected, dragging, onDrag, onOpen }: {
   );
 }
 
-function Chip({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <span className={cx('h-[22px] px-1.5 rounded-md text-xs font-medium flex items-center gap-1 whitespace-nowrap', className)}>{children}</span>;
-}

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Archive, ArrowsDownUp, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, TreeStructure, UploadSimple, WarningCircle, X, Clock, CheckCircle,
 } from '../../components/icons';
-import { Button, Check, Empty, Field, MultiFilter, PageHeader, SearchInput, Table, cx } from '../../components/ui';
+import { Button, Check, Empty, Field, MultiFilter, PageHeader, Pill, SearchInput, Table, cx } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
 import { Menu, Modal, Picker, PropStatus, RadioCard, Tags } from './common';
@@ -206,7 +206,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         </Field>
         <div className="rounded-xl border border-line p-3.5">
           <div className="flex items-center justify-between"><span className="text-sm font-medium">Template columns</span><Button size="sm" icon={DownloadSimple} onClick={() => toast.success(`${structure.toLowerCase()}-template.csv downloaded`)}>Download template</Button></div>
-          <div className="flex flex-wrap gap-1.5 mt-3">{cols.map((c) => <span key={c} className="h-6 px-2 rounded-md border border-line font-mono text-xs flex items-center">{c}</span>)}</div>
+          <div className="flex flex-wrap gap-1.5 mt-3">{cols.map((c) => <Pill key={c} tone="grey">{c}</Pill>)}</div>
           <p className="text-xs text-[#737373] mt-2.5">* means required.</p>
         </div>
         {stage === 'pick' && (

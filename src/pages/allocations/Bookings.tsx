@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ArrowsLeftRight, Bell, Check, CircleDashed, DownloadSimple, FileText, PaperPlaneTilt, Plus, Prohibit, Warning, WarningCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, Pill, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, bookingCounts, fmtN, firstName, hallFull, roomTerms, useAlloc, type Booking, type Conflict, type Data, type Offer } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
@@ -61,7 +61,7 @@ export function Bookings() {
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 't', label: 'Term', render: (b) => <span className="text-gray-500">{b.term}</span> },
       { key: 'l', label: 'Lease', render: (b) => <St s={leaseLabel(b)} /> },
-      { key: 'd', label: 'Deposit', render: (b) => b.deposit.startsWith('Paid') ? <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-lg border border-[#DDF3E6] bg-[#E8F7EE] text-xs font-medium text-[#0B8A4C]">{b.deposit}</span> : <span className="text-gray-500">{b.deposit}</span> },
+      { key: 'd', label: 'Deposit', render: (b) => b.deposit.startsWith('Paid') ? <Pill tone="green">{b.deposit}</Pill> : <span className="text-gray-500">{b.deposit}</span> },
       { key: 'c', label: 'Created', render: (b) => <span className="text-gray-500">{b.created}</span> },
     ],
     'Awaiting signature': [

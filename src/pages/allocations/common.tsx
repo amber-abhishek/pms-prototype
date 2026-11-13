@@ -24,8 +24,8 @@ const T: Record<string, [Tone, Icon]> = {
   'Applications open': ['blue', RadioButton], 'In tenancy': ['green', House], 'Not open yet': ['purple', Clock], Active: ['green', CheckCircle],
 };
 export function St({ s }: { s: string }) {
-  // Closed cycles and rejected applications use the outlined grey tag (frames 2837:394, 2838:2043).
-  if (s === 'Closed' || s === 'Rejected') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-gray-700">{s}</span>;
+  // Closed cycles and rejected applications: the grey pill.
+  if (s === 'Closed' || s === 'Rejected') return <Pill tone="grey">{s}</Pill>;
   const [tone, I] = T[s] ?? ['grey', MinusCircle];
   return <Pill tone={tone} icon={I}>{s}</Pill>;
 }

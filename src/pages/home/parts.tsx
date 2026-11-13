@@ -4,7 +4,7 @@ import { GreetingBand } from '../../components/overview';
 import { PersonPhoto } from '../../components/Logo';
 import { useEmpty } from '../../data/empty';
 import { ArrowsLeftRight, Buildings, ChartBar, Check, CheckCircle, FileText, Gear, Lock, MagnifyingGlass, Megaphone, ShieldCheck, Tray, UserMinus, Wrench, type Icon } from '../../components/icons';
-import { Avatar, Button, SelectFilter, cx } from '../../components/ui';
+import { Avatar, Button, Pill, SelectFilter, cx } from '../../components/ui';
 import { Illustration } from '../../components/Illustration';
 import { PEOPLE, type DueTone, type FromIcon, type HTask } from '../../data/home';
 
@@ -13,13 +13,11 @@ export const fromIcon: Record<FromIcon, Icon> = {
   properties: Buildings, roles: ShieldCheck, reports: ChartBar, settings: Gear, task: CheckCircle,
 };
 
-const dueCls: Record<DueTone, string> = {
-  red: 'bg-[#FEEFEE] text-[#C11F14] border-[#FCE1E0]', orange: 'bg-[#FFF0E0] text-[#C2410C] border-[#FFE9D2]', amber: 'bg-[#FFF6E0] text-[#9A5B00] border-[#FFF2D1]', grey: 'bg-[#F5F5F5] text-[#404040] border-[#ECEDF0]', plain: '',
-};
+const dueTone: Record<Exclude<DueTone, 'plain'>, 'red' | 'orange' | 'amber' | 'grey'> = { red: 'red', orange: 'orange', amber: 'amber', grey: 'grey' };
 /** Due pill: calendar icon on My tasks, clock icon on the team board. "This week" is plain text. */
 export function DuePill({ t }: { t: Pick<HTask, 'dueLabel' | 'dueTone'>; clock?: boolean }) {
   if (t.dueTone === 'plain') return <span className="text-xs text-gray-500">{t.dueLabel}</span>;
-  return <span className={cx('inline-flex items-center gap-1 h-[22px] px-2 rounded-lg border text-xs font-medium whitespace-nowrap', dueCls[t.dueTone])}>{t.dueLabel}</span>;
+  return <Pill tone={dueTone[t.dueTone]}>{t.dueLabel}</Pill>;
 }
 
 /** Person avatar: the shared toned Avatar (Figma 3770:15786) in each person's colour (PS orange, TB teal, AK purple); muted is grey. `grad` is kept for callers. */

@@ -201,3 +201,5 @@ thead tr, thead th { border-top-width: 0 !important; border-bottom-width: 0 !imp
    above the head, so the head keeps only its bottom line. */
 :is([data-card], .rounded-lg, .rounded-xl, .rounded-2xl) > table thead th,
 :is([data-card], .rounded-lg, .rounded-xl, .rounded-2xl) > div > table thead th { box-shadow: inset 0 -1px 0 #E5E5E5; }
+/* Grid-built heads ([data-head], My tasks) get the same single lines from the shadow above; drop their own border classes. */
+[data-head] { border-top-width: 0 !important; border-bottom-width: 0 !important; }

@@ -94,7 +94,7 @@ function Sidebar({ visible, active, collapsed, onToggle }: { visible: Module[]; 
   const top = visible.filter((m) => m.group === 'top');
   const mods = visible.filter((m) => m.group === 'modules');
   const system = visible.filter((m) => m.group === 'bottom');
-  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} chevron={m.id !== 'home'} />;
+  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} chevron />;
   return (
     <TooltipProvider delayDuration={300}>
       <aside aria-label="Main" className={cx('shrink-0 h-full flex flex-col bg-[#FAFAFA] border-r border-[#E5E5E5] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]', collapsed ? 'w-[68px]' : 'w-64')}>
@@ -131,7 +131,7 @@ export function Kbd({ children }: { children: ReactNode }) {
 }
 
 /** A module row. The open module lists its pages under it (with their counts); closed ones show a chevron. */
-function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Every module with pages shows a chevron, Reports included; Home has none. */ chevron: boolean }) {
+function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Every module with pages shows a chevron, Home and Reports included. */ chevron: boolean }) {
   const I = m.icon;
   if (collapsed) {
     return (
@@ -148,8 +148,8 @@ function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boole
     );
   }
   /* With no pages to list, the module row itself is the selection. */
-  /* Home's pages are folder tabs on the page (Figma 3884:39270), so its row stays flat with no sub-list. */
-  const single = m.id === 'home' || m.sections.every((s) => s.items.length <= 1 && !s.pinned);
+  /* Home opens like any module (2026-11-13): Overview, My tasks and Activity list under it instead of folder tabs on the page. */
+  const single = m.sections.every((s) => s.items.length <= 1 && !s.pinned);
   const flat = on && single;
   return (
     <>
@@ -176,7 +176,7 @@ function ModulePages({ mod, counts }: { mod: Module; counts: NavCounts }) {
       {mod.sections.map((s, i) => s.pinned ? <PinnedSection key={i} counts={counts} /> : (
         <Fragment key={i}>
           {s.label && <div className="h-7 mt-1 px-2 flex items-center text-xs leading-4 font-medium uppercase text-[#737373]">{s.label}</div>}
-          {s.items.map((it) => <PanelRow key={it.label} it={it} count={it.count?.(counts)} locked={mod.locked} mode={mod.id === 'home' ? 'plain' : 'module'} />)}
+          {s.items.map((it) => <PanelRow key={it.label} it={it} count={it.count?.(counts)} locked={mod.locked} mode="module" />)}
         </Fragment>
       ))}
       {mod.locked && (

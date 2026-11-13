@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderTabs, GreetingBand } from '../../components/overview';
+import { GreetingBand } from '../../components/overview';
 import { PersonPhoto } from '../../components/Logo';
 import { useEmpty } from '../../data/empty';
 import { ArrowsLeftRight, Buildings, ChartBar, Check, CheckCircle, FileText, Gear, Lock, MagnifyingGlass, Megaphone, ShieldCheck, Tray, UserMinus, Wrench, type Icon } from '../../components/icons';
 import { Avatar, Button, SelectFilter, cx } from '../../components/ui';
 import { Illustration } from '../../components/Illustration';
-import { ME, PEOPLE, useHome, type DueTone, type FromIcon, type HTask } from '../../data/home';
+import { PEOPLE, type DueTone, type FromIcon, type HTask } from '../../data/home';
 
 export const fromIcon: Record<FromIcon, Icon> = {
   maintenance: Wrench, requests: ArrowsLeftRight, bookings: FileText, notices: Megaphone, applications: Tray,
@@ -102,7 +102,6 @@ export function Picker({ title, can, cant, onPick }: {
 export function HomeBand({ actions }: { actions?: ReactNode }) {
   const nav = useNavigate();
   const e = useEmpty((s) => s.on);
-  const mine = useHome((s) => s.rows.main).filter((r) => !r.done && !r.snoozed && r.owner === ME).length;
   return (
     <>
       <GreetingBand title="Good morning, Priya" sub={e ? 'Monday 14 September' : 'Monday 14 September · 5 days to move-in weekend'}
@@ -112,7 +111,6 @@ export function HomeBand({ actions }: { actions?: ReactNode }) {
           <Button variant="secondary" icon={Megaphone} onClick={() => nav('/residents/notices')}>Send a notice</Button>
           <Button variant="primary" icon={Tray} onClick={() => nav('/allocations/applications?tab=To%20review')}>Review applications</Button>
         </>} />
-      <FolderTabs tabs={[{ to: '/', label: 'Overview', end: true }, { to: '/tasks', label: 'My tasks', count: mine }, { to: '/activity', label: 'Activity' }]} />
     </>
   );
 }

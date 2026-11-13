@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Empty } from '../../components/ui';
 import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
-import { Buildings, CaretRight, Info, Lock, Plus, Tag, Textbox, Trash, TreeStructure } from '../../components/icons';
+import { Buildings, CaretRight, Lock, Plus, Tag, Textbox, Trash, TreeStructure } from '../../components/icons';
 import { Button, PageHeading, Field, Input, Note, PageHeader, Toolbar, Pill, SearchInput, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { invId, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
 import { FieldErr, Modal, Picker } from './common';
@@ -17,14 +17,13 @@ export function StructuresPage() {
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New layout</Button>
       </PageHeader>
       <PageHeading />
-      <div className="shrink-0 px-[var(--tx,16px)] pt-6 pb-4">
-        <Note tone="blue" icon={Info} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
-      </div>
+      {/* The levels rule lives where it bites: a lock beside in-use layouts here, the note in the layout sheet. */}
+      <div className="shrink-0 h-6" />
       <Table rows={structures} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'n', label: 'Layout', render: (s) => <span className="font-semibold">{s.name}</span> },
               { key: 'l', label: 'Levels', render: (s) => <Levels s={s} /> },
-              { key: 'p', label: 'Properties', className: 'text-right', render: (s) => <span className={cx('tabular-nums', !s.properties && 'text-gray-400')}>{s.properties}</span> },
+              { key: 'p', label: 'Properties', className: 'text-right', render: (s) => <span className={cx('inline-flex items-center gap-1.5 tabular-nums', !s.properties && 'text-gray-400')}>{s.properties > 0 && <Lock size={13} className="text-[#A3A3A3]" aria-label="In use: levels are fixed" />}{s.properties}</span> },
               { key: 'u', label: 'Updated', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
             ]} />
       <StructureSheet s={open} nav={open && open !== 'new' ? listNav(structures, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
@@ -81,6 +80,7 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
         <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Halls with flats" /></Field>
         </SheetSection>
         <SheetSection title="Levels · top first">
+          {locked && <div className="mb-4"><Note tone="blue" icon={Lock} title={`In use by ${s.properties} ${s.properties === 1 ? 'property' : 'properties'}`}>Rename levels here; to add, remove or reorder them, make a new layout.</Note></div>}
           <div className="flex flex-col gap-2">{/* Inputs only: no box or row rules around them. */}
             {levels.map((l, i) => (
               <div key={l.key} className="flex items-center gap-3">
@@ -91,8 +91,7 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
               </div>
             ))}
           </div>
-          {locked ? <p className="mt-4 ml-7 text-xs text-[#737373] flex gap-1.5"><Lock size={13} />In use, so you can rename levels but not add, remove or reorder them.</p>
-            : <Button type="button" size="sm" icon={Plus} className="mt-4 ml-7" onClick={addLevel}>Add level</Button>}
+          {!locked && <Button type="button" size="sm" icon={Plus} className="mt-4 ml-7" onClick={addLevel}>Add level</Button>}
         </SheetSection>
         <SheetSection title="Preview">
           <Levels s={{ levels: levels.map((l) => ({ name: l.name || "…", bsu: l.bsu })) }} />

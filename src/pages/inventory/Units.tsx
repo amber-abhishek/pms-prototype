@@ -149,8 +149,8 @@ function UnitsView({ props }: { props: Property[] }) {
             <Tabs value={tab} onChange={(t) => { setTab(t); setCursor(0); }} tabs={[
               { id: 'all', label: 'All', count: counts.all }, { id: 'Active', label: 'Active', count: counts.Active }, { id: 'Draft', label: 'Draft', count: counts.Draft }, { id: 'Inactive', label: 'Inactive', count: counts.Inactive }, { id: 'Archived', label: 'Archived', count: counts.Archived },
             ]} />
-            <div className="ml-auto flex items-center gap-2">
-              <SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder="Search units" />
+            <div className="ml-auto min-w-0 flex items-center gap-2">
+              <div className="w-[240px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder="Search units" /></div>
               <MultiFilter label="Room type" width={220} value={typeF} onChange={(v) => { setTypeF(v); setCursor(0); }} options={ROOM_TYPES.map((t) => ({ value: t }))} />
             </div>
           </div>

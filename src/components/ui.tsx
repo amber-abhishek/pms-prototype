@@ -527,10 +527,10 @@ export function Empty({ title, sub, icon: I = MagnifyingGlass, action, art }: { 
 /* ---------- Alert note: white ground, tone border, coloured title ---------- */
 /** 3056:2 / 3031:2: white ground, 8px radius, tone border at 30–35%, 16px outline icon, 14px medium tone title, 12px #737373 sub.
  *  `grey` is the neutral info box (2825:897): #FAFAFA ground, #E5E5E5 border, #404040 title. */
-export function Note({ tone = 'amber', title, children, icon: I }: { tone?: 'amber' | 'red' | 'blue' | 'green' | 'grey'; title: string; children?: ReactNode; icon?: Icon }) {
+export function Note({ tone = 'amber', title, children, icon: I, plain }: { tone?: 'amber' | 'red' | 'blue' | 'green' | 'grey'; title: string; children?: ReactNode; icon?: Icon; /** No box: icon and text sit straight on the page. */ plain?: boolean }) {
   const c = { amber: ['#A16207', '#A16207', '#A1620759'], red: ['#E0243A', '#E0243A', '#E0243A4D'], blue: ['#2563EB', '#2563EB', '#2563EB4D'], green: ['#0B8A4C', '#0B8A4C', '#0B8A4C4D'], grey: ['#737373', '#404040', '#E5E5E5'] }[tone];
   return (
-    <div className={cx('rounded-lg border px-3 py-2.5 flex items-center gap-2.5', tone === 'grey' ? 'bg-[#FAFAFA]' : 'bg-white')} style={{ borderColor: c[2] }}>
+    <div className={cx('flex items-center gap-2.5', !plain && 'rounded-lg border px-3 py-2.5', !plain && (tone === 'grey' ? 'bg-[#FAFAFA]' : 'bg-white'))} style={plain ? undefined : { borderColor: c[2] }}>
       {I && <I size={16} weight="regular" style={{ color: c[0] }} className="shrink-0" />}
       <div className="min-w-0"><div className="text-sm leading-5 font-medium" style={{ color: c[1] }}>{title}</div>{children && <div className="text-xs leading-4 text-[#737373]">{children}</div>}</div>
     </div>

@@ -17,10 +17,11 @@ export function StructuresPage() {
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New layout</Button>
       </PageHeader>
       <PageHeading />
-      <div className="shrink-0 h-6" />
-      {/* The levels rule sits under the list, next to the locked rows it explains, not as a banner above it. */}
-      <Table rows={structures} onRow={setOpen}
-            after={<div className="max-w-[560px]"><Note tone="blue" icon={Lock} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note></div>} selected={open && open !== 'new' ? open.id : undefined}
+      {/* The levels rule sits above the list as a plain line (no box), so it reads as page context, not an alert. */}
+      <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] pt-6 pb-5">
+        <Note plain tone="blue" icon={Lock} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
+      </div>
+      <Table rows={structures} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'n', label: 'Layout', render: (s) => <span className="font-semibold">{s.name}</span> },
               { key: 'l', label: 'Levels', render: (s) => <Levels s={s} /> },

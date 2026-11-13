@@ -60,7 +60,7 @@ function HmoTab() {
 
   return (
     <>
-      <div className="px-6 pt-6 pb-2 empty:hidden">
+      <div className="px-6 pt-6 pb-4 empty:hidden">
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Paused', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} />
       </div>
       <Table fill rows={rows} footer={false}

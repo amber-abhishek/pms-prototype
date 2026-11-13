@@ -40,7 +40,7 @@ export function Enquiries() {
       </PageHeader>
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Enquiries" />
-        <div className="px-[var(--tx,16px)] pt-6 pb-2 empty:hidden">
+        <div className="px-[var(--tx,16px)] pt-6 pb-4 empty:hidden">
           <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: list.length }, { id: 'hmo', label: 'Landlord', count: list.filter((e) => e.source === 'Landlord').length }, { id: 'pbsa', label: 'Partner halls', count: list.filter((e) => e.source === 'Partner halls').length }]} />
         </div>
         {!list.length ? (

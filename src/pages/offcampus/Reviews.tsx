@@ -114,7 +114,7 @@ export function Reviews() {
       <PageHeader icon={FileMagnifyingGlass} crumbs={['Off-campus']} title="Listing reviews" />
       <div className="flex-1 min-h-0 flex flex-col relative">
         <Title title="Listing reviews" />
-        <div className="px-[var(--tx,16px)] pt-6 pb-2 empty:hidden">
+        <div className="px-[var(--tx,16px)] pt-6 pb-4 empty:hidden">
           <Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: queue.filter((r) => !x.status || r.status === x.status).length }))} />
         </div>
         <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">

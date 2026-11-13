@@ -173,7 +173,7 @@ export function ButtonGroup({ children }: { children: ReactNode }) {
 }
 /** The row under the page header: tabs on the left, search/filter/display on the right.
  *  24px below the header line, no bottom rule; sides follow the table gutter (--gx: 120px under 6 columns, 16px for 6+). */
-export const toolbarCls = 'shrink-0 px-[var(--tx,16px)] pt-6 pb-2 flex items-center gap-2';
+export const toolbarCls = 'shrink-0 px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-2';
 /** No visible page heading (Amber Connect has none; the breadcrumb names the page). The title stays as a screen-reader h1,
  *  and `right` becomes the toolbar row on its own. */
 export function PageHeading({ title, right, className }: { title?: ReactNode; right?: ReactNode; className?: string }) {

@@ -145,7 +145,7 @@ function UnitsView({ props }: { props: Property[] }) {
             ]} />
           </div>
           {/* Toolbar: status tabs on the left; search and the room-type dropdown together on the right. */}
-          <div className="shrink-0 px-6 py-3 flex items-center gap-2">
+          <div className="shrink-0 px-6 pt-3 pb-4 flex items-center gap-2">
             <Tabs value={tab} onChange={(t) => { setTab(t); setCursor(0); }} tabs={[
               { id: 'all', label: 'All', count: counts.all }, { id: 'Active', label: 'Active', count: counts.Active }, { id: 'Draft', label: 'Draft', count: counts.Draft }, { id: 'Inactive', label: 'Inactive', count: counts.Inactive }, { id: 'Archived', label: 'Archived', count: counts.Archived },
             ]} />

@@ -63,7 +63,7 @@ export function Landlords() {
       <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Landlord applications" />
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Landlord applications" />
-        <div className="px-[var(--tx,16px)] pt-6 pb-2 flex items-center gap-3">
+        <div className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3">
           <Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: counted(x.id) }))} />
           <div className="ml-auto w-[320px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or email" /></div>
         </div>

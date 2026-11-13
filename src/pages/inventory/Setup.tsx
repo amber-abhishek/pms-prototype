@@ -17,7 +17,7 @@ export function StructuresPage() {
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New layout</Button>
       </PageHeader>
       <PageHeading />
-      <div className="shrink-0 px-[var(--tx,16px)] pt-6 pb-2">
+      <div className="shrink-0 px-[var(--tx,16px)] pt-6 pb-4">
         <Note tone="blue" icon={Info} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
       </div>
       <Table rows={structures} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}

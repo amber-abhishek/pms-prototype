@@ -7,7 +7,7 @@ import { useInv } from '../../data/inventory';
 import { useOrg } from '../../data/org';
 import { useAlloc } from '../../data/allocations';
 import { Button, ButtonGroup, Card, PageHeader, Pill, cx } from '../../components/ui';
-import { KpiCards, RankCard, Spark, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
+import { KpiCards, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
 import { HomeBand, MenuButton } from './parts';
 import { useEmpty } from '../../data/empty';
 import { ME, useHome } from '../../data/home';
@@ -42,9 +42,6 @@ const OCC_POINTS = DAYS.map((d, i) => {
   const delta = i ? LET[i] - LET[i - 1] : 0;
   return { label: dayLabel(d), value: LET[i], note: `${LET[i].toLocaleString('en-GB')} beds let · ${delta >= 0 ? '+' : ''}${delta}` };
 });
-/* Sparklines under the Applications and Rent stats. */
-const APPS_DAILY = [212, 198, 231, 240, 225, 262, 251, 270, 248, 284, 296, 279, 305, 318];
-const RENT_WEEKLY = [318, 326, 331, 322, 340, 336, 329, 344, 338, 332, 327, 322];
 const PRELET = [
   { id: 'p1', name: 'Ustinov College', pct: 94 }, { id: 'p2', name: 'Collingwood College', pct: 88 }, { id: 'p6', name: 'Hild Bede', pct: 86 },
   { id: 'p4', name: 'Josephine Butler', pct: 83 }, { id: 'p7', name: 'Stephenson College', pct: 91 }, { id: 'p3', name: "St Mary's College", pct: 97 },
@@ -85,11 +82,9 @@ function Today() {
             </SummaryCard>
             <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
               <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />
-              {!e && <Spark points={APPS_DAILY} />}
             </SummaryCard>
             <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
               <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'red'], ['Paid', '1,204']]} />
-              {!e && <Spark points={RENT_WEEKLY} color="green" />}
             </SummaryCard>
           </div>
         </div>

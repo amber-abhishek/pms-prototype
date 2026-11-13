@@ -308,7 +308,7 @@ export function SummaryCard({ title, tag, children, foot, footValue, footTone = 
     <Card className="rounded-xl h-[259px] flex flex-col min-w-0">
       <Strip title={title} right={tag} />
       <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col">
-        <div className="flex-1 min-h-0 flex flex-col [&>*:last-child]:flex-1">{children}</div>
+        <div className="flex-1 min-h-0">{children}</div>
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#E5E5E5]">
           <div className="min-w-0"><div className="text-xs leading-4 text-[#737373]">{foot}</div><div className={cx('text-sm leading-5 font-medium truncate', tone[footTone])}>{footValue}</div></div>
           <div className="shrink-0">{action}</div>
@@ -323,20 +323,6 @@ export function Stats({ items }: { items: [string, string, ToneKey?][] }) {
   return (
     <div className="grid grid-cols-3 gap-4">
       {items.map(([l, v, t]) => <div key={l} className="min-w-0 flex flex-col gap-1"><div className="text-sm leading-5 text-[#737373] truncate">{l}</div><div className={cx('text-2xl leading-8 font-semibold tracking-[-0.36px] tabular-nums', tone[t ?? 'ink'])}>{v}</div></div>)}
-    </div>
-  );
-}
-
-/** Quiet trend line in the space left under a card's stats: one 1.5px line, nothing else (2026-11-12: "too much is happening").
- *  Colours are classes so dark mode converts them. */
-export function Spark({ points, color = 'blue' }: { points: number[]; color?: 'blue' | 'green' }) {
-  const min = Math.min(...points), max = Math.max(...points), span = max - min || 1;
-  const line = points.map((v, i) => `${i ? 'L' : 'M'}${((i / (points.length - 1)) * 100).toFixed(2)},${(38 - ((v - min) / span) * 36).toFixed(2)}`).join(' ');
-  return (
-    <div className="h-full min-h-0 pt-4 pb-4">
-      <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="block size-full min-h-[24px] overflow-visible" aria-hidden>
-        <path d={line} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className={color === 'green' ? 'stroke-[#16A34A]' : 'stroke-[#2563EB]'} />
-      </svg>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button, Dialog, Pill, SheetHero, SheetSection, cx } from '../../components/ui';
 import { available, firstName, hallFull, roomTerms, useAlloc, type App, type Req } from '../../data/allocations';
 import { St } from './common';
+import { LineTabs } from '../inventory/common';
 import { useAllocActions } from './actions';
 
 export const statusLabel: Record<App['status'], string> = { review: 'In review', manual: 'Flagged', allocated: 'Allocated', rejected: 'Rejected', waitlist: 'Waitlist', declined: 'Declined' };
@@ -21,6 +22,8 @@ const stepFree = (a: App) => a.reqs.includes('Step-free access');
 export const bestPref = (ps: Pref[]) => ps.find((p) => p.avail > 0);
 export const ordinal = (n: number) => ord[n - 1] ?? `${n}th`;
 
+const DETAIL_TABS = ['Overview', 'Applicant', 'Requirements', 'Documents', 'Activity'] as const;
+type DetailTab = typeof DETAIL_TABS[number];
 /** The right-hand detail of an application, with its five tabs and the action bar. */
 export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllocate: (p: Pref) => void; onReject: () => void; onAfter: () => void }) {
   const d = useAlloc();
@@ -28,20 +31,25 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
   const ps = prefsOf(a, d);
   const best = bestPref(ps);
   const canAct = a.status === 'review' || a.status === 'manual';
-  /* Mercury drawer (2026-11-09): one column, no tabs. Hero, the flag note, then titled sections in reading order. */
+  const [tab, setTab] = useState<DetailTab>('Overview');
+  /* Five tabs instead of one long scroll: the hero stays put, the tab's content scrolls under it. */
   return (
     <div className="flex-1 min-w-0 flex flex-col">
-      <div className="flex-1 overflow-auto px-5 py-5">
+      <div className="shrink-0 px-5 pt-5">
         <SheetHero name={a.name} meta={`APP-${a.ref} · ${a.year.toLowerCase()} · submitted ${a.submitted}${canAct ? ` · waiting ${a.waiting} ${a.waiting === 1 ? 'day' : 'days'}` : ''}`}>
           <St s={statusLabel[a.status]} />{a.tag && <Pill tone="amber">{a.tag}</Pill>}
         </SheetHero>
-        <AppNote a={a} />
-        <Preferences a={a} ps={ps} best={best} canAct={canAct} onAllocate={onAllocate} />
-        <SheetSection title="Applicant" rows={[['Course', a.course], ['Fee status', a.fee], ['Arrival', a.arrival], ['Email', <span className="break-all">{a.email}</span>], ['Guarantee', a.guarantee ? <Pill tone="green">Guaranteed</Pill> : <Pill>Not guaranteed</Pill>]]} />
-        <RoomAndContract a={a} />
-        <Requirements a={a} onVerify={(r) => act.verify(a, r)} />
-        <Documents a={a} onVerify={(r) => act.verify(a, r)} />
-        <Activity a={a} />
+      </div>
+      <LineTabs value={tab} onChange={setTab} tabs={DETAIL_TABS.map((t) => ({ id: t, label: t }))} />
+      <div className="flex-1 overflow-auto px-5 py-5">
+        {tab === 'Overview' && <><AppNote a={a} /><Preferences a={a} ps={ps} best={best} canAct={canAct} onAllocate={onAllocate} /></>}
+        {tab === 'Applicant' && <>
+          <SheetSection title="Applicant" rows={[['Course', a.course], ['Fee status', a.fee], ['Arrival', a.arrival], ['Email', <span className="break-all">{a.email}</span>], ['Guarantee', a.guarantee ? <Pill tone="green">Guaranteed</Pill> : <Pill>Not guaranteed</Pill>]]} />
+          <RoomAndContract a={a} />
+        </>}
+        {tab === 'Requirements' && <Requirements a={a} onVerify={(r) => act.verify(a, r)} />}
+        {tab === 'Documents' && <Documents a={a} onVerify={(r) => act.verify(a, r)} />}
+        {tab === 'Activity' && <Activity a={a} />}
       </div>
       <div className="h-16 shrink-0 px-5 flex items-center gap-2 border-t border-line">
         {canAct ? (

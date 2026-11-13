@@ -85,10 +85,7 @@ export const modules: Module[] = [
     id: 'allocations', label: 'Allocations', icon: CalendarCheck, home: '/allocations/applications', group: 'modules', roles: ['admin'], subtitle: 'BMS',
     match: starts('/allocations'),
     sections: [{ items: [
-      { label: 'Applications', to: '/allocations/applications', icon: Inbox, landing: true, count: (c) => c.toReview, sub: [
-        { label: 'To review', tab: 'To review', count: (c) => c.toReview }, { label: 'Flagged', tab: 'Flagged', count: (c) => c.manual },
-        { label: 'Allocated', tab: 'Allocated' }, { label: 'Rejected', tab: 'Rejected' }, { label: 'All', tab: 'All' },
-      ] },
+      { label: 'Applications', to: '/allocations/applications', icon: Inbox, count: (c) => c.toReview },
       { label: 'Offers & waitlist', to: '/allocations/offers', icon: Send, count: (c) => c.offers },
       { label: 'Bookings', to: '/allocations/bookings', icon: CalendarCheck },
       { label: 'Cycles', to: '/allocations/cycles', icon: Calendar },

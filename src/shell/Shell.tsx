@@ -109,7 +109,7 @@ function Sidebar({ visible, active, collapsed, onToggle }: { visible: Module[]; 
           )}
           <button type="button" aria-label={collapsed ? 'Show sidebar' : 'Hide sidebar'} title="Toggle sidebar (⌘.)" onClick={onToggle}
             className={cx('size-7 shrink-0 rounded-md border border-[#E5E5E5] bg-white text-[#404040] hover:bg-[#F5F5F5] flex items-center justify-center', !collapsed && 'ml-auto')}>
-            <SidebarSimple size={16} strokeWidth={1.75} absoluteStrokeWidth className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
+            <SidebarSimple size={16} strokeWidth={1.5} absoluteStrokeWidth className={cx('transition-transform duration-[250ms]', collapsed && '-scale-x-100')} />
           </button>
         </div>
         {/* Grouped nav (Figma 3892:45822): 8/16 padding, 36px rows packed with no gap. Home and Reports, a divider, the
@@ -139,7 +139,7 @@ function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boole
         <TooltipTrigger asChild>
           <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)}
             className={cx(ROW, 'relative h-9 shrink-0 justify-center px-2', on ? RAISED : IDLE)}>
-            <I size={16} strokeWidth={1.75} absoluteStrokeWidth />
+            <I size={16} strokeWidth={1.5} absoluteStrokeWidth />
             {m.locked && <span className="absolute right-1 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
           </NavLink>
         </TooltipTrigger>
@@ -155,13 +155,13 @@ function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boole
     <>
       <NavLink to={m.home} onClick={() => usePins.getState().go(m.home, null)} aria-current={on ? 'true' : undefined}
         className={cx(ROW, 'h-9 shrink-0 px-2 font-medium', flat ? RAISED : on ? OPEN : IDLE)}>
-        <I size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0" />
+        <I size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />
         <span className="flex-1 truncate">{m.label}</span>
-        {m.locked && <Lock size={14} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373]" />}
+        {m.locked && <Lock size={14} strokeWidth={1.5} absoluteStrokeWidth className="text-[#737373]" />}
         {/* A module with pages shows a chevron, not a count: right when closed, down when open (2026-11-12). */}
         {!single && chevron && (on
-          ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />
-          : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />)}
+          ? <ChevronDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />
+          : <ChevronRight size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />)}
       </NavLink>
       {on && !flat && <ModulePages mod={m} counts={counts} />}
     </>
@@ -234,14 +234,14 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
   const inner = (
     <>
       {/* Page rows carry their own outline icon (Figma 3892:45822); Home's pinned list stays text-only. */}
-      {mode === 'module' && <PI size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0" />}
+      {mode === 'module' && <PI size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />}
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
       {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>}
       {/* A page with views (Listings: Landlord, Partner halls) gets the module rows' chevron: right when closed, down when open. */}
       {it.sub && !disabled && (open
-        ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />
-        : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />)}
+        ? <ChevronDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />
+        : <ChevronRight size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />)}
     </>
   );
   const tabNow = new URLSearchParams(href.split('?')[1] ?? '').get('tab');
@@ -404,7 +404,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
         <PersonPhoto name={me.name} size={32} />
         {!collapsed && <>
           <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#737373] truncate">{me.email}</span></span>
-          <ChevronsUpDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="text-[#404040] shrink-0" />
+          <ChevronsUpDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="text-[#404040] shrink-0" />
         </>}
       </DropdownMenuTrigger>
       {/* Connect profile menu (Amber Connect 2.0, 3095:20192): 240px, r10, #E5E5E5 edge, two soft drops. A #F5F5F5 band

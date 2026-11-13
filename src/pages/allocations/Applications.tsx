@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowsDownUp, CaretLeft, CaretRight, Check, CheckCircle, DownloadSimple, Flag, FunnelX, MagicWand, ShieldWarning, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, Sheet, Toolbar, cx, listNav } from '../../components/ui';
+import { Button, PageHeader, Sheet, Tabs, Toolbar, cx, listNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { appCounts, fmtN, useAlloc, type App, type AppStatus } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
@@ -60,10 +60,16 @@ export function Applications() {
         <Button variant="primary" icon={MagicWand} onClick={() => setAuto(true)}>Auto-allocate</Button>
         </>}
       </PageHeader>
+      {/* The queue's views are page tabs again (the segmented tabs My tasks and Activity use), not sidebar rows. */}
       <Toolbar className={cx('!py-3', split && 'border-b border-line')} right={<>
         <FilterPanel rows={base} fs={fs} setFs={setFs} fields={fields} />
         {split ? <SortButton s={sort} setS={setSort} /> : <TableDisplay tab={tab} />}
-      </>} heading={tab} />
+      </>} heading={tab}>
+        <Tabs value={tab} onChange={(v) => setTab(v as TabId)} tabs={[
+          { id: 'To review', label: 'To review', count: counts.review }, { id: 'Flagged', label: 'Flagged', count: counts.manual },
+          { id: 'Allocated', label: 'Allocated', count: counts.allocated }, { id: 'Rejected', label: 'Rejected', count: counts.rejected }, { id: 'All', label: 'All', count: counts.all },
+        ]} />
+      </Toolbar>
       {notOpenYet ? (
         <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={`Applications for ${cycleSel!.name} open on ${cycleSel!.opens}. They arrive here once the application form is published on the on-campus portal.`}>
           <Button variant="primary" onClick={() => toast('The form builder opens on the on-campus portal', { description: `Application form ${cycleSel!.name} · Draft` })}>Open the form</Button>

@@ -61,8 +61,6 @@ export const modules: Module[] = [
         { label: 'My tasks', to: '/tasks', icon: CircleCheck, count: (c) => c.tasks },
         { label: 'Activity', to: '/activity', icon: History },
       ] },
-      /* Filled from usePins (src/data/pins.ts) and drawn by PinnedSection in the shell. */
-      { label: 'Pinned', pinned: true, items: [] },
     ],
   },
   {

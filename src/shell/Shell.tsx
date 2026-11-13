@@ -160,8 +160,8 @@ function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boole
         {m.locked && <Lock size={14} strokeWidth={1.75} absoluteStrokeWidth className="text-[#737373]" />}
         {/* A module with pages shows a chevron, not a count: right when closed, down when open (2026-11-12). */}
         {!single && chevron && (on
-          ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#0A0A0A]" />
-          : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#3F404D]" />)}
+          ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />
+          : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />)}
       </NavLink>
       {on && !flat && <ModulePages mod={m} counts={counts} />}
     </>
@@ -240,8 +240,8 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
       {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>}
       {/* A page with views (Listings: Landlord, Partner halls) gets the module rows' chevron: right when closed, down when open. */}
       {it.sub && !disabled && (open
-        ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#0A0A0A]" />
-        : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#3F404D]" />)}
+        ? <ChevronDown size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />
+        : <ChevronRight size={16} strokeWidth={1.75} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />)}
     </>
   );
   const tabNow = new URLSearchParams(href.split('?')[1] ?? '').get('tab');

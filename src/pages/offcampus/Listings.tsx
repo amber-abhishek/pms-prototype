@@ -170,7 +170,7 @@ function PbsaTab() {
                 </tbody></GhostZone.Provider>
               </table>
             </div>
-            {pages > 1 && <div data-foot className="h-10 shrink-0 px-5 flex items-center justify-end gap-1.5 border-t border-line bg-white text-xs text-[#737373]">
+            {pages > 1 && <div data-foot className="h-[59px] shrink-0 px-6 flex items-center justify-end gap-1.5 border-t border-line bg-white text-sm text-[#737373]">
               <span className="mr-1">{page * PER + 1}–{Math.min(rows.length, (page + 1) * PER)} of {rows.length}</span>
               <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={13} /></button>
               <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={13} /></button>

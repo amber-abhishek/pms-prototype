@@ -105,7 +105,7 @@ export function EmptyArea({ icon: I, title, sub, children, art }: { icon: Icon; 
 /** Footer bar under a full-bleed list. */
 /** Table footer. No left-side counts (2026-11-09): pass only real text; with neither text nor pager it renders nothing. */
 export const Foot = ({ children, right }: { children?: ReactNode; right?: ReactNode }) => (!children && !right) ? null : (
-  <div data-foot className="h-10 shrink-0 px-5 flex items-center gap-2 border-t border-line text-xs text-gray-500 bg-white"><span>{children}</span><div className="ml-auto flex items-center gap-1.5">{right}</div></div>
+  <div data-foot className="h-[59px] shrink-0 px-6 flex items-center gap-2 border-t border-line text-sm text-[#737373] bg-white"><span>{children}</span><div className="ml-auto flex items-center gap-1.5">{right}</div></div>
 );
 export const Kbd = ({ children }: { children: ReactNode }) => <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded border border-line text-[11px] text-gray-500 bg-white">{children}</span>;
 

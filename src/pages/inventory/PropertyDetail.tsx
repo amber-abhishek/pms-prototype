@@ -159,7 +159,7 @@ export function PropertyDetail() {
                 ))}
               </Card>
               <Card>
-                <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Units</span><button type="button" onClick={() => nav(`/inventory/units?p=${p.id}`)} className="ml-auto text-xs font-medium text-primary">Open in Inventory</button></div>
+                <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Units</span></div>
                 {p.blocks.length ? (
                   <table className="w-full text-sm">
                     <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-5">Block</th><th className="font-medium text-right px-3">Floors</th><th className="font-medium text-right px-3">Rooms</th><th className="font-medium px-3 pl-6">Tenancy template</th><th className="font-medium text-right pr-4">Rent</th></tr></thead>
@@ -308,7 +308,7 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
       ) : null}
       <Card className="overflow-hidden">
         <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Rooms</span><span className="ml-2 text-sm text-[#737373]">{p.units} in {p.blocks.length} {p.blocks.length === 1 ? 'block' : 'blocks'}</span>
-          <div className="ml-auto flex gap-2"><Button size="sm" variant="ghost" icon={UploadSimple} onClick={onImport}>Import</Button><Button size="sm" variant="ghost" icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button></div></div>
+          <div className="ml-auto flex gap-2"><Button size="sm" variant="ghost" icon={UploadSimple} onClick={onImport}>Import</Button></div></div>
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Room</th><th className="font-medium">Block · flat</th><th className="font-medium">Room type</th><th className="font-medium">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="font-medium pr-4">Status</th></tr></thead>
           <tbody>{units.map((u) => (

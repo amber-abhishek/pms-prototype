@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ArrowsLeftRight, Bell, Check, CircleDashed, DownloadSimple, FileText, PaperPlaneTilt, Plus, Prohibit, Warning, WarningCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, Pill, Dialog, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, bookingCounts, fmtN, firstName, hallFull, roomTerms, useAlloc, type Booking, type Conflict, type Data, type Offer } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
@@ -29,11 +29,11 @@ export function Bookings() {
   const tab: TabId = LEGACY[raw] ?? (TABS.includes(raw) ? raw : 'All');
   const [open, setOpen] = useOpen();
   const [q, setQ] = useState('');
-  const [f, setF] = useState<Record<string, string>>({ cycle: '2027/28' });
+  const [f, setF] = useState<Filters>({ cycle: ['2027/28'] });
   const [creating, setCreating] = useState(false);
   const [resolving, setResolving] = useState<Conflict | null>(null);
   const c = bookingCounts(d);
-  const match = (b: Booking) => (!q || `${b.name} ${b.ref} ${b.unit}`.toLowerCase().includes(q.toLowerCase())) && (!f.hall || hallFull[b.hall] === f.hall) && (!f.lease || b.lease === f.lease);
+  const match = (b: Booking) => (!q || `${b.name} ${b.ref} ${b.unit}`.toLowerCase().includes(q.toLowerCase())) && inFilter(f.hall, hallFull[b.hall]) && inFilter(f.lease, b.lease);
   const act = d.bookings.filter((b) => !b.cancelled && match(b));
   const sent = act.filter((b) => b.lease === 'Sent').sort((a, b) => (b.waiting ?? 0) - (a.waiting ?? 0));
   const drafts = act.filter((b) => b.lease === 'Draft');
@@ -61,7 +61,7 @@ export function Bookings() {
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 't', label: 'Term', render: (b) => <span className="text-gray-500">{b.term}</span> },
       { key: 'l', label: 'Lease', render: (b) => <St s={leaseLabel(b)} /> },
-      { key: 'd', label: 'Deposit', render: (b) => b.deposit.startsWith('Paid') ? <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-lg border border-[#DDF3E6] bg-[#E8F7EE] text-xs font-medium text-[#0B8A4C]">{b.deposit}</span> : <span className="text-gray-500">{b.deposit}</span> },
+      { key: 'd', label: 'Deposit', render: (b) => b.deposit.startsWith('Paid') ? <Pill tone="green">{b.deposit}</Pill> : <span className="text-gray-500">{b.deposit}</span> },
       { key: 'c', label: 'Created', render: (b) => <span className="text-gray-500">{b.created}</span> },
     ],
     'Awaiting signature': [
@@ -115,12 +115,12 @@ export function Bookings() {
             </div>
             {d.conflicts.map((k) => (
               <div key={k.id} className="rounded-xl border border-line bg-white">
-                <div className="h-14 px-4 flex items-center gap-2.5 border-b border-[#F3F4F6]">
+                <div className="h-14 px-4 flex items-center gap-2.5 border-b border-[#F5F5F5]">
                   <Warning size={16} className="text-[#E0243A] shrink-0" /><div className="min-w-0"><div className="text-sm font-semibold">{k.unit}</div><div className="text-xs text-gray-500">{k.overlap}</div></div>
                   <Button size="sm" className="ml-auto" onClick={() => setResolving(k)}>Resolve…</Button>
                 </div>
                 {[k.a, k.b].map((s, i) => (
-                  <div key={s.ref} className={cx('h-[52px] px-4 flex items-center gap-3', i === 0 && 'border-b border-[#F3F4F6]')}>
+                  <div key={s.ref} className={cx('h-[52px] px-4 flex items-center gap-3', i === 0 && 'border-b border-[#F5F5F5]')}>
                     <Ini name={s.name} size={24} />
                     <div><div className="text-sm font-medium">{s.name}</div><div className="font-mono text-xs text-gray-500">{s.note ? `${s.note} · ` : ''}{s.ref}</div></div>
                     <span className="ml-auto text-sm text-ink mr-12">{s.term}</span>

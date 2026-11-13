@@ -21,6 +21,7 @@ const dayOf = (w: string) => (/^\d{1,2}:\d{2}$/.test(w) ? 'Today' : w === 'Just 
 const timeOf = (w: string) => (/^\d{1,2}:\d{2}$/.test(w) ? w : w === 'Just now' ? w : w.split(', ')[1] ?? '');
 
 export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise }: { title?: string; icon?: Icon }) {
+  /* No header search on Activity or the Organisation log (2026-11-13). The greeting band is Overview only. */
   const activity = useDb((s) => s.activity);
   const [area, setArea] = useState('All');
   const [q, setQ] = useState('');
@@ -43,7 +44,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
             </span>
           ) },
           { key: 'a', label: 'Area', className: 'w-[160px]', render: (a) => <Pill>{a.area}</Pill> },
-          { key: 't', label: 'Time', className: 'w-[120px] text-right', render: (a) => <span className="text-gray-500 tabular-nums">{timeOf(a.when)}</span> },
+          { key: 't', label: 'Time', className: 'w-[120px]', render: (a) => <span className="text-gray-500 tabular-nums">{timeOf(a.when)}</span> },
         ]} />
     </>
   );

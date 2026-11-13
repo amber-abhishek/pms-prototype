@@ -32,7 +32,7 @@ export function Toaster(props: ToasterProps) {
         unstyled: true,
         classNames: {
           toast:
-            'group !w-fit max-w-[var(--width)] !left-auto !right-0 flex items-center gap-3 min-h-11 rounded-xl bg-[#111827] py-2 pl-3.5 pr-1.5 font-sans text-sm text-white ' +
+            'group !w-fit max-w-[var(--width)] !left-auto !right-0 flex items-center gap-3 min-h-11 rounded-xl bg-[#0A0A0A] py-2 pl-3.5 pr-1.5 font-sans text-sm text-white ' +
             'shadow-[0_2px_2px_rgba(17,24,39,0.12)]',
           content: 'flex-1 min-w-0 mr-3 flex flex-col gap-0.5 py-0.5',
           title: 'font-medium leading-5',

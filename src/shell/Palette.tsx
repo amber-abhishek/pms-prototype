@@ -42,11 +42,11 @@ export function Palette({ open, onClose }: { open: boolean; onClose: () => void 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       {/* Opened from ⌘K dozens of times a day, so it appears and disappears instantly (no animation). */}
-      <DialogContent instant aria-describedby={undefined} className="top-[12vh] bottom-auto mt-0 max-w-xl">
+      <DialogContent instant aria-describedby={undefined} className="max-w-xl">
         <DialogTitle className="sr-only">Search</DialogTitle>
         <Command shouldFilter={false} loop className="[&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:px-4 [&_[cmdk-input-wrapper]_svg]:opacity-100 [&_[cmdk-input-wrapper]_svg]:text-gray-400">
-          <CommandInput value={q} onValueChange={setQ} placeholder="Search pages, students, listings…" className="placeholder:text-gray-400"
-            trailing={<DialogClose aria-label="Close search (Esc)" className="ml-2 shrink-0 h-5 px-1.5 rounded border border-line bg-white text-[11px] leading-4 font-medium text-[#646A78] font-sans hover:bg-gray-50 hover:text-ink">Esc</DialogClose>} />
+          <CommandInput value={q} onValueChange={setQ} placeholder="Search pages, residents, listings…" className="placeholder:text-gray-400"
+            trailing={<DialogClose aria-label="Close search (Esc)" className="ml-2 shrink-0 h-5 px-1.5 rounded border border-line bg-white text-[11px] leading-4 font-medium text-[#737373] font-sans hover:bg-gray-50 hover:text-ink">Esc</DialogClose>} />
           <CommandList className="max-h-[50vh] p-1.5">
             <CommandEmpty className="py-10 text-center text-sm text-gray-500">No results for “{q}”</CommandEmpty>
             {groups.map((g) => (
@@ -54,7 +54,7 @@ export function Palette({ open, onClose }: { open: boolean; onClose: () => void 
                 {hits.filter((h) => h.group === g).map((h, k) => {
                   const I = h.icon;
                   return (
-                    <CommandItem key={h.label + k} value={`${g} ${h.label} ${h.to}`} onSelect={() => go(h)} className="h-9 gap-2.5 data-[selected=true]:bg-[#F3F4F6]">
+                    <CommandItem key={h.label + k} value={`${g} ${h.label} ${h.to}`} onSelect={() => go(h)} className="h-9 gap-2.5 data-[selected=true]:bg-[#F5F5F5]">
                       <I size={16} className="text-gray-500" /><span className="truncate">{h.label}</span>{h.sub && <span className="text-xs text-gray-400 truncate">{h.sub}</span>}
                     </CommandItem>
                   );

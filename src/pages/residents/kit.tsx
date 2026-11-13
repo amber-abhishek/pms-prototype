@@ -1,23 +1,13 @@
 import { useRef, type ReactNode } from 'react';
 import { ArrowRight, CheckCircle, Circle, Image as ImageIcon, XCircle, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Card, CrumbLink, CrumbTitle, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
+import { Avatar, Card, PageHeader, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
+import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '../../components/shadcn/sheet';
-import { GhostZone, headerZone, usePublishTitle } from '../../components/headerCtx';
 
-/** The 52px header row, with breadcrumbs that link back. */
-export function RHeader({ icon: I, crumbs, title, meta, children }: { icon: Icon; crumbs: [string, string?][]; title: string; meta?: ReactNode; children?: ReactNode }) {
-  usePublishTitle(title);
-  return (
-    <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
-      <I size={16} className="text-gray-500" />
-      <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map(([label, to]) => <CrumbLink key={label} c={{ label, to }} />)}</div>
-      <CrumbTitle className="text-sm font-normal text-[#111827]">{title}</CrumbTitle>
-      {meta}
-      <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
-    </div>
-  );
+/** The shared top bar (Figma 3884:39270), with breadcrumbs that link back. */
+export function RHeader({ icon, crumbs, title, meta, children }: { icon: Icon; crumbs: [string, string?][]; title: string; meta?: ReactNode; children?: ReactNode }) {
+  return <PageHeader icon={icon} title={title} crumbs={crumbs.map(([label, to]) => ({ label, to }))} meta={meta}>{children}</PageHeader>;
 }
 
 /** Figma avatar grounds for the named residents (the kit Avatar hashes its own colour). */
@@ -44,12 +34,7 @@ export function Modal({ open, onClose, title, sub, children, footer, width = 500
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <div className="p-5 pb-4">
-          <DialogTitle>{title}</DialogTitle>
-          {sub && <DialogDescription>{sub}</DialogDescription>}
-          {children && <div className="mt-4 space-y-3">{children}</div>}
-        </div>
-        <DialogFooter>{footer}</DialogFooter>
+        <DialogFrame title={title} sub={sub} footer={footer}>{children && <div className="space-y-3">{children}</div>}</DialogFrame>
       </DialogContent>
     </Dialog>
   );
@@ -79,7 +64,7 @@ export function RadioCard({ checked, onClick, title, sub, right, avatar }: { che
       className={cx('w-full text-left rounded-xl border px-3.5 py-3 flex items-center gap-3 transition-colors', checked ? 'border-primary bg-[#EFF6FF]' : 'border-line bg-white hover:bg-gray-50')}>
       <span className={cx('size-4 rounded-full border shrink-0 flex items-center justify-center', checked ? 'border-primary bg-primary' : 'border-gray-300 bg-white')}>{checked && <span className="size-1.5 rounded-full bg-white" />}</span>
       {avatar && <Avatar name={avatar} size={24} />}
-      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-semibold text-[#111827]">{title}</span>{sub && <span className="block text-xs text-gray-500 mt-0.5">{sub}</span>}</span>
+      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-semibold text-[#0A0A0A]">{title}</span>{sub && <span className="block text-xs text-gray-500 mt-0.5">{sub}</span>}</span>
       {right}
     </button>
   );
@@ -98,9 +83,10 @@ export function ToggleRow({ title, sub, checked, onChange }: { title: string; su
 /** Card with a title row (no border under it), as the detail pages use. */
 export function Panel({ title, right, children, className }: { title: ReactNode; right?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <Card className={cx('p-4', className)}>
-      <div className="flex items-center justify-between mb-3"><h3 className="text-sm font-semibold">{title}</h3>{right && <span className="text-xs text-gray-500">{right}</span>}</div>
-      {children}
+    /* The property modal's card: 48px header (title, grey note on the right) over a light rule, then a 16px-inset body. */
+    <Card className={cx('overflow-hidden', className)}>
+      <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><h3 className="text-sm font-semibold">{title}</h3>{right && <span className="ml-auto text-xs text-[#737373]">{right}</span>}</div>
+      <div className="px-4 py-3">{children}</div>
     </Card>
   );
 }
@@ -108,8 +94,8 @@ export function Panel({ title, right, children, className }: { title: ReactNode;
 /** Label / value rows with a 140px label column. */
 export function KV({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-[140px_1fr] gap-y-3.5 text-sm">
-      {rows.map(([k, v]) => <div key={k} className="contents"><dt className="text-gray-500">{k}</dt><dd className="text-ink">{v}</dd></div>)}
+    <dl className="grid grid-cols-[132px_minmax(0,1fr)] gap-y-3.5 text-sm">
+      {rows.map(([k, v]) => <div key={k} className="contents"><dt className="text-gray-500">{k}</dt><dd className="text-ink min-w-0 break-words">{v}</dd></div>)}
     </dl>
   );
 }
@@ -119,9 +105,9 @@ export function Checks({ items }: { items: { label: string; sub: string; ok: boo
   return (
     <div>
       {items.map((c) => (
-        <div key={c.label} className="h-9 flex items-center gap-2.5 border-b border-[#F3F4F6] last:border-0">
+        <div key={c.label} className="h-9 flex items-center gap-2.5 border-b border-[#F5F5F5] last:border-0">
           {c.ok ? <CheckCircle size={16} className="text-[#0B8A4C] shrink-0" /> : <XCircle size={16} className="text-[#B91C1C] shrink-0" />}
-          <span className="w-[250px] shrink-0 text-sm leading-5 font-medium text-[#111827]">{c.label}</span>
+          <span className="w-[250px] shrink-0 text-sm leading-5 font-medium text-[#0A0A0A]">{c.label}</span>
           <span className={cx('text-xs', c.ok ? 'text-gray-500' : 'text-[#B91C1C]')}>{c.sub}</span>
         </div>
       ))}
@@ -147,13 +133,13 @@ export function Timeline({ steps }: { steps: { title: string; sub?: string; when
 }
 
 export const Photo = ({ size = 96 }: { size?: number }) => (
-  <span className="rounded-lg bg-[#F3F4F6] border border-line flex items-center justify-center text-gray-400" style={{ width: size, height: size * 0.75 }}><ImageIcon size={18} /></span>
+  <span className="rounded-lg bg-[#F5F5F5] border border-line flex items-center justify-center text-gray-400" style={{ width: size, height: size * 0.75 }}><ImageIcon size={18} /></span>
 );
 
 /** "Now → After" room tile used on the swap cards. */
 export function RoomMove({ now, after }: { now: [string, string]; after: [string, string] }) {
   return (
-    <div className="rounded-[10px] bg-[#F9FAFB] px-3 py-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+    <div className="rounded-[10px] bg-[#FAFAFA] px-3 py-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
       <div><div className="text-xs text-gray-500">Now</div><div className="text-sm leading-5 font-semibold">{now[0]}</div><div className="text-xs text-gray-500">{now[1]}</div></div>
       <ArrowRight size={16} className="text-gray-400" />
       <div><div className="text-xs text-gray-500">After the swap</div><div className="text-sm leading-5 font-semibold">{after[0]}</div><div className="text-xs text-gray-500">{after[1]}</div></div>

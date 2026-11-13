@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Empty } from '../../components/ui';
+import { Empty, PIN } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowClockwise, DownloadSimple, FileArrowUp, FileText, Stack, UploadSimple } from '../../components/icons';
-import { Button, listNav, PageHeader, Sheet, SheetHero, SheetSection, Table, Tabs, PageHeading } from '../../components/ui';
+import { ArrowClockwise, DownloadSimple, FileArrowUp, FileCsv, Stack, UploadSimple } from '../../components/icons';
+import { Button, IconTile, listNav, PageHeader, Sheet, SheetHero, SheetSection, Table, Tabs, PageHeading } from '../../components/ui';
 import { useInv, type ImportJob, type Property } from '../../data/inventory';
 import { useOpen } from '../hooks';
 import { PropStatus, Progress } from './common';
@@ -57,19 +57,19 @@ export function ImportsPage() {
         <Button icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
       </PageHeader>
       <PageHeading />
-      <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-2 empty:hidden">
+      <div {...PIN} className="shrink-0 px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-2 empty:hidden">
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: jobs.length }, { id: 'Running', label: 'Running', count: cnt('Running') }, { id: 'Queued', label: 'Queued', count: cnt('Queued') }, { id: 'Failed', label: 'Failed', count: cnt('Failed') }]} />
       </div>
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 min-w-0 flex flex-col">
           <Table rows={rows} empty={<Empty art="rooms" title="No imports yet" sub="Spreadsheets you import show here with what was added." />} onRow={(j) => setOpen(j.id)} selected={open ?? undefined} summary="Latest 100 imports"
             cols={[
-              { key: 'n', label: 'Import', render: (j) => { const ic = open === j.id ? 'text-primary' : 'text-gray-500'; return <span className="flex items-center gap-2.5">{j.kind === 'Spreadsheet' ? <FileText size={16} className={ic} /> : <Stack size={16} className={ic} />}<span className="font-medium">{j.name}</span></span>; } },
-              { key: 'k', label: 'Kind', render: (j) => <span className="text-[#646A78]">{j.kind}</span> },
+              { key: 'n', label: 'Import', render: (j) => <span className="flex items-center gap-2.5">{j.kind === 'Spreadsheet' ? <IconTile icon={FileCsv} tone="green" /> : <IconTile icon={Stack} tone="purple" />}<span className="font-medium">{j.name}</span></span> },
+              { key: 'k', label: 'Kind', render: (j) => <span className="text-[#737373]">{j.kind}</span> },
               { key: 's', label: 'Status', render: (j) => <PropStatus s={j.status} /> },
-              { key: 'p', label: 'Progress', render: (j) => <span className="flex items-center gap-2"><Progress value={j.status === 'Failed' ? 0 : (j.done / j.total) * 100} tone={j.status === 'Succeeded' ? 'green' : j.status === 'Queued' ? 'grey' : 'blue'} className="w-24" /><span className="text-xs text-[#646A78] tabular-nums">{j.status === 'Failed' ? `${j.errors} errors` : `${j.done} / ${j.total}`}</span></span> },
-              { key: 'b', label: 'Started by', render: (j) => <span className="text-[#646A78]">{j.by}</span> },
-              { key: 't', label: 'Started', render: (j) => <span className="text-[#646A78]">{j.started}</span> },
+              { key: 'p', label: 'Progress', render: (j) => <span className="flex items-center gap-2"><Progress value={j.status === 'Failed' ? 0 : (j.done / j.total) * 100} tone={j.status === 'Succeeded' ? 'green' : j.status === 'Queued' ? 'grey' : 'blue'} className="w-24" /><span className="text-xs text-[#737373] tabular-nums">{j.status === 'Failed' ? `${j.errors} errors` : `${j.done} / ${j.total}`}</span></span> },
+              { key: 'b', label: 'Started by', render: (j) => <span className="text-[#737373]">{j.by}</span> },
+              { key: 't', label: 'Started', render: (j) => <span className="text-[#737373]">{j.started}</span> },
             ]} />
         </div>
       </div>
@@ -88,7 +88,7 @@ export function ImportsPage() {
             ...(sel.kind === 'Spreadsheet' ? [['File', <button key="f" type="button" className="font-medium text-[#2B5CFF] inline-flex items-center gap-1.5" onClick={() => toast.success(`${sel.name} downloaded`)}><DownloadSimple size={14} />Original file</button>] as [string, ReactNode]] : []),
           ]} />
           <SheetSection title="Run" rows={[['Started by', `${sel.by} · ${sel.started}`], ['Result', 'Emailed when it ends']]}>
-            <p className="mt-3 text-xs text-[#646A78]">All or nothing: if any row fails, nothing is created.</p>
+            <p className="mt-3 text-xs text-[#737373]">All or nothing: if any row fails, nothing is created.</p>
           </SheetSection>
         </>}
       </Sheet>

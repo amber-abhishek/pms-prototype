@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert } from '../org/parts';
-import { Empty } from '../../components/ui';
+import { Empty, PIN } from '../../components/ui';
 import { ChatCenteredText, CheckCircle, FileMagnifyingGlass, Hourglass, Image as ImageIcon, Warning, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, listNav, PageHeader, Pill, Sheet, SheetHero, SheetSection, Tabs, cx } from '../../components/ui';
@@ -9,7 +9,7 @@ import type { Tone } from '../../data/seed';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useOpen, useTab } from '../hooks';
 import { useOc, type Review, type ReviewStatus } from '../../data/offcampus';
-import { BulkBar, NoteDialog, ODialog, RowLink, Tag, Thumb, Title } from './parts';
+import { BulkAction, BulkBar, NoteDialog, ODialog, Tag, Thumb, Title, listingPhoto } from './parts';
 import { LStatus } from './Landlords';
 import { revertList } from '../../data/revert';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
@@ -80,13 +80,13 @@ export function Reviews() {
     const before = snap();
     goLive(ok);
     const n = ok.length;
-    toast.success(`${n} ${n === 1 ? 'listing' : 'listings'} approved`, { description: held.length ? `Left ticked: ${reasons}.` : 'They are live on the student site.', duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
+    toast.success(`${n} ${n === 1 ? 'listing' : 'listings'} approved`, { description: held.length ? `Left ticked: ${reasons}.` : 'They are live on the resident site.', duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
   });
   const approveOne = (r: Review) => guard(() => {
     if (blockOf(r)) return;
     const before = snap();
     goLive([r.id]); setDlg(null); setOpen(null);
-    toast.success('Listing approved', { description: `${r.title} is live on the student site.`, duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
+    toast.success('Listing approved', { description: `${r.title} is live on the resident site.`, duration: 8000, action: { label: 'Undo', onClick: undoSince(before) } });
   });
   const requestChanges = (r: Review, note: string) => guard(() => {
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Changes requested' as const, note } : x)));
@@ -114,7 +114,7 @@ export function Reviews() {
       <PageHeader icon={FileMagnifyingGlass} crumbs={['Off-campus']} title="Listing reviews" />
       <div className="flex-1 min-h-0 flex flex-col relative">
         <Title title="Listing reviews" />
-        <div className="px-[var(--tx,16px)] pb-3 empty:hidden">
+        <div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 empty:hidden">
           <Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: queue.filter((r) => !x.status || r.status === x.status).length }))} />
         </div>
         <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
@@ -125,22 +125,22 @@ export function Reviews() {
               <thead className="sticky top-0 bg-white z-[1]">
                 <tr className="text-left text-xs text-gray-500 [&>th]:font-medium [&>th]:h-9 [&>th]:border-b [&>th]:border-line [&>th]:px-3">
                   {canTick && <th className="!pl-[var(--cx,12px)] w-12"><Checkbox aria-label="Select all" checked={allTicked} onCheckedChange={(v) => setTicked((v === true) ? rows.map((r) => r.id) : [])} /></th>}
-                  <th className={cx(!canTick && '!pl-[var(--cx,12px)]')}>Property</th><th>Landlord</th><th>Submitted</th><th>Status</th><th className="w-32" />
+                  <th className={cx(!canTick && '!pl-[var(--cx,12px)]')}>Property</th><th>Landlord</th><th>Submitted</th><th className="!pr-[var(--cx,12px)]">Status</th>
                 </tr>
               </thead>
               <tbody ref={bodyRef}>
                 {items.map(({ row: r, motion }) => {
                   const on = ticked.includes(r.id);
                   return (
-                    <tr key={r.id} {...rowAttrs(r.id, motion)} onClick={() => setOpen(r.id)} className={cx('border-b border-[#F3F4F6] cursor-pointer [&>td]:h-10 [&>td]:px-3 [&>td]:py-1.5', on ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_theme(colors.primary)]' : open === r.id ? 'bg-[#EFF6FF]' : 'hover:bg-[#F9FAFB]')}>
+                    <tr key={r.id} {...rowAttrs(r.id, motion)} onClick={() => setOpen(r.id)} className={cx('border-b border-[#F5F5F5] cursor-pointer [&>td]:h-10 [&>td]:px-3 [&>td]:py-[11px]', on ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_theme(colors.primary)]' : open === r.id ? 'bg-[#EFF6FF]' : 'hover:bg-[#FAFAFA]')}>
                       {canTick && <td className="!pl-[var(--cx,12px)]" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${r.title}`} checked={on} onCheckedChange={(v) => tick(r.id, (v === true))} /></td>}
                       <td className={cx(!canTick && '!pl-[var(--cx,12px)]')}>
-                        <div className="flex items-center gap-2.5"><Thumb tint={r.tint} /><div className="leading-tight"><div className="font-medium">{r.title}</div><div className="text-xs text-gray-500">{r.town} · {r.type} · {r.beds} bed</div></div></div>
+                        {/* Same cell as the Properties list: 120×64 photo, 16px name, 14px grey line under it. */}
+                        <div className="flex items-center gap-4 min-w-0"><Thumb src={listingPhoto(all.findIndex((x) => x.id === r.id))} w={120} h={64} /><div className="min-w-0 flex flex-col gap-1"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={r.title}>{r.title}</span><span className="text-sm leading-5 text-[#737373] truncate max-w-[320px]">{r.town} · {r.type} · {r.beds} bed</span></div></div>
                       </td>
                       <td>{r.landlord}</td>
                       <td className="text-gray-500"><div className="leading-tight">{r.received}{r.resubmission && <div className="text-xs">Resubmission</div>}</div></td>
-                      <td><RStatus s={r.status} /></td>
-                      <td className="text-right !pr-[var(--cx,12px)]"><RowLink onClick={() => setOpen(r.id)} /></td>
+                      <td className="!pr-[var(--cx,12px)]"><RStatus s={r.status} /></td>
                     </tr>
                   );
                 })}
@@ -148,11 +148,8 @@ export function Reviews() {
             </table>
           )}
         </div>
-        <div className="h-10 shrink-0 px-5 flex items-center border-t border-line text-sm text-gray-500">
-          <span>{rows.length} {rows.length === 1 ? 'listing' : 'listings'}</span>
-        </div>
         <BulkBar count={canTick ? ticked.length : 0} onClear={() => setTicked([])}>
-          <Button size="sm" variant="primary" onClick={bulkApprove}>Approve {ticked.length}</Button>
+          <BulkAction onClick={bulkApprove}>Approve {ticked.length}</BulkAction>
         </BulkBar>
       </div>
 
@@ -177,7 +174,7 @@ export function Reviews() {
         sub="Your reason is emailed to the landlord. The listing won't go live." label="Why are you rejecting it?" placeholder="e.g. The property is outside the area we cover."
         initial={block?.kind === 'duplicate' ? 'This address is already listed on the site by another landlord.' : ''}
         submit="Reject" onSubmit={(n) => sel && reject(sel, n)} />
-      <ODialog open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title={block ? 'This listing can’t go live yet' : 'Approve this listing'}
+      <ODialog confirm width={480} open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title={block ? 'This listing can’t go live yet' : 'Approve this listing'}
         sub={block ? undefined : 'It goes live on your off-campus site straight away.'}
         footer={block?.kind === 'landlord'
           ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => { setDlg(null); nav(block.id ? `/offcampus/landlords?tab=all&open=${block.id}` : '/offcampus/landlords?tab=all'); }}>Open their application</Button></>
@@ -187,13 +184,14 @@ export function Reviews() {
               ? <><Button onClick={() => setDlg('changes')}>Request changes</Button><Button variant="primary" onClick={() => sel && approveOne(sel)}>Approve anyway</Button></>
               : <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => sel && approveOne(sel)}>Approve</Button></>}>
         {block ? <Alert tone="red" icon={XCircle} title={block.title}>{block.sub}</Alert>
-          : noPhotos.length ? <Alert tone="amber" icon={ImageIcon} title={`${noPhotos.join(', ')} ${noPhotos.length === 1 ? 'has' : 'have'} no photos`}>Students see a blank tile for {noPhotos.length === 1 ? 'that room' : 'those rooms'}.</Alert> : null}
+          : noPhotos.length ? <Alert tone="amber" icon={ImageIcon} title={`${noPhotos.join(', ')} ${noPhotos.length === 1 ? 'has' : 'have'} no photos`}>Residents see a blank tile for {noPhotos.length === 1 ? 'that room' : 'those rooms'}.</Alert> : null}
       </ODialog>
     </>
   );
 }
 
 function ListingDetail({ r }: { r: Review }) {
+  const n = useOc((s) => s.reviews.findIndex((x) => x.id === r.id));
   const ll = useOc((s) => s.landlords.find((l) => l.name === r.landlord));
   const tagTones: Tone[] = ['blue', 'green', 'purple', 'green', 'red'];
   return (
@@ -206,9 +204,9 @@ function ListingDetail({ r }: { r: Review }) {
       )}
       <SheetSection title="Photos">
         <div className="flex gap-3">
-          <Thumb tint="#E3E9F3" w={220} h={132} size={20} />
+          <Thumb src={listingPhoto(n)} w={220} h={132} />
           <div className="grid grid-cols-2 gap-3">
-            {['#EFEBE3', '#ECE6EE', '#E6EEE8', '#EAECEF'].map((t) => <Thumb key={t} tint={t} w={96} h={60} size={18} />)}
+            {[1, 2, 3, 4].map((k) => <Thumb key={k} src={listingPhoto(n, k)} w={96} h={60} />)}
           </div>
         </div>
       </SheetSection>
@@ -221,11 +219,11 @@ function ListingDetail({ r }: { r: Review }) {
       </SheetSection>
       <SheetSection title="Terms" rows={[['Bills', r.bills], ['House rules', r.rules]]} />
       <SheetSection title={`Rooms · ${r.rooms.length}`}>
-        <div className="divide-y divide-[#F3F4F6]">
+        <div className="divide-y divide-[#F5F5F5]">
           {r.rooms.map((rm, i) => (
             <div key={rm.name} className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3">
-              {rm.photos ? <Thumb tint={['#EFEBE3', '#E6EEE8', '#ECE6EE', '#EAECEF'][i % 4]} w={56} h={40} size={16} />
-                : <span className="w-14 h-10 rounded-md border border-dashed border-[#8A909C] text-xs leading-tight text-[#646A78] flex items-center px-1">No photos</span>}
+              {rm.photos ? <Thumb src={listingPhoto(n, i + 1)} w={56} h={40} />
+                : <span className="w-14 h-10 rounded-md border border-dashed border-[#8A909C] text-xs leading-tight text-[#737373] flex items-center px-1">No photos</span>}
               <div className="flex-1 leading-tight">
                 <div className="flex items-center gap-2 text-sm font-medium">{rm.name}<Tag tone="green">Active</Tag></div>
                 <div className="text-xs text-gray-500 mt-0.5">{rm.kind} · {rm.size} m² · {rm.bath}</div>

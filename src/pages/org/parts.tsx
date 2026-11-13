@@ -2,24 +2,14 @@
 import { Fragment, type ReactNode } from 'react';
 import { Illustration, type Illo } from '../../components/Illustration';
 import { DotsThree, type Icon } from '../../components/icons';
-import { CrumbLink, CrumbTitle, Dropdown, cx } from '../../components/ui';
+import { Dropdown, PageHeader, cx } from '../../components/ui';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
-import { X } from '../../components/icons';
-import { DialogClose } from '../../components/shadcn/dialog';
-import { GhostZone, headerZone, usePublishTitle } from '../../components/headerCtx';
+import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 
 /** The 52px header row with clickable breadcrumbs ("Organisation › Roles and access › New role"). */
-export function Header({ icon: I, crumbs, title, children }: { icon?: Icon; crumbs: { label: string; to?: string }[]; title: string; children?: ReactNode }) {
-  usePublishTitle(title);
-  return (
-    <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-2 px-4">
-      {I && <I size={16} className="text-[#646A78]" />}
-      <div className="flex items-center gap-1.5 text-sm leading-5">{crumbs.map((c) => <CrumbLink key={c.label} c={c} />)}</div>
-      <CrumbTitle className="text-sm font-normal text-ink">{title}</CrumbTitle>
-      <div className="ml-auto flex items-center gap-1"><GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider></div>
-    </div>
-  );
+export function Header({ icon, crumbs, title, children }: { icon?: Icon; crumbs: { label: string; to?: string }[]; title: string; children?: ReactNode }) {
+  /* The shared top bar (Figma 3884:39270). */
+  return <PageHeader icon={icon} title={title} crumbs={crumbs}>{children}</PageHeader>;
 }
 
 /** The ⋯ row menu (shadcn DropdownMenu): arrow keys, typeahead, Escape. Items with `danger` are red. */
@@ -27,7 +17,7 @@ export function RowMenu({ items, label = 'More actions' }: { items: { label: str
   return (
     <span className="inline-block" onClick={(e) => e.stopPropagation()}>
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger aria-label={label} className="size-7 rounded-md hover:bg-gray-100 data-[state=open]:bg-gray-100 flex items-center justify-center text-[#646A78] outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <DropdownMenuTrigger aria-label={label} className="size-7 rounded-md hover:bg-gray-100 data-[state=open]:bg-gray-100 flex items-center justify-center text-[#737373] outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <DotsThree size={18} weight="bold" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
@@ -50,10 +40,7 @@ export function ODialog({ open, onClose, title, sub, children, footer, width = 5
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <DialogClose aria-label="Close" className="absolute right-3 top-3 size-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-[#646A78]"><X size={14} /></DialogClose>
-        <div className="px-5 pt-5 pr-12"><DialogTitle className="text-base leading-6">{title}</DialogTitle>{sub && <DialogDescription>{sub}</DialogDescription>}</div>
-        <DialogBody>{children}</DialogBody>
-        {footer && <DialogFooter>{footer}</DialogFooter>}
+        <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>
       </DialogContent>
     </Dialog>
   );
@@ -61,12 +48,12 @@ export function ODialog({ open, onClose, title, sub, children, footer, width = 5
 
 /** Alert with an action on the right: white ground, tone border, coloured title, grey body. */
 export function Alert({ tone, icon: I, title, children, action }: { tone: 'red' | 'amber' | 'blue' | 'green'; icon?: Icon; title: ReactNode; children?: ReactNode; action?: ReactNode }) {
-  /* 3056:2 / 3031:2: white ground, tone border at 30%, 16px icon and 14px title in the tone, 12px #646A78 sub. */
+  /* 3056:2 / 3031:2: white ground, tone border at 30%, 16px icon and 14px title in the tone, 12px #737373 sub. */
   const c = { amber: ['#A16207', '#A16207'], red: ['#E0243A', '#E0243A'], blue: ['#2563EB', '#2563EB'], green: ['#0B8A4C', '#0B8A4C'] }[tone];
   return (
     <div className="rounded-lg bg-white border px-4 py-2.5 flex items-center gap-3" style={{ borderColor: c[0] + '4D' }}>
       {I && <I size={16} style={{ color: c[0] }} className="shrink-0" />}
-      <div className="flex-1 min-w-0"><div className="text-sm leading-5" style={{ color: c[1] }}>{title}</div>{children && <div className="text-xs text-[#646A78] mt-0.5">{children}</div>}</div>
+      <div className="flex-1 min-w-0"><div className="text-sm leading-5" style={{ color: c[1] }}>{title}</div>{children && <div className="text-xs text-[#737373] mt-0.5">{children}</div>}</div>
       {action}
     </div>
   );
@@ -81,7 +68,7 @@ export function EmptyState({ icon: I, title, sub, children, art }: { icon: Icon;
         <div className="size-16 rounded-full bg-[#BFDBFE] flex items-center justify-center"><I size={34} weight="duotone" className="text-[#2563EB]" /></div>
       </div>}
       <div className="text-sm font-semibold">{title}</div>
-      <p className="text-sm text-[#646A78] mt-1.5 max-w-[420px] leading-5">{sub}</p>
+      <p className="text-sm text-[#737373] mt-1.5 max-w-[420px] leading-5">{sub}</p>
       {children && <div className="mt-4 flex items-center gap-2">{children}</div>}
     </div>
   );

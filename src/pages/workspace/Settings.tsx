@@ -25,8 +25,7 @@ const TABS: { id: string; label: string; to: string; icon: Icon; external?: bool
   { id: 'emails', label: 'Emails', to: '/settings/emails', icon: EnvelopeSimple },
 ];
 
-/* Settings page: a plain 20px title (no subtitle), then sections as two columns — what it is on the
-   left, the fields on the right — split by hairlines instead of stacked headings. */
+/* Settings page (Connect 2.0, 3095:22728): a stack of cards, each with a #FAFAFA header band. */
 function Layout({ tab, title, actions, children, wide }: { tab: string; title: string; actions?: ReactNode; children: ReactNode; wide?: boolean }) {
   const t = TABS.find((x) => x.id === tab)!;
   return (
@@ -36,11 +35,11 @@ function Layout({ tab, title, actions, children, wide }: { tab: string; title: s
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 overflow-auto">
           <div className={cx('px-8 pt-8 pb-16', wide ? 'max-w-[1080px]' : 'max-w-[960px]')}>
-            <TitleH1 className="text-xl leading-7 font-medium text-[#111827]">{title}</TitleH1>
-            <div className="mt-6 divide-y divide-[#E5E7EB] border-t border-[#E5E7EB]">
-              {/* Anything that isn't a Section (a table, a note, the Emails grid) gets the same 32px band, outside its own box.
-                  A closed dialog renders nothing, so its band is hidden rather than leaving an empty stripe. */}
-              {Children.toArray(children).map((c, i) => (isValidElement(c) && c.type === Section ? c : <div key={i} className="py-8 empty:hidden">{c}</div>))}
+            <TitleH1 className="sr-only">{title}</TitleH1>
+            <div className="-mt-2 flex flex-col gap-4">
+              {/* Anything that isn't a Section (a table, a note, the Emails grid) sits in the stack outside a card.
+                  A closed dialog renders nothing, so its slot is hidden rather than leaving an empty gap. */}
+              {Children.toArray(children).map((c, i) => (isValidElement(c) && c.type === Section ? c : <div key={i} className="empty:hidden">{c}</div>))}
             </div>
           </div>
         </div>
@@ -51,18 +50,19 @@ function Layout({ tab, title, actions, children, wide }: { tab: string; title: s
 
 function Section({ title, sub, children, action, tone }: { title: string; sub?: ReactNode; children?: ReactNode; action?: ReactNode; tone?: 'red' }) {
   return (
-    <section data-tone={tone} className="grid grid-cols-[240px_1fr] gap-x-10 py-8">
-      <div>
-        {/* `tone` kept for callers; the frame (3054:2) keeps the Danger zone title ink. */}
-        <h2 className="text-sm leading-5 font-medium text-[#111827]">{title}</h2>
-        {sub && <p className="text-xs leading-4 text-[#646A78] mt-1">{sub}</p>}
-        {action && <div className="mt-3">{action}</div>}
-      </div>
-      <div className="min-w-0">{children}</div>
+    /* Connect 2.0 card: r12, 1px #E5E5E5, 0 1 2 at 5%; 44px #FAFAFA header (12/12/12/16) with a 14px medium title. */
+    <section data-tone={tone} className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
+      <header className="min-h-11 py-3 pl-4 pr-3 flex items-center gap-3 bg-[#FAFAFA] border-b border-[#E5E5E5] [&:last-child]:border-b-0">
+        {/* `tone` kept for callers; the Danger zone title stays ink. */}
+        <h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">{title}</h2>
+        {sub && <p className="text-sm leading-5 text-[#737373] truncate">{sub}</p>}
+        {action && <div className="ml-auto shrink-0">{action}</div>}
+      </header>
+      {children && <div className="min-w-0 p-4">{children}</div>}
     </section>
   );
 }
-const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm leading-5 font-medium text-[#111827] mb-1.5">{children}</div>;
+const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{children}</div>;
 const opts = (xs: string[]) => xs.map((x) => ({ value: x, label: x }));
 /** Inline field error. */
 const Err = ({ children }: { children?: ReactNode }) => (children ? <p role="alert" className="text-xs leading-4 text-[#E0243A] mt-1.5">{children}</p> : null);
@@ -112,7 +112,7 @@ const SAVED_BY = new Map<DraftKey, string>();
 function theirEdit(k: DraftKey) {
   const s = useWorkspace.getState();
   SAVED_BY.set(k, 'James Reed');
-  if (k === 'general') s.set('general', { ...s.general, name: 'Durham University Accommodation' });
+  if (k === 'general') s.set('general', { ...s.general, name: 'Durham Accommodation' });
   if (k === 'payments') s.set('payments', { ...s.payments, deposit: 300 });
   if (k === 'branding') s.set('branding', { ...s.branding, sender: 'Durham Residences Office' });
   if (k === 'notifs') s.set('notifs', s.notifs.map((n, i) => (i === 0 ? { ...n, email: !n.email } : n)));
@@ -216,8 +216,8 @@ function useDraft<T>(key: DraftKey, value: T, save: (v: T) => void, msg: (prev: 
         </>}>
         {clash && <div className="rounded-lg border border-line divide-y divide-line">{clash.keys.map((k) => (
           <div key={k} className="px-3 py-2.5 text-sm">
-            <div className="font-medium text-[#111827]">{FIELD[k] ?? k}</div>
-            <div className="mt-1 grid grid-cols-[64px_1fr] gap-x-2 gap-y-0.5 text-[#374151]"><span className="text-[#646A78]">{clash.by.split(' ')[0]}</span><span className="truncate">{shown(parts(clash.theirs)[k])}</span><span className="text-[#646A78]">You</span><span className="truncate">{shown(parts(d)[k])}</span></div>
+            <div className="font-medium text-[#0A0A0A]">{FIELD[k] ?? k}</div>
+            <div className="mt-1 grid grid-cols-[64px_1fr] gap-x-2 gap-y-0.5 text-[#404040]"><span className="text-[#737373]">{clash.by.split(' ')[0]}</span><span className="truncate">{shown(parts(clash.theirs)[k])}</span><span className="text-[#737373]">You</span><span className="truncate">{shown(parts(d)[k])}</span></div>
           </div>
         ))}</div>}
       </ODialog>
@@ -259,7 +259,7 @@ export function SettingsGeneral() {
           <div><Lbl>Logo</Lbl>
             <div className="flex items-center gap-3">
               <span className="size-12 rounded-lg text-white text-lg font-semibold flex items-center justify-center" style={{ background: c }}>D</span>
-              <span className="flex-1"><span className="block text-sm text-[#111827]">{d.logo}</span><span className="block text-xs text-[#646A78]">SVG or PNG, at least 256px</span></span>
+              <span className="flex-1"><span className="block text-sm text-[#0A0A0A]">{d.logo}</span><span className="block text-xs text-[#737373]">SVG or PNG, at least 256px</span></span>
               <Button size="sm" icon={UploadSimple} onClick={() => { up({ logo: 'durham-crest-2026.svg' }); toast('durham-crest-2026.svg uploaded', { description: 'Save to use it.' }); }}>Replace</Button>
             </div>
           </div>
@@ -296,13 +296,13 @@ export function SettingsGeneral() {
       </Section>
       <Section tone="red" title="Danger zone" sub="Only the workspace owner can do these">
         <div className="flex items-center gap-4 rounded-[10px] border border-line px-3.5 py-3">
-          <div className="flex-1"><div className="text-sm font-medium text-[#111827]">Archive the workspace</div><div className="text-xs text-[#646A78] mt-0.5">Stops sign-ins and portals; data is kept for 7 years</div></div>
+          <div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">Archive the workspace</div><div className="text-xs text-[#737373] mt-0.5">Stops sign-ins and portals; data is kept for 7 years</div></div>
           <Button variant="danger-outline" icon={Archive} onClick={() => setArchive(true)}>Archive</Button>
         </div>
       </Section>
-      <ODialog open={archive} onClose={() => setArchive(false)} title={`Archive ${general.name}?`} sub="Everyone is signed out and the student and resident portals go offline. Data is kept for 7 years."
-        footer={<><Button onClick={() => setArchive(false)}>Cancel</Button><Button variant="danger" onClick={() => { setArchive(false); toast.error('Only the workspace owner can archive it', { description: 'Ask Amber support to transfer ownership first.' }); }}>Archive workspace</Button></>}>
-        <Alert tone="red" icon={WarningCircle} title="This can’t be undone from here">Only Amber support can restore an archived workspace.</Alert>
+      <ODialog open={archive} onClose={() => setArchive(false)} title={`Archive ${general.name}?`} sub="Everyone is signed out and the resident portals go offline. Data is kept for 7 years."
+        footer={<><Button onClick={() => setArchive(false)}>Cancel</Button><Button variant="danger" onClick={() => { setArchive(false); toast.error('Only the workspace owner can archive it', { description: 'Ask support to transfer ownership first.' }); }}>Archive workspace</Button></>}>
+        <Alert tone="red" icon={WarningCircle} title="This can’t be undone from here">Only support can restore an archived workspace.</Alert>
       </ODialog>
       {dialogs}
     </Layout>
@@ -386,10 +386,10 @@ export function SettingsAcademicYear() {
       actions={<Button variant="primary" icon={Plus} onClick={() => openYear()}>New year</Button>}>
       <div className="rounded-xl border border-line overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#646A78] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation cycle', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation cycle', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
           <tbody ref={bodyRef}>{yearRows.map(({ row: y, motion }) => (
-            <tr key={y.id} {...rowAttrs(y.id, motion)} className="border-b border-[#F3F4F6] last:border-0 text-[#374151]">
-              <td className="h-10 pl-5 font-semibold text-[#111827]">{y.name}</td><td className="px-3">{y.starts}</td><td className="px-3">{y.ends}</td>
+            <tr key={y.id} {...rowAttrs(y.id, motion)} className="border-b border-[#F5F5F5] last:border-0 text-[#404040]">
+              <td className="h-10 pl-5 font-medium text-[#0A0A0A]">{y.name}</td><td className="px-3">{y.starts}</td><td className="px-3">{y.ends}</td>
               <td className="px-3"><Pill tone={tone[y.status]} icon={yIcon[y.status]}>{y.status}</Pill></td>
               <td className="px-3">{y.cycle.includes('open') ? <Link to="/allocations/cycles" className="inline-flex items-center h-6 hover:underline">{y.cycle}</Link> : y.cycle}</td>
               <td className="pr-3 text-right"><RowMenu label={`More for ${y.name}`} items={[
@@ -405,12 +405,12 @@ export function SettingsAcademicYear() {
           : <Button size="sm" icon={PencilSimple} onClick={() => { setDraft(toDraft(terms)); setEditing(true); }}>Edit terms</Button>}>
         <div className="rounded-xl border border-line overflow-hidden -mt-1">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#646A78] border-b border-line">{['Term', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 3 ? 'text-right' : 'text-left')}>{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Term', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-5', 'text-left')}>{h}</th>)}</tr></thead>
           <tbody>{(editing ? draft : toDraft(terms)).map((t, i) => { const te = editing && termTried ? termErrs(t) : undefined; return (
-            <tr key={t.id} className="border-b border-[#F3F4F6] last:border-0 text-[#374151]">
-              <td className="h-10 pl-5 pr-3 font-medium text-[#111827]">{t.name}</td>
+            <tr key={t.id} className="border-b border-[#F5F5F5] last:border-0 text-[#404040]">
+              <td className="h-10 pl-5 pr-3 font-medium text-[#0A0A0A]">{t.name}</td>
               {(['starts', 'ends', 'weeks', 'due'] as const).map((k) => (
-                <td key={k} className={cx('px-3', k === 'weeks' && 'text-right tabular-nums')}>{editing ? <Input aria-label={`${t.name} ${k}`} aria-invalid={!!te?.[k]} className={cx('h-8 w-32', bad(te?.[k]))} value={t[k]} onChange={(e) => setDraft(draft.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))} /> : t[k]}</td>
+                <td key={k} className={cx('px-3', k === 'weeks' && 'tabular-nums')}>{editing ? <Input aria-label={`${t.name} ${k}`} aria-invalid={!!te?.[k]} className={cx('h-8 w-32', bad(te?.[k]))} value={t[k]} onChange={(e) => setDraft(draft.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))} /> : t[k]}</td>
               ))}
             </tr>
           ); })}</tbody>
@@ -444,13 +444,13 @@ export function SettingsNotifications() {
   const tog = (id: string, k: 'app' | 'email' | 'sms') => setD(d.map((n) => (n.id === id ? { ...n, [k]: !n[k] } : n)));
   return (
     <Layout tab="notifications" title="Notifications" actions={actions}>
-      {/* 3056:2: table card (#F9FAFB 40px header), 52px rows, green toggles per channel; blue note with a phone icon below. */}
+      {/* 3056:2: table card (#FAFAFA 40px header), 52px rows, green toggles per channel; blue note with a phone icon below. */}
       <div className="rounded-xl border border-line overflow-hidden bg-white">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#646A78] border-b border-line bg-[#F9FAFB]"><th className="text-left font-medium h-10 py-0 pl-4">Event</th>{['In the app', 'Email', 'SMS'].map((h) => <th key={h} className="font-medium w-[90px] py-0 text-center">{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#737373] border-b border-line bg-[#FAFAFA]"><th className="text-left font-medium h-10 py-0 pl-4">Event</th>{['In the app', 'Email', 'SMS'].map((h) => <th key={h} className="font-medium w-[90px] py-0 text-center">{h}</th>)}</tr></thead>
           <tbody>{d.map((n) => (
-            <tr key={n.id} className="border-b border-[#F3F4F6] last:border-0">
-              <td className="h-[52px] pl-4"><div className="font-medium text-[#111827] leading-[18px]">{n.event}</div><div className="text-xs leading-4 text-[#646A78]">{n.sub}</div></td>
+            <tr key={n.id} className="border-b border-[#F5F5F5] last:border-0">
+              <td className="h-[52px] pl-4"><div className="font-medium text-[#0A0A0A] leading-[18px]">{n.event}</div><div className="text-xs leading-4 text-[#737373]">{n.sub}</div></td>
               {(['app', 'email', 'sms'] as const).map((k) => (
                 <td key={k} className="text-center"><span className="inline-flex"><Switch checked={n[k]} onChange={() => tog(n.id, k)} label={`${n.event}: ${k}`} /></span></td>
               ))}
@@ -480,14 +480,14 @@ export function SettingsPayments() {
       <Section title="Provider">
         <div className="rounded-[10px] border border-line px-3.5 h-[60px] flex items-center gap-3">
           <BrandTile id="stripe" />
-          <div className="flex-1"><div className="text-sm font-medium text-[#111827]">Stripe</div><div className="text-xs text-[#646A78] mt-0.5">Connected 2 Aug 2026 · payouts to Durham University ••4410 · weekly</div></div>
+          <div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">Stripe</div><div className="text-xs text-[#737373] mt-0.5">Connected 2 Aug 2026 · payouts to Durham Residences ••4410 · weekly</div></div>
           <Pill tone="green" icon={Check}>Connected</Pill>
           <Button size="sm" icon={ArrowUpRight} onClick={() => setManage(true)}>Manage</Button>
         </div>
       </Section>
       <Section title="How residents can pay">
         <div className="grid grid-cols-3 gap-2">{methods.map(([k, l, I]) => (
-          <div key={k} className="h-10 px-3 rounded-[10px] border border-line flex items-center gap-2.5 text-sm text-[#111827]">
+          <div key={k} className="h-10 px-3 rounded-[10px] border border-line flex items-center gap-2.5 text-sm text-[#0A0A0A]">
             <I size={16} className="text-gray-500" /><span className="flex-1">{l}</span><Switch checked={d.methods[k]} onChange={(v) => up({ methods: { ...d.methods, [k]: v } })} label={l} />
           </div>
         ))}</div>
@@ -497,17 +497,17 @@ export function SettingsPayments() {
         <div className="grid grid-cols-3 gap-3">
           <div><Lbl>Billed</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Billed" value={d.billed} onChange={(v) => up({ billed: v })} options={opts(['Termly, in advance', 'Monthly', 'Weekly', 'Whole year up front'])} /></div>
           <div><Lbl>Due</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Due" value={d.due} onChange={(v) => up({ due: v })} options={opts(['Before each term starts', 'On the 1st', 'On move-in'])} /></div>
-          <label><Lbl>Deposit</Lbl><span className="relative flex items-center"><Money size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><span className="absolute left-8 text-sm text-[#111827] pointer-events-none">£</span><Input aria-invalid={!!err.deposit} className={cx('pl-[42px]', bad(err.deposit))} inputMode="numeric" value={String(d.deposit)} onChange={(e) => up({ deposit: Number(e.target.value.replace(/\D/g, '').slice(0, 9)) || 0 })} /></span><Err>{err.deposit}</Err></label>
+          <label><Lbl>Deposit</Lbl><span className="relative flex items-center"><Money size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><span className="absolute left-8 text-sm text-[#0A0A0A] pointer-events-none">£</span><Input aria-invalid={!!err.deposit} className={cx('pl-[42px]', bad(err.deposit))} inputMode="numeric" value={String(d.deposit)} onChange={(e) => up({ deposit: Number(e.target.value.replace(/\D/g, '').slice(0, 9)) || 0 })} /></span><Err>{err.deposit}</Err></label>
         </div>
       </Section>
       <Section title="Reminders and arrears" sub="Sent outside quiet hours">
         <div className="space-y-2">{rules.map(([k, t, s]) => (
-          <div key={k} className="px-3.5 h-[60px] rounded-[10px] border border-line flex items-center gap-3"><div className="flex-1"><div className="text-sm font-medium text-[#111827]">{t}</div><div className="text-xs text-[#646A78]">{s}</div></div><Switch checked={d[k]} onChange={(v) => up({ [k]: v })} label={t} /></div>
+          <div key={k} className="px-3.5 h-[60px] rounded-[10px] border border-line flex items-center gap-3"><div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">{t}</div><div className="text-xs text-[#737373]">{s}</div></div><Switch checked={d[k]} onChange={(v) => up({ [k]: v })} label={t} /></div>
         ))}</div>
       </Section>
-      <ODialog open={manage} onClose={() => setManage(false)} title="Stripe" sub="Card payments and payouts to the university account."
+      <ODialog open={manage} onClose={() => setManage(false)} title="Stripe" sub="Card payments and payouts to the operator account."
         footer={<><Button variant="danger-ghost" className="mr-auto" onClick={() => { setManage(false); toast.error('Disconnecting Stripe stops card payments', { description: 'Ask Finance (James Reed) to do this.' }); }}>Disconnect</Button><Button variant="primary" onClick={() => { setManage(false); toast('Opening the Stripe dashboard', { description: 'It opens in a new tab in the real product.' }); }}>Open Stripe</Button></>}>
-        <DL rows={[['Account', 'Durham University Residences'], ['Connected', '2 Aug 2026 by James Reed'], ['Payouts', 'Weekly to ••4410'], ['Last payout', '£184,220 on 11 Sep']]} />
+        <DL rows={[['Account', 'Durham Residences'], ['Connected', '2 Aug 2026 by James Reed'], ['Payouts', 'Weekly to ••4410'], ['Last payout', '£184,220 on 11 Sep']]} />
       </ODialog>
       {dialogs}
     </Layout>
@@ -517,7 +517,7 @@ export function SettingsPayments() {
 /* ---------------- Integrations (3060, E3 3233–3234) ---------------- */
 const INT_ICON: Record<string, Icon> = { sits: GraduationCap, entra: Key, salto: DoorOpen, xero: Calculator, slack: ChatCenteredText, webhooks: WebhooksLogo };
 /** 3060:2 icon tiles: [ground, icon]. */
-const INT_TINT: Record<string, [string, string]> = { sits: ['#F3EEFF', '#6E3BD8'], entra: ['#EFF6FF', '#2563EB'], salto: ['#E6F6F6', '#0E7A80'], xero: ['#E8F7EE', '#0B8A4C'], slack: ['#FDECF4', '#C0266D'], webhooks: ['#F3F4F6', '#6B7280'] };
+const INT_TINT: Record<string, [string, string]> = { sits: ['#F3EEFF', '#6E3BD8'], entra: ['#EFF6FF', '#2563EB'], salto: ['#E6F6F6', '#0E7A80'], xero: ['#E8F7EE', '#0B8A4C'], slack: ['#FDECF4', '#C0266D'], webhooks: ['#F5F5F5', '#737373'] };
 const SKIPPED = [['Leo Grant', '000412883'], ['Amara Okafor', '000413207'], ['Finn Walker', '000415560']];
 export function SettingsIntegrations() {
   const { integrations, set, restore } = useWorkspace();
@@ -546,9 +546,9 @@ export function SettingsIntegrations() {
     if (guard.current) return; guard.current = true; setBusy(true);
     const before = useWorkspace.getState().integrations;
     window.setTimeout(() => {
-      set('integrations', (xs) => xs.map((x) => (x.id === 'sits' ? { ...x, state: 'connected' as const, meta: 'Synced just now · 41 new students' } : x)));
+      set('integrations', (xs) => xs.map((x) => (x.id === 'sits' ? { ...x, state: 'connected' as const, meta: 'Synced just now · 41 new residents' } : x)));
       setBusy(false); setReconnect(false); guard.current = false;
-      toast.success('SITS reconnected · 41 students synced · 6 applications matched', { action: { label: 'Undo', onClick: () => restore({ integrations: before }) } });
+      toast.success('SITS reconnected · 41 residents synced · 6 applications matched', { action: { label: 'Undo', onClick: () => restore({ integrations: before }) } });
     }, 1200);
   };
   const connect = (x: Integration) => {
@@ -558,8 +558,8 @@ export function SettingsIntegrations() {
   return (
     <Layout wide tab="integrations" title="Integrations">
       {failing && (
-        <Alert tone="red" icon={WarningCircle} title="Student records (SITS) stopped syncing" action={<Button variant="primary" size="sm" onClick={() => setReconnect(true)}>Reconnect</Button>}>
-          The connection token expired on 30 Oct. 3 syncs failed; 41 new students aren’t in Applications yet.
+        <Alert tone="red" icon={WarningCircle} title="Resident records (SITS) stopped syncing" action={<Button variant="primary" size="sm" onClick={() => setReconnect(true)}>Reconnect</Button>}>
+          The connection token expired on 30 Oct. 3 syncs failed; 41 new residents aren’t in Applications yet.
         </Alert>
       )}
       {/* 3060:2: one grid of six cards (connected first), each with a tinted 32px icon tile, title + meta, Connected pill top right,
@@ -569,27 +569,27 @@ export function SettingsIntegrations() {
           <div key={x.id} className={cx('rounded-xl border bg-white p-4 flex flex-col', x.state === 'failing' ? 'border-[#E0243A4D]' : 'border-line')}>
             <div className="flex items-start gap-3">
               {BRAND[x.id] ? <BrandTile id={x.id} /> : <span className="size-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t[0] }}><I size={16} style={{ color: t[1] }} /></span>}
-              <span className={cx('flex-1 min-w-0', !on && 'self-center')}><span className="block text-sm leading-5 font-semibold text-[#111827]">{x.name}</span>{on && x.meta && <span className="block text-xs leading-4 text-[#646A78] mt-0.5">{x.meta}</span>}</span>
+              <span className={cx('flex-1 min-w-0', !on && 'self-center')}><span className="block text-sm leading-5 font-medium text-[#0A0A0A]">{x.name}</span>{on && x.meta && <span className="block text-xs leading-4 text-[#737373] mt-0.5">{x.meta}</span>}</span>
               {on && (x.state === 'failing' ? <Pill tone="red" icon={Warning}>Failing</Pill> : <Pill tone="green" icon={Check}>Connected</Pill>)}
             </div>
-            <p className="text-xs leading-4 text-[#646A78] mt-3 flex-1">{x.desc}</p>
+            <p className="text-xs leading-4 text-[#737373] mt-3 flex-1">{x.desc}</p>
             <div className="mt-3">{x.state === 'failing' ? <Button size="sm" variant="primary" className="w-[112px]" onClick={() => setReconnect(true)}>Reconnect</Button> : on ? <Button size="sm" icon={SlidersHorizontal} className="w-[112px]" onClick={() => setOpen(x)}>Manage</Button> : <Button size="sm" icon={Plug} className="w-[112px]" onClick={() => setOpen(x)}>Connect</Button>}</div>
           </div>
         ); })}
       </div>
       {!failing && sits?.meta === 'Synced 12 min ago' && (
-        <Alert tone="amber" icon={Warning} title="SITS sync skipped 3 students last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their course record has no term address. Open the sync log to see who.</Alert>
+        <Alert tone="amber" icon={Warning} title="SITS sync skipped 3 residents last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their course record has no term address. Open the sync log to see who.</Alert>
       )}
 
-      <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Student records (SITS)" sub="Sign in with a SITS admin account to run the missed syncs."
+      <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Resident records (SITS)" sub="Sign in with a SITS admin account to run the missed syncs."
         footer={<><Button disabled={busy} onClick={() => setReconnect(false)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={doReconnect}>{busy ? 'Syncing…' : 'Sign in to SITS'}</Button></>}>
-        <DL rows={[['Failed since', '30 Oct, 02:00'], ['Failed syncs', '3'], ['Affects', '41 new students aren’t in Applications']]} />
+        <DL rows={[['Failed since', '30 Oct, 02:00'], ['Failed syncs', '3'], ['Affects', '41 new residents aren’t in Applications']]} />
       </ODialog>
-      <ODialog open={log} onClose={() => setLog(false)} title="SITS sync log · last night" sub="02:00 · 2,412 students checked · 3 skipped" footer={<Button variant="primary" onClick={() => setLog(false)}>Done</Button>}>
+      <ODialog open={log} onClose={() => setLog(false)} title="SITS sync log · last night" sub="02:00 · 2,412 residents checked · 3 skipped" footer={<Button variant="primary" onClick={() => setLog(false)}>Done</Button>}>
         <div className="rounded-lg border border-line divide-y divide-line">{SKIPPED.map(([n, id]) => (
-          <div key={id} className="h-11 px-3 flex items-center gap-3 text-sm"><span className="font-medium flex-1">{n}</span><span className="text-[#646A78] tabular-nums">{id}</span><Pill tone="amber">No term address</Pill></div>
+          <div key={id} className="h-11 px-3 flex items-center gap-3 text-sm"><span className="font-medium flex-1">{n}</span><span className="text-[#737373] tabular-nums">{id}</span><Pill tone="amber">No term address</Pill></div>
         ))}</div>
-        <p className="text-xs text-[#646A78] mt-3">Fix the address in SITS; tonight’s sync picks them up.</p>
+        <p className="text-xs text-[#737373] mt-3">Fix the address in SITS; tonight’s sync picks them up.</p>
       </ODialog>
       <ODialog open={!!open} onClose={() => setOpen(null)} title={open?.name ?? ''} sub={open?.desc}
         footer={open?.state === 'available'
@@ -597,7 +597,7 @@ export function SettingsIntegrations() {
           : <><Button variant="danger-ghost" className="mr-auto" onClick={() => { setOff(open); setOpen(null); }}>Disconnect</Button>
             <Button onClick={() => { const x = open!; set('integrations', (xs) => xs.map((y) => (y.id === x.id ? { ...y, meta: x.id === 'sits' ? 'Synced just now' : y.meta } : y))); setOpen(null); toast.success(`${x.name} synced`); }}>Sync now</Button>
             <Button variant="primary" onClick={() => setOpen(null)}>Done</Button></>}>
-        {open?.state === 'available' ? <p className="text-sm text-[#646A78]">You’ll sign in to {open.name} and pick what to share. You can disconnect at any time.</p>
+        {open?.state === 'available' ? <p className="text-sm text-[#737373]">You’ll sign in to {open.name} and pick what to share. You can disconnect at any time.</p>
           : open && <DL rows={[['Status', 'Connected'], ['Last activity', open.meta], ['Connected by', 'Priya Shah']]} />}
       </ODialog>
       <ODialog open={!!off} onClose={() => setOff(null)} title={`Disconnect ${off?.name ?? ''}?`} sub={off ? `What stops: ${off.desc.charAt(0).toLowerCase()}${off.desc.slice(1)}. Reconnecting needs an admin sign-in.` : undefined}
@@ -628,16 +628,16 @@ export function SettingsEmails() {
           <label className="block"><Lbl>Reply-to</Lbl><span className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><Input aria-invalid={!!err.replyTo} className={cx('pl-8', bad(err.replyTo))} type="email" value={d.replyTo} onChange={(e) => up({ replyTo: e.target.value })} /></span><Err>{err.replyTo}</Err></label>
           <label className="block"><Lbl>Email footer</Lbl><Textarea value={d.footer} onChange={(e) => up({ footer: e.target.value })} /></label>
         </div>
-        <div className="rounded-xl border border-line bg-[#F9FAFB] p-4 sticky top-0">
-          <div className="text-xs text-[#646A78] mb-3">Email preview</div>
+        <div className="rounded-xl border border-line bg-[#FAFAFA] p-4 sticky top-0">
+          <div className="text-xs text-[#737373] mb-3">Email preview</div>
           <div className="rounded-lg bg-white border border-line overflow-hidden">
             <div className="h-12 px-3.5 flex items-center gap-2.5" style={{ background: c }}><span className="size-5 rounded bg-white text-[11px] font-semibold flex items-center justify-center" style={{ color: c }}>D</span><span className="text-xs font-semibold text-white">{d.sender || general.name}</span></div>
             <div className="p-3.5">
-              <div className="text-sm font-semibold text-[#111827]">Your rent for Epiphany term is due</div>
-              <p className="text-xs text-[#374151] mt-2 leading-[17px]">Hi Amira, £2,180 is due on 5 January. Pay in the resident portal by card or bank transfer.</p>
+              <div className="text-sm font-semibold text-[#0A0A0A]">Your rent for Epiphany term is due</div>
+              <p className="text-xs text-[#404040] mt-2 leading-[17px]">Hi Amira, £2,180 is due on 5 January. Pay in the resident portal by card or bank transfer.</p>
               <span className="inline-flex mt-3 h-7 px-3 rounded-md text-xs font-medium text-white items-center" style={{ background: c }}>Pay now</span>
             </div>
-            <div className="px-3.5 py-3 border-t border-[#F3F4F6] text-xs leading-4 text-[#646A78] whitespace-pre-line">{d.footer.split('\n')[0]}</div>
+            <div className="px-3.5 py-3 border-t border-[#F5F5F5] text-xs leading-4 text-[#737373] whitespace-pre-line">{d.footer.split('\n')[0]}</div>
           </div>
         </div>
       </div>

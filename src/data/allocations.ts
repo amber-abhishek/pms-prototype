@@ -221,7 +221,7 @@ function bulk(seeded: App[]): App[] {
 }
 
 /* Earlier cycles, so clearing the Cycle filter shows more than 2027/28. 2026/27 is in tenancy but still takes in-year
-   applications (January starters, visiting students), so a few of those wait in To review; the rest are decided. */
+   applications (January starters, visiting residents), so a few of those wait in To review; the rest are decided. */
 function pastCycles(): App[] {
   const y27 = { cycle: '2026/27', arrival: '11 Jan 2027' };
   const review: Spec[] = [
@@ -265,7 +265,7 @@ function seedOffers(): Offer[] {
     { id: 'o4', name: 'Mei Lin', hall: 'Hild Bede', room: 'Standard single', unit: '1.3.E', status: 'open', sent: '24 Oct', expires: '29 Oct 10:00', leftH: 18, reminders: 2, next: 'Last reminder sent', recent: true },
     { id: 'o5', name: 'Jack Fenwick', hall: 'John Snow', room: 'Ensuite single', unit: '4.1.A', status: 'open', sent: '28 Oct', expires: '2 Nov 09:00', leftH: 120, reminders: 0, next: 'From the waitlist · #1 for John Snow ensuite', fromWaitlist: '#1', recent: true },
     { id: 'o6', name: 'Tomás García', hall: 'John Snow', room: 'Ensuite single', unit: '4.1.A', status: 'lapsed', sent: '22 Oct', lapsed: '27 Oct', reminders: 2, wentTo: 'Jack Fenwick · waitlist #1', next: 'No reply in 5 days · unit offered to Jack Fenwick', recent: true },
-    { id: 'o7', name: 'Grace Adeyemi', hall: 'Hild Bede', room: 'Ensuite single', unit: '1.2.D', status: 'declined', sent: '22 Oct', declined: '27 Oct', reason: 'Chose another university', unitNow: 'Offered to Ella Price', reminders: 1, next: 'Chose another university · unit re-offered', recent: true },
+    { id: 'o7', name: 'Grace Adeyemi', hall: 'Hild Bede', room: 'Ensuite single', unit: '1.2.D', status: 'declined', sent: '22 Oct', declined: '27 Oct', reason: 'Chose another operator', unitNow: 'Offered to Ella Price', reminders: 1, next: 'Chose another operator · unit re-offered', recent: true },
     { id: 'o8', name: 'Oliver Wright', hall: 'Collingwood', room: 'Standard single', unit: '2.3.A', status: 'accepted', sent: '22 Oct', accepted: '26 Oct', deposit: 'Paid £250', reminders: 1, next: 'Booking created · lease sent', recent: true },
     { id: 'o9', name: 'Sofia Rossi', hall: 'Collingwood', room: 'Ensuite single', unit: '3.1.D', status: 'open', sent: '24 Oct', expires: '29 Oct 16:30', leftH: 24, reminders: 2 },
     { id: 'o10', name: 'Priyanka Iyer', hall: 'Ustinov', room: 'Accessible ensuite', unit: 'G.02.A', status: 'open', sent: '26 Oct', expires: '31 Oct 11:00', leftH: 66, reminders: 0 },
@@ -300,7 +300,7 @@ function seedWait(): Wait[] {
    application's Offer column is set to match. Earlier cycles' allocations get accepted offers too, so clearing the
    Cycle filter widens the list. The design rows stay first; these follow, newest first. Deterministic. */
 export const OFFER_TARGETS = { open: 42, accepted: 2215, declined: 176, lapsed: 58, waitlist: 63 };
-const DECLINE_REASONS: [string, number][] = [['Chose another university', 9], ['Too expensive', 5], ['Living at home', 4], ['Wanted a different hall', 3], ['No reason given', 3]];
+const DECLINE_REASONS: [string, number][] = [['Chose another operator', 9], ['Too expensive', 5], ['Living at home', 4], ['Wanted a different hall', 3], ['No reason given', 3]];
 const WAIT_NOTES = ['—', '—', '—', 'Late application', 'Fee status not confirmed', 'Lapsed · asked to stay on the list', 'Wants this hall only', 'Declined another hall', 'Needs step-free · verified'];
 const hash = (i: number, salt: number) => {
   let x = Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(salt + 1, 0x85ebca6b);

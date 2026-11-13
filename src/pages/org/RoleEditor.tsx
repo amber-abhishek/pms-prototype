@@ -24,7 +24,7 @@ export function RoleEditor() {
   const [pd, setPd] = useState(base.personalData);
   const busy = useRef(false);
 
-  if (id && !existing) return <><Header icon={ShieldCheck} crumbs={[{ label: 'Organisation' }, { label: 'Roles and access', to: '/org/people?tab=roles' }]} title="Role not found" /><div className="p-6 text-sm text-[#646A78]">This role was deleted.</div></>;
+  if (id && !existing) return <><Header icon={ShieldCheck} crumbs={[{ label: 'Organisation' }, { label: 'Roles and access', to: '/org/people?tab=roles' }]} title="Role not found" /><div className="p-6 text-sm text-[#737373]">This role was deleted.</div></>;
 
   const startFrom = (rid: string) => {
     setFrom(rid);
@@ -76,15 +76,15 @@ export function RoleEditor() {
               <Input value={desc} disabled={locked} onChange={(e) => setDesc(e.target.value)} placeholder="Who has this role and what they do" /></label>
 
             <div className="rounded-xl border border-line overflow-hidden">
-              <div className="h-10 px-4 flex items-center justify-between bg-[#F9FAFB] border-b border-line text-sm text-[#646A78]">
+              <div className="h-10 px-4 flex items-center justify-between bg-[#FAFAFA] border-b border-line text-sm text-[#737373]">
                 <span>What they can do</span><span>{perms.length} of {ALL_PERMS.length} permissions</span>
               </div>
               {PERMS.map((a) => (
-                <div key={a.area} className="flex items-center gap-4 px-4 min-h-[52px] py-2 border-b border-[#F3F4F6] last:border-0">
+                <div key={a.area} className="flex items-center gap-4 px-4 min-h-[52px] py-2 border-b border-[#F5F5F5] last:border-0">
                   <span className="w-[120px] shrink-0 text-sm font-medium">{a.area}</span>
                   <div className="flex flex-wrap gap-2">
                     {a.perms.map((p) => { const on = perms.includes(p.id); return (
-                      <label key={p.id} className={cx('h-8 px-2.5 rounded-lg border flex items-center gap-2 text-sm select-none', locked ? 'cursor-default' : 'cursor-pointer', on ? 'bg-[#EFF6FF] border-[#BFDBFE] text-ink' : 'bg-white border-line text-[#646A78] hover:border-gray-300')}>
+                      <label key={p.id} className={cx('h-8 px-2.5 rounded-lg border flex items-center gap-2 text-sm select-none', locked ? 'cursor-default' : 'cursor-pointer', on ? 'bg-[#EFF6FF] border-[#BFDBFE] text-ink' : 'bg-white border-line text-[#737373] hover:border-gray-300')}>
                         <Checkbox checked={on} disabled={locked} onCheckedChange={() => toggle(p.id)} />{p.label}
                       </label>
                     ); })}
@@ -92,7 +92,7 @@ export function RoleEditor() {
                 </div>
               ))}
             </div>
-            {locked && <p className="text-sm text-[#646A78]">Admin can do everything, everywhere. It can’t be changed.</p>}
+            {locked && <p className="text-sm text-[#737373]">Admin can do everything, everywhere. It can’t be changed.</p>}
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export function RoleEditor() {
               {([['given', 'Only the halls they are given', 'Pick halls when you invite someone'], ['all', 'All halls', 'Every hall in the workspace']] as const).map(([v, t, s]) => (
                 <label key={v} className={cx('flex gap-3 rounded-xl border p-3.5 cursor-pointer', scope === v ? 'border-primary ring-1 ring-primary/30' : 'border-line hover:border-gray-300')}>
                   <input type="radio" name="scope" checked={scope === v} disabled={locked} onChange={() => setScope(v)} className="size-4 mt-0.5 accent-[#2563EB]" />
-                  <span><span className="block text-sm font-medium">{t}</span><span className="block text-xs text-[#646A78] mt-0.5">{s}</span></span>
+                  <span><span className="block text-sm font-medium">{t}</span><span className="block text-xs text-[#737373] mt-0.5">{s}</span></span>
                 </label>
               ))}
             </div>
@@ -111,8 +111,8 @@ export function RoleEditor() {
           <div>
             <div className="text-sm font-medium mb-2">Personal data</div>
             <div className="rounded-xl border border-line p-3.5 flex items-center gap-3">
-              <span className="flex-1"><span className="block text-sm font-medium">See student IDs and contacts</span><span className="block text-xs text-[#646A78] mt-0.5">Needed for check-in</span></span>
-              <Switch checked={pd} onChange={(v) => !locked && setPd(v)} label="See student IDs and contacts" />
+              <span className="flex-1"><span className="block text-sm font-medium">See resident IDs and contacts</span><span className="block text-xs text-[#737373] mt-0.5">Needed for check-in</span></span>
+              <Switch checked={pd} onChange={(v) => !locked && setPd(v)} label="See resident IDs and contacts" />
             </div>
           </div>
           {noFinance && <Alert tone="amber" icon={Warning} title="No finance access">{label === 'This role' ? 'People with this role' : `${label}s`} can see if a resident is in arrears, not the amounts.</Alert>}

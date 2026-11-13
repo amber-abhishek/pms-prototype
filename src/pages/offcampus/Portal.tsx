@@ -23,7 +23,7 @@ export function Portal({ sec }: { sec: Sec }) {
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Off-campus portal" />
         {/* Same segmented tabs as Listings (All · HMO · Amber PBSA). */}
-        <div className="px-6 py-3">
+        <div className="px-6 pt-6 pb-4">
           <Tabs value={sec} onChange={(s) => nav(SECS.find((x) => x.id === s)!.path + search)} tabs={SECS} />
         </div>
         <div className="flex-1 overflow-auto bg-white px-6 pb-6 pt-3">
@@ -45,7 +45,7 @@ const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm f
 const inp = 'h-8 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/25';
 
 /* ---------------- Behaviour (flow 5) ---------------- */
-// Nearest Amber region within 50 km of each campus, as GET amber-regions would return it.
+// Nearest Partner region within 50 km of each campus, as GET amber-regions would return it.
 const NEAREST: Record<string, { region: string; km: number; exact?: boolean }> = { 'c-durham': { region: 'Durham', km: 0, exact: true }, 'c-queens': { region: 'Newcastle upon Tyne', km: 34 } };
 
 function Behaviour() {
@@ -65,38 +65,38 @@ function Behaviour() {
   };
   const override = (c: Campus, region: string | null) => {
     saveCampuses(upd(c.id, region ? { override: region, match: 'Manual', ticked: true } : { override: null, match: c.resolved ? (NEAREST[c.id]?.exact ? 'Exact' : 'Nearest') : null }));
-    toast.success('Amber region updated', { description: region ? `${c.name} now uses ${region}.` : `${c.name} uses the nearest region again.` });
+    toast.success('Partner region updated', { description: region ? `${c.name} now uses ${region}.` : `${c.name} uses the nearest region again.` });
   };
   const reresolve = (c: Campus) => { saveCampuses(upd(c.id, resolve(c))); toast.success('Region re-resolved', { description: `${c.name} matched to ${NEAREST[c.id]?.region ?? 'no region'}.` }); };
   const togglePbsa = (on: boolean) => {
-    if (on && !portal.campuses.some((c) => c.ticked && regionOf(c))) { toast.error('Tick a campus with an Amber region first'); return; }
+    if (on && !portal.campuses.some((c) => c.ticked && regionOf(c))) { toast.error('Tick a campus with a partner region first'); return; }
     setPortal({ showPbsa: on });
-    toast.success('Settings saved', { description: on ? 'Students now see Amber’s halls.' : 'Amber PBSA is hidden from your site.' });
+    toast.success('Settings saved', { description: on ? 'Residents now see partner halls.' : 'Partner halls are hidden from your site.' });
   };
 
   return (
     <div className="space-y-4 max-w-[1140px]">
       <Box>
-        <div className="px-4 pt-4 pb-3"><Head title="Campuses on this portal" sub="PBSA listings come from each ticked campus’s region." /></div>
+        <div className="px-4 pt-4 pb-3"><Head title="Campuses on this portal" sub="partner hall listings come from each ticked campus’s region." /></div>
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-gray-500 [&>th]:font-medium [&>th]:h-9 [&>th]:border-y [&>th]:border-line [&>th]:px-3">
-            <th className="w-12 !pl-4" /><th>Campus</th><th>Amber region</th><th>Match</th><th>Override</th><th />
+            <th className="w-12 !pl-4" /><th>Campus</th><th>Partner region</th><th>Match</th><th>Override</th><th />
           </tr></thead>
           <tbody>
             {portal.campuses.map((c) => (
-              <tr key={c.id} className="border-b border-[#F3F4F6] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-1">
+              <tr key={c.id} className="border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-1">
                 <td className="!pl-4"><Checkbox aria-label={`Show ${c.name}`} checked={c.ticked} disabled={c.isDefault} onCheckedChange={(v) => tick(c, (v === true))} /></td>
                 <td><div className="leading-tight font-medium">{c.name}{c.isDefault && <div className="text-xs text-gray-500">Default campus</div>}</div></td>
-                <td>{c.ticked && regionOf(c) ? regionOf(c) : <span className="text-[#646A78]">—</span>}</td>
+                <td>{c.ticked && regionOf(c) ? regionOf(c) : <span className="text-[#737373]">—</span>}</td>
                 <td>{c.ticked && c.match === 'Exact' && <Tag tone="green">Exact</Tag>}{c.ticked && c.match === 'Nearest' && <Tag tone="grey" outline>Nearest, {c.km} km</Tag>}{c.ticked && c.match === 'Manual' && <Tag tone="blue">Manual</Tag>}</td>
                 <td><Combo value={c.override} options={AMBER_REGIONS} onPick={(v) => override(c, v)} icon={MapPin} /></td>
-                <td className="text-right !pr-4">{c.ticked && <button type="button" onClick={() => reresolve(c)} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-[#F3F4F6]"><ArrowsClockwise size={16} />Re-resolve</button>}</td>
+                <td className="text-right !pr-4">{c.ticked && <button type="button" onClick={() => reresolve(c)} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-[#F5F5F5]"><ArrowsClockwise size={16} />Re-resolve</button>}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </Box>
-      <Box className="p-4"><Head title="Show Amber PBSA" sub="Shown alongside your HMO listings."><Switch checked={portal.showPbsa} onChange={togglePbsa} label="Show Amber PBSA" /></Head></Box>
+      <Box className="p-4"><Head title="Show partner halls" sub="Shown alongside your landlord listings."><Switch checked={portal.showPbsa} onChange={togglePbsa} label="Show partner halls" /></Head></Box>
       <Box className="p-4">
         <Head title="Default campus" sub="Sets the listings on the home page.">
           <Select className="!w-[220px]" value={portal.defaultCampus} onChange={(e) => { setPortal({ defaultCampus: e.target.value }); toast.success('Settings saved'); }}>
@@ -127,7 +127,7 @@ function ImageRow({ has, onUpload, onRemove, hint }: { has: boolean; onUpload: (
     <div>
       <div className="flex items-center gap-3">
         {has ? <Thumb tint="#E3EAE6" w={64} h={40} size={16} /> : <span className="w-16 h-10 rounded-lg border border-dashed border-[#8A909C] bg-white" />}
-        {has ? <><Button onClick={onUpload}>Replace image</Button><button type="button" onClick={onRemove} className="h-7 px-2 rounded-lg text-sm text-gray-700 hover:bg-[#F3F4F6] hover:text-ink">Remove</button></>
+        {has ? <><Button onClick={onUpload}>Replace image</Button><button type="button" onClick={onRemove} className="h-7 px-2 rounded-lg text-sm text-gray-700 hover:bg-[#F5F5F5] hover:text-ink">Remove</button></>
           : <Button icon={UploadSimple} onClick={onUpload}>Upload image</Button>}
       </div>
       {hint && <p className="text-xs text-gray-500 mt-2">{hint}</p>}
@@ -175,7 +175,7 @@ function Appearance() {
     if (busy.current || missing.length) return;
     busy.current = true; setTimeout(() => { busy.current = false; }, 500);
     setPortal({ liveSince: stamp(), draftSaved: true });
-    toast.success('Site published', { description: 'Students now see this version. Later edits stay in the draft.' });
+    toast.success('Site published', { description: 'Residents now see this version. Later edits stay in the draft.' });
   };
   const colour = (label: string, k: 'ctaColour') => <ColourField label={label} value={p[k]} onChange={(v) => edit({ [k]: v })} />;
   return (
@@ -221,7 +221,7 @@ function Appearance() {
   );
 }
 
-/* ---------------- Site details: student site + publish check (E2) ---------------- */
+/* ---------------- Site details: resident site + publish check (E2) ---------------- */
 function SiteDetails() {
   const p = useOc((s) => s.portal);
   const hmos = useOc((s) => s.hmos);
@@ -248,12 +248,12 @@ function SiteDetails() {
     busy.current = true; setTimeout(() => { busy.current = false; }, 500);
     const prev = p.liveSince;
     setPortal({ liveSince: stamp(), draftSaved: true });
-    toast.success(`Student site published · ${campuses.length} ${campuses.length === 1 ? 'campus' : 'campuses'} · ${live} listings`, { action: { label: 'Undo', onClick: () => setPortal({ liveSince: prev }) } });
+    toast.success(`Resident site published · ${campuses.length} ${campuses.length === 1 ? 'campus' : 'campuses'} · ${live} listings`, { action: { label: 'Undo', onClick: () => setPortal({ liveSince: prev }) } });
   };
   return (
     <div className="max-w-[1140px]">
       <div className="flex items-center gap-2.5 mb-4">
-        <h2 className="text-sm font-semibold">Student site</h2>
+        <h2 className="text-sm font-semibold">Resident site</h2>
         {p.liveSince ? <Tag tone="green">Live</Tag> : <Tag tone="grey">Draft</Tag>}
         <span className="text-sm text-gray-500 ml-1">{host}</span>
         <div className="ml-auto flex gap-2">
@@ -266,7 +266,7 @@ function SiteDetails() {
         <div className="text-sm text-gray-500 mt-3">{p.pageTitle}</div>
         <div className="text-xs text-gray-400 mt-1">{p.liveSince ? `Live since ${p.liveSince}` : 'Preview of your draft site'}</div>
       </div>
-      <ODialog open={checking} onClose={() => setChecking(false)} title="The site can’t be published yet" sub="Students would land on an empty site."
+      <ODialog open={checking} onClose={() => setChecking(false)} title="The site can’t be published yet" sub="Residents would land on an empty site."
         footer={<><Button onClick={() => { setPortal({ draftSaved: true }); setChecking(false); toast.success('Draft saved'); }}>Save draft</Button>{firstFail && <Button variant="primary" icon={ArrowRight} onClick={() => { setChecking(false); firstFail.fix(); }}>{firstFail.fixLabel}</Button>}</>}>
         <div>
           {checks.map((c) => (
@@ -333,7 +333,7 @@ function Domain() {
     <div className="max-w-[720px] space-y-4">
       <div className="flex gap-3" role="radiogroup" aria-label="Site address">
         <Radio id="standard" title="Standard subdomain" sub={base} />
-        <Radio id="custom" title="Custom domain" sub="An address the university owns" />
+        <Radio id="custom" title="Custom domain" sub="An address the operator owns" />
       </div>
       {p.domainMode === 'standard' ? (
         <Box className="p-4">
@@ -372,7 +372,7 @@ function Domain() {
                   <div><div className="text-sm font-medium text-[#E0243A]">We can’t see the TXT record yet</div><div className="text-xs text-gray-500 mt-0.5">Last checked just now. DNS changes can take up to 24 hours; the site stays on {base} until then.</div></div>
                 </div>
               )}
-              <div className="mt-3 rounded-lg border border-line bg-[#FAFAFB] p-3.5">
+              <div className="mt-3 rounded-lg border border-line bg-[#FAFAFA] p-3.5">
                 <div className="text-sm font-medium mb-2.5">Add this TXT record to verify domain ownership</div>
                 {([['Name', TXT.name(p.customDomain ?? '')], ['Value', TXT.value]] as const).map(([k, v]) => (
                   <div key={k} className="h-8 flex items-center gap-4 text-sm"><span className="w-14 text-gray-500">{k}</span><span className="font-mono text-xs flex-1">{v}</span>
@@ -383,7 +383,7 @@ function Domain() {
               <div className="flex gap-2 mt-3">
                 {p.domainState === 'failed' && <Button icon={EnvelopeSimple} onClick={emailIt}>Email this to IT</Button>}
                 <Button variant="primary" icon={p.domainState === 'failed' ? ArrowsClockwise : undefined} onClick={verify}>{p.domainState === 'failed' ? 'Check again' : 'I’ve added the record — verify'}</Button>
-                <button type="button" onClick={remove} className="ml-auto self-center h-7 px-2 rounded-lg text-sm text-gray-500 hover:bg-[#F3F4F6] hover:text-ink">Use a different domain</button>
+                <button type="button" onClick={remove} className="ml-auto self-center h-7 px-2 rounded-lg text-sm text-gray-500 hover:bg-[#F5F5F5] hover:text-ink">Use a different domain</button>
               </div>
             </>
           )}

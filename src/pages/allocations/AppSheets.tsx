@@ -62,7 +62,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
               const on = x.code === sel;
               const gone = x.code === taken;
               return (
-                <div key={x.code} className={cx('rounded-xl border p-3', on ? 'border-primary bg-[#EFF6FF]' : 'border-line hover:bg-[#F9FAFB]', gone && 'opacity-60')}>
+                <div key={x.code} className={cx('rounded-xl border p-3', on ? 'border-primary bg-[#EFF6FF]' : 'border-line hover:bg-[#FAFAFA]', gone && 'opacity-60')}>
                   <label className={cx('flex items-start gap-3', gone ? 'cursor-not-allowed' : 'cursor-pointer')}>
                     <input type="radio" name="unit" checked={on} disabled={gone} onChange={() => setSel(x.code)} className="mt-1 size-4 accent-[#2563EB]" />
                     <div className="flex-1">

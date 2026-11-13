@@ -62,7 +62,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-[#F3F4F6] transition-colors data-[state=selected]:bg-[#EFF6FF] data-[state=selected]:shadow-[inset_2px_0_0_#2563EB]",
+      /* Connect rows: #E5E5E5 rule, hover #FAFAFA at 70% */ "border-b border-[#E5E5E5] transition-colors hover:bg-[#FAFAFA]/70 data-[state=selected]:bg-[#EFF6FF] data-[state=selected]:shadow-[inset_2px_0_0_#2563EB]",
       className
     )}
     {...props}
@@ -77,7 +77,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      /* 2820:111: 36px header, 12px medium #646A78 */ "h-10 bg-background shadow-[inset_0_-1px_0_#E5E7EB] px-4 text-left align-middle text-muted-foreground text-xs font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+      /* Amber Connect table head: 42px #FAFAFA row, Geist Mono 13/20 medium uppercase at 0.02em, #737373 */ "h-[42px] bg-[#FAFAFA] shadow-[inset_0_-1px_0_#E5E5E5] px-2 text-left align-middle text-[#737373] font-mono uppercase text-[13px] leading-5 tracking-[0.02em] font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}
@@ -85,18 +85,33 @@ const TableHead = React.forwardRef<
 ))
 TableHead.displayName = "TableHead"
 
+const MON = '(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
+const DAY = `\\d{1,2} ${MON}(?: \\d{4})?`
+/* Amounts, counts, IDs and dates: Connect sets these in Geist Mono (invoice numbers, dates, totals). */
+const MONO_RE = new RegExp(`^(?:[\\d£$€%.,:+\\-–/×x ()]+(?: ?(?:wk|weeks?|units?|beds?|rooms?|days?))?|${DAY}(?: [–-] ${DAY})?|${MON} \\d{4}|\\d{1,2} ${MON} \\d{1,2}:\\d{2})$`)
+const isMono = (x: unknown) => (typeof x === 'string' || typeof x === 'number') && /\d/.test(String(x)) && MONO_RE.test(String(x).trim())
+/** Connect data cells: a number, an amount, a date or a duration, bare or in a plain span, is 14px regular Geist Mono in #737373.
+ *  A span that already sets its own colour or weight (a red count, a bold total) keeps it and only gets the mono face. */
+const OWN_LOOK = /\b(?:text-(?:\[#|gray-|red-|green-|blue-|amber-|orange-|ink\b|muted)|font-(?:medium|semibold|bold))/
+export function monoize(v: React.ReactNode): React.ReactNode {
+  if (isMono(v)) return <span className="font-mono tabular-nums font-normal text-[#737373]">{v}</span>
+  if (React.isValidElement<{ className?: string; children?: React.ReactNode }>(v) && v.type === 'span' && isMono(v.props.children))
+    return React.cloneElement(v, { className: cn(v.props.className, 'font-mono tabular-nums', !OWN_LOOK.test(v.props.className ?? '') && 'font-normal text-[#737373]') })
+  return v
+}
+
 const TableCell = React.forwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <td
     ref={ref}
     className={cn(
-      /* 44px rows, 16px cell sides (2026-11-09: "more breathing space") */ "h-11 px-4 py-2 align-middle [&:has([role=checkbox])]:pr-0",
+      /* Connect rows: 56px, 8px between cells (24px at the table's edges, set by the wrapper); text 14/20 medium ink (Bookings: IDs, names, listing) */ "h-14 px-2 py-2 align-middle text-sm leading-5 font-medium text-[#0A0A0A] [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}
-  />
+  >{monoize(children)}</td>
 ))
 TableCell.displayName = "TableCell"
 

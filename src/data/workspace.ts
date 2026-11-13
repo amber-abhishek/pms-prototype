@@ -29,7 +29,7 @@ const SCHEDULES: Schedule[] = [
 
 export type NotifRow = { id: string; event: string; sub: string; app: boolean; email: boolean; sms: boolean };
 const NOTIFS: NotifRow[] = [
-  { id: 'n1', event: 'New application', sub: 'When a student applies', app: true, email: false, sms: false },
+  { id: 'n1', event: 'New application', sub: 'When a resident applies', app: true, email: false, sms: false },
   { id: 'n2', event: 'Offer accepted or declined', sub: 'For offers you sent', app: true, email: true, sms: false },
   { id: 'n3', event: 'Urgent maintenance', sub: 'Leaks, power and security', app: true, email: true, sms: false },
   { id: 'n4', event: 'Request waiting over 2 days', sub: 'For halls you look after', app: true, email: true, sms: false },
@@ -46,7 +46,7 @@ export type Integration = { id: string; name: string; short: string; state: Inte
 export type Branding = { logo: string; colour: string; sender: string; replyTo: string; footer: string };
 
 const INTEGRATIONS: Integration[] = [
-  { id: 'sits', name: 'Student records (SITS)', short: 'Student records · SITS', state: 'connected', meta: 'Synced 12 min ago', desc: 'Students, courses and IDs for applications and check-in' },
+  { id: 'sits', name: 'Resident records (SITS)', short: 'Resident records · SITS', state: 'connected', meta: 'Synced 12 min ago', desc: 'Residents, courses and IDs for applications and check-in' },
   { id: 'entra', name: 'Microsoft Entra ID', short: 'Staff sign-in · Microsoft Entra', state: 'connected', meta: '14 members', desc: 'Staff sign in with their Durham account' },
   { id: 'salto', name: 'Salto access control', short: 'Door access · Salto', state: 'connected', meta: '1,883 fobs live', desc: 'Key fobs are issued at check-in and cancelled at move-out' },
   { id: 'xero', name: 'Xero', short: 'Finance · Xero', state: 'available', meta: '', desc: 'Send rent, refunds and repair costs to finance' },
@@ -65,7 +65,7 @@ export const useWorkspace = create<WsState>()(
     (set) => ({
       schedules: SCHEDULES,
       notifs: NOTIFS,
-      general: { name: 'Durham University Residences', short: 'Durham', timezone: 'Europe/London (GMT+1)', currency: 'GBP · £', weekStarts: 'Monday', quietFrom: '21:00', quietTo: '08:00' },
+      general: { name: 'Durham Residences', short: 'Durham', timezone: 'Europe/London (GMT+1)', currency: 'GBP · £', weekStarts: 'Monday', quietFrom: '21:00', quietTo: '08:00' },
       years: [
         { id: 'y28', name: '2027/28', starts: '18 Sep 2027', ends: '16 Jun 2028', cycle: '2027/28 cycle · open', status: 'Upcoming' },
         { id: 'y27', name: '2026/27', starts: '19 Sep 2026', ends: '18 Jun 2027', cycle: '2026/27 cycle · closed', status: 'Current' },
@@ -78,7 +78,7 @@ export const useWorkspace = create<WsState>()(
       ],
       payments: { methods: { card: true, bank: true, dd: false }, billed: 'Termly, in advance', due: 'Before each term starts', deposit: 250, remind: true, arrears: true, lateFee: false },
       integrations: INTEGRATIONS,
-      branding: { logo: 'durham-crest.svg', colour: '#68246D', sender: 'Durham University Residences', replyTo: 'residences@durham.ac.uk', footer: 'Durham University Residences · The Palatinate Centre, Durham DH1 3LE\nYou get this because you live in a Durham college.' },
+      branding: { logo: 'durham-crest.svg', colour: '#68246D', sender: 'Durham Residences', replyTo: 'residences@durham.ac.uk', footer: 'Durham Residences · The Palatinate Centre, Durham DH1 3LE\nYou get this because you live in a Durham college.' },
       set: (k, v) => set((st) => ({ [k]: typeof v === 'function' ? (v as (c: unknown) => unknown)(st[k]) : v }) as Partial<WsState>),
       restore: (p) => set(p),
     }),

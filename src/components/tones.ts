@@ -1,18 +1,18 @@
 import type { Tone } from '../data/seed';
 
-/* Chips (3755:15780): vibrant ground, vivid text and a 1px border a shade darker than the ground. */
+/* One pill everywhere (2026-11-13): the Properties tag pill — the tone at 10% over white, deep tone text
+   (the tag palette, not the brighter status hues), no border, no icon.
+   green = booked/active, red = unpaid/overdue, amber = processing, blue = sky (sent, in progress), purple = upcoming.
+   Written out in full so Tailwind can see every class. */
 export const toneCls: Record<Tone, string> = {
-  green: 'bg-[#E8F7EE] text-[#087A43] border-[#DDF3E6]',
-  blue: 'bg-[#EFF6FF] text-[#1F45E0] border-[#E0EEFF]',
-  amber: 'bg-[#FFF6E0] text-[#9A5B00] border-[#FFF2D1]',
-  orange: 'bg-[#FFF0E0] text-[#C2410C] border-[#FFE9D2]',
-  red: 'bg-[#FEEFEE] text-[#C11F14] border-[#FCE1E0]',
-  purple: 'bg-[#F3EEFF] text-[#6E3BD8] border-[#E9E0FF]',
-  grey: 'bg-[#F3F4F6] text-[#374151] border-[#ECEDF0]',
+  green: 'bg-[linear-gradient(#087A431A,#087A431A),linear-gradient(#fff,#fff)] text-[#087A43] border-transparent',
+  blue: 'bg-[linear-gradient(#1F45E01A,#1F45E01A),linear-gradient(#fff,#fff)] text-[#1F45E0] border-transparent',
+  amber: 'bg-[linear-gradient(#9A5B001A,#9A5B001A),linear-gradient(#fff,#fff)] text-[#9A5B00] border-transparent',
+  orange: 'bg-[linear-gradient(#C2410C1A,#C2410C1A),linear-gradient(#fff,#fff)] text-[#C2410C] border-transparent',
+  red: 'bg-[linear-gradient(#C8102E1A,#C8102E1A),linear-gradient(#fff,#fff)] text-[#C8102E] border-transparent',
+  purple: 'bg-[linear-gradient(#6E3BD81A,#6E3BD81A),linear-gradient(#fff,#fff)] text-[#6E3BD8] border-transparent',
+  grey: 'bg-[linear-gradient(#4040401A,#4040401A),linear-gradient(#fff,#fff)] text-[#404040] border-transparent',
 };
-export const toneDot: Record<Tone, string> = { green: '#0B8A4C', blue: '#1F45E0', amber: '#C47A00', orange: '#E5530C', red: '#D92D20', purple: '#6E3BD8', grey: '#9CA3AF' };
-/** Tag style: white ground, border in the text colour at 35%. */
-export const toneLine: Record<Tone, string> = {
-  green: 'border-[#087A43]/35 text-[#087A43]', blue: 'border-[#1F45E0]/35 text-[#1F45E0]', amber: 'border-[#9A5B00]/35 text-[#9A5B00]',
-  orange: 'border-[#C2410C]/35 text-[#C2410C]', red: 'border-[#C11F14]/35 text-[#C11F14]', purple: 'border-[#6E3BD8]/35 text-[#6E3BD8]', grey: 'border-line text-[#374151]',
-};
+export const toneDot: Record<Tone, string> = { green: '#087A43', blue: '#1F45E0', amber: '#9A5B00', orange: '#C2410C', red: '#C8102E', purple: '#6E3BD8', grey: '#A3A3A3' };
+/** Older "outline" tag call sites get the same Connect tag. */
+export const toneLine: Record<Tone, string> = toneCls;

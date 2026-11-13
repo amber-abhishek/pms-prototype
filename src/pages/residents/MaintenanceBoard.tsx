@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from 'react';
 import { toast } from 'sonner';
-import { ArrowUp, CircleCheckBig, MapPin, Plus, Siren, Timer, UserPlus } from '../../components/icons';
+import { CircleCheckBig, MapPin, Plus, Timer, UserPlus } from '../../components/icons';
 import { cx, Pill } from '../../components/ui';
 import { fmtSla, useRms, type Fault } from '../../data/residents';
 import { undoToast } from './kit';
@@ -41,7 +41,7 @@ function moveTo(f: Fault, col: ColId): Partial<Fault> | string {
 
 /** Linear-style stage glyph: dashed (new), quarter (assigned), half (in progress), paused, done. */
 function StageGlyph({ col }: { col: ColId }) {
-  const c = { new: '#9CA3AF', assigned: '#2563EB', progress: '#F59E0B', parts: '#F97316', fixed: '#12A15A' }[col];
+  const c = { new: '#A3A3A3', assigned: '#2563EB', progress: '#F59E0B', parts: '#F97316', fixed: '#12A15A' }[col];
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden className="shrink-0">
       {col === 'fixed' ? (
@@ -58,13 +58,13 @@ function StageGlyph({ col }: { col: ColId }) {
   );
 }
 
-export function MaintenanceBoard({ faults, showResolved, onLog, selected, onOpen }: {
-  faults: Fault[]; showResolved: boolean; onLog: () => void; selected: string | null; onOpen: (id: string) => void;
+export function MaintenanceBoard({ faults, onLog, selected, onOpen }: {
+  faults: Fault[]; onLog: () => void; selected: string | null; onOpen: (id: string) => void;
 }) {
   const update = useRms((s) => s.update);
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<ColId | null>(null);
-  const cols = COLS.filter((c) => showResolved || c.id !== 'fixed');
+  const cols = COLS;
 
   const drop = (col: ColId) => {
     const f = faults.find((x) => x.id === dragId);
@@ -95,7 +95,7 @@ export function MaintenanceBoard({ faults, showResolved, onLog, selected, onOpen
               <header className="h-10 shrink-0 flex items-center gap-2 pl-3 pr-1.5">
                 <StageGlyph col={c.id} />
                 <h3 className="text-sm leading-5 font-semibold text-ink truncate">{c.label}</h3>
-                <span className="text-xs tabular-nums text-[#646A78]">{items.length}</span>
+                <span className="text-xs tabular-nums text-[#737373]">{items.length}</span>
                 {late > 0 && <Pill tone="red">{late} overdue</Pill>}
                 {c.id === 'new' && (
                   <button type="button" aria-label="Log a fault" onClick={onLog}
@@ -107,7 +107,7 @@ export function MaintenanceBoard({ faults, showResolved, onLog, selected, onOpen
               <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2 flex flex-col gap-2">
                 {items.map((f) => <JobCard key={f.id} f={f} col={c.id} selected={selected === f.id} dragging={dragId === f.id} onDrag={setDragId} onOpen={onOpen} />)}
                 {!items.length && (
-                  <div className={cx('h-20 shrink-0 rounded-lg border border-dashed flex items-center justify-center text-xs', on ? 'border-[#93C5FD] text-primary' : 'border-[#D1D5DB] text-gray-400')}>
+                  <div className={cx('h-20 shrink-0 rounded-lg border border-dashed flex items-center justify-center text-xs', on ? 'border-[#93C5FD] text-primary' : 'border-[#D4D4D4] text-gray-400')}>
                     {on ? 'Drop here' : 'No jobs'}
                   </div>
                 )}
@@ -139,30 +139,30 @@ function JobCard({ f, col, selected, dragging, onDrag, onOpen }: {
       onClick={() => onOpen(f.id)}
       className={cx('shrink-0 w-full text-left rounded-[10px] border bg-white p-3 flex flex-col gap-1.5 cursor-pointer',
         'transition-[border-color,box-shadow,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        selected ? 'border-primary shadow-[0_0_0_3px_rgba(37,99,235,0.12)]' : 'border-[#E5E7EB] shadow-[0_1px_2px_rgba(17,24,39,0.04)] hover:shadow-[0_0_0_1px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.12)]',
+        selected ? 'border-primary shadow-[0_0_0_3px_rgba(37,99,235,0.12)]' : 'border-[#E5E5E5] shadow-[0_1px_2px_rgba(17,24,39,0.04)] hover:shadow-[0_0_0_1px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.12)]',
         dragging && 'opacity-40')}>
       <div className="min-h-[22px] flex items-center justify-between gap-2">
-        <span className="font-mono text-xs leading-4 text-[#646A78] whitespace-nowrap">{f.ref}</span>
-        {!fixed && f.priority === 'Urgent' && <Chip className="bg-[#FDECEE] text-[#C81E30]"><Siren size={12} />Urgent</Chip>}
-        {!fixed && f.priority === 'High' && <Chip className="bg-[#FFF0E0] text-[#C2410C]"><ArrowUp size={12} />High</Chip>}
+        <span className="font-mono text-xs leading-4 text-[#737373] whitespace-nowrap">{f.ref}</span>
+        {!fixed && f.priority === 'Urgent' && <Pill tone="red">Urgent</Pill>}
+        {!fixed && f.priority === 'High' && <Pill tone="orange">High</Pill>}
       </div>
-      <div className={cx('text-sm leading-5 font-semibold line-clamp-2', fixed ? 'text-[#4B5563]' : 'text-ink')}>{f.title}</div>
-      <div className="flex items-center gap-1 text-xs leading-4 text-[#646A78] min-w-0"><MapPin size={12} className="shrink-0" /><span className="truncate">{f.where}</span></div>
+      <div className={cx('text-sm leading-5 font-semibold line-clamp-2', fixed ? 'text-[#525252]' : 'text-ink')}>{f.title}</div>
+      <div className="flex items-center gap-1 text-xs leading-4 text-[#737373] min-w-0"><MapPin size={12} className="shrink-0" /><span className="truncate">{f.where}</span></div>
       <div className="pt-1.5 flex items-center justify-between gap-2 min-w-0">
         {f.assignee ? (
           <span title={f.assignee} className="flex items-center gap-1.5 min-w-0">
             <span className="size-6 shrink-0 rounded-full bg-[#EEF2FF] text-[11px] font-semibold text-[#3730A3] flex items-center justify-center">{ini(f.assignee)}</span>
             {/* Columns are narrow, so the card shows a short name ("Dave", "Estates"); the full name is on hover and in the panel. */}
-            <span className="text-xs leading-4 font-medium text-[#374151] truncate">{f.assignee === 'Front desk' ? f.assignee : f.assignee.split(' ')[0]}</span>
+            <span className="text-xs leading-4 font-medium text-[#404040] truncate">{f.assignee === 'Front desk' ? f.assignee : f.assignee.split(' ')[0]}</span>
           </span>
         ) : (
-          <span className={cx('flex items-center gap-1.5 text-xs leading-4 font-medium', late ? 'text-[#C81E30]' : 'text-[#646A78]')}>
-            <span className={cx('size-6 shrink-0 rounded-full border border-dashed flex items-center justify-center', late ? 'border-[#C81E30]' : 'border-[#9CA3AF] text-gray-400')}><UserPlus size={12} /></span>
+          <span className={cx('flex items-center gap-1.5 text-xs leading-4 font-medium', late ? 'text-[#C81E30]' : 'text-[#737373]')}>
+            <span className={cx('size-6 shrink-0 rounded-full border border-dashed flex items-center justify-center', late ? 'border-[#C81E30]' : 'border-[#A3A3A3] text-gray-400')}><UserPlus size={12} /></span>
             Unassigned
           </span>
         )}
         <span className={cx('shrink-0 flex items-center gap-1 text-xs leading-4 tabular-nums',
-          late ? 'font-semibold text-[#C81E30]' : fixed ? 'font-medium text-[#0B8A4C]' : 'font-medium text-[#646A78]')}>
+          late ? 'font-semibold text-[#C81E30]' : fixed ? 'font-medium text-[#0B8A4C]' : 'font-medium text-[#737373]')}>
           {fixed ? <CircleCheckBig size={12} /> : <Timer size={12} />}{time}
         </span>
       </div>
@@ -170,6 +170,3 @@ function JobCard({ f, col, selected, dragging, onDrag, onOpen }: {
   );
 }
 
-function Chip({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <span className={cx('h-[22px] px-1.5 rounded-md text-xs font-medium flex items-center gap-1 whitespace-nowrap', className)}>{children}</span>;
-}

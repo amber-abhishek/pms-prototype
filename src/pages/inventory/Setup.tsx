@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Empty } from '../../components/ui';
 import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
-import { Buildings, CaretRight, Info, Lock, Plus, Tag, Textbox, Trash, TreeStructure } from '../../components/icons';
-import { Button, PageHeading, Field, Input, Note, PageHeader, Toolbar, Pill, SearchInput, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Bed, Buildings, CaretRight, Door, DoorOpen, House, Lock, Plus, Stack, Tag, Textbox, Trash, TreeStructure, type Icon } from '../../components/icons';
 import { Checkbox } from '../../components/shadcn/checkbox';
+import { Button, IconTile, PageHeading, Field, Input, Note, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneCls, toneDot, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { invId, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
 import { FieldErr, Modal, Picker } from './common';
 
@@ -12,35 +12,41 @@ import { FieldErr, Modal, Picker } from './common';
 export function StructuresPage() {
   const structures = useInv((s) => s.structures);
   const [open, setOpen] = useState<Structure | 'new' | null>(null);
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const rows = structures.filter((s) => !needle || [s.name, ...s.levels.map((l) => l.name)].some((v) => v.toLowerCase().includes(needle)));
   return (
     <>
       <PageHeader icon={TreeStructure} title="Property layouts" crumbs={['Inventory']}>
+        {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
+        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search layouts" /></div>
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New layout</Button>
       </PageHeader>
       <PageHeading />
-      <div className="shrink-0 px-[var(--tx,16px)] pb-2">
-        <Note tone="blue" icon={Info} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
+      {/* The levels rule sits above the list as a plain line (no box), so it reads as page context, not an alert. */}
+      <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] pt-6 pb-5">
+        <Note plain tone="blue" icon={Lock} title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
       </div>
-      <Table rows={structures} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
+      <Table rows={rows} empty={<Empty title="No layouts match" sub="Try a layout or level name." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'n', label: 'Layout', render: (s) => <span className="font-semibold">{s.name}</span> },
               { key: 'l', label: 'Levels', render: (s) => <Levels s={s} /> },
-              { key: 'p', label: 'Properties', className: 'text-right', render: (s) => <span className={cx('tabular-nums', !s.properties && 'text-gray-400')}>{s.properties}</span> },
-              { key: 'u', label: 'Updated', render: (s) => <span className="text-[#646A78]">{s.updated}</span> },
+              { key: 'p', label: 'Properties', render: (s) => <span className={cx('inline-flex items-center gap-1.5 tabular-nums', !s.properties && 'text-gray-400')}>{s.properties}{s.properties > 0 && <Lock size={13} className="text-[#A3A3A3]" aria-label="In use: levels are fixed" />}</span> },
+              { key: 'u', label: 'Updated', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
             ]} />
-      <StructureSheet s={open} nav={open && open !== 'new' ? listNav(structures, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
+      <StructureSheet s={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>
   );
 }
 
 function Levels({ s }: { s: Pick<Structure, 'levels'> }) {
   return (
-    /* 3057:2: 22px chips, 8px radius, 12px medium; BSU levels #1F45E0 with a 35% border; 12px #9CA3AF chevrons between. */
+    /* 3057:2: 22px chips, 8px radius, 12px medium; BSU levels #1F45E0 with a 35% border; 12px #A3A3A3 chevrons between. */
     <span className="flex items-center gap-2.5 flex-wrap">
       {s.levels.map((l, i) => (
         <span key={i} className="flex items-center gap-2.5">
           {i > 0 && <CaretRight size={10} className="text-gray-400" />}
-          <span className={cx('h-[22px] px-2 rounded-md border bg-white text-xs font-medium flex items-center', l.bsu ? 'border-[#1F45E059] text-[#1F45E0]' : 'border-line text-[#374151]')}>{l.name}</span>
+          <Pill tone={l.bsu ? 'blue' : 'grey'}>{l.name}</Pill>
         </span>
       ))}
     </span>
@@ -82,21 +88,21 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
         <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Halls with flats" /></Field>
         </SheetSection>
         <SheetSection title="Levels · top first">
-          <div className="rounded-xl border border-line divide-y divide-line">
+          {locked && <div className="mb-4"><Note tone="blue" icon={Lock} title={`In use by ${s.properties} ${s.properties === 1 ? 'property' : 'properties'}`}>Rename levels here; to add, remove or reorder them, make a new layout.</Note></div>}
+          <div className="flex flex-col gap-2">{/* Inputs only: no box or row rules around them. */}
             {levels.map((l, i) => (
-              <div key={l.key} className="h-12 px-3 flex items-center gap-2.5">
+              <div key={l.key} className="flex items-center gap-3">
                 <span className="text-xs text-gray-400 w-4 tabular-nums">{i + 1}</span>
                 <Input ref={(el: HTMLInputElement | null) => { refs.current[l.key] = el; }} aria-label={`Level ${i + 1}`} value={l.name} onChange={(e) => setLevels((x) => x.map((y) => (y.key === l.key ? { ...y, name: e.target.value } : y)))} className="flex-1" placeholder="Level name" />
-                <span className="flex items-center gap-1.5 text-xs text-[#646A78]">BSU<Switch checked={l.bsu} onChange={(b) => !locked && setLevels((x) => x.map((y) => (y.key === l.key ? { ...y, bsu: b } : y)))} label={`${l.name} bookable`} /></span>
+                <span className="flex items-center gap-1.5 text-xs text-[#737373]">BSU<Switch checked={l.bsu} onChange={(b) => !locked && setLevels((x) => x.map((y) => (y.key === l.key ? { ...y, bsu: b } : y)))} label={`${l.name} bookable`} /></span>
                 {!locked && levels.length > 2 && <button type="button" aria-label={`Remove ${l.name}`} onClick={() => setLevels((x) => x.filter((y) => y.key !== l.key))} className="size-7 rounded-md hover:bg-gray-100 flex items-center justify-center text-gray-400"><Trash size={14} /></button>}
               </div>
             ))}
           </div>
-          {locked ? <p className="mt-2 text-xs text-[#646A78] flex gap-1.5"><Lock size={13} />In use, so you can rename levels but not add, remove or reorder them.</p>
-            : <Button type="button" size="sm" icon={Plus} className="mt-2" onClick={addLevel}>Add level</Button>}
+          {!locked && <Button type="button" size="sm" icon={Plus} className="mt-4 ml-7" onClick={addLevel}>Add level</Button>}
         </SheetSection>
         <SheetSection title="Preview">
-          <div className="rounded-xl border border-line bg-[#FAFAFB] p-3"><Levels s={{ levels: levels.map((l) => ({ name: l.name || '…', bsu: l.bsu })) }} /></div>
+          <Levels s={{ levels: levels.map((l) => ({ name: l.name || "…", bsu: l.bsu })) }} />
         </SheetSection>
       </div>
     </Sheet>
@@ -113,21 +119,25 @@ export function CustomFieldsPage() {
   return (
     <>
       <PageHeader icon={Textbox} title="Custom fields" crumbs={['Inventory']}>
+        {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
+        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search fields" /></div>
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New field</Button>
       </PageHeader>
-      <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search fields" />} />
+      <PageHeading />
       <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
-              { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#111827] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#646A78] font-mono">{f.key}</span></span> },
-              { key: 't', label: 'Type', render: (f) => <span className="text-[#646A78]">{f.type}</span> },
-              { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <span key={a} className="h-[22px] px-2 rounded-md border border-line bg-white text-xs text-[#111827] flex items-center">{a}</span>)}</span> },
+              /* Numbered in list order, so a search renumbers what's left. */
+              { key: 'no', label: '#', className: 'w-14', render: (f) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(f) + 1}</span> },
+              { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#2563EB] font-mono">{f.key}</span></span> },
+              { key: 't', label: 'Type', render: (f) => <span className="text-[#737373]">{f.type}</span> },
+              { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <Pill key={a} tone={lookOf(a.split(' › ').pop() ?? '')[1]}>{a}</Pill>)}</span> },
             ]} />
-      <FieldSheet f={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
+      <FieldSheet f={open} no={open && open !== 'new' ? rows.findIndex((x) => x.id === open.id) + 1 : 0} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>
   );
 }
 
-function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' | null; onClose: () => void }) {
+function FieldSheet({ f, no, onClose , nav }: { nav?: SheetNav; f: CField | 'new' | null; no: number; onClose: () => void }) {
   const structures = useInv((s) => s.structures);
   const [name, setName] = useState('');
   const [type, setType] = useState('Text');
@@ -144,7 +154,6 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
   if (!f) return null;
   const isNew = f === 'new';
   const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const targets = structures.flatMap((s) => s.levels.filter((l) => l.name !== 'Tenancy').map((l) => `${s.name} › ${l.name}`));
   const nameErr = !name.trim() ? '' : !key ? 'Use letters or numbers in the name.' : fields.some((x) => (isNew || x.id !== f.id) && (x.name.trim().toLowerCase() === name.trim().toLowerCase() || x.key === key)) ? `A field called ${name.trim()} already exists.` : '';
   const del = () => { useInv.getState().set('fields', (l) => l.filter((x) => x.id !== (f as CField).id)); setAsking(false); onClose(); toast.success(`${(f as CField).name} field deleted`); };
   const save = () => {
@@ -156,7 +165,7 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
     toast.success(isNew ? `${name.trim()} field created` : `${name.trim()} saved`);
   };
   return (
-    <Sheet open onClose={onClose} nav={nav} title={isNew ? 'New field' : f.name} sub={isNew ? undefined : <span className="font-mono">{f.key}</span>} width={480}
+    <Sheet open onClose={onClose} nav={nav} title={isNew ? 'New field' : no > 0 ? `Field #${no}` : 'Field'} width={480}
       footer={<>{!isNew && <Button variant="danger-ghost" className="mr-auto" onClick={() => setAsking(true)}>Delete</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim() || !!nameErr} onClick={save}>{isNew ? 'Create field' : 'Save'}</Button></>}>
       {!isNew && <Modal open={asking} onClose={() => setAsking(false)} icon={Trash} width={440} title={`Delete ${f.name}?`}
         sub={f.attached.length ? `It’s on ${f.attached.join(', ')}. Every value already entered for it is deleted too.` : 'It isn’t attached to anything yet.'}
@@ -169,15 +178,68 @@ function FieldSheet({ f, onClose , nav }: { nav?: SheetNav;  f: CField | 'new' |
         </div>
         </SheetSection>
         <SheetSection title="Attached to">
-          <div className="rounded-xl border border-line divide-y divide-line max-h-64 overflow-auto">
-            {targets.map((t) => <label key={t} className="h-10 px-3 flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50"><Checkbox checked={attached.includes(t)} onCheckedChange={(v) => setAttached((v === true) ? [...attached, t] : attached.filter((x) => x !== t))} />{t}</label>)}
-          </div>
+          <AttachGrid structures={structures} attached={attached} onChange={setAttached} />
         </SheetSection>
         <SheetSection title="Rules">
-        <div className="h-12 px-3 rounded-xl border border-line flex items-center"><span className="flex-1"><span className="block text-sm">Required</span><span className="block text-xs text-[#646A78]">An entity can’t go active while it’s empty</span></span><Switch checked={required} onChange={setRequired} label="Required" /></div>
+        <div className="h-12 px-3 rounded-xl border border-line flex items-center"><span className="flex-1"><span className="block text-sm">Required</span><span className="block text-xs text-[#737373]">An entity can’t go active while it’s empty</span></span><Switch checked={required} onChange={setRequired} label="Required" /></div>
         </SheetSection>
       </div>
     </Sheet>
+  );
+}
+
+/* Figma 3934:52927 (V3 · Grid): layouts down the side, every level across the top, a box where a layout has that
+   level and a dash where it doesn't. Ticking a box attaches the field to that level of that layout. */
+const LEVEL_LOOK: Record<string, [Icon, Tone]> = { Building: [Buildings, 'blue'], Floor: [Stack, 'purple'], Flat: [DoorOpen, 'amber'], Room: [Bed, 'green'], Studio: [Door, 'orange'], House: [House, 'blue'] };
+const lookOf = (level: string): [Icon, Tone] => LEVEL_LOOK[level] ?? [Stack, 'grey'];
+function AttachGrid({ structures, attached, onChange }: { structures: Structure[]; attached: string[]; onChange: (v: string[]) => void }) {
+  /* Every level any layout has, in the order they first appear; Tenancy is a record, not a place, so it never shows. */
+  const levels: string[] = [];
+  for (const st of structures) for (const l of st.levels) if (l.name !== 'Tenancy' && !levels.includes(l.name)) levels.push(l.name);
+  const toggle = (t: string) => onChange(attached.includes(t) ? attached.filter((x) => x !== t) : [...attached, t]);
+  const picked = levels.map((lv) => [lv, structures.filter((st) => attached.includes(`${st.name} › ${lv}`)).length] as const).filter(([, n]) => n > 0);
+  return (
+    <div className="space-y-3">
+      {/* What it's on, read first; the grid below is where it's changed. */}
+      {picked.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">{picked.map(([lv, n]) => <Pill key={lv} tone={lookOf(lv)[1]}>{lv} · {n} {n === 1 ? 'layout' : 'layouts'}</Pill>)}</div>
+      )}
+      <div className="rounded-xl border border-[#E5E5E5] bg-white overflow-hidden">
+        <table className="w-full table-fixed text-sm">
+          <colgroup><col />{levels.map((lv) => <col key={lv} className="w-[47px]" />)}<col className="w-2" /></colgroup>
+          <thead>
+            <tr className="bg-[#FAFAFA]">
+              <th scope="col" className="h-16 pl-3.5 text-left font-mono text-xs font-medium uppercase tracking-[0.48px] text-[#737373]">Layout</th>
+              {levels.map((lv) => { const [I, tone] = lookOf(lv); return (
+                <th key={lv} scope="col" className="x-keep font-normal"><span className="flex flex-col items-center gap-1"><IconTile icon={I} tone={tone} size={22} /><span className="text-[11px] leading-[14px] text-[#737373]">{lv}</span></span></th>
+              ); })}
+              <th aria-hidden />
+            </tr>
+          </thead>
+          <tbody>
+            {structures.map((st) => (
+              <tr key={st.id}>
+                <th scope="row" className="h-14 pl-3.5 text-left font-normal">
+                  <span className="block text-sm leading-5 font-medium text-[#0A0A0A] truncate">{st.name}</span>
+                  <span className="block text-xs leading-4 text-[#737373]">{st.properties} {st.properties === 1 ? 'property' : 'properties'}</span>
+                </th>
+                {levels.map((lv) => {
+                  const t = `${st.name} › ${lv}`;
+                  return (
+                    <td key={lv} className="text-center">
+                      {st.levels.some((l) => l.name === lv)
+                        ? <Checkbox aria-label={`${lv} in ${st.name}`} checked={attached.includes(t)} onCheckedChange={() => toggle(t)} className="mx-auto" />
+                        : <span aria-label={`${st.name} has no ${lv.toLowerCase()}`} title={`${st.name} has no ${lv.toLowerCase()}`} className="text-[#D4D4D4] cursor-default">—</span>}
+                    </td>
+                  );
+                })}
+                <td aria-hidden />
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -194,14 +256,17 @@ export function TagsPage() {
   return (
     <>
       <PageHeader icon={Tag} title="Tags" crumbs={['Inventory']}>
+        {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
+        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search tags" /></div>
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New tag</Button>
       </PageHeader>
-      <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search tags" />} />
+      <PageHeading />
       <Table rows={rows} empty={<Empty title="No tags yet" sub="Tags label properties, like Catered or Postgraduate." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
+              { key: 'no', label: '#', className: 'w-14', render: (t) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(t) + 1}</span> },
               { key: 'n', label: 'Tag', render: (t) => <Pill tone={t.tone} outline>{t.label}</Pill> },
-              { key: 'u', label: 'Used on', render: (t) => { const u = used(t); return <span className="text-[#646A78]">{u.length ? `${u.length} ${u.length === 1 ? 'property' : 'properties'}` : 'Not used yet'}</span>; } },
-              { key: 'p', label: 'Properties', render: (t) => <span className="text-[#646A78] truncate block max-w-[420px]">{used(t).map((p) => p.name).join(', ') || '—'}</span> },
+              { key: 'u', label: 'Used on', render: (t) => { const u = used(t); return <span className="text-[#737373]">{u.length ? `${u.length} ${u.length === 1 ? 'property' : 'properties'}` : 'Not used yet'}</span>; } },
+              { key: 'p', label: 'Properties', render: (t) => <span className="text-[#737373] truncate block max-w-[420px]">{used(t).map((p) => p.name).join(', ') || '—'}</span> },
             ]} />
       <TagSheet t={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} usedOn={open && open !== 'new' ? used(open) : []} onClose={() => setOpen(null)} />
     </>
@@ -258,7 +323,7 @@ function TagSheet({ t, usedOn, onClose , nav }: { nav?: SheetNav;  t: TagDef | '
             {TONES.map((c) => (
               <button key={c} type="button" role="radio" aria-checked={tone === c} onClick={() => setTone(c)}
                 className={cx('h-8 pl-2.5 pr-3 rounded-lg border flex items-center gap-1.5 text-sm font-medium transition-colors',
-                  tone === c ? cx(toneCls[c], 'border-current') : 'border-line bg-white text-[#374151] hover:bg-gray-50')}>
+                  tone === c ? cx(toneCls[c], 'border-current') : 'border-line bg-white text-[#404040] hover:bg-gray-50')}>
                 <span className="size-2 rounded-full shrink-0" style={{ background: toneDot[c] }} />
                 {TONE_NAME[c]}
               </button>
@@ -268,16 +333,16 @@ function TagSheet({ t, usedOn, onClose , nav }: { nav?: SheetNav;  t: TagDef | '
         {!isNew && (
           <SheetSection title={usedOn.length ? `Used on · changes update all ${usedOn.length}` : 'Used on'}>
             {usedOn.length ? (
-              <div className="rounded-xl border border-line divide-y divide-line">
+              <div className="flex flex-col gap-2">{/* Inputs only: no box or row rules around them. */}
                 {usedOn.map((p) => (
                   <div key={p.id} className="h-10 px-3 flex items-center gap-2.5 text-sm">
                     <Buildings size={16} className="text-gray-400 shrink-0" />
-                    <span className="flex-1 truncate text-[#111827]">{p.name}</span>
-                    <span className="text-xs text-[#646A78]">{p.campus}</span>
+                    <span className="flex-1 truncate text-[#0A0A0A]">{p.name}</span>
+                    <span className="text-xs text-[#737373]">{p.campus}</span>
                   </div>
                 ))}
               </div>
-            ) : <div className="h-10 px-3 rounded-xl border border-dashed border-line flex items-center text-sm text-[#646A78]">Not on any property yet</div>}
+            ) : <div className="h-10 px-3 rounded-xl border border-dashed border-line flex items-center text-sm text-[#737373]">Not on any property yet</div>}
           </SheetSection>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { Children, Fragment, isValidElement, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Illustration, type Illo } from './Illustration';
-import { GhostZone, headerZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
+import { GhostZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
 
 /** The breadcrumb's current page: the h1 unless the page shows its own title. */
 export function CrumbTitle({ className, children }: { className: string; children: ReactNode }) {
@@ -19,7 +19,7 @@ import { Badge } from './shadcn/badge';
 import { Card as UICard } from './shadcn/card';
 import { Tabs as UITabs, TabsList, TabsTrigger } from './shadcn/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from './shadcn/popover';
-import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from './shadcn/table';
+import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow, monoize } from './shadcn/table';
 import { Input as UIInput } from './shadcn/input';
 import { Textarea as UITextarea } from './shadcn/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './shadcn/dropdown-menu';
@@ -27,11 +27,11 @@ import { Label } from './shadcn/label';
 import { Switch as UISwitch } from './shadcn/switch';
 import { Checkbox } from './shadcn/checkbox';
 import { Sheet as UISheet, sheetStep, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from './shadcn/sheet';
-import { Dialog as UIDialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './shadcn/dialog';
+import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogDescription, DialogFrame, DialogTitle } from './shadcn/dialog';
 import { toneCls, toneDot } from './tones';
 import { rowAttrs, useRowMotion } from './rowMotion';
 import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, CaretUp, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
-import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag } from './icons';
+import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag, House } from './icons';
 export { toneCls, toneDot, toneLine } from './tones';
 import type { Tone } from '../data/seed';
 export type { Tone };
@@ -85,6 +85,12 @@ export function Button({ variant: asked = 'secondary', size = 'md', icon, childr
 
 /* ---------- Pills: shadcn Badge with the vibrant tones (./tones) ---------- */
 /** Pill: 22px, 8px radius, 12px medium. `outline` is the tag style (white ground, tone border at 35%). */
+/** Each tone's avatar colour, so an icon tile takes the avatar finish in the same hue. */
+const TONE_FG: Record<Tone, string> = { blue: '#2563EB', green: '#0B8A4C', amber: '#C47A00', orange: '#E5530C', red: '#E0243A', purple: '#8B2CF5', grey: '#64748B' };
+/** A row's icon (2026-11-13): 28px r8 tile, 16px icon, with the avatar finish (tint gradient, top highlight, tinted ring). */
+export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; tone?: Tone; size?: number }) {
+  return <span className="rounded-lg flex items-center justify-center shrink-0" style={{ width: size, height: size, ...avatarFx(TONE_FG[tone] ?? TONE_FG.grey) }}><I size={Math.round(size * 0.57)} strokeWidth={1.75} /></span>;
+}
 export function Pill({ tone = 'grey', icon: I, dot, outline, children }: { tone?: Tone; icon?: Icon; dot?: boolean; outline?: boolean; children: ReactNode }) {
   return (
     <Badge tone={tone} look={outline ? 'outline' : 'soft'}>
@@ -99,7 +105,7 @@ const statusTone: Record<string, Tone> = {
   New: 'blue', 'In review': 'purple', Offered: 'amber', Accepted: 'green', Waitlisted: 'orange', Declined: 'grey',
   Sent: 'blue', Expired: 'grey', Confirmed: 'green', 'Lease unsigned': 'amber', 'Checked in': 'green', Cancelled: 'grey',
   'In residence': 'green', Arriving: 'blue', Leaving: 'amber', Open: 'red', 'In progress': 'amber', Resolved: 'green',
-  Urgent: 'red', High: 'orange', Normal: 'grey', Pending: 'amber', Approved: 'green', Rejected: 'red', Draft: 'grey', Scheduled: 'blue',
+  Urgent: 'red', High: 'orange', Normal: 'grey', Pending: 'amber', Approved: 'green', Rejected: 'red', Draft: 'amber', Scheduled: 'blue',
   Published: 'green', Inactive: 'grey', Replied: 'green', Closed: 'grey', Occupied: 'blue', Available: 'green', Held: 'amber', Maintenance: 'red', Upcoming: 'purple',
 };
 Object.assign(statusTone, { Active: 'green', Submitted: 'blue', 'Awaiting info': 'amber', Suspended: 'red', Live: 'green', Allocated: 'green', Lapsed: 'grey', 'Lease sent': 'blue', Conflict: 'red', Overdue: 'red', Paused: 'amber' } satisfies Record<string, Tone>);
@@ -117,7 +123,7 @@ export const Status = ({ s, tone, icon }: { s: string; tone?: Tone; icon?: Icon 
 };
 
 /* ---------- Layout ---------- */
-/** 52px header (2820:111): 16px grey-500 icon, 14px #646A78 crumbs with 12px grey-400 chevrons; the current page is 14px regular ink, never bold. */
+/** 52px header (2820:111): 16px grey-500 icon, 14px #737373 crumbs with 12px grey-400 chevrons; the current page is 14px regular ink, never bold. */
 /** Only a real parent page links (the list a record was opened from). Section names (Inventory, Allocations,
  *  Organisation…) are sidebar groups, not pages, so they stay plain text. */
 const CRUMB_TO: Record<string, string> = { Properties: '/inventory/properties' };
@@ -127,47 +133,80 @@ export function CrumbLink({ c }: { c: Crumb }) {
   const { label, to, onClick } = typeof c === 'string' ? { label: c, to: CRUMB_TO[c], onClick: undefined } : { ...c, to: c.to ?? (c.onClick ? undefined : CRUMB_TO[c.label]) };
   const cls = 'rounded hover:text-ink hover:underline underline-offset-4 decoration-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
   return (
-    <span className="flex items-center gap-1.5 text-[#646A78] whitespace-nowrap">
+    <span className="flex items-center gap-2 text-[#737373] whitespace-nowrap">
       {to ? <Link to={to} className={cls}>{label}</Link> : onClick ? <button type="button" onClick={onClick} className={cls}>{label}</button> : label}
-      <CaretRight size={12} className="text-gray-400" />
+      <CaretRight size={16} strokeWidth={1.5} className="text-[#737373]" />
     </span>
   );
 }
-export function PageHeader({ icon: I, title, crumbs, children }: { icon?: Icon; title: string; crumbs?: Crumb[]; children?: ReactNode }) {
+/** Amber Connect page header (Figma 3884:39809): 56px #F5F5F5 band with a bottom line; a home link and a divider, then
+ *  Geist Mono uppercase crumbs (#737373) and the current page in ink. Actions keep their own variants: bordered
+ *  secondaries and one blue primary. */
+/* Figma 3884:39270 top bar: 56px #F5F5F5 band, 24/16 sides, 12px gap; 20px #404040 house, a 1×20 rule, then
+   Geist Mono Medium 14 uppercase crumbs (#737373 parents with a 16px chevron, the page in #0A0A0A).
+   `search` adds the 280px "Search anything ⌘K" field, which opens the palette. */
+export function PageHeader({ title, crumbs, children, search, meta }: { icon?: Icon; title: string; crumbs?: Crumb[]; children?: ReactNode; search?: boolean; meta?: ReactNode }) {
   usePublishTitle(title);
   return (
-    <div data-page-head className="h-[52px] shrink-0 border-b border-line bg-white flex items-center gap-3 px-5">
-      {I && <I size={16} className="text-gray-500 shrink-0" />}
-      <div className="flex items-center gap-1.5 min-w-0 text-sm leading-5">
+    <div data-page-head className="h-14 shrink-0 border-b border-[#E5E5E5] bg-[#F5F5F5] flex items-center gap-3 pl-6 pr-4">
+      <Link to="/" aria-label="Home" className="size-7 -mx-1 rounded-lg flex items-center justify-center text-[#404040] hover:bg-black/[0.04] shrink-0"><House size={20} strokeWidth={1.5} /></Link>
+      <span aria-hidden className="w-px h-5 bg-[#E5E5E5] shrink-0" />
+      <div className="flex items-center gap-2 min-w-0 font-mono uppercase text-sm leading-5 font-medium">
         {crumbs?.filter((c) => (typeof c === 'string' ? c : c.label)).map((c, i) => <CrumbLink key={i} c={c} />)}
-        <CrumbTitle className="font-normal text-[#111827] truncate">{title}</CrumbTitle>
+        <CrumbTitle className="text-[#0A0A0A] truncate">{title}</CrumbTitle>
       </div>
-      <div className="ml-auto flex items-center gap-1">{<GhostZone.Provider value={headerZone(children)}>{children}</GhostZone.Provider>}</div>
+      {meta}
+      <div className="ml-auto flex items-center gap-3">
+        {search && (
+          <button type="button" onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            className="h-8 w-[280px] flex items-center gap-1.5 pl-2 pr-1.5 rounded-lg border border-[#E5E5E5] bg-white text-sm leading-5 text-[#737373] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:border-[#D4D4D4]">
+            <MagnifyingGlass size={16} strokeWidth={1.5} className="shrink-0" /><span className="flex-1 text-left">Search anything</span>
+            <kbd className="h-[22px] px-1.5 rounded border border-[#E5E5E5] text-xs leading-4 font-medium text-[#737373] flex items-center">⌘K</kbd>
+          </button>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+/** Joined header filters (Figma "Button group"): one white r8 box with a #E5E5E5 edge, items split by a 1px rule. */
+export function ButtonGroup({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-stretch h-8 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden [&>*]:!h-[30px] [&>*]:!rounded-none [&>*]:!border-0 [&>*]:!shadow-none [&>*:not(:last-child)]:!border-r [&>*:not(:last-child)]:!border-[#E5E5E5] [&>*]:!text-[#404040]">
+      {children}
     </div>
   );
 }
 /** The row under the page header: tabs on the left, search/filter/display on the right.
  *  24px below the header line, no bottom rule; sides follow the table gutter (--gx: 120px under 6 columns, 16px for 6+). */
-export const toolbarCls = 'shrink-0 px-[var(--tx,16px)] pt-6 pb-2 flex items-center gap-2';
-/** The page heading (Applications › Manual review style): 20px medium ink, its text lined up with the table's first column. */
+export const toolbarCls = 'shrink-0 px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-2';
+/** A page toolbar (filters, search, view switch) pins under the breadcrumb header while the page scrolls, and the
+ *  column header pins under it (styles.css). Its height varies (wrapping, !py-3), so it publishes it on <main> as
+ *  --tb-h for the column header's offset. Spread on the toolbar row: <div {...PIN} className=…>. One toolbar per page. */
+let pinRO: ResizeObserver | null = null;
+let pinMain: HTMLElement | null = null;
+const pinRef = (el: HTMLDivElement | null) => {
+  pinRO?.disconnect(); pinRO = null;
+  pinMain?.style.removeProperty('--tb-h'); pinMain = null;
+  const main = el?.closest<HTMLElement>('.pms-main');
+  if (!el || !main) return;
+  pinMain = main;
+  const set = () => main.style.setProperty('--tb-h', `${el.offsetHeight}px`);
+  set(); pinRO = new ResizeObserver(set); pinRO.observe(el);
+};
+export const PIN = { ref: pinRef, 'data-toolbar': '' } as const;
+/** No visible page heading (Amber Connect has none; the breadcrumb names the page). The title stays as a screen-reader h1,
+ *  and `right` becomes the toolbar row on its own. */
 export function PageHeading({ title, right, className }: { title?: ReactNode; right?: ReactNode; className?: string }) {
   const t = usePageTitle();
-  return (
-    <div className={cx('shrink-0 px-[var(--tx,16px)] pt-6 pb-3 flex items-center gap-2', className)}>
-      <TitleH1 className="text-xl leading-7 font-medium text-ink truncate ml-[calc(var(--gx,16px)+var(--cx,12px)-var(--tx,16px))]">{title ?? t}</TitleH1>
-      {right && <div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div>}
-    </div>
-  );
+  const h1 = <TitleH1 className="sr-only">{title ?? t}</TitleH1>;
+  if (!right) return h1;
+  return <div {...PIN} className={cx(toolbarCls, className)}>{h1}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
 }
-/** Heading row (title left, search/filter/display right), then the tabs row when there are tabs. `heading={false}` drops the title. */
+/** One toolbar row: tabs on the left, search/filter/display on the right. The title is screen-reader only; `heading={false}` drops it. */
 export function Toolbar({ children, right, className, heading }: { children?: ReactNode; right?: ReactNode; className?: string; heading?: ReactNode | false }) {
-  if (heading === false) return <div className={cx(toolbarCls, className)}>{children}<div className="ml-auto shrink-0 flex items-center gap-2 whitespace-nowrap">{right}</div></div>;
-  return (
-    <>
-      <PageHeading title={heading} right={right} className={className} />
-      {children && <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-2 empty:hidden">{children}</div>}
-    </>
-  );
+  const t = usePageTitle();
+  return <div {...PIN} className={cx(toolbarCls, className)}>{heading !== false && <TitleH1 className="sr-only">{heading ?? t}</TitleH1>}{children}<div className="ml-auto min-w-0 flex items-center gap-2 whitespace-nowrap [&>label]:shrink [&>label]:min-w-[140px]">{right}</div></div>;
 }
 /** Mercury-style metric links above a table: a bold label, then "value label ›" links that filter the table. */
 export type Metric = { label: string; value: ReactNode; tone?: 'red' | 'orange' | 'amber' | 'green'; onClick?: () => void; active?: boolean };
@@ -175,12 +214,12 @@ const metricTone = { red: 'text-[#C11F14]', orange: 'text-[#C2410C]', amber: 'te
 export function Metrics({ title, items, right }: { title: string; items: Metric[]; right?: ReactNode }) {
   return (
     <div className="h-10 shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] flex items-center gap-5 text-sm whitespace-nowrap overflow-x-auto">
-      <span className="font-semibold text-[#111827]">{title}</span>
+      <span className="font-semibold text-[#0A0A0A]">{title}</span>
       {items.map((m) => (
         <button key={m.label} type="button" onClick={m.onClick} disabled={!m.onClick} aria-pressed={m.onClick ? !!m.active : undefined}
-          className={cx('group inline-flex items-center gap-1 rounded-md -mx-1 px-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-default', m.active ? 'text-[#111827] underline underline-offset-4 decoration-[#D1D5DB]' : 'text-[#374151]')}>
-          <span className={cx('font-medium tabular-nums', m.tone ? metricTone[m.tone] : 'text-[#111827]')}>{m.value}</span>{m.label}
-          {m.onClick && <CaretRight size={12} className="text-gray-400 group-hover:text-[#374151] transition-colors" />}
+          className={cx('group inline-flex items-center gap-1 rounded-md -mx-1 px-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-default', m.active ? 'text-[#0A0A0A] underline underline-offset-4 decoration-[#D4D4D4]' : 'text-[#404040]')}>
+          <span className={cx('font-medium tabular-nums', m.tone ? metricTone[m.tone] : 'text-[#0A0A0A]')}>{m.value}</span>{m.label}
+          {m.onClick && <CaretRight size={12} className="text-gray-400 group-hover:text-[#404040] transition-colors" />}
         </button>
       ))}
       {right && <div className="ml-auto">{right}</div>}
@@ -190,9 +229,9 @@ export function Metrics({ title, items, right }: { title: string; items: Metric[
 /** Large page title + one-line description, as on the off-campus and settings screens. */
 export function PageTitle({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
   return (
-    /* 3057:2: in-content section header, 32px side padding; 16px semibold #111827 title, 14px #646A78 sub. */
+    /* 3057:2: in-content section header, 32px side padding; 16px semibold #0A0A0A title, 14px #737373 sub. */
     <div className="px-8 pt-6 pb-5 flex items-end gap-4">
-      <div className="flex-1"><h2 className="text-base leading-6 font-semibold text-[#111827]">{title}</h2>{sub && <p className="text-sm leading-5 text-[#646A78] mt-1">{sub}</p>}</div>
+      <div className="flex-1"><h2 className="text-base leading-6 font-semibold text-[#0A0A0A]">{title}</h2>{sub && <p className="text-sm leading-5 text-[#737373] mt-1">{sub}</p>}</div>
       {children}
     </div>
   );
@@ -201,8 +240,10 @@ export const Page = ({ children, className }: { children: ReactNode; className?:
 /** A card you can click: the drop deepens on hover (border stays put) and it squeezes to .99 on press. */
 export const pressCard = 'transition-[box-shadow,transform] duration-150 ease-[cubic-bezier(.23,1,.32,1)] hover:shadow-[0_0_0_1px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.12)] active:scale-[.99] dark:transition-[box-shadow,transform,background-color,border-color] dark:hover:bg-[#1F2026] dark:hover:border-[#4A4D57] motion-reduce:transition-none motion-reduce:active:scale-100';
 export const Card = ({ children, className }: { children: ReactNode; className?: string }) => <UICard className={className}>{children}</UICard>;
+/** Amber Connect card strip: 36px #FAFAFA band, Geist Mono uppercase label. */
 export function CardHead({ title, children }: { title: ReactNode; children?: ReactNode }) {
-  return <div className="h-12 px-4 flex items-center justify-between border-b border-line"><h2 className="text-sm font-semibold">{title}</h2>{children}</div>;
+  /* Connect section strip: 6/20 padding, #FAFAFA, Geist Mono 12 medium uppercase at 0.48px, #171717. */
+  return <div className="min-h-8 px-5 py-1.5 flex items-center justify-between gap-3 border-b border-[#E5E5E5] bg-[#FAFAFA] rounded-t-2xl"><h2 className="font-mono uppercase text-xs leading-5 tracking-[0.48px] font-medium text-[#171717]">{title}</h2>{children}</div>;
 }
 export function Intro({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
   return (
@@ -223,10 +264,36 @@ export function Stat({ label, value, sub, tone, icon: I }: { label: string; valu
   );
 }
 
-export function Bar({ value, color }: { value: number; color: string }) {
-  return <div className="h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(100, value)}%`, background: color }} /></div>;
+/** Number strip (Connect "Total Amount Pending" row): cells split by dashed rules; 14px grey label, 28px mono figure,
+ *  and a trend line (▲/▼ in green or red when the sub starts with + or −, else grey). No colour bar. */
+export type StatItem = { label: string; value: ReactNode; sub?: ReactNode; color?: string; good?: boolean };
+export function StatStrip({ items, className }: { items: StatItem[]; className?: string }) {
+  return (
+    /* One card per number (2026-11-13), 16px apart, rather than one strip split by dashed rules. */
+    <div className={cx('grid gap-4', className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+      {items.map((it) => {
+        const s = typeof it.sub === 'string' ? it.sub : null;
+        const dir = s && /^[+▲]/.test(s) ? 'up' : s && /^[−▼-]/.test(s) ? 'down' : null;
+        const tc = (it.good ?? dir === 'up') ? '#16A34A' : '#DC2626';
+        const [num, ...rest] = dir && s ? s.replace(/^[+−▲▼-]\s*/, '').split(' ') : [];
+        return (
+          <div key={it.label} className="min-w-0 p-5 flex flex-col rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="text-sm leading-5 text-[#737373] truncate">{it.label}</div>
+            <div className="mt-1 font-mono text-[28px] leading-9 font-semibold tracking-tight tabular-nums text-[#0A0A0A] truncate" style={it.color ? { color: it.color } : undefined}>{it.value}</div>
+            <div className="mt-2 h-5 text-sm leading-5 text-[#737373] truncate">
+              {dir ? <><span aria-hidden className="text-[10px] mr-1.5" style={{ color: tc }}>{dir === 'up' ? '▲' : '▼'}</span><span className="font-medium" style={{ color: tc }}>{num}</span> {rest.join(' ')}</> : it.sub}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
-/* 3355:117563: green #0B8A4C, blue #2563EB, amber #F59E0B on a #F3F4F6 track. */
+
+export function Bar({ value, color }: { value: number; color: string }) {
+  return <div className="h-1.5 rounded-full bg-[#F5F5F5] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(100, value)}%`, background: color }} /></div>;
+}
+/* 3355:117563: green #0B8A4C, blue #2563EB, amber #F59E0B on a #F5F5F5 track. */
 export const occColor = (pct: number) => (pct >= 95 ? '#0B8A4C' : pct >= 80 ? '#2563EB' : '#F59E0B');
 
 /* Avatars (3770:15786): initials in the person's tone on a soft gradient circle, with a white top highlight and a
@@ -236,14 +303,21 @@ const avatarBg = ['#0E7A80', '#8B2CF5', '#E5530C', '#0B8A4C', '#C0266D', '#1F45E
 const avatarGround: Record<string, [string, string]> = {
   '#E5530C': ['#FFF0E0', '#FFDDBA'], '#0E7A80': ['#E3F6F6', '#C8ECEC'], '#8B2CF5': ['#F1E7FF', '#E2CFFF'], '#6E3BD8': ['#F1E7FF', '#E2CFFF'],
   '#C0266D': ['#FDEDF4', '#FAD5E6'], '#0B8A4C': ['#E8F7EE', '#CDEEDB'], '#1F45E0': ['#EAF0FF', '#D3E0FF'], '#C47A00': ['#FFF6E0', '#FFE9B8'],
-  '#E0243A': ['#FEEFEE', '#FCD9D9'], '#9CA3AF': ['#F3F4F6', '#E5E7EB'],
-  '#2563EB': ['#EAF0FF', '#D3E0FF'], '#DB2777': ['#FDEDF4', '#FAD5E6'], '#64748B': ['#F3F4F6', '#E5E7EB'],
+  '#E0243A': ['#FEEFEE', '#FCD9D9'], '#A3A3A3': ['#F5F5F5', '#E5E5E5'],
+  '#2563EB': ['#EAF0FF', '#D3E0FF'], '#DB2777': ['#FDEDF4', '#FAD5E6'], '#64748B': ['#F5F5F5', '#E5E5E5'], '#9333EA': ['#F1E7FF', '#E2CFFF'],
 };
+/** The avatar finish for any round tile in a colour: a top-to-bottom tint gradient, a white top highlight and a
+ *  1px ring of the colour at 20%. Icon discs use it so they match the avatars. */
+export function avatarFx(color: string) {
+  const fg = color.toUpperCase();
+  const [a, b] = avatarGround[fg] ?? ['#F5F5F5', '#E5E5E5'];
+  return { color: fg, background: `linear-gradient(180deg, ${a}, ${b})`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px ${fg}33` };
+}
 export function Avatar({ name, size = 24, color }: { name: string; size?: number; color?: string }) {
   const i = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % avatarBg.length;
   const ini = name.split(/\s+/).filter((w) => /[A-Za-z]/.test(w[0] ?? '')).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const fg = (color ?? personColor[name] ?? avatarBg[i]).toUpperCase();
-  const [a, b] = avatarGround[fg] ?? ['#F3F4F6', '#E5E7EB'];
+  const [a, b] = avatarGround[fg] ?? ['#F5F5F5', '#E5E5E5'];
   return (
     <span data-avatar className="inline-flex items-center justify-center rounded-full font-semibold shrink-0"
       style={{ width: size, height: size, color: fg, fontSize: Math.max(10, Math.round(size * 0.4)), background: `linear-gradient(180deg, ${a}, ${b})`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px ${fg}33` }}>{ini}</span>
@@ -260,7 +334,7 @@ export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; on
       <TabsList>
         {tabs.map((t) => (
           <TabsTrigger key={t.id} value={t.id}>
-            {t.label}{t.count !== undefined && <span className="text-xs font-medium text-[#646A78] group-data-[state=active]:text-[#2B5CFF]">{t.count.toLocaleString('en-GB')}</span>}
+            {t.label}{t.count !== undefined && <span className="font-mono text-xs font-medium tabular-nums text-[#A3A3A3] group-data-[state=active]:text-[#737373]">{t.count.toLocaleString('en-GB')}</span>}
           </TabsTrigger>
         ))}
       </TabsList>
@@ -271,14 +345,105 @@ export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; on
 /* ---------- Search + Filter with applied-count badge ---------- */
 export function SearchInput({ value, onChange, placeholder = 'Search' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    /* 2820:111: 28px tall, 220px wide, #D1D5DB border, 8px radius, 14px grey-400 search icon, 14px text. */
-    <label className="h-7 w-[220px] flex items-center gap-2 px-2.5 rounded-lg border border-gray-300 bg-white text-sm text-[#111827] focus-within:ring-2 focus-within:ring-primary/25 focus-within:border-primary">
-      <MagnifyingGlass size={14} className="text-gray-400 shrink-0" />
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent outline-none placeholder:text-gray-400 min-w-0" />
+    /* 2820:111: 28px tall, 220px wide, #D4D4D4 border, 8px radius, 14px grey-400 search icon, 14px text. */
+    /* Connect search: 36px, up to 320px, r8, #E5E5E5 edge; focus is a #2563EB edge plus a 1px ring of the same blue. */
+    /* Connect 2.0 (3095:16041) search: 320×32, 6/6/6/8, r8, 20px #737373 icon and placeholder; focus = #2563EB edge + 1px ring. */
+    <label className="h-8 w-[320px] max-w-full flex items-center gap-1.5 pl-2 pr-1.5 rounded-lg border border-[#E5E5E5] bg-white text-sm text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-[border-color,box-shadow] duration-150 focus-within:border-[#2563EB] focus-within:shadow-[0_0_0_1px_#2563EB]">
+      <MagnifyingGlass size={20} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent outline-none placeholder:text-[#737373] min-w-0" />
       {value && <button type="button" aria-label="Clear" onClick={() => onChange('')}><X size={12} className="text-gray-400" /></button>}
     </label>
   );
 }
+const FILTER_TRIGGER = 'shrink-0 h-8 min-w-[96px] max-w-[280px] px-3 rounded-lg border bg-white text-sm font-medium flex items-center justify-between gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:bg-[#F5F5F5] transition-colors data-[state=open]:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+/** Amber Connect multi-select filter (its Status dropdown): a 34px bordered trigger reading "Status" or "Status (2)";
+ *  a 200px popover of checkbox rows (16px sides, 10px tall padding), each option a plain label or a tinted chip
+ *  (13px medium, 2/8 padding, r6, the tone at 10%); a rule, then Clear and Apply side by side. Picks stay a draft until Apply. */
+export function MultiFilter({ label, options, value, onChange, width = 200, align = 'end' }: {
+  label: string; options: { value: string; label?: string; tone?: Tone }[]; value: string[]; onChange: (v: string[]) => void; width?: number; align?: 'start' | 'end';
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<string[]>(value);
+  useEffect(() => { if (open) setDraft(value); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const on = value.length > 0;
+  const toggle = (v: string) => setDraft((d) => (d.includes(v) ? d.filter((x) => x !== v) : [...d, v]));
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className={cx(FILTER_TRIGGER, on ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
+          <span>{label}{on && ` (${value.length})`}</span><CaretDown size={20} strokeWidth={1.5} className="text-[#737373]" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align={align} className="p-0 overflow-hidden" style={{ width }}>
+        <div className="max-h-[240px] overflow-y-auto py-1">
+          {options.map((o) => (
+            <label key={o.value} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[#F5F5F5] transition-colors">
+              <Checkbox checked={draft.includes(o.value)} onCheckedChange={() => toggle(o.value)} />
+              {o.tone
+                ? <Pill tone={o.tone}>{o.label ?? o.value}</Pill>
+                : <span className="text-sm text-[#0A0A0A]">{o.label ?? o.value}</span>}
+            </label>
+          ))}
+        </div>
+        <div className="flex gap-2 p-3 border-t border-[#E5E5E5]">
+          <UIButton variant="outline" size="sm" className="flex-1 h-8" onClick={() => { onChange([]); setOpen(false); }}>Clear</UIButton>
+          <UIButton size="sm" className="flex-1 h-8" onClick={() => { onChange(draft); setOpen(false); }}>Apply</UIButton>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export type SelectOption = { value: string; label?: string; tone?: Tone; meta?: ReactNode };
+/** Amber Connect single-choice dropdown: MultiFilter's 34px trigger and 16/10 popover rows, a blue check on the chosen row;
+ *  a pick applies straight away (one choice needs no Apply). With `label` it is a filter: an "All" row clears it, and the
+ *  trigger turns blue and reads the choice. Without `label` it is a picker (hall, block, year) and shows its value. */
+export function SelectFilter({ label, icon: I, value, options, onChange, width = 220, suffix, prefix }: {
+  label?: string; icon?: Icon; value: string; options: SelectOption[]; onChange: (v: string) => void; width?: number; suffix?: ReactNode;
+  /** A picker that is always set (Status: Open): reads "prefix: value" in blue, with no All row. */
+  prefix?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const sel = options.find((o) => o.value === value);
+  const on = (!!label || !!prefix) && !!sel;
+  const row = (v: string, body: ReactNode, chosen: boolean) => (
+    <button key={v || '_all'} type="button" role="menuitemradio" aria-checked={chosen} onClick={() => { onChange(v); setOpen(false); }}
+      className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F5F5] focus-visible:bg-[#F5F5F5] outline-none transition-colors">
+      {/* Same rows as MultiFilter (2026-11-13): a 20px control on the left where its checkbox sits — here a radio,
+          as one choice applies straight away — instead of a check on the right. */}
+      <span aria-hidden className={cx('size-5 shrink-0 rounded-full border flex items-center justify-center', chosen ? 'border-primary bg-primary' : 'border-input bg-background')}>
+        {chosen && <span className="size-2 rounded-full bg-white" />}
+      </span>
+      <span className="flex-1 min-w-0 flex items-center gap-2">{body}</span>
+    </button>
+  );
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label={label ? `${label}: ${sel ? sel.label ?? sel.value : 'All'}` : undefined} className={cx(FILTER_TRIGGER, on ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
+          <span className="flex items-center gap-2 min-w-0">
+            {I && <I size={16} strokeWidth={1.5} className="shrink-0" />}
+            {/* A set filter reads as its value in blue (as Connect's "Status (1)" stays short); the field name is in the aria-label. */}
+            <span className="truncate">{prefix && `${prefix}: `}{sel ? sel.label ?? sel.value : label ?? value}</span>{suffix}
+          </span>
+          <CaretDown size={20} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align={label ? 'end' : 'start'} className="p-0 overflow-hidden" style={{ width }}>
+        <div role="menu" aria-label={label} className="max-h-[280px] overflow-y-auto py-1">
+          {label && row('', <span className="text-sm text-[#0A0A0A]">All</span>, !sel)}
+          {options.map((o) => row(o.value, <>
+            {o.tone
+              ? <Pill tone={o.tone}>{o.label ?? o.value}</Pill>
+              : <span className="text-sm text-[#0A0A0A] truncate">{o.label ?? o.value}</span>}
+            {o.meta != null && <span className="ml-auto font-mono text-xs text-[#737373] tabular-nums">{o.meta}</span>}
+          </>, o.value === value))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /** The list-filter icon with the applied dot on its top-right corner (3755:15832). */
 export function FilterIcon({ on, size = 14, icon: I = FunnelSimple }: { on: boolean; size?: number; icon?: Icon }) {
   return (
@@ -293,59 +458,40 @@ export function FilterIcon({ on, size = 14, icon: I = FunnelSimple }: { on: bool
 export const optionPill = (on: boolean) => cx(
   'h-7 px-3 rounded-full border border-transparent text-sm font-medium shadow-[0_1px_1px_rgba(17,24,39,0.03)] transition-[background,color,transform] duration-150 ease-snappy active:scale-[0.97]',
   on ? 'text-[#2563EB] [background:linear-gradient(#EFF6FF,#EFF6FF)_padding-box,linear-gradient(180deg,#DBEAFE,#93C5FD)_border-box]'
-    : 'text-[#374151] [background:linear-gradient(#FFFFFF,#FFFFFF)_padding-box,linear-gradient(180deg,#F7F8FA,#D3D7DE)_border-box] hover:[background:linear-gradient(#F9FAFB,#F9FAFB)_padding-box,linear-gradient(180deg,#F1F2F5,#C9CED7)_border-box]');
+    : 'text-[#404040] [background:linear-gradient(#FFFFFF,#FFFFFF)_padding-box,linear-gradient(180deg,#F7F8FA,#D3D7DE)_border-box] hover:[background:linear-gradient(#FAFAFA,#FAFAFA)_padding-box,linear-gradient(180deg,#F1F2F5,#C9CED7)_border-box]');
 /** chips: show the options as toggle chips instead of a dropdown (short lists such as Priority). */
-export type FilterDef = { id: string; label: string; options: string[]; chips?: boolean };
-export function FilterButton({ defs, value, onChange }: { defs: FilterDef[]; value: Record<string, string>; onChange: (v: Record<string, string>) => void }) {
-  const [open, setOpen] = useState(false);
-  const n = Object.values(value).filter(Boolean).length;
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      {/* 3755:15832: 28px bordered square; applied filters show a 6px #2B5CFF dot on the icon's top-right corner (1.5px white ring), no count. */}
-      <PopoverTrigger asChild>
-        <Button variant="control" size="sm" className={cx(open && 'bg-gray-50')}>
-          <FilterIcon on={n > 0} />
-          Filter{n > 0 && <span className="sr-only">, {n} applied</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="space-y-3">
-        <div className="flex items-center justify-between"><span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Active filters</span>{n > 0 && <button type="button" className="text-xs font-medium text-[#E0243A] hover:text-[#C81E33]" onClick={() => onChange({})}>Clear all</button>}</div>
-        {defs.map((d) => d.chips ? (
-          <div key={d.id} role="group" aria-label={d.label}>
-            <span className="block text-sm leading-5 font-medium text-[#111827] mb-1.5">{d.label}</span>
-            <div className="flex flex-wrap gap-1.5">
-              {d.options.map((o) => {
-                const on = value[d.id] === o;
-                return (
-                  <button key={o} type="button" aria-pressed={on} onClick={() => onChange({ ...value, [d.id]: on ? '' : o })}
-                    className={optionPill(on)}>{o}</button>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <Field key={d.id} label={d.label}>
-            <Select value={value[d.id] ?? ''} onChange={(e) => onChange({ ...value, [d.id]: e.target.value })}>
-              <option value="">Any</option>
-              {d.options.map((o) => <option key={o}>{o}</option>)}
-            </Select>
-          </Field>
-        ))}
-      </PopoverContent>
-    </Popover>
-  );
+export type FilterDef = { id: string; label: string; options: string[]; chips?: boolean; tones?: Record<string, Tone> };
+/** Toolbar filter values: each filter holds the options ticked in its popover (none = all). */
+export type Filters = Record<string, string[]>;
+/** True when a filter is unset or includes `v`. */
+export const inFilter = (sel: string[] | undefined, v: string | null | undefined) => !sel?.length || (v != null && sel.includes(v));
+/** One Connect dropdown per field (as Connect's Status filter), each a single choice that applies straight away. */
+/** Every toolbar filter is the multi-select popover (checkbox rows, Clear and Apply), one trigger per filter. */
+export function FilterButton({ defs, value, onChange }: { defs: FilterDef[]; value: Filters; onChange: (v: Filters) => void }) {
+  return <>{defs.map((d) => <MultiFilter key={d.id} align="start" label={d.label} width={Math.max(200, ...d.options.map((o) => o.length * 8 + 96))} value={value[d.id] ?? []}
+    options={d.options.map((o) => ({ value: o, tone: d.tones?.[o] }))} onChange={(v) => onChange({ ...value, [d.id]: v })} />)}</>;
 }
 
 /* ---------- Table: inset rows, end-to-end footer bar with summary + pager ---------- */
 /** Empty cells read as a quiet grey dash, as Mercury's tables do. */
-const muteDash = (v: ReactNode) => (v === '—' ? <span className="text-[#9CA3AF]">—</span> : v);
+const muteDash = (v: ReactNode) => (v === '—' ? <span className="text-[#A3A3A3]">—</span> : v);
+const PAGER_STEP = 'h-7 px-1.5 rounded-lg inline-flex items-center gap-1 text-sm font-medium text-[#0A0A0A] hover:bg-[#F5F5F5] disabled:text-[#A3A3A3] disabled:pointer-events-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+/** Connect pager pages: all of them up to 5, otherwise 1 2 3 … last (or first … around the current … last). */
+const pageList = (n: number, cur: number): (number | '…')[] => {
+  if (n <= 5) return Array.from({ length: n }, (_, i) => i);
+  if (cur < 3) return [0, 1, 2, '…', n - 1];
+  if (cur > n - 4) return [0, '…', n - 3, n - 2, n - 1];
+  return [0, '…', cur, '…', n - 1];
+};
 export type Col<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
-export function Table<T extends { id: string }>({ cols, rows, onRow, empty, pageSize = 50, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
+export function Table<T extends { id: string }>({ cols, rows, onRow, empty, after, pageSize = 25, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
   cols: Col<T>[]; rows: T[]; onRow?: (r: T) => void; empty?: ReactNode; pageSize?: number; selected?: string;
   /** Footer text on the left, e.g. "7 properties · 2,749 units". Defaults to "N rows". */ summary?: ReactNode;
   /** Render inside a bordered card instead of full-bleed. */ card?: boolean; footerRight?: ReactNode;
-  /** false hides the footer (settings card tables, 3057:2 / 3058:2, have none). It still shows when there is more than one page, with only the range and the ‹ › pager. */ footer?: boolean;
+  /** false hides the footer (settings card tables, 3057:2 / 3058:2, have none). It still shows when there is more than one page, with only the range and the ‹ › pager.
+      'always' keeps the summary footer even on a single page (Properties shows its count, 2026-11-13). */ footer?: boolean | 'always';
   /** false shows every row and drops the pager; the footer keeps only the summary. */ paginate?: boolean;
+  /** Content under the last row, inside the scroll area (a note about the list). */ after?: ReactNode;
   /** Fill mode: rows run edge to edge (no side gutter). Default: on for 6+ columns. The whole screen follows it (see styles.css). */ fill?: boolean;
   /** Mercury-style sorted column: the header goes ink with a 12px arrow; with onToggle it flips the order. */ sort?: { key: string; dir: 'asc' | 'desc'; onToggle?: () => void };
   /** Mercury-style leading date column: the day shows on the first row of each run, blank below it; row lines inside a run start after the date column, a full line closes the run. */ group?: { label: string; get: (r: T) => string; className?: string };
@@ -359,73 +505,79 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, page
   useEffect(() => { if (!paginate || selected == null) return; const i = rows.findIndex((r) => r.id === selected); if (i >= 0) setPage(Math.floor(i / pageSize)); }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!rows.length) return <div className={cx(!card && 'flex-1 p-5')}>{empty ?? <Empty title="Nothing here" sub="Try a different tab or clear the filters." />}</div>;
   const table = (
-    /* 2820:111: 36px header, 12px medium #646A78, #E5E7EB rule; 40px rows, 14px, #F3F4F6 rules; 20px outer padding. */
-    <UITable className="text-[#111827]">
+    /* 2820:111: 36px header, 12px medium #737373, #E5E5E5 rule; 40px rows, 14px, #F5F5F5 rules; 20px outer padding. */
+    <UITable className="text-[#0A0A0A]">
       <TableHeader className="sticky top-0 z-[1]"><TableRow>{group && <TableHead className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'w-[120px]', group.className)}>{group.label}</TableHead>}{cols.map((c, i) => <TableHead key={c.key} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === cols.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), c.className)}>{sort?.key === c.key ? (
-        <button type="button" disabled={!sort.onToggle} onClick={sort.onToggle} className="relative inline-flex items-center gap-1 text-[#111827] font-medium disabled:cursor-default after:absolute after:-inset-y-1 after:-inset-x-1 after:content-['']">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button>
+        <button type="button" disabled={!sort.onToggle} onClick={sort.onToggle} className="relative inline-flex items-center gap-1 text-[#0A0A0A] font-medium disabled:cursor-default after:absolute after:-inset-y-1 after:-inset-x-1 after:content-['']">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button>
       ) : c.label}</TableHead>)}</TableRow></TableHeader>
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }, ri) => (
-          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} aria-selected={selected === r.id || undefined} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow && 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]', (group || ri === items.length - 1) && 'border-b-0')}>
-            {group && <TableCell className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'text-[#646A78] whitespace-nowrap border-b', ri === items.length - 1 || group.get(items[ri + 1].row) === group.get(r) ? 'border-transparent' : 'border-[#F3F4F6]', group.className)}>{ri === 0 || group.get(items[ri - 1].row) !== group.get(r) ? group.get(r) : null}</TableCell>}
-            {cols.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === cols.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), i === cols.length - 1 && c.label === '' && 'row-act', group && ri < items.length - 1 && 'border-b border-[#F3F4F6]', c.className)}>{muteDash(c.render(r))}</TableCell>)}
+          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} aria-selected={selected === r.id || undefined} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow ? 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]' : 'hover:bg-transparent', (group || ri === items.length - 1) && 'border-b-0')}>
+            {group && <TableCell className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'text-[#737373] whitespace-nowrap border-b', ri === items.length - 1 || group.get(items[ri + 1].row) === group.get(r) ? 'border-transparent' : 'border-[#F5F5F5]', group.className)}>{ri === 0 || group.get(items[ri - 1].row) !== group.get(r) ? group.get(r) : null}</TableCell>}
+            {cols.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === cols.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), i === cols.length - 1 && c.label === '' && 'row-act', group && ri < items.length - 1 && 'border-b border-[#F5F5F5]', c.className)}>{muteDash(c.render(r))}</TableCell>)}
           </TableRow>
         ))}
       </TableBody>
     </UITable>
   );
   const footer = (
-    /* 40px footer, #E5E7EB top rule, 12px #646A78. */
-    <div data-foot className="h-10 shrink-0 px-5 flex items-center gap-2 border-t border-line text-xs text-[#646A78] bg-white">
-      {showFooter && summary && <span>{summary}</span>}
+    /* Connect footer: #E5E5E5 top rule, 24px sides, 14px #737373 "Showing 10 of 25 entries" on the left;
+       "‹ Previous · 1 2 3 … · Next ›" on the right, the current page a 28px blue-tinted square. */
+    <div data-foot className={cx('shrink-0 px-6 flex items-center gap-2 border-t border-line text-sm text-[#737373] bg-white', card ? 'h-12' : 'h-[59px]')}>
+      <span>{showFooter && summary ? summary : `Showing ${shown.length} of ${rows.length} entries`}</span>
       <div className="ml-auto flex items-center gap-1.5">
         {footerRight}
-        {pages > 1 && <span className="mr-1">{page * pageSize + 1}–{Math.min(rows.length, (page + 1) * pageSize)} of {rows.length}</span>}
-        {pages > 1 && <>
-        <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={13} /></button>
-        <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={13} /></button>
-        </>}
+        {pages > 1 && <nav aria-label="Pages" className="flex items-center gap-1">
+          <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className={cx(PAGER_STEP, 'mr-1')}><CaretLeft size={16} strokeWidth={1.75} />Previous</button>
+          {pageList(pages, page).map((p, i) => p === '…'
+            ? <span key={`e${i}`} className="w-5 text-center text-[#0A0A0A]">…</span>
+            : <button key={p} type="button" aria-current={p === page ? 'page' : undefined} onClick={() => setPage(p)}
+                className={cx('size-7 rounded-lg text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', p === page ? 'bg-[#EDF3FF] border border-[#1A6CF8] text-[#1A6CF8]' : 'text-[#0A0A0A] hover:bg-[#F5F5F5]')}>{p + 1}</button>)}
+          <button type="button" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className={cx(PAGER_STEP, 'ml-1')}>Next<CaretRight size={16} strokeWidth={1.75} /></button>
+        </nav>}
       </div>
     </div>
   );
-  /* No left-side counts (2026-11-09): the footer shows only for real text (summary/footerRight) or to page. */
-  const foot = (showFooter && (summary || footerRight)) || pages > 1 ? footer : null;
+  /* The footer earns its row only with a pager (more than one page) or footer actions. Summary text alone
+     ("Showing 6 of 6", "Latest 100 imports") never keeps it on a single page (2026-11-13).
+     footer={false} still hides the summary and actions, but never the pager. */
+  const foot = pages > 1 || showFooter === 'always' || (showFooter && footerRight != null) ? footer : null;
   if (card) return <Card className="overflow-hidden">{table}{foot}</Card>;
   /* Inset Mercury-style: the rows sit inside the --gx gutter (set on <main> from data-gx); the footer stays end to end. */
-  return <div {...((fill ?? cols.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="flex-1 min-h-0 flex flex-col"><div data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">{table}</div>{foot}</div>;
+  return <div {...((fill ?? cols.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="flex-1 min-h-0 flex flex-col"><div data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">{table}{after && <div className="pt-6 pb-6 px-[var(--cx,12px)]">{after}</div>}</div>{foot}</div>;
 }
 
 /* ---------- Empty state ---------- */
-/** Centred empty state, no card (3103:2): 14px semibold title, 14px #646A78 sub up to 440px, actions 16px below. */
+/** Centred empty state, no card (3103:2): 14px semibold title, 14px #737373 sub up to 440px, actions 16px below. */
 export function Empty({ title, sub, icon: I = MagnifyingGlass, action, art }: { title: string; sub?: string; icon?: Icon; action?: ReactNode; /** A Figma empty-state illustration in place of the icon tile. */ art?: Illo }) {
   return (
     <div className="py-14 flex flex-col items-center text-center">
       {art ? <Illustration name={art} className="block w-[203px] h-[160px] mb-5" /> : <div className="size-16 rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-4"><I size={28} weight="duotone" className="text-[#3B82F6]" /></div>}
-      <div className="text-sm font-semibold text-[#111827]">{title}</div>
-      {sub && <div className="text-sm leading-5 text-[#646A78] mt-1 max-w-[440px]">{sub}</div>}
+      <div className="text-sm font-semibold text-[#0A0A0A]">{title}</div>
+      {sub && <div className="text-sm leading-5 text-[#737373] mt-1 max-w-[440px]">{sub}</div>}
       {action && <div className="mt-4 flex gap-2">{action}</div>}
     </div>
   );
 }
 
 /* ---------- Alert note: white ground, tone border, coloured title ---------- */
-/** 3056:2 / 3031:2: white ground, 8px radius, tone border at 30–35%, 16px outline icon, 14px medium tone title, 12px #646A78 sub.
- *  `grey` is the neutral info box (2825:897): #F9FAFB ground, #E5E7EB border, #374151 title. */
-export function Note({ tone = 'amber', title, children, icon: I }: { tone?: 'amber' | 'red' | 'blue' | 'green' | 'grey'; title: string; children?: ReactNode; icon?: Icon }) {
-  const c = { amber: ['#A16207', '#A16207', '#A1620759'], red: ['#E0243A', '#E0243A', '#E0243A4D'], blue: ['#2563EB', '#2563EB', '#2563EB4D'], green: ['#0B8A4C', '#0B8A4C', '#0B8A4C4D'], grey: ['#6B7280', '#374151', '#E5E7EB'] }[tone];
+/** 3056:2 / 3031:2: white ground, 8px radius, tone border at 30–35%, 16px outline icon, 14px medium tone title, 12px #737373 sub.
+ *  `grey` is the neutral info box (2825:897): #FAFAFA ground, #E5E5E5 border, #404040 title. */
+export function Note({ tone = 'amber', title, children, icon: I, plain }: { tone?: 'amber' | 'red' | 'blue' | 'green' | 'grey'; title: string; children?: ReactNode; icon?: Icon; /** No box: icon and text sit straight on the page. */ plain?: boolean }) {
+  const c = { amber: ['#A16207', '#A16207', '#A1620759'], red: ['#E0243A', '#E0243A', '#E0243A4D'], blue: ['#2563EB', '#2563EB', '#2563EB4D'], green: ['#0B8A4C', '#0B8A4C', '#0B8A4C4D'], grey: ['#737373', '#404040', '#E5E5E5'] }[tone];
   return (
-    <div className={cx('rounded-lg border px-3 py-2.5 flex items-center gap-2.5', tone === 'grey' ? 'bg-[#F9FAFB]' : 'bg-white')} style={{ borderColor: c[2] }}>
+    <div className={cx('flex items-center gap-2.5', !plain && 'rounded-lg border px-3 py-2.5', !plain && (tone === 'grey' ? 'bg-[#FAFAFA]' : 'bg-white'))} style={plain ? undefined : { borderColor: c[2] }}>
       {I && <I size={16} weight="regular" style={{ color: c[0] }} className="shrink-0" />}
-      <div className="min-w-0"><div className="text-sm leading-5 font-medium" style={{ color: c[1] }}>{title}</div>{children && <div className="text-xs leading-4 text-[#646A78]">{children}</div>}</div>
+      <div className="min-w-0"><div className="text-sm leading-5 font-medium" style={{ color: c[1] }}>{title}</div>{children && <div className="text-xs leading-4 text-[#737373]">{children}</div>}</div>
     </div>
   );
 }
 
 /* ---------- Form controls ---------- */
-/** 3054:2: 14px medium #111827 label, 6px gap, 32px control; hint 12px #646A78. */
+/** 3054:2: 14px medium #0A0A0A label, 6px gap, 32px control; hint 12px #737373. */
 export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
   /* An error replaces the hint, in red, under the field it belongs to. */
-  return <Label className="block"><span className="block text-sm leading-5 font-medium text-[#111827] mb-1.5">{label}</span>{children}{error ? <span role="alert" className="block text-xs leading-4 font-normal text-[#C11F14] mt-1.5">{error}</span> : hint && <span className="block text-xs leading-4 font-normal text-[#646A78] mt-1.5">{hint}</span>}</Label>;
+  return <Label className="block"><span className="block text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{label}</span>{children}{error ? <span role="alert" className="block text-xs leading-4 font-normal text-[#C11F14] mt-1.5">{error}</span> : hint && <span className="block text-xs leading-4 font-normal text-[#737373] mt-1.5">{hint}</span>}</Label>;
 }
 /* shadcn Input / Textarea / NativeSelect, styled in ./shadcn. */
 export const Input = (p: React.ComponentProps<typeof UIInput>) => <UIInput {...p} />;
@@ -437,11 +589,11 @@ export function Dropdown({ value, onChange, options, icon: I, className, ariaLab
   const sel = options.find((o) => o.value === value);
   return (
     <DropdownMenu modal={false}>
-      {/* Same box as the old select: 32px, #D1D5DB border, 8px radius, chevrons-up-down at the right. */}
+      {/* Same box as the old select: 32px, #D4D4D4 border, 8px radius, chevrons-up-down at the right. */}
       <DropdownMenuTrigger id={id} aria-label={ariaLabel} disabled={disabled}
-        className={cx('h-data w-full min-w-0 flex items-center gap-2 rounded-lg border border-input bg-background pl-2.5 pr-2 text-sm text-[#111827] text-left outline-none transition-[border-color,box-shadow] duration-150',
+        className={cx('h-data w-full min-w-0 flex items-center gap-2 rounded-lg border border-input bg-background pl-2.5 pr-2 text-sm text-[#0A0A0A] text-left outline-none transition-[border-color,box-shadow] duration-150',
           'hover:bg-gray-50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25 disabled:opacity-50 disabled:cursor-not-allowed', className)}>
-        {I && <I size={14} className="text-[#646A78] shrink-0" />}
+        {I && <I size={14} className="text-[#737373] shrink-0" />}
         <span className={cx('flex-1 min-w-0 truncate', !sel && 'text-gray-400')}>{sel ? sel.label : placeholder ?? 'Select'}</span>
         <ChevronsUpDown size={14} className="text-gray-400 shrink-0" />
       </DropdownMenuTrigger>
@@ -477,7 +629,7 @@ export function Select({ value, defaultValue, onChange, children, className, dis
   );
 }
 export const Textarea = (p: React.ComponentProps<'textarea'>) => <UITextarea {...p} />;
-/** 3056:2: 32×18 track, 14px knob, green #0B8A4C on, #D1D5DB off. */
+/** 3056:2: 32×18 track, 14px knob, green #0B8A4C on, #D4D4D4 off. */
 export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
   return <UISwitch checked={checked} onCheckedChange={onChange} aria-label={label} />;
 }
@@ -503,7 +655,7 @@ export function listNav<T>(rows: readonly T[], isCur: (r: T) => boolean, go: (r:
   if (i < 0 || rows.length < 2) return undefined;
   return { prev: i > 0 ? () => go(rows[i - 1]) : undefined, next: i < rows.length - 1 ? () => go(rows[i + 1]) : undefined, pos: `${i + 1} of ${rows.length}` };
 }
-const navBtn = 'size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const navBtn = 'size-7 rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 /** The list row of the open record, outside the sheet: a table row, a list option, or a queue row. */
 const SELECTED_ROW = '[data-state="selected"], [aria-selected="true"], [data-selected]';
 /** Step to another record, then bring its (now highlighted) row into view in the list behind the sheet. */
@@ -515,7 +667,8 @@ function step(go: () => void) {
     row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }));
 }
-/** Header chevrons (Mercury drawer): ↑/↓ or K/J step through the list without closing the sheet. */
+/** Header chevrons (Connect drawer: two 30px bordered buttons before the title): ↑/↓ or K/J step through the list without closing the sheet. */
+/** Previous / next record as ⌃ ⌄: every panel steps up and down its list, never left and right (2026-11-13). */
 export function SheetNavButtons({ nav }: { nav?: SheetNav }) {
   useEffect(() => {
     if (!nav) return;
@@ -530,11 +683,9 @@ export function SheetNavButtons({ nav }: { nav?: SheetNav }) {
   }, [nav]);
   if (!nav) return null;
   return (
-    <div className="flex items-center gap-1 shrink-0">
-      {nav.pos && <span className="text-xs text-gray-500 tabular-nums mr-1.5">{nav.pos}</span>}
-      <button type="button" className={navBtn} onClick={() => nav.prev && step(nav.prev)} disabled={!nav.prev} aria-label="Previous" title="Previous (↑)"><CaretUp size={14} /></button>
-      <button type="button" className={navBtn} onClick={() => nav.next && step(nav.next)} disabled={!nav.next} aria-label="Next" title="Next (↓)"><CaretDown size={14} /></button>
-      <span className="w-px h-4 bg-line ml-1.5" aria-hidden />
+    <div className="flex items-center gap-3 shrink-0">
+      <button type="button" className={navBtn} onClick={() => nav.prev && step(nav.prev)} disabled={!nav.prev} aria-label={nav.pos ? `Previous (${nav.pos})` : 'Previous'} title="Previous (↑)"><CaretUp size={16} strokeWidth={1.75} /></button>
+      <button type="button" className={navBtn} onClick={() => nav.next && step(nav.next)} disabled={!nav.next} aria-label={nav.pos ? `Next (${nav.pos})` : 'Next'} title="Next (↓)"><CaretDown size={16} strokeWidth={1.75} /></button>
     </div>
   );
 }
@@ -552,8 +703,8 @@ export function Sheet({ open, onClose, title, sub, children, footer, width = 520
     <UISheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent style={{ width }} {...noDesc(sub)}>
         <SheetHeader>
-          <div className="min-w-0 flex-1"><SheetTitle>{title}</SheetTitle>{sub && <SheetDescription>{sub}</SheetDescription>}</div>
           <SheetNavButtons nav={nav} />
+          <div className="min-w-0 flex-1"><SheetTitle>{title}</SheetTitle>{sub && <SheetDescription>{sub}</SheetDescription>}</div>
         </SheetHeader>
         <SheetBody>{children}</SheetBody>
         {footer && <SheetFooter>{footer}</SheetFooter>}
@@ -561,28 +712,62 @@ export function Sheet({ open, onClose, title, sub, children, footer, width = 520
     </UISheet>
   );
 }
-/** 3032:2 / 2825:897: 16px semibold title, optional 14px #646A78 `sub`; 64px #F9FAFB footer.
+/** 3032:2 / 2825:897: 16px semibold title, optional 14px #737373 `sub`; 64px #FAFAFA footer.
  *  Modals carry no header icon (2026-11-07); `icon` and `tone` are accepted for old call sites and ignored. */
 export function Dialog({ open, onClose, title, sub, children, footer, width = 480 }: { open: boolean; onClose: () => void; title: string; sub?: ReactNode; icon?: Icon; tone?: Tone; children: ReactNode; footer?: ReactNode; width?: number }) {
+  const confirm = footer != null && isConfirmTitle(title);
   return (
     <UIDialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent style={{ maxWidth: width }} {...noDesc(sub)}>
-        <DialogHeader>
-          <div className="flex items-center gap-2.5">
-            <DialogTitle>{title}</DialogTitle>
-            <DialogCloseButton />
-          </div>
+      <DialogContent style={{ maxWidth: width }} {...noDesc(sub)} {...(confirm ? noAutoFocus : {})}>
+        {confirm ? <ConfirmFrame title={title} sub={sub} footer={footer}>{children}</ConfirmFrame> : <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>}
+      </DialogContent>
+    </UIDialog>
+  );
+}
+
+/** A dialog that asks the user to confirm something has a question for a title ("Delete Kitchen shared with?").
+ *  Every such dialog — Confirm, Dialog and inventory's Modal alike — uses ConfirmFrame (2026-11-13). */
+export const isConfirmTitle = (t: ReactNode) => typeof t === 'string' && t.trim().endsWith('?');
+/** Confirm dialogs open without a focus ring on either button. */
+export const noAutoFocus = { onOpenAutoFocus: (e: Event) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); } };
+/** The confirm layout: 56px header (16px title, bordered ✕), the consequence as grey text plus any `children`,
+ *  then a 64px footer with both buttons on the right: the safe choice, then the action (2026-11-13). */
+export function ConfirmFrame({ title, sub, children, footer }: { title: ReactNode; sub?: ReactNode; children?: ReactNode; footer: ReactNode }) {
+  const body = Children.toArray(children).length > 0;
+  return (
+    <>
+      <div className="h-14 shrink-0 border-b border-[#E5E5E5] pl-6 pr-4 flex items-center gap-3">
+        <DialogTitle className="flex-1 text-base leading-5 font-medium text-[#0A0A0A]">{title}</DialogTitle>
+        <DialogCloseButton />
+      </div>
+      {(sub || body) && (
+        <div className="px-6 py-5 flex flex-col gap-4">
           {sub && <DialogDescription>{sub}</DialogDescription>}
-        </DialogHeader>
-        <DialogBody>{children}</DialogBody>
-        {footer && <DialogFooter>{footer}</DialogFooter>}
+          {children}
+        </div>
+      )}
+      <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center justify-end gap-2 [&_button>svg]:hidden">{footer}</div>
+    </>
+  );
+}
+
+/** Confirm (2026-11-13), in the Add property modal's frame: 56px header (16px title, plain ✕), a grey line and
+ *  optional `children` (what the choice affects), then a 64px footer with both buttons on the right: the safe choice as a white bordered button, then the
+ *  confirming one (red when `danger`). Opens without a focus ring on either button. */
+export function Confirm({ open, onClose, title, sub, danger, cancel = 'Cancel', confirm, onConfirm, children }: {
+  open: boolean; onClose: () => void; title: string; sub?: ReactNode; icon?: Icon; danger?: boolean; cancel?: string; confirm: string; onConfirm: () => void; children?: ReactNode;
+}) {
+  return (
+    <UIDialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent style={{ maxWidth: 440 }} {...noDesc(sub)} {...noAutoFocus}>
+        <ConfirmFrame title={title} sub={sub} footer={<><Button onClick={onClose}>{cancel}</Button><Button variant={danger ? 'danger' : 'primary'} icon={null} onClick={onConfirm}>{confirm}</Button></>}>{children}</ConfirmFrame>
       </DialogContent>
     </UIDialog>
   );
 }
 
 /* Mercury-style detail sheet body (2026-11-09): a hero (avatar, 20px Medium name, grey meta, chips), then titled
-   sections split by a 1px #F3F4F6 rule. Section rows: 12px-gap grid, grey label column, ink value. */
+   sections split by a 1px #F5F5F5 rule. Section rows: 12px-gap grid, grey label column, ink value. */
 /** `action`: a secondary action that sits top-right of the hero, keeping the footer to its main choices. */
 export function SheetHero({ name, meta, avatar = true, action, children }: { name: ReactNode; meta?: ReactNode; avatar?: boolean; action?: ReactNode; children?: ReactNode }) {
   return (
@@ -599,24 +784,24 @@ export function SheetHero({ name, meta, avatar = true, action, children }: { nam
     </div>
   );
 }
+/** Connect drawer section: a full-width #FAFAFA strip with the Geist Mono uppercase title, then a 20px body over a #E5E5E5 rule. */
 export function SheetSection({ title, rows, children }: { title: string; rows?: [string, ReactNode][]; children?: ReactNode }) {
   return (
-    <section className="border-t border-[#F3F4F6] py-5 first:border-t-0 first:pt-0 last:pb-0">
-      <h3 className="text-xs font-medium text-gray-500 mb-3">{title}</h3>
-      {rows && (
-        <dl className="grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
-          {rows.map(([k, v]) => <Fragment key={k}><dt className="text-gray-500">{k}</dt><dd className="text-ink min-w-0 break-words">{v}</dd></Fragment>)}
-        </dl>
-      )}
-      {children}
+    <section className="-mx-5 first:-mt-5 last:-mb-5">
+      <h3 className="h-9 px-5 flex items-center bg-[#FAFAFA] font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#171717]">{title}</h3>
+      <div className="p-5">
+        {rows && <DL rows={rows} />}
+        {children && <div className={rows ? 'mt-4' : undefined}>{children}</div>}
+      </div>
     </section>
   );
 }
 
+/** Connect key/value rows: label left in ink, value right in medium #737373 (numbers and dates in Geist Mono), 16px apart. */
 export function DL({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-[140px_1fr] gap-y-2.5 text-sm">
-      {rows.map(([k, v]) => <Fragment key={k}><dt className="text-gray-500">{k}</dt><dd className="text-ink">{v}</dd></Fragment>)}
+    <dl className="flex flex-col gap-4 text-sm leading-5">
+      {rows.map(([k, v]) => <div key={k} className="flex items-start justify-between gap-4"><dt className="shrink-0 text-[#0A0A0A]">{k}</dt><dd className="min-w-0 text-right font-medium text-[#737373] break-words">{monoize(muteDash(v))}</dd></div>)}
     </dl>
   );
 }

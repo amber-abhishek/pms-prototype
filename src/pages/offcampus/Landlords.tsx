@@ -1,11 +1,12 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChatCenteredText, CheckCircle, ClipboardText, Eye, Info, LinkSimple, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, listNav, Empty, PageHeader, SearchInput, Sheet, SheetHero, SheetSection, Status, Table, Tabs } from '../../components/ui';
+import { Avatar, Button, listNav, Empty, PageHeader, SearchInput, Sheet, SheetHero, SheetSection, Status, Table, Tabs, PIN } from '../../components/ui';
 import { useOpen, useTab } from '../hooks';
 import { SIGNUP_LINK, stamp, useOc, type LandlordApp, type LandlordStatus } from '../../data/offcampus';
-import { EmptyArt, NoteDialog, ODialog, RowLink, Tag, Title } from './parts';
+import { Checkbox } from '../../components/shadcn/checkbox';
+import { BulkAction, BulkBar, EmptyArt, NoteDialog, ODialog, Tag, Title } from './parts';
 
 type TabId = 'all' | 'submitted' | 'awaiting' | 'approved' | 'rejected' | 'suspended';
 const TABS: { id: TabId; label: string; status?: LandlordStatus }[] = [
@@ -25,6 +26,9 @@ export function Landlords() {
   const [dlg, setDlg] = useState<'info' | 'approve' | 'reject' | null>(null);
   const busy = useRef(false);
   const sel = all.find((l) => l.id === open);
+  /* Ticked rows; a new tab or search starts a fresh selection. */
+  const [ticked, setTicked] = useState<string[]>([]);
+  useEffect(() => setTicked([]), [tab, q]);
 
   const st = TABS.find((t) => t.id === tab)?.status;
   const t = q.trim().toLowerCase();
@@ -55,16 +59,32 @@ export function Landlords() {
     toast.success(`${l.name} updated their application`, { description: 'Portfolio is now 5 properties.' });
   };
 
+  /* Bulk approve takes the ticked applications still waiting on a decision; one Undo puts them all back. */
+  const pending = (l: LandlordApp) => l.status === 'Submitted' || l.status === 'Awaiting info';
+  const approvable = ticked.map((id) => all.find((x) => x.id === id)).filter((l): l is LandlordApp => !!l && pending(l));
+  const bulkApprove = () => guard(() => {
+    const before = approvable;
+    const ids = new Set(before.map((l) => l.id));
+    const at = stamp();
+    set('landlords', (ls) => ls.map((x) => (ids.has(x.id) ? { ...x, status: 'Approved' as const, reviewed: at } : x)));
+    setTicked([]);
+    toast.success(`${before.length} ${before.length === 1 ? 'landlord' : 'landlords'} approved`, { description: before.length === 1 ? 'Their invite to the landlord portal goes when this closes.' : 'Their invites to the landlord portal go when this closes.', duration: 8000,
+      action: { label: 'Undo', onClick: () => set('landlords', (ls) => ls.map((x) => before.find((b) => b.id === x.id) ?? x)) } });
+  });
+  const allTicked = rows.length > 0 && rows.every((l) => ticked.includes(l.id));
+  const someTicked = rows.some((l) => ticked.includes(l.id));
+
   /* Every tab shows its count, selected or not, as on the other filter tabs. */
   const counted = (id: TabId) => { const st = TABS.find((x) => x.id === id)?.status; return rows0.filter((l) => !st || l.status === st).length; };
 
   return (
     <>
       <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Landlord applications" />
-      <div className="flex-1 min-h-0 flex flex-col">
-        <Title title="Landlord applications"><div className="w-[260px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or email" /></div></Title>
-        <div className="px-[var(--tx,16px)] pb-3 flex items-center gap-3 empty:hidden">
+      <div className="flex-1 min-h-0 flex flex-col relative">
+        <Title title="Landlord applications" />
+        <div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3">
           <Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: counted(x.id) }))} />
+          <div className="ml-auto w-[320px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or email" /></div>
         </div>
         {!rows0.length ? <NoLandlords /> : (
           <Table fill rows={rows} onRow={(l) => setOpen(l.id)} selected={open ?? undefined}
@@ -73,13 +93,17 @@ export function Landlords() {
               ? <Empty title="No landlord matches that search" sub="Try another name or clear the search." />
               : <Empty icon={ClipboardText} title={`No ${TABS.find((x) => x.id === tab)?.label.toLowerCase()} applications`} sub="Try another tab." />}
             cols={[
-              { key: 'n', label: 'Landlord', render: (l) => <div className="leading-tight"><div className="text-sm font-medium text-ink">{l.name}</div><div className="text-xs text-gray-500">{l.email}</div></div> },
+              { key: 'sel', label: <Checkbox aria-label="Select all" checked={allTicked ? true : someTicked ? 'indeterminate' : false} onCheckedChange={(v) => setTicked(v === true ? rows.map((l) => l.id) : [])} />, className: 'w-12',
+                render: (l) => <span onClick={(e) => e.stopPropagation()} className="inline-flex"><Checkbox aria-label={`Select ${l.name}`} checked={ticked.includes(l.id)} onCheckedChange={(v) => setTicked((ts) => (v === true ? [...ts, l.id] : ts.filter((x) => x !== l.id)))} /></span> },
+              { key: 'n', label: 'Landlord', render: (l) => <div className="flex items-center gap-3 min-w-0"><Avatar name={l.name} size={32} /><div className="leading-tight min-w-0"><div className="text-sm font-medium text-ink truncate">{l.name}</div><div className="text-xs text-gray-500 truncate">{l.email}</div></div></div> },
               { key: 'p', label: 'Portfolio', render: (l) => <div className="leading-tight"><div className="text-sm font-medium">{l.portfolio} {l.portfolio === 1 ? 'property' : 'properties'}</div><div className="text-xs text-gray-500">{l.areas.join(', ')}</div></div> },
               { key: 'a', label: 'Applied', render: (l) => <span className="text-gray-500">{l.applied}</span> },
               { key: 's', label: 'Status', render: (l) => <LStatus s={l.status} /> },
-              { key: 'x', label: '', className: 'text-right w-32', render: (l) => <RowLink onClick={() => setOpen(l.id)} /> },
             ]} />
         )}
+        <BulkBar count={ticked.length} onClear={() => setTicked([])}>
+          {approvable.length > 0 && <BulkAction onClick={bulkApprove}>Approve {approvable.length}</BulkAction>}
+        </BulkBar>
       </div>
 
       <Sheet open={!!sel} onClose={() => setOpen(null)} width={560} title="Landlord application" nav={listNav(rows, (l) => l.id === open, (l) => setOpen(l.id))}
@@ -126,7 +150,7 @@ export function Landlords() {
       <NoteDialog open={dlg === 'reject' && !!sel} onClose={() => setDlg(null)} icon={XCircle} danger title="Reject this application"
         sub="Your reason is emailed to the landlord. They can apply again later." label="Why are you rejecting it?" placeholder="e.g. None of the properties are in Durham."
         submit="Reject" onSubmit={(n) => sel && reject(sel, n)} />
-      <ODialog open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title="Approve this landlord"
+      <ODialog confirm open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title="Approve this landlord"
         sub="They will be invited to the landlord portal and can submit properties to you."
         footer={<><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => sel && approve(sel)}>Approve</Button></>} />
     </>

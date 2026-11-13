@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlarmClock, AlarmClockOff, ArrowDown, ArrowUp, ArrowsLeftRight, Bell, CalendarBlank, CalendarX, Check, CheckCircle, Plus, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Empty, Field, FilterButton, Input, PageHeader, Select, Sheet, SheetSection, Tabs, cx, toolbarCls, listNav, PageHeading } from '../../components/ui';
+import { Button, Empty, Field, FilterButton, inFilter, type Filters, Input, PageHeader, Select, Sheet, SheetSection, Tabs, cx, toolbarCls, PIN, listNav, PageHeading } from '../../components/ui';
 import { useOpen } from '../hooks';
 import { useEmpty } from '../../data/empty';
 import { DONE_EARLIER, EXTRAS, ME, PEOPLE, TOM_HIDDEN, useHome, type CaseId, type Due, type HTask } from '../../data/home';
@@ -14,7 +14,7 @@ import { SnoozeMenu, useSnooze } from './Snooze';
 /** Sortable column head, same look as `Table sort`: ink label + arrow; click flips the order. */
 function SortHead({ desc, onToggle, children }: { desc: boolean; onToggle: () => void; children: ReactNode }) {
   const A = desc ? ArrowDown : ArrowUp;
-  return <button type="button" onClick={onToggle} aria-label={`Sorted ${desc ? 'latest' : 'soonest'} first, click to flip`} className="inline-flex items-center gap-1 text-[#111827] font-medium">{children}<A size={12} /></button>;
+  return <button type="button" onClick={onToggle} aria-label={`Sorted ${desc ? 'latest' : 'soonest'} first, click to flip`} className="inline-flex items-center gap-1 font-mono uppercase text-[#0A0A0A] font-medium">{children}<A size={12} /></button>;
 }
 
 const order: Record<Due, number> = { overdue: 0, today: 1, week: 2 };
@@ -76,7 +76,7 @@ function MyTasks() {
   const change = useChange('main');
   const [open, setOpen] = useOpen();
   const [tab, setTab] = useState<MainTab>('mine');
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<Filters>({});
   const [desc, setDesc] = useState(false);
   const [showWeek, setShowWeek] = useState(false);
 
@@ -92,8 +92,8 @@ function MyTasks() {
 
   const shown = useMemo(() => {
     let base = tab === 'mine' ? mineRows : tab === 'team' ? openRows : tab === 'snoozed' ? snoozedRows : doneRows;
-    if (f.from) base = base.filter((r) => r.from?.label.startsWith(f.from));
-    if (f.owner) base = base.filter((r) => r.owner === f.owner);
+    if (f.from?.length) base = base.filter((r) => f.from.some((a) => r.from?.label.startsWith(a)));
+    base = base.filter((r) => inFilter(f.owner, r.owner));
     return base;
   }, [tab, rows, f]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -113,17 +113,19 @@ function MyTasks() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <PageHeader icon={CheckCircle} title="My tasks"><NewTaskButton scope="main" /></PageHeader>
-      <PageHeading right={<>
-        <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />
-      </>} />
-      <div className={cx(toolbarCls, '!pt-0 empty:hidden')}>
+      <PageHeader icon={CheckCircle} title="My tasks" search><NewTaskButton scope="main" /></PageHeader>
+      {/* One toolbar row: tabs on the left, the From and Owner dropdowns on the right. */}
+      <PageHeading />
+      <div {...PIN} className={toolbarCls}>
         <Tabs value={tab} onChange={(v) => { setTab(v); setShowWeek(false); }} tabs={[
           { id: 'mine', label: 'Mine', count: mineCount },
           { id: 'team', label: 'Team', count: openRows.length },
           { id: 'snoozed', label: 'Snoozed', count: snoozedRows.length },
           { id: 'done', label: 'Done', count: (emptyDemo ? 0 : DONE_EARLIER) + doneRows.length },
         ]} />
+        <div className="ml-auto flex items-center gap-2">
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />
+        </div>
       </div>
 
       {caughtUp ? (
@@ -133,7 +135,7 @@ function MyTasks() {
         </CaughtUp>
       ) : (
         <div data-inset data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">
-          <div data-head className="grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] h-10 items-center text-xs font-medium text-gray-500 border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-4">
+          <div data-head className="grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] h-[42px] items-center font-mono uppercase text-[13px] leading-5 tracking-[0.02em] font-medium text-[#737373] border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-4">
             <span className="col-span-2 !pl-[var(--cx,12px)]">Task</span><span>From</span><span><SortHead desc={desc} onToggle={() => setDesc((d) => !d)}>{tab === 'done' ? 'Done' : tab === 'snoozed' ? 'Back' : 'Due'}</SortHead></span><span>Owner</span><span />
           </div>
           {tab === 'snoozed' ? (
@@ -148,7 +150,8 @@ function MyTasks() {
               : <Empty art="caughtUp" icon={CheckCircle} title="Nothing due this week" sub="New tasks arrive from Applications, Requests, Maintenance and Bookings." />
           ) : ordered.map(({ g, list }) => (
             <div key={g}>
-              <div className="h-8 pl-[var(--cx,12px)] pr-[var(--cx,12px)] flex items-center text-xs bg-[#F9FAFB] border-b border-line"><span className="font-medium text-ink">{groupLabel[g]}</span><span className="text-gray-500 ml-1">· {list.length}</span></div>
+              {/* Group rows are white so they don't read as a second table header. */}
+              <div className="h-10 pl-[var(--cx,12px)] pr-[var(--cx,12px)] flex items-center gap-1.5 text-sm leading-5 bg-white border-b border-[#E5E5E5]"><span className="font-medium text-ink">{groupLabel[g]}</span><span className="font-mono text-xs text-[#737373] tabular-nums">{list.length}</span></div>
               {list.map((r) => <MainRow key={r.id} t={r} sel={open === r.id} handed={tab === 'mine' && r.owner !== ME} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} />)}
             </div>
           ))}
@@ -188,12 +191,12 @@ function MainRow({ t, handed, sel, onOpen, onCheck, onWake }: { t: HTask; handed
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(); }}
       style={{ transitionDuration: `${phase === 'leaving' ? LEAVE_MS : ROW_IN_MS}ms` }}
       aria-selected={sel || undefined}
-      className={cx(sel && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', 'group grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] items-center border-b border-[#F3F4F6] last:border-b-transparent text-sm cursor-pointer hover:bg-[#F9FAFB] focus-visible:bg-[#F9FAFB] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
+      className={cx(sel && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', 'group grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] items-center border-b border-[#F5F5F5] last:border-b-transparent text-sm cursor-pointer hover:bg-[#FAFAFA] focus-visible:bg-[#FAFAFA] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
         closed ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100')}>
       <span className="pl-[var(--cx,12px)]"><Box checked={done} disabled={handed} label={done ? `Mark “${t.title}” not done` : `Mark “${t.title}” done`} onChange={check} /></span>
       <span title={t.title} className={cx('truncate px-4 font-medium transition-colors duration-150', handed || done ? 'text-gray-400' : 'text-ink', done && 'line-through')}>{t.title}</span>
       <span className="flex items-center gap-1.5 px-4 text-gray-500 truncate">{I && <I size={14} className="text-gray-400 shrink-0" />}{t.from?.label}</span>
-      <span className="px-4">{t.done ? <span className="text-xs text-gray-500">{t.doneLabel}</span> : t.snoozed ? <span className="inline-flex items-center gap-1.5 text-[#646A78]"><AlarmClock size={14} className="text-gray-400" />{t.snoozed.label}</span> : <DuePill t={t} />}</span>
+      <span className="px-4">{t.done ? <span className="text-xs text-gray-500">{t.doneLabel}</span> : t.snoozed ? <span className="inline-flex items-center gap-1.5 text-[#737373]"><AlarmClock size={14} className="text-gray-400" />{t.snoozed.label}</span> : <DuePill t={t} />}</span>
       <span className="px-3" title={t.owner}><Who name={t.owner} grad /></span>
       <span className="flex justify-center">
         {t.snoozed && onWake ? (
@@ -272,7 +275,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
         </div>
       )}
       <PageHeading />
-      <div className={cx(toolbarCls, '!pt-0')}>
+      <div {...PIN} className={toolbarCls}>
         <Tabs value={tab} onChange={setTab} tabs={[
           { id: 'overdue', label: 'Overdue', count: n('overdue') },
           { id: 'today', label: 'Today', count: n('today') },
@@ -296,7 +299,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
           {moving.map(({ row: r, motion }) => (
             <div key={r.id} {...rowAttrs(r.id, motion)} role="button" tabIndex={0} onClick={() => setOpen(r.id)} onKeyDown={(e) => { if (e.key === 'Enter') setOpen(r.id); }}
               aria-selected={open === r.id || undefined}
-              className={cx(open === r.id && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', "grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] h-11 items-center border-b border-[#F3F4F6] last:border-b-0 text-sm cursor-pointer hover:bg-[#F9FAFB] outline-none focus-visible:bg-[#F9FAFB]")}>
+              className={cx(open === r.id && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', "grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] h-11 items-center border-b border-[#F5F5F5] last:border-b-0 text-sm cursor-pointer hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA]")}>
               <span className="pl-[var(--cx,12px)]">
                 <Box checked={sel.includes(r.id) || r.done} disabled={r.done} label={`Select “${r.title}”`}
                   onChange={(v) => setSel((s) => (v ? [...s, r.id] : s.filter((id) => id !== r.id)))} />
@@ -314,8 +317,10 @@ function TeamBoard({ scope }: { scope: CaseId }) {
       {sel.length > 0 && !showBanner && (
         <div className="h-12 shrink-0 px-5 flex items-center gap-3 border-t border-line text-sm">
           <span className="text-gray-600">{sel.length} selected</span>
-          <Button size="sm" icon={Check} onClick={() => { change((rs) => rs.map((r) => (sel.includes(r.id) ? { ...r, done: true, doneBy: ME } : r)), `${sel.length} marked as done`); setSel([]); }}>Mark done</Button>
-          <Button size="sm" variant="ghost" onClick={() => setSel([])}>Clear</Button>
+          <span className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="danger-ghost" icon={null} onClick={() => setSel([])}>Clear</Button>
+            <Button size="sm" icon={Check} onClick={() => { change((rs) => rs.map((r) => (sel.includes(r.id) ? { ...r, done: true, doneBy: ME } : r)), `${sel.length} marked as done`); setSel([]); }}>Mark done</Button>
+          </span>
         </div>
       )}
       <TaskSheet scope={scope} task={task} nav={listNav(moving.map((m) => m.row), (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />
@@ -333,7 +338,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
         </div>
         </SheetSection>
         <SheetSection title="Where they go">
-        <div className="rounded-xl border border-line px-3.5 py-1 divide-y divide-[#F3F4F6]">
+        <div className="rounded-xl border border-line px-3.5 py-1 divide-y divide-[#F5F5F5]">
           <div className="flex items-center gap-2.5 py-2 text-sm"><CheckCircle size={16} className="text-[#0B8A4C]" /><span className="flex-1 font-medium">{toAishaN} tasks at Collingwood</span><span className="text-xs text-gray-500">Aisha covers Collingwood</span></div>
           <div className="flex items-center gap-2.5 py-2 text-sm"><XCircle size={16} className="text-[#B91C1C]" /><span className="flex-1 font-medium">{toMeN} tasks at Ustinov</span><span className="text-xs text-[#B91C1C] max-w-[180px]">Aisha doesn’t cover Ustinov · they come to you</span></div>
         </div>
@@ -350,7 +355,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
 /* Shows on row hover or keyboard focus, and stays while its menu is open. */
 const RowAction = ({ label, children, ...p }: { label: string; children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
   <button type="button" aria-label={label} title={label.split(' “')[0]} {...p}
-    className="size-7 rounded-md flex items-center justify-center text-gray-500 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-[#F3F4F6] hover:bg-[#F3F4F6] hover:text-ink outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+    className="size-7 rounded-md flex items-center justify-center text-gray-500 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-[#F5F5F5] hover:bg-[#F5F5F5] hover:text-ink outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
     {children}
   </button>
 );

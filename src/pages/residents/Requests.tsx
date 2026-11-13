@@ -4,7 +4,7 @@ import { ArrowsLeftRight, CalendarBlank, Car, Check, CheckCircle, Clock, Envelop
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { useRms, type ReqKind, type ReqStatus, type ResRequest } from '../../data/residents';
-import { Button, Check as CheckBox, Empty, Field, FilterButton, Input, Note, Pill, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, gbp, listNav, type SheetNav } from '../../components/ui';
+import { Button, Check as CheckBox, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, gbp, listNav, type SheetNav } from '../../components/ui';
 import { Modal, Person, RHeader, RoomMove, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 
@@ -23,10 +23,10 @@ export function RequestsList() {
   const setOpen = (id: string | null) => setSp((p) => { const x = new URLSearchParams(p); if (id) x.set('open', id); else x.delete('open'); return x; }, { replace: !id });
   const { requests, patch } = useRms();
   const [tab, setTab] = useTab<Tab>('Open');
-  const [f, setF] = useState<Record<string, string>>({ hall: 'Collingwood' });
+  const [f, setF] = useState<Filters>({ hall: ['Collingwood'] });
   const [oldest, setOldest] = useState(true);
   const [creating, setCreating] = useState(false);
-  const inHall = useMemo(() => requests.filter((r) => (!f.hall || r.hall === f.hall) && (!f.kind || r.kind === f.kind)), [requests, f]);
+  const inHall = useMemo(() => requests.filter((r) => inFilter(f.hall, r.hall) && inFilter(f.kind, r.kind)), [requests, f]);
   const rows = useMemo(() => inHall.filter((r) => r.status === tabStatus[tab]).sort((a, b) => (oldest ? b.waitDays - a.waitDays : a.waitDays - b.waitDays)), [inHall, tab, oldest]);
   const count = (t: Tab) => inHall.filter((r) => r.status === tabStatus[t]).length;
   return (
@@ -39,7 +39,7 @@ export function RequestsList() {
       </>}>
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Open', label: 'Open', count: count('Open') }, { id: 'Waiting', label: 'Waiting on resident', count: count('Waiting') }, { id: 'Approved', label: 'Approved', count: count('Approved') }, { id: 'Declined', label: 'Declined', count: count('Declined') }]} />
       </Toolbar>
-      {f.hall && rows.length > 0 && <div className="h-8 shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] flex items-center text-xs text-[#646A78]">Showing {f.hall}, the halls you look after</div>}
+      {f.hall?.length === 1 && rows.length > 0 && <div className="shrink-0 -mt-1 pb-4 px-[calc(var(--gx,16px)+var(--cx,12px))] text-xs leading-4 text-[#737373]">Showing {f.hall[0]}, the halls you look after</div>}
       <Table rows={rows} onRow={(r) => setOpen(r.id)} selected={open ?? undefined} sort={{ key: 'wt', dir: oldest ? 'desc' : 'asc', onToggle: () => setOldest((o) => !o) }}
         empty={<Empty art="requests" icon={ArrowsLeftRight} title={tab === 'Open' ? 'No open requests' : `No ${tab === 'Waiting' ? 'requests waiting on a resident' : tab.toLowerCase() + ' requests'}`}
           sub="Room swaps, guests and early arrivals residents ask for."
@@ -47,10 +47,10 @@ export function RequestsList() {
         cols={[
           { key: 'ref', label: 'Ref', className: 'w-[90px]', render: (r) => <span className="font-mono text-xs text-gray-500">{r.ref}</span> },
           { key: 'k', label: 'Type', render: (r) => { const I = kindIcon[r.kind]; return <span className="flex items-center gap-2 font-medium"><I size={14} className="text-gray-500" />{r.kind}</span>; } },
-          { key: 'w', label: 'Resident', render: (r) => r.who },
+          { key: 'w', label: 'Resident', render: (r) => <span className="flex items-center gap-2.5 min-w-0"><Person name={r.who} /><span className="font-medium truncate">{r.who}</span></span> },
           { key: 'd', label: 'Detail', render: (r) => <span className="text-gray-500">{r.detail}</span> },
           { key: 'c', label: 'Checks', render: (r) => <Pill tone={r.check.tone} icon={checkIcon(r.check.tone)}>{r.check.label}</Pill> },
-          { key: 'wt', label: 'Waiting', className: 'text-right', render: (r) => <span className="text-gray-500">{r.status === 'Approved' || r.status === 'Declined' ? (r.decidedBy ? `${r.status} by ${r.decidedBy.split(' ')[0]}` : r.status) : r.waiting}</span> },
+          { key: 'wt', label: 'Waiting', render: (r) => <span className="text-gray-500">{r.status === 'Approved' || r.status === 'Declined' ? (r.decidedBy ? `${r.status} by ${r.decidedBy.split(' ')[0]}` : r.status) : r.waiting}</span> },
         ]} />
       {open && requests.some((x) => x.id === open) && <RequestSheet key={open} id={open} nav={listNav(rows, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />}
       <NewRequest open={creating} onClose={() => setCreating(false)} onCreate={(r) => { patch('requests', (rs) => [r, ...rs]); toast.success(`${r.ref} logged`, { description: 'It shows in Open and in My tasks.' }); setCreating(false); }} />
@@ -197,8 +197,8 @@ function RequestSheet({ id, onClose , nav }: { nav?: SheetNav;  id: string; onCl
                   <div key={c.label} className="px-3.5 py-2.5 flex items-start gap-2.5">
                     {c.ok ? <CheckCircle size={16} className="text-[#0B8A4C] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#B91C1C] shrink-0 mt-0.5" />}
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-[#111827]">{c.label}</div>
-                      <div className={cx('text-xs mt-0.5', c.ok ? 'text-[#646A78]' : 'text-[#B91C1C]')}>{c.sub}</div>
+                      <div className="text-sm font-medium text-[#0A0A0A]">{c.label}</div>
+                      <div className={cx('text-xs mt-0.5', c.ok ? 'text-[#737373]' : 'text-[#B91C1C]')}>{c.sub}</div>
                     </div>
                   </div>
                 ))}
@@ -213,8 +213,8 @@ function RequestSheet({ id, onClose , nav }: { nav?: SheetNav;  id: string; onCl
                 {r.history.map(([w, t], i) => (
                   <li key={i} className="relative pb-3 last:pb-0">
                     <span aria-hidden className={cx('absolute -left-5 top-1.5 size-[11px] rounded-full border-2 border-white', i === 0 ? 'bg-primary' : 'bg-gray-300')} />
-                    <div className="text-sm text-[#111827]">{w}</div>
-                    <div className="text-xs text-[#646A78] mt-0.5">{t}</div>
+                    <div className="text-sm text-[#0A0A0A]">{w}</div>
+                    <div className="text-xs text-[#737373] mt-0.5">{t}</div>
                   </li>
                 ))}
               </ol>

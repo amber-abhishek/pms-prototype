@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarPlus, CaretLeft, CaretRight, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Field, FilterButton, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, Dialog, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Ini, Person, St, type C } from './common';
@@ -13,7 +13,7 @@ type TabId = 'Recent' | 'Open' | 'Accepted' | 'Declined' | 'Lapsed' | 'Waitlist'
 const LEGACY: Record<string, TabId> = { Sent: 'Open', Expired: 'Lapsed' };
 const ST: Record<Offer['status'], string> = { open: 'Open', accepted: 'Accepted', declined: 'Declined', lapsed: 'Lapsed' };
 const unitOf = (o: { hall: string; unit: string }) => `${o.hall} · ${o.unit}`;
-const PAGE = 50;
+const PAGE = 25;
 /** Generated rows have ids starting with g; the design's rows stay on top. */
 const isGen = (o: Offer) => o.id.startsWith('g');
 const leftCls = (h?: number) => (h === undefined ? '' : h <= 24 ? 'font-semibold text-[#E5530C]' : 'text-ink');
@@ -35,12 +35,12 @@ export function Offers() {
   const tab: TabId = LEGACY[raw] ?? (['Recent', 'Open', 'Accepted', 'Declined', 'Lapsed', 'Waitlist'].includes(raw) ? raw : 'Recent');
   const [open, setOpen] = useOpen();
   const [q, setQ] = useState('');
-  const [f, setF] = useState<Record<string, string>>({ cycle: '2027/28' });
+  const [f, setF] = useState<Filters>({ cycle: ['2027/28'] });
   const [adding, setAdding] = useState(false);
   const [offering, setOffering] = useState<Wait | null>(null);
   const c = offerCounts(d);
   const liveCycle = d.cycles.find((x) => x.status === 'open')?.name ?? '2027/28';
-  const match = (x: { name: string; hall: string; cycle?: string }) => (!q || x.name.toLowerCase().includes(q.toLowerCase())) && (!f.hall || hallFull[x.hall] === f.hall) && (!f.cycle || (x.cycle ?? liveCycle) === f.cycle);
+  const match = (x: { name: string; hall: string; cycle?: string }) => (!q || x.name.toLowerCase().includes(q.toLowerCase())) && inFilter(f.hall, hallFull[x.hall]) && inFilter(f.cycle, x.cycle ?? liveCycle);
   const rowsFor = (s: Offer['status']) => d.offers.filter((o) => o.status === s && match(o));
   const [page, setPage] = useState(0);
   const recent = d.recent.map((id) => d.offers.find((o) => o.id === id)).filter((o): o is Offer => !!o && match(o)).filter((o, i, a) => a.indexOf(o) === i);
@@ -175,12 +175,12 @@ export function Offers() {
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
-            {rows.length ? <Grid key={tab} fill cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea art="offers" icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || f.cycle !== liveCycle ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
+            {rows.length ? <Grid key={tab} fill cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea art="offers" icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || (f.cycle?.length !== 1 || f.cycle[0] !== liveCycle) ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
           <Foot right={pages > 1 && <span className="flex items-center gap-1 tabular-nums">
             {page * PAGE + 1}–{Math.min(rows.length, page * PAGE + PAGE)} of {fmtN(rows.length)}
-            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
-            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
+            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
           </span>} />
         </div>
       )}
@@ -214,16 +214,16 @@ function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void 
               const [hall, room] = g.split('|');
               const list = rows.filter((w) => w.hall === hall && w.room === room);
               return [
-                <tr key={g} className="bg-[#F9FAFB] border-b border-[#F3F4F6]"><td colSpan={5} className="h-8 pl-[var(--cx,12px)] pr-3 text-xs"><span className="font-medium">{hall} · {room}</span><span className="text-gray-500"> · {list.length} waiting</span></td></tr>,
+                <tr key={g} className="bg-[#FAFAFA] border-b border-[#F5F5F5]"><td colSpan={5} className="h-8 pl-[var(--cx,12px)] pr-3 text-xs"><span className="font-medium">{hall} · {room}</span><span className="text-gray-500"> · {list.length} waiting</span></td></tr>,
                 ...list.map((w, i) => (
-                  <tr key={w.id} className="border-b border-[#F3F4F6] text-sm">
+                  <tr key={w.id} className="border-b border-[#F5F5F5] text-sm">
                     <td className="h-10 pl-[var(--cx,12px)] font-semibold tabular-nums">{i + 1}</td>
                     <td className="px-3"><span className="flex items-center gap-2 font-medium"><Ini name={w.name} size={24} />{w.name}</span></td>
                     <td className="px-3 text-gray-500">{w.note}</td>
                     <td className="px-3 text-gray-500">{w.joined}</td>
                     <td className="pr-[var(--cx,12px)] text-right">
                       {i === 0 ? <Button size="sm" icon={PaperPlaneTilt} onClick={() => onOffer(w)}>Offer a unit</Button>
-                        : <button type="button" aria-label={`Move ${w.name} up`} title="Move up" onClick={() => moveUp(w)} className="size-7 rounded-lg hover:bg-[#F3F4F6] inline-flex items-center justify-center text-gray-400"><DotsSixVertical size={16} /></button>}
+                        : <button type="button" aria-label={`Move ${w.name} up`} title="Move up" onClick={() => moveUp(w)} className="size-7 rounded-lg hover:bg-[#F5F5F5] inline-flex items-center justify-center text-gray-400"><DotsSixVertical size={16} /></button>}
                     </td>
                   </tr>
                 )),
@@ -238,7 +238,7 @@ function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void 
 
 function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBooking , nav }: { nav?: SheetNav;  o: Offer; onClose: () => void; onAccept: () => void; onLapse: () => void; onDecline: (r: string) => void; onExtend: () => void; onBooking: () => void }) {
   const [declining, setDeclining] = useState(false);
-  const [reason, setReason] = useState('Chose another university');
+  const [reason, setReason] = useState('Chose another operator');
   return (
     <Sheet open onClose={onClose} nav={nav} width={560} title="Offer"
       footer={o.status === 'open' ? (declining ? <><Button onClick={() => setDeclining(false)}>Back</Button><Button variant="danger" onClick={() => onDecline(reason)}>Record decline</Button></> : <>
@@ -253,7 +253,7 @@ function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBook
       {o.status === 'open' && (o.leftH ?? 99) < 24 && <div className="mb-5"><Note tone="red" icon={HourglassMedium} title={`Expires in ${fmtLeft(o.leftH ?? 0)}`}>Lapses at {o.expires?.split(' ').slice(-1)[0]} if {o.name.split(' ')[0]} doesn’t reply; the unit goes to the waitlist.</Note></div>}
       {declining ? (
         <SheetSection title="Decline">
-          <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another university', 'Too expensive', 'Living at home', 'Wanted a different hall', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
+          <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another operator', 'Too expensive', 'Living at home', 'Wanted a different hall', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
         </SheetSection>
       ) : (
         <>

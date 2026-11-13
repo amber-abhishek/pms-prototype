@@ -6,14 +6,11 @@ import {
 } from '../../components/icons';
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
-import { fmtSla, useRms, type Fault, type FaultIcon, type Priority } from '../../data/residents';
-import { Avatar, Button, Card, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
-import { Checkbox } from '../../components/shadcn/checkbox';
+import { fmtSla, useRms, type Fault, type FaultIcon, type FaultStatus, type Priority } from '../../data/residents';
+import { Avatar, Button, Card, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, Select, Sheet, SheetHero, SheetSection, Table, Textarea, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
-import { Kanban, List } from '../../components/icons';
 import { MaintenanceBoard } from './MaintenanceBoard';
 import { KV, Modal, Panel, Person, Photo, RHeader, RadioCard, SideSheet, Timeline, ToggleRow, undoToast, useOnce } from './kit';
-import { useTab } from '../hooks';
 
 const faultIcon: Record<FaultIcon, Icon> = {
   leak: Drop, power: LightningSlash, lock: Lock, shower: Shower, lamp: Lamp, wifi: WifiSlash, cold: Thermometer, window: Wind, fan: Fan, toilet: Toilet,
@@ -21,7 +18,7 @@ const faultIcon: Record<FaultIcon, Icon> = {
 };
 export const PriorityPill = ({ p }: { p: Priority }) => (p === 'Urgent' ? <Pill tone="red" icon={Siren}>Urgent</Pill> : p === 'High' ? <Pill tone="orange" icon={ArrowUp}>High</Pill> : <Pill tone="grey" icon={Minus}>Normal</Pill>);
 function Assignee({ name }: { name?: string }) {
-  if (!name) return <span className="text-xs text-[#646A78]">Not assigned</span>;
+  if (!name) return <span className="text-xs text-[#737373]">Not assigned</span>;
   return <span className="flex items-center gap-2"><Avatar name={name} size={20} />{name}</span>;
 }
 function Sla({ f }: { f: Fault }) {
@@ -33,8 +30,7 @@ function Sla({ f }: { f: Fault }) {
 }
 
 /* ---------------- List: 3022, 3121 (empty), 3214 ---------------- */
-type Tab = 'Open' | 'In progress' | 'Waiting on parts' | 'Fixed';
-const STATUSES: Tab[] = ['Open', 'In progress', 'Waiting on parts', 'Fixed'];
+const STATUSES: FaultStatus[] = ['New', 'In progress', 'Waiting on parts', 'Fixed'];
 const pastSla = (x: Fault) => x.slaMins < 0 && x.status !== 'Waiting on parts' && x.status !== 'Fixed';
 
 export function MaintenanceList() {
@@ -47,60 +43,52 @@ export function MaintenanceList() {
   const view = sp.get('view') === 'board' ? 'board' : 'table';
   const setView = (v: string) => setSp((p) => { const n = new URLSearchParams(p); if (v === 'board') n.set('view', 'board'); else n.delete('view'); return n; }, { replace: true });
   const [q, setQ] = useState('');
-  const [showResolved, setShowResolved] = useState(true);
   const faults = useRms((s) => s.faults);
-  const [tab, setTab] = useTab<Tab>('Open');
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<Filters>({ status: ['New', 'In progress', 'Waiting on parts'] });
   const [slaFirst, setSlaFirst] = useState(true);
   const [logging, setLogging] = useState(() => sp.get('log') === '1');
   const [contractors, setContractors] = useState(false);
   const hallOf = (x: Fault) => x.where.split(' · ')[0];
   const needle = q.trim().toLowerCase();
-  const scoped = faults.filter((x) => (!f.hall || hallOf(x) === f.hall) && (!f.priority || x.priority === f.priority)
-    && (!f.assignee || (f.assignee === 'Not assigned' ? !x.assignee : x.assignee === f.assignee))
-    && (!f.sla || (f.sla === 'Overdue' ? pastSla(x) : !pastSla(x)))
+  const scoped = faults.filter((x) => inFilter(f.hall, hallOf(x)) && inFilter(f.priority, x.priority)
+    && inFilter(f.assignee, x.assignee ?? 'Not assigned')
+    && inFilter(f.sla, pastSla(x) ? 'Overdue' : 'On time')
     && (!needle || [x.ref, x.title, x.where, x.reporter ?? ''].some((v) => v.toLowerCase().includes(needle))));
-  const live = scoped.filter((x) => x.status !== 'Fixed');
   const rows = useMemo(() => {
-    const r = scoped.filter((x) => (tab === 'Open' ? x.status !== 'Fixed' : x.status === tab));
+    const r = scoped.filter((x) => inFilter(f.status, x.status));
     const key = (x: Fault) => (x.status === 'Waiting on parts' ? 1e9 : x.slaMins);
     return slaFirst ? [...r].sort((a, b) => key(a) - key(b)) : [...r].sort((a, b) => b.ref.localeCompare(a.ref));
-  }, [scoped, tab, slaFirst]);
+  }, [scoped, f.status, slaFirst]);
   /* Links from Home and elsewhere (?open=<id>) open the job in the side sheet over the board. */
   if (open) return <Navigate to={`/residents/maintenance?job=${open}`} replace />;
-  const statusCount = (t: Tab) => (t === 'Open' ? live.length : scoped.filter((x) => x.status === t).length);
   return (
     <>
       <RHeader icon={Wrench} crumbs={[['Residents']]} title="Maintenance">
+        {/* V3 (Figma 3918:47856): the Table/Board switch is a page-level choice, so it sits in the header, with its labels. */}
         <Button icon={HardHat} onClick={() => setContractors(true)}>Contractors</Button>
         <Button variant="primary" icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>
       </RHeader>
+      {/* Toolbar (Figma 3918:48236): status and the four filters on the left; search and the Table/Board switch on the right. */}
       <Toolbar right={<>
-        {view === 'board' && (
-          <label className="flex items-center gap-2 text-sm text-[#646A78] cursor-pointer select-none mr-1">
-            <Checkbox checked={showResolved} onCheckedChange={(v) => setShowResolved(v === true)} />Show resolved (7 days)
-          </label>
-        )}
-        <SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" />
-        <FilterButton value={f} onChange={setF} defs={[
-          { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], chips: true },
-          { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], chips: true },
-          { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
-          { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
-        ]} />
+        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" /></div>
         <UITabs value={view} onValueChange={setView}>
           <TabsList aria-label="View">
-            {([['table', 'Table', List], ['board', 'Board', Kanban]] as const).map(([id, label, I]) => (
-              <TabsTrigger key={id} value={id} className="gap-1.5"><I size={14} />{label}</TabsTrigger>
-            ))}
+            <TabsTrigger value="table">Table</TabsTrigger>
+            <TabsTrigger value="board">Board</TabsTrigger>
           </TabsList>
         </UITabs>
       </>}>
-        {view === 'table' && <Tabs value={tab} onChange={setTab} tabs={STATUSES.map((t) => ({ id: t, label: t, count: statusCount(t) }))} />}
+        <FilterButton value={f} onChange={setF} defs={[
+          ...(view === 'table' ? [{ id: 'status', label: 'Status', options: STATUSES, tones: { New: 'blue', 'In progress': 'amber', 'Waiting on parts': 'purple', Fixed: 'green' } as const }] : []),
+          { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], tones: { Urgent: 'red', High: 'orange', Normal: 'grey' } },
+          { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], tones: { Overdue: 'red', 'On time': 'green' } },
+          { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
+          { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
+        ]} />
       </Toolbar>
-      {view === 'board' ? <MaintenanceBoard faults={scoped} showResolved={showResolved} onLog={() => setLogging(true)} selected={job} onOpen={setJob} /> : (
+      {view === 'board' ? <MaintenanceBoard faults={scoped} onLog={() => setLogging(true)} selected={job} onOpen={setJob} /> : (
       <Table rows={rows} onRow={(x) => setJob(x.id)} selected={job ?? undefined} sort={slaFirst ? { key: 's', dir: 'asc', onToggle: () => setSlaFirst(false) } : { key: 'r', dir: 'desc', onToggle: () => setSlaFirst(true) }} footer={false}
-        empty={<Empty art="faults" icon={Wrench} title={tab === 'Open' ? 'No open faults' : `Nothing ${tab.toLowerCase()}`} sub="Everything reported has been fixed." action={<Button icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>} />}
+        empty={<Empty art="faults" icon={Wrench} title="No faults match" sub="Everything reported has been fixed." action={<Button icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>} />}
         cols={[
           { key: 'r', label: 'Ref', className: 'w-[90px]', render: (x) => <span className="font-mono text-xs text-gray-500">{x.ref}</span> },
           { key: 't', label: 'Fault', render: (x) => { const I = faultIcon[x.icon]; return <span className="flex items-center gap-2 font-medium"><I size={14} className="text-gray-500" />{x.title}</span>; } },
@@ -157,7 +145,7 @@ function ContractorsSheet({ open, onClose }: { open: boolean; onClose: () => voi
   return (
     <SideSheet open={open} onClose={onClose} icon={HardHat} title="Contractors" footer={<Button onClick={onClose}>Close</Button>}>
       <SheetSection title="In-house and contract">
-      {[['Dave Hughes', 'In-house plumber · 2 jobs today', 'In-house'], ['Kim Lowe', 'In-house electrician · off today', 'In-house'], ['Northern Heating Ltd', 'Heating and plumbing · £85 call-out · £120 out of hours', 'Contract'], ['Estates helpdesk', 'University estates team · 3–5 days', 'University'], ['Campus IT', 'Wi-Fi and network', 'University']].map(([n, s, t]) => (
+      {[['Dave Hughes', 'In-house plumber · 2 jobs today', 'In-house'], ['Kim Lowe', 'In-house electrician · off today', 'In-house'], ['Northern Heating Ltd', 'Heating and plumbing · £85 call-out · £120 out of hours', 'Contract'], ['Estates helpdesk', 'Operator estates team · 3–5 days', 'Operator'], ['Campus IT', 'Wi-Fi and network', 'Operator']].map(([n, s, t]) => (
         <div key={n} className="flex items-center gap-3 py-1"><Avatar name={n} size={28} /><div className="flex-1"><div className="text-sm font-medium">{n}</div><div className="text-xs text-gray-500">{s}</div></div><Pill tone="grey" outline>{t}</Pill></div>
       ))}
       </SheetSection>
@@ -265,7 +253,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
           <div className="flex-1"><div className="text-sm leading-5 font-semibold">{f.reporter ?? 'A resident'}</div><div className="text-xs text-gray-500">{f.reporterRoom ? (f.reporterRoom.includes('reception') ? f.reporterRoom : `Resident · ${f.reporterRoom}`) : `Resident · ${f.where.split(' · ')[1] ?? ''}`}</div></div>
           <span className="text-xs text-gray-500">{f.reported ?? 'Earlier'}</span>
         </div>
-        <p className="text-sm leading-5 text-[#374151] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
+        <p className="text-sm leading-5 text-[#404040] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
         {isRad && <div className="flex gap-2 mt-3"><Photo /><Photo /><Photo /></div>}
         {isRad && <div className="flex gap-4 mt-3 text-xs text-gray-500"><span className="flex items-center gap-1.5"><Key size={13} className="text-gray-400" />OK to enter when I’m out</span><span className="flex items-center gap-1.5"><PawPrint size={13} className="text-gray-400" />No pets</span></div>}
       </Card>
@@ -286,7 +274,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
           ['Category', isRad ? 'Heating · radiator' : f.category],
           ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
           ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
-          ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#646A78]">Nobody yet</span>],
+          ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#737373]">Nobody yet</span>],
         ]} />
       </Panel>
     </div>
@@ -306,7 +294,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
         ['Category', isRad ? 'Heating · radiator' : f.category],
         ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
         ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
-        ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#646A78]">Nobody yet</span>],
+        ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#737373]">Nobody yet</span>],
         ['Deadline', deadline],
       ]} />
       <SheetSection title="Report">
@@ -315,7 +303,7 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
           <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium">{f.reporter ?? 'A resident'}</div><div className="text-xs text-gray-500">{f.reporterRoom ? (f.reporterRoom.includes('reception') ? f.reporterRoom : `Resident · ${f.reporterRoom}`) : `Resident · ${f.where.split(' · ')[1] ?? ''}`}</div></div>
           <span className="text-xs text-gray-500">{f.reported ?? 'Earlier'}</span>
         </div>
-        <p className="text-sm leading-5 text-[#374151] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
+        <p className="text-sm leading-5 text-[#404040] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
         {isRad && <div className="flex gap-2 mt-3"><Photo /><Photo /><Photo /></div>}
         {isRad && <div className="flex gap-4 mt-3 text-xs text-gray-500"><span className="flex items-center gap-1.5"><Key size={13} className="text-gray-400" />OK to enter when I’m out</span><span className="flex items-center gap-1.5"><PawPrint size={13} className="text-gray-400" />No pets</span></div>}
       </SheetSection>
@@ -337,7 +325,7 @@ function FaultPage({ f }: { f: Fault }) {
         {v.message}{v.primary}
       </RHeader>
       <div className="flex-1 overflow-auto">
-        <div className="px-6 pt-6 pb-5 border-b border-[#F3F4F6]">
+        <div className="px-6 pt-6 pb-5 border-b border-[#F5F5F5]">
           <div className="flex items-center gap-2 flex-wrap"><h2 className="text-[20px] font-medium tracking-tight mr-1">{f.title}</h2>{v.pills}</div>
           <p className="text-sm text-gray-500 mt-1">{v.sub}</p>
         </div>
@@ -382,7 +370,7 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
       { id: 'Dave Hughes', title: 'Dave Hughes · from 18:00', sub: `In-house · residents without hot water for 7 more hours`, avatar: undefined, right: undefined }]
     : [{ id: 'Dave Hughes', title: 'Dave Hughes', sub: `In-house plumber · 2 jobs today · at ${f.where.split(' · ')[0]} now`, avatar: 'Dave Hughes', right: <Pill tone="green" icon={Timer}>Free from 13:00</Pill> },
       { id: 'Northern Heating Ltd', title: 'Northern Heating Ltd', sub: 'Contractor · £85 call-out · next day', avatar: 'Northern Heating', right: <Pill tone="grey" outline icon={FileText}>Contract</Pill> },
-      { id: 'Estates helpdesk', title: 'Estates helpdesk', sub: 'University estates team · 3–5 days', avatar: 'Estates Services', right: undefined }];
+      { id: 'Estates helpdesk', title: 'Estates helpdesk', sub: 'Operator estates team · 3–5 days', avatar: 'Estates Services', right: undefined }];
   const [who, setWho] = useState(opts[0].id);
   const [visit, setVisit] = useState('Today, 14:00–16:00');
   const [sla, setSla] = useState(f.priority === 'Urgent' ? '24 hours · urgent' : '5 days · normal');

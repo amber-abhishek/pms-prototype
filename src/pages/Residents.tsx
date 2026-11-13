@@ -19,7 +19,7 @@ export function ResidentsRoutes() {
       <Route path="requests/:id" element={<RequestDetail />} />
       <Route path="notices" element={<NoticesList />} />
       <Route path="notices/:id" element={<NoticePage />} />
-      <Route path=":id" element={<ResidentDetail />} />
+      <Route path=":id" element={<><ResidentsList /><ResidentDetail /></>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

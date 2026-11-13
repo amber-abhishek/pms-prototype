@@ -1,17 +1,15 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Buildings, CalendarRange, CaretDown, CircleDashed, Grid3x3, Hourglass, House, List, Prohibit, SignIn, Stack, type Icon } from '../../components/icons';
-import { Button, FilterButton, PageHeader, Pill, Table, cx, type Tone, PageHeading } from '../../components/ui';
-import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
-import { Menu } from './common';
+import { Buildings, CalendarRange, CircleDashed, Grid3x3, Hourglass, House, Prohibit, SignIn, Stack, type Icon } from '../../components/icons';
+import { Button, MultiFilter, PageHeader, SelectFilter, cx, type Tone } from '../../components/ui';
 import { useEmpty } from '../../data/empty';
 import { HALL_OCC } from '../../data/occupancy';
 import { EmptyArea } from '../allocations/common';
 import { useNavigate } from 'react-router-dom';
-import { DownloadSimple, LayoutGrid } from '../../components/icons';
+import { DownloadSimple } from '../../components/icons';
 
 /* Occupancy, floor plan (frame 3355:105349): hall tabs with bed counts, five stat tiles, then one
-   block's floors as rows of room tiles coloured by status. "List" shows the same rooms as a table. */
+   block's floors as rows of room tiles coloured by status. */
 
 type St = 'in' | 'arriving' | 'held' | 'vacant' | 'blocked';
 type Room = { code: string; st: St; who?: string; floor: string };
@@ -60,11 +58,11 @@ function roomsFor(h: Hall, block: string): Room[] {
 }
 
 const ST: Record<St, { label: string; icon: Icon; tile: string; code: string; who: string; swatch: string; tone: Tone }> = {
-  in: { label: 'In residence', icon: House, tile: 'bg-[#E8F7EE] border-transparent', code: 'text-[#087A43]', who: 'text-[#374151]', swatch: 'bg-[#E8F7EE] border-[#087A43]', tone: 'green' },
-  arriving: { label: 'Arriving', icon: SignIn, tile: 'bg-[#EFF6FF] border-transparent', code: 'text-[#1F45E0]', who: 'text-[#374151]', swatch: 'bg-[#EFF6FF] border-[#1F45E0]', tone: 'blue' },
-  held: { label: 'Held for offer', icon: Hourglass, tile: 'bg-[#FFF6E0] border-transparent', code: 'text-[#9A5B00]', who: 'text-[#374151]', swatch: 'bg-[#FFF6E0] border-[#9A5B00]', tone: 'amber' },
-  vacant: { label: 'Vacant', icon: CircleDashed, tile: 'bg-white border-line', code: 'text-[#646A78]', who: 'text-[#646A78]', swatch: 'bg-white border-gray-400', tone: 'grey' },
-  blocked: { label: 'Blocked', icon: Prohibit, tile: 'bg-[#F3F4F6] border-transparent', code: 'text-[#4B5563]', who: 'text-[#374151]', swatch: 'bg-[#F3F4F6] border-gray-500', tone: 'grey' },
+  in: { label: 'In residence', icon: House, tile: 'bg-[#E8F7EE] border-transparent', code: 'text-[#087A43]', who: 'text-[#404040]', swatch: 'bg-[#E8F7EE] border-[#087A43]', tone: 'green' },
+  arriving: { label: 'Arriving', icon: SignIn, tile: 'bg-[#EFF6FF] border-transparent', code: 'text-[#1F45E0]', who: 'text-[#404040]', swatch: 'bg-[#EFF6FF] border-[#1F45E0]', tone: 'blue' },
+  held: { label: 'Held for offer', icon: Hourglass, tile: 'bg-[#FFF6E0] border-transparent', code: 'text-[#9A5B00]', who: 'text-[#404040]', swatch: 'bg-[#FFF6E0] border-[#9A5B00]', tone: 'amber' },
+  vacant: { label: 'Vacant', icon: CircleDashed, tile: 'bg-white border-line', code: 'text-[#737373]', who: 'text-[#737373]', swatch: 'bg-white border-gray-400', tone: 'grey' },
+  blocked: { label: 'Blocked', icon: Prohibit, tile: 'bg-[#F5F5F5] border-transparent', code: 'text-[#525252]', who: 'text-[#404040]', swatch: 'bg-[#F5F5F5] border-gray-500', tone: 'grey' },
 };
 const ORDER: St[] = ['in', 'arriving', 'held', 'vacant', 'blocked'];
 
@@ -76,21 +74,19 @@ function summary(rooms: Room[]) {
 export function OccupancyPage() {
   const [hid, setHid] = useState('ust');
   const [year, setYear] = useState('2026/27');
-  const [view, setView] = useState<'plan' | 'list'>('plan');
   const h = HALLS.find((x) => x.id === hid)!;
-  /* Block is a picker (the plan shows one block at a time), not a filter, so Filter only holds Status and starts empty. */
+  /* Block is a picker (the plan shows one block at a time), not a filter; Status is the one filter and starts empty. */
   const [blockSel, setBlock] = useState('Block G');
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [statusF, setStatusF] = useState<string[]>([]);
   const block = h.blocks.includes(blockSel) ? blockSel : h.blocks[0];
-  const status = ORDER.find((s) => ST[s].label === filters.status);
-  const rooms = useMemo(() => roomsFor(h, block).filter((x) => !status || x.st === status), [h, block, status]);
+  const rooms = useMemo(() => roomsFor(h, block).filter((x) => !statusF.length || statusF.includes(ST[x.st].label)), [h, block, statusF]);
   const empty = useEmpty((s) => s.on);
   const nav = useNavigate();
   const pickHall = (id: string) => { const nh = HALLS.find((x) => x.id === id)!; setHid(id); setBlock(nh.blocks[0]); };
 
   const tiles: [string, number, string][] = [
-    ['Beds', h.beds, 'text-[#111827]'], ['In residence', h.inRes, 'text-[#087A43]'], ['Arriving this week', h.arriving, 'text-[#1F45E0]'],
-    ['Vacant', h.vacant, 'text-[#E5530C]'], ['Blocked', h.blocked, 'text-[#111827]'],
+    ['Beds', h.beds, 'text-[#0A0A0A]'], ['In residence', h.inRes, 'text-[#087A43]'], ['Arriving this week', h.arriving, 'text-[#1F45E0]'],
+    ['Vacant', h.vacant, 'text-[#E5530C]'], ['Blocked', h.blocked, 'text-[#0A0A0A]'],
   ];
 
   /* Empty-states demo: no halls yet, so no plan to show. */
@@ -105,56 +101,45 @@ export function OccupancyPage() {
   return (
     <>
       <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Inventory']}>
-        <Menu width={140} trigger={(o) => <Button variant="control" icon={CalendarRange} onClick={o}>{year}</Button>} items={['2025/26', '2026/27', '2027/28'].map((y) => ({ label: y, onClick: () => setYear(y) }))} />
+        <SelectFilter icon={CalendarRange} width={160} value={year} onChange={setYear} options={['2025/26', '2026/27', '2027/28'].map((y) => ({ value: y }))} />
         <Button icon={DownloadSimple} onClick={() => toast.success(`${h.name.toLowerCase().replace(/\W+/g, '-')}-occupancy-${year.replace('/', '-')}.csv exported`)}>Export</Button>
       </PageHeader>
 
-      <PageHeading right={<>
-        <FilterButton defs={[{ id: 'status', label: 'Status', options: ORDER.map((s) => ST[s].label) }]} value={filters} onChange={setFilters} />
-        <UITabs value={view} onValueChange={(v) => setView(v as typeof view)}>
-        <TabsList aria-label="View">
-        {([['plan', 'Floor plan', LayoutGrid], ['list', 'List', List]] as const).map(([id, label, I]) => (
-        <TabsTrigger key={id} value={id} className="gap-1.5 text-xs"><I size={12} />{label}</TabsTrigger>
-        ))}
-        </TabsList>
-        </UITabs>
-      </>} />
-      <div className="shrink-0 px-[var(--tx,16px)] pb-2 flex items-center gap-3">
-        <Menu align="left" width={240} trigger={() => (
-          <Button variant="control" icon={Buildings}>{h.name}<span className="text-gray-500 tabular-nums">{h.beds}</span><CaretDown size={14} className="text-gray-500" /></Button>
-        )} items={HALLS.map((x) => ({ label: `${x.name} · ${x.beds} beds`, onClick: () => pickHall(x.id) }))} />
-        {h.blocks.length > 1 && (
-          <Menu align="left" width={180} trigger={() => (
-            <Button variant="control" icon={Stack}>{block}<CaretDown size={14} className="text-gray-500" /></Button>
-          )} items={h.blocks.map((b) => ({ label: b, onClick: () => setBlock(b) }))} />
-        )}
+      {/* Connect toolbar (as Properties, 3884:39809): one 68px row, 16/24 padding, every control 34px.
+          Hall and block pick what the plan shows on the left; the Status filter sits on the right. */}
+      <div className="shrink-0 px-6 py-4 flex items-center gap-3">
+        <SelectFilter icon={Buildings} width={260} value={h.id} onChange={pickHall} suffix={<span className="text-[#737373] font-mono tabular-nums">{h.beds}</span>}
+          options={HALLS.map((x) => ({ value: x.id, label: x.name, meta: x.beds }))} />
+        {h.blocks.length > 1 && <SelectFilter icon={Stack} width={180} value={block} onChange={setBlock} options={h.blocks.map((b) => ({ value: b }))} />}
+        <div className="ml-auto flex items-center gap-3">
+          <MultiFilter label="Status" width={220} value={statusF} onChange={setStatusF} options={ORDER.map((st) => ({ value: ST[st].label, tone: ST[st].tone }))} />
+        </div>
       </div>
 
       <div data-fill className="flex-1 overflow-auto">
         <div className="px-[var(--tx,16px)] pt-4 grid grid-cols-5 gap-3">
           {tiles.map(([label, v, c]) => (
             <div key={label} className="rounded-xl border border-line bg-white px-3.5 py-2.5 flex flex-col gap-0.5">
-              <div className="text-xs leading-4 font-medium text-[#646A78]">{label}</div>
+              <div className="text-xs leading-4 font-medium text-[#737373]">{label}</div>
               <div className={cx('text-xl leading-7 font-semibold tabular-nums', c)}>{v.toLocaleString('en-GB')}</div>
             </div>
           ))}
         </div>
 
         <div className="px-[var(--tx,16px)] pt-3.5 flex items-center">
-          <div className="text-sm leading-5 font-semibold text-[#111827]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>
+          <div className="text-sm leading-5 font-semibold text-[#0A0A0A]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>
           <div className="ml-auto flex items-center gap-4">
-            {ORDER.map((s) => { const I = ST[s].icon; return <span key={s} className="flex items-center gap-1.5 text-xs leading-4 text-[#646A78]"><I size={14} className={ST[s].code} />{ST[s].label}</span>; })}
+            {ORDER.map((s) => { const I = ST[s].icon; return <span key={s} className="flex items-center gap-1.5 text-xs leading-4 text-[#737373]"><I size={14} className={ST[s].code} />{ST[s].label}</span>; })}
           </div>
         </div>
 
-        {view === 'plan' ? (
           <div className="px-[var(--tx,16px)] py-3 flex flex-col gap-4">
             {FLOORS.map(([floor]) => {
               const fr = rooms.filter((x) => x.floor === floor);
               if (!fr.length) return null;
               return (
                 <section key={floor} className="flex flex-col gap-2">
-                  <div className="flex items-baseline gap-2"><h3 className="text-sm leading-5 font-semibold text-[#111827]">{floor}</h3><span className="text-xs leading-4 text-[#646A78]">{summary(fr)}</span></div>
+                  <div className="flex items-baseline gap-2"><h3 className="text-sm leading-5 font-semibold text-[#0A0A0A]">{floor}</h3><span className="text-xs leading-4 text-[#737373]">{summary(fr)}</span></div>
                   <div className="grid grid-cols-10 gap-2">
                     {fr.map((x) => (
                       <button key={x.code} type="button" aria-label={`${x.code} · ${ST[x.st].label}${x.who ? ` · ${x.who}` : ''}`} onClick={() => toast(`${h.name} · ${x.code}`, { description: x.who ? `${ST[x.st].label} · ${x.who}` : ST[x.st].label })}
@@ -168,17 +153,6 @@ export function OccupancyPage() {
               );
             })}
           </div>
-        ) : (
-          <div className="pt-3">
-            <Table footer={false} rows={rooms.map((x) => ({ ...x, id: x.code }))}
-              cols={[
-                { key: 'code', label: 'Room', render: (x) => <span className="font-medium">{x.code}</span> },
-                { key: 'floor', label: 'Floor', render: (x) => x.floor },
-                { key: 'st', label: 'Status', render: (x) => <Pill tone={ST[x.st].tone}>{ST[x.st].label}</Pill> },
-                { key: 'who', label: 'Resident', render: (x) => x.who ?? <span className="text-[#646A78]">—</span> },
-              ]} />
-          </div>
-        )}
       </div>
     </>
   );

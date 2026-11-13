@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Check as CheckMark, CheckCircle, Clock, EnvelopeSim
 import { Avatar, Button, Check, Pill, cx } from '../../components/ui';
 import { Popover, PopoverAnchor, PopoverContent } from '../../components/shadcn/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/shadcn/table';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
+import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 import type { Tone } from '../../data/seed';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 
@@ -24,8 +24,8 @@ const T: Record<string, [Tone, Icon]> = {
   'Applications open': ['blue', RadioButton], 'In tenancy': ['green', House], 'Not open yet': ['purple', Clock], Active: ['green', CheckCircle],
 };
 export function St({ s }: { s: string }) {
-  // Closed cycles and rejected applications use the outlined grey tag (frames 2837:394, 2838:2043).
-  if (s === 'Closed' || s === 'Rejected') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-gray-700">{s}</span>;
+  // Closed cycles and rejected applications: the grey pill.
+  if (s === 'Closed' || s === 'Rejected') return <Pill tone="grey">{s}</Pill>;
   const [tone, I] = T[s] ?? ['grey', MinusCircle];
   return <Pill tone={tone} icon={I}>{s}</Pill>;
 }
@@ -40,7 +40,7 @@ export function LineTabs<T extends string>({ value, onChange, tabs }: { value: T
   return (
     <div className="flex gap-4 border-b border-line">
       {tabs.map((t) => (
-        <button key={t} type="button" onClick={() => onChange(t)} className={cx('h-9 -mb-px border-b-2 text-sm font-medium transition-colors', value === t ? 'border-[#111827] text-ink' : 'border-transparent text-gray-500 hover:text-ink')}>{t}</button>
+        <button key={t} type="button" onClick={() => onChange(t)} className={cx('h-9 -mb-px border-b-2 text-sm font-medium transition-colors', value === t ? 'border-[#2563EB] text-[#2563EB]' : 'border-transparent text-gray-500 hover:text-ink')}>{t}</button>
       ))}
     </div>
   );
@@ -78,7 +78,7 @@ export function DisplayButton({ cols, hidden, onChange }: { cols: { key: string;
 /** Radio card used in dialogs and sheets (frames 3199:285, 3191:343): selected = blue ground + blue border, ring-style dot. */
 export function Radio({ checked, onChange, title, sub, disabled }: { checked: boolean; onChange: () => void; title: ReactNode; sub?: ReactNode; disabled?: boolean }) {
   return (
-    <label className={cx('flex items-center gap-3 min-h-16 px-4 py-2.5 rounded-xl border cursor-pointer transition-colors', checked ? 'bg-[#EFF6FF] border-primary' : 'border-line hover:bg-[#F9FAFB]', disabled && 'opacity-50 pointer-events-none')}>
+    <label className={cx('flex items-center gap-3 min-h-16 px-4 py-2.5 rounded-xl border cursor-pointer transition-colors', checked ? 'bg-[#EFF6FF] border-primary' : 'border-line hover:bg-[#FAFAFA]', disabled && 'opacity-50 pointer-events-none')}>
       <input type="radio" checked={checked} onChange={onChange} className="sr-only peer" />
       <span aria-hidden className={cx('size-4 rounded-full bg-white shrink-0 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30', checked ? 'border-[5px] border-primary' : 'border border-gray-300')} />
       <span className="min-w-0"><span className="block text-sm font-semibold text-ink">{title}</span>{sub && <span className="block text-xs text-gray-500 mt-0.5">{sub}</span>}</span>
@@ -105,7 +105,7 @@ export function EmptyArea({ icon: I, title, sub, children, art }: { icon: Icon; 
 /** Footer bar under a full-bleed list. */
 /** Table footer. No left-side counts (2026-11-09): pass only real text; with neither text nor pager it renders nothing. */
 export const Foot = ({ children, right }: { children?: ReactNode; right?: ReactNode }) => (!children && !right) ? null : (
-  <div data-foot className="h-10 shrink-0 px-5 flex items-center gap-2 border-t border-line text-xs text-gray-500 bg-white"><span>{children}</span><div className="ml-auto flex items-center gap-1.5">{right}</div></div>
+  <div data-foot className="h-[59px] shrink-0 px-6 flex items-center gap-2 border-t border-line text-sm text-[#737373] bg-white"><span>{children}</span><div className="ml-auto flex items-center gap-1.5">{right}</div></div>
 );
 export const Kbd = ({ children }: { children: ReactNode }) => <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded border border-line text-[11px] text-gray-500 bg-white">{children}</span>;
 
@@ -118,7 +118,7 @@ export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [],
   return (
     <div data-scroller {...((fill ?? cs.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="px-[var(--gx,16px)]">
     <Table>
-      <TableHeader className="sticky top-0 z-[1]"><TableRow>{cs.map((c, i) => <TableHead key={c.key} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className={cx(i === 0 && 'pl-[var(--cx,12px)]', i === cs.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{sort?.key === c.key ? <button type="button" onClick={sort.onToggle} className="inline-flex items-center gap-1 text-[#111827] font-medium">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button> : c.label}</TableHead>)}</TableRow></TableHeader>
+      <TableHeader className="sticky top-0 z-[1]"><TableRow>{cs.map((c, i) => <TableHead key={c.key} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className={cx(i === 0 && 'pl-[var(--cx,12px)]', i === cs.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{sort?.key === c.key ? <button type="button" onClick={sort.onToggle} className="inline-flex items-center gap-1 text-[#0A0A0A] font-medium">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button> : c.label}</TableHead>)}</TableRow></TableHeader>
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }) => (
           <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow && 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]')}>
@@ -139,12 +139,7 @@ export function Modal({ open, onClose, title, sub, children, footer, width = 560
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <div className="px-5 pt-5 pb-4">
-          <DialogTitle>{title}</DialogTitle>
-          {sub && <DialogDescription>{sub}</DialogDescription>}
-        </div>
-        <DialogBody className="pt-0">{children}</DialogBody>
-        <DialogFooter>{footer}</DialogFooter>
+        <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>
       </DialogContent>
     </Dialog>
   );

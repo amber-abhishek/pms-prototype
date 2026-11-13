@@ -1,12 +1,13 @@
 // Workspace › Reports. Figma Flow 8 (3035–3038), empty 3130:2, E4 report bounces (3236, 3238, 3239).
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  Bed, Buildings, CalendarBlank, ChartBar, ChatCircleText, Clock, CurrencyGbp, DownloadSimple, EnvelopeSimple, Funnel as FunnelIcon, Megaphone, Plus,
+  AirplaneLanding, ArrowsLeftRight, Car, DoorOpen, FileText, Lamp, Moon, SignOut,
+  Bed, Buildings, CalendarBlank, CaretRight, ChartBar, ChatCircleText, Clock, CurrencyGbp, DownloadSimple, EnvelopeSimple, Funnel as FunnelIcon, Megaphone, Plus,
   ShareNetwork, Info, UsersThree, Warning, Wrench, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, pressCard, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, avatarFx, Button, IconTile, type Tone, Note, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, SheetSection, StatStrip, listNav, type SheetNav } from '../../components/ui';
 import { useTab } from '../hooks';
 import { useDb } from '../../data/store';
 import { useAlloc, appCounts, offerCounts } from '../../data/allocations';
@@ -14,18 +15,47 @@ import { HALL_OCC, HALL_OCC_2025, type HallOcc } from '../../data/occupancy';
 import { useInv } from '../../data/inventory';
 import { useRms, type Fault } from '../../data/residents';
 import { REPORTS, badgeLabel, scheduleUndo, useWorkspace, whenLabel, wid, type Recipient, type ReportDef, type Schedule } from '../../data/workspace';
-import { Alert, EmptyState, Header, IconSelect, RowMenu } from '../org/parts';
+import { EmptyState, Header, IconSelect, RowMenu } from '../org/parts';
 import { useEmpty } from '../../data/empty';
 import { Empty } from '../../components/ui';
+import { Dialog, DialogCloseButton, DialogContent, DialogTitle } from '../../components/shadcn/dialog';
 
 /** Empty-states demo: a report with nothing to count yet. */
 function NoReportData({ icon, title }: { icon: Icon; title: string }) {
-  return <><Header icon={icon} crumbs={crumbs} title={title} /><div className="flex-1 flex items-center justify-center"><Empty icon={icon} title="No data yet" sub="Numbers show here once there are halls, applications and residents." /></div></>;
+  return <><RHeader icon={icon} title={title} /><div className="flex-1 flex items-center justify-center"><Empty icon={icon} title="No data yet" sub="Numbers show here once there are halls, applications and residents." /></div></>;
 }
 
 const AREA_ICON: Record<string, Icon> = { occupancy: Bed, applications: FunnelIcon, rent: CurrencyGbp, sla: Wrench, requests: ChatCircleText, notices: Megaphone };
 const LIB = '/reports/library';
 const crumbs = [{ label: 'Reports', to: LIB }];
+/** Set while a report shows in the library's centred modal: its close function. */
+const InModal = createContext<(() => void) | null>(null);
+/** A report's header. On its own page it is the page header; in the modal (2026-11-13) it is the modal's 56px header:
+ *  title, the report's actions, then the bordered ✕ (no header icon, as every modal). */
+function RHeader({ icon, title, children }: { icon?: Icon; title: string; children?: ReactNode }) {
+  const close = useContext(InModal);
+  if (!close) return <Header icon={icon} crumbs={crumbs} title={title}>{children}</Header>;
+  return (
+    <div className="h-14 shrink-0 border-b border-[#E5E5E5] pl-6 pr-4 flex items-center gap-3">
+      <DialogTitle className="flex-1 min-w-0 truncate text-base leading-5 font-medium text-[#0A0A0A]">{title}</DialogTitle>
+      {children && <div className="flex items-center gap-2">{children}</div>}
+      <DialogCloseButton />
+    </div>
+  );
+}
+/** The library opens a report here, over the list, rather than as a page. `id` is the report's path segment. */
+function ReportModal({ id, onClose }: { id: string | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!id} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }}
+        className="max-w-[1120px] [--tx:24px]">
+        <InModal.Provider value={onClose}>
+          {id === 'applications' ? <ApplicationsReport /> : id ? <SimpleReport id={id} /> : null}
+        </InModal.Provider>
+      </DialogContent>
+    </Dialog>
+  );
+}
 /** Runs fn at most once per `ms`: a double click on Export makes one file. */
 function useOnceFor(ms: number) {
   const busy = useRef(false);
@@ -41,7 +71,8 @@ export function ReportsLibrary() {
   const schedules = useWorkspace((s) => s.schedules);
   const [tab, setTab] = useTab<LibTab>('library');
   const [fix, setFix] = useState<Schedule | null>(null);
-  const list = REPORTS;
+  /* Occupancy is its own page in the Reports panel, so the library doesn't list it again (2026-11-13). */
+  const list = REPORTS.filter((r) => r.id !== 'occupancy');
   const [sp, setSp] = useSearchParams();
   // ?demo=empty shows the "Nothing scheduled" state (3130:2).
   useEffect(() => {
@@ -49,16 +80,30 @@ export function ReportsLibrary() {
     useWorkspace.getState().set('schedules', []);
     setSp((p) => { const n = new URLSearchParams(p); n.delete('demo'); n.set('tab', 'scheduled'); return n; }, { replace: true });
   }, [sp, setSp]);
+  /* A report opens in a centred modal over the list (2026-11-13); ?report= keeps it linkable. */
+  const report = sp.get('report');
+  const openReport = (to: string) => setSp((p) => { const n = new URLSearchParams(p); n.set('report', to.split('/').pop() ?? ''); return n; });
+  const closeReport = () => setSp((p) => { const n = new URLSearchParams(p); n.delete('report'); return n; });
   return (
     <>
+      <ReportModal id={report} onClose={closeReport} />
       <Header icon={ChartBar} crumbs={[{ label: 'Reports' }]} title={{ library: 'Library', scheduled: 'Scheduled', shared: 'Shared with me' }[tab]}>
-        <Button icon={Plus} onClick={() => toast('Custom reports are coming soon', { description: 'Start from a library report and schedule it for now.' })}>New report</Button>
+        <Button variant="primary" icon={Plus} onClick={() => toast('Custom reports are coming soon', { description: 'Start from a library report and schedule it for now.' })}>New report</Button>
       </Header>
       {/* Library, Scheduled and Shared with me are rows in the Reports panel, so the page has no tabs. */}
       {tab === 'library' && (
-        <div className="flex-1 overflow-auto p-5">
-          <div className="grid grid-cols-3 gap-4">
-            {list.map((r) => <ReportCard key={r.id} r={r} badge={schedules.find((s) => s.reportId === r.id)} onOpen={() => nav(r.to)} />)}
+        /* Same frame as Settings (2026-11-13): a 960px column 32px in, and the list in a Connect card with a 44px #FAFAFA header band. */
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-[960px] px-8 pt-8 pb-16">
+            <section className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
+              <header className="min-h-11 py-3 pl-4 pr-3 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#E5E5E5]">
+                <h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">All reports</h2>
+                <span className="font-mono text-xs font-medium tabular-nums text-[#737373]">{list.length}</span>
+              </header>
+              <ul className="divide-y divide-[#E5E5E5]">
+                {list.map((r) => <ReportRow key={r.id} r={r} badge={schedules.find((s) => s.reportId === r.id)} onOpen={() => openReport(r.to)} />)}
+              </ul>
+            </section>
           </div>
         </div>
       )}
@@ -69,12 +114,12 @@ export function ReportsLibrary() {
           </EmptyState>
         </div>
       ) : <ScheduledList onFix={setFix} selected={fix?.id} />)}
-      {tab === 'shared' && (<div className="flex-1 min-h-0 flex flex-col pt-6">
+      {tab === 'shared' && (<div className="flex-1 min-h-0 flex flex-col">
         <Table rows={[{ id: 'sh1' }]} onRow={() => nav('/reports')} cols={[
           { key: 'r', label: 'Report', render: () => <span className="flex items-center gap-2.5"><span className="size-7 rounded-lg bg-[#DBEAFE] flex items-center justify-center"><Bed size={14} className="text-[#2563EB]" /></span><span className="text-sm font-medium">Arrivals this week · Collingwood</span></span> },
           { key: 'b', label: 'Shared by', render: () => <span className="flex items-center gap-2 text-sm"><Avatar name="Tom Baker" size={20} />Tom Baker</span> },
-          { key: 'f', label: 'From', render: () => <span className="text-sm text-[#646A78]">Occupancy</span> },
-          { key: 'w', label: 'Shared', render: () => <span className="text-sm text-[#646A78]">12 Sep</span> },
+          { key: 'f', label: 'From', render: () => <span className="text-sm text-[#737373]">Occupancy</span> },
+          { key: 'w', label: 'Shared', render: () => <span className="text-sm text-[#737373]">12 Sep</span> },
         ]} />
       </div>)}
       {fix && <RecipientSheet key={fix.id} s={fix} nav={listNav(schedules, (x) => x.id === fix.id, (x) => setFix(x))} onClose={() => setFix(null)} />}
@@ -82,17 +127,25 @@ export function ReportsLibrary() {
   );
 }
 
-function ReportCard({ r, badge, onOpen }: { r: ReportDef; badge?: Schedule; onOpen: () => void }) {
+/* Icon tints alternate blue and purple, as the Connect list does. */
+const AREA_TINT: Record<string, string> = { occupancy: '#2563EB', applications: '#9333EA', rent: '#2563EB', sla: '#9333EA', requests: '#2563EB', notices: '#9333EA' };
+/** One library row: 48px circle with the avatar finish, 16px medium name over a 14px grey line, the schedule tag, and a View button. */
+function ReportRow({ r, badge, onOpen }: { r: ReportDef; badge?: Schedule; onOpen: () => void }) {
   const I = AREA_ICON[r.id] ?? ChartBar;
   return (
-    <button type="button" onClick={onOpen} className={cx('text-left rounded-xl border border-line bg-white p-4 shadow-tile', pressCard)}>
-      <div className="flex items-start gap-2.5">
-        <span className="size-8 rounded-lg bg-[#DBEAFE] flex items-center justify-center shrink-0"><I size={16} className="text-[#2563EB]" /></span>
-        <span className="flex-1 min-w-0 leading-tight"><span className="block text-sm font-semibold">{r.name}</span><span className="block text-xs text-[#646A78] mt-0.5">{r.area}</span></span>
-        {badge && <Pill tone="green" icon={Clock}>{badgeLabel(badge)}</Pill>}
-      </div>
-      <p className="text-xs text-[#646A78] mt-3 truncate">{r.desc}</p>
-    </button>
+    /* The whole row opens the report (2026-11-13); six "View" buttons said the same thing, so only a quiet chevron stays. */
+    <li>
+     <button type="button" onClick={onOpen} aria-label={`View ${r.name}`} className="group w-full px-4 py-4 flex items-center gap-3.5 text-left hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring transition-colors">
+      <span className="size-12 shrink-0 rounded-full flex items-center justify-center" style={avatarFx(AREA_TINT[r.id] ?? AREA_TINT.occupancy)}>
+        <I size={22} strokeWidth={1.75} />
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="flex items-center gap-2"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate">{r.name}</span>{badge && <Pill tone="green">{badgeLabel(badge)}</Pill>}</span>
+        <span className="block mt-1 text-sm leading-5 text-[#737373] truncate">{r.desc}</span>
+      </span>
+      <CaretRight size={16} strokeWidth={1.75} className="shrink-0 text-[#A3A3A3] group-hover:text-[#0A0A0A] transition-colors" />
+     </button>
+    </li>
   );
 }
 
@@ -102,14 +155,18 @@ function ScheduledList({ onFix, selected }: { onFix: (s: Schedule) => void; sele
   const bounced = schedules.filter((s) => s.lastSend === 'Not delivered');
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      {bounced.map((s) => (
-        <div key={s.id} className="px-[var(--tx,16px)] pt-4">
-          <Alert tone="red" icon={Warning} title={`${s.sendsTo} bounced on ${s.bounced ?? 'Mon 08:00'}`} action={<Button size="sm" onClick={() => onFix(s)}>Change recipient</Button>}>
-            The mailbox no longer exists.
-          </Alert>
+      {/* As Property layouts' rule (2026-11-13): a plain line above the list, no box, the fix on the right. */}
+      {bounced.length > 0 && (
+        <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] pt-6 pb-5 flex flex-col gap-4">
+          {bounced.map((s) => (
+            <div key={s.id} className="flex items-center gap-3">
+              <Note plain tone="red" icon={Warning} title={`${s.sendsTo} bounced on ${s.bounced ?? 'Mon 08:00'}`}>The mailbox no longer exists.</Note>
+              <Button size="sm" className="ml-auto" onClick={() => onFix(s)}>Change recipient</Button>
+            </div>
+          ))}
         </div>
-      ))}
-      <div className="flex-1 min-h-0 flex flex-col pt-6">
+      )}
+      <div className={cx('flex-1 min-h-0 flex flex-col', !bounced.length && 'pt-6')}>
         <Table rows={schedules} onRow={onFix} selected={selected} cols={[
           { key: 'r', label: 'Report', className: 'w-[26%]', render: (s) => <span className="text-sm font-medium">{s.name}</span> },
           { key: 't', label: 'Sends to', render: (s) => <span className="text-sm text-gray-700">{s.sendsTo}</span> },
@@ -157,7 +214,7 @@ function RecipientSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Schedule; on
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="Send to">
           {multi ? <div className="text-sm text-gray-700">{s.sendsTo}</div> : (
-            <label className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-[#646A78]" /><Input value={to} onChange={(e) => setTo(e.target.value)} className="pl-8" /></label>
+            <label className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-[#737373]" /><Input value={to} onChange={(e) => setTo(e.target.value)} className="pl-8" /></label>
           )}
           {bouncedNow && <p className="text-xs text-[#E0243A] mt-1.5">{s.sendsTo} bounced: the mailbox no longer exists.</p>}
         </SheetSection>
@@ -169,7 +226,7 @@ function RecipientSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Schedule; on
         </SheetSection>
         <SheetSection title="This week">
         <div className="rounded-xl border border-line p-3.5 flex items-center gap-3">
-          <span className="flex-1"><span className="block text-sm font-medium">Send this week’s now</span><span className="block text-xs text-[#646A78] mt-0.5">{bouncedNow ? 'Monday’s copy never arrived' : 'Sends the latest copy straight away'}</span></span>
+          <span className="flex-1"><span className="block text-sm font-medium">Send this week’s now</span><span className="block text-xs text-[#737373] mt-0.5">{bouncedNow ? 'Monday’s copy never arrived' : 'Sends the latest copy straight away'}</span></span>
           <Switch checked={now} onChange={setNow} label="Send this week’s now" />
         </div>
         </SheetSection>
@@ -210,17 +267,7 @@ const rentRoll = (r: HallRow) => (r.res + r.arr) * MONEY[r.id].rent * 44;
 function Chip({ value, onChange, options, label, icon }: { value: string; onChange: (v: string) => void; options: string[]; label: string; icon?: Icon }) {
   /* The dropdown trigger is w-full, which beats a width passed to it; a shrink-0 wrapper lets the chip hug its text. */
   return <div className="shrink-0"><Dropdown icon={icon} value={value} onChange={onChange} options={options.map((o) => ({ value: o, label: o }))} ariaLabel={label}
-    className="h-7 border-line shadow-tile text-xs font-medium" /></div>;
-}
-
-function Tile({ label, value, color, sub, subColor }: { label: string; value: ReactNode; color?: string; sub?: ReactNode; subColor?: string }) {
-  return (
-    <div className="rounded-xl border border-line bg-white px-4 py-3">
-      <div className="text-xs font-medium text-[#646A78]">{label}</div>
-      <div className="text-xl font-semibold mt-1 tabular-nums" style={{ color }}>{value}</div>
-      {sub && <div className="text-xs mt-1 truncate" style={{ color: subColor ?? '#646A78' }}>{sub}</div>}
-    </div>
-  );
+    className="border-line shadow-tile font-medium" /></div>;
 }
 
 export function OccupancyReport() {
@@ -260,24 +307,24 @@ export function OccupancyReport() {
         {mine ? <Button icon={Clock} onClick={() => setSheet(true)}>Every {mine.day === '1st' ? '1st of the month' : mine.day} {mine.time}</Button>
           : <Button variant="primary" icon={Clock} onClick={() => setSheet(true)}>Schedule</Button>}
       </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
+      <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
         <Chip icon={CalendarBlank} label="Academic year" value={year} onChange={setYear} options={[CURRENT, '2025/26']} />
         <Chip icon={Buildings} label="Halls" value={hall} onChange={setHall} options={['All halls', ...HALL_ROWS.map((r) => r.hall)]} />
         <Chip icon={CalendarBlank} label="Group by" value={view} onChange={setBy} options={archived ? ['By hall'] : ['By week', 'By hall']} />
-        {archived && <span className="text-xs text-[#646A78] whitespace-nowrap">Archived · final week only</span>}
+        {archived && <span className="text-xs text-[#737373] whitespace-nowrap">Archived · final week only</span>}
       </Toolbar>
-      <div className="flex-1 overflow-auto p-5 space-y-4">
-        <div className="grid grid-cols-5 gap-3">
-          <Tile label="Occupancy" value={`${occ}%`} sub={archived ? `Final week of ${year}` : `${diff >= 0 ? '+' : '−'}${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'pt' : 'pts'} vs 2025/26`} subColor={archived ? undefined : diff >= 0 ? '#087A43' : '#B91C1C'} />
-          <Tile label="Rent roll" value={gbpM(t.roll)} sub={`${fmt(t.res + t.arr)} beds let · ${year}`} />
-          <Tile label={archived ? 'Void beds at year end' : 'Void beds today'} value={fmt(t.vac)} color="#C2410C" sub={archived ? 'the year has ended' : `${gbp(t.risk)} rent at risk`} subColor={archived ? undefined : '#B91C1C'} />
-          <Tile label="Held units" value={fmt(t.blk)} sub="excluded from occupancy" />
-          <Tile label="Avg days void" value={archived ? '—' : '11.6'} sub={archived ? 'kept for the current year only' : 'from release to re-let'} />
-        </div>
+      <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
+        <StatStrip items={[
+          { label: 'Occupancy', value: `${occ}%`, sub: archived ? `Final week of ${year}` : `${diff >= 0 ? '+' : '−'}${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'pt' : 'pts'} vs 2025/26` },
+          { label: 'Rent roll', value: gbpM(t.roll), sub: `${fmt(t.res + t.arr)} beds let · ${year}` },
+          { label: archived ? 'Void beds at year end' : 'Void beds today', value: fmt(t.vac), color: '#F97316', sub: archived ? 'the year has ended' : `${gbp(t.risk)} rent at risk` },
+          { label: 'Held units', value: fmt(t.blk), sub: 'excluded from occupancy' },
+          { label: 'Avg days void', value: archived ? '—' : '11.6', sub: archived ? 'kept for the current year only' : 'from release to re-let' },
+        ]} />
         <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">
         <div className="rounded-xl border border-line bg-white p-4 min-w-0">
           <div className="flex items-center"><h2 className="text-sm font-semibold">{view === 'By week' ? 'Beds filled by week' : 'Beds filled by hall'}</h2>
-            <span className="ml-auto flex items-center gap-4 text-xs text-[#646A78]"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#2563EB]" />In residence</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#93C5FD]" />Arriving</span></span></div>
+            <span className="ml-auto flex items-center gap-4 text-xs text-[#737373]"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#2563EB]" />In residence</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#93C5FD]" />Arriving</span></span></div>
           <div className="mt-4 h-[180px] border-b border-line flex items-end justify-around px-6">
             {bars.map((b) => (
               <div key={b.label} className="flex flex-col items-center w-11">
@@ -287,20 +334,20 @@ export function OccupancyReport() {
               </div>
             ))}
           </div>
-          <div className="flex justify-around px-6 mt-2">{bars.map((b) => <span key={b.label} className="w-11 text-center text-xs text-[#646A78] whitespace-nowrap">{b.label}</span>)}</div>
+          <div className="flex justify-around px-6 mt-2">{bars.map((b) => <span key={b.label} className="w-11 text-center text-xs text-[#737373] whitespace-nowrap">{b.label}</span>)}</div>
         </div>
         <div className="rounded-xl border border-line bg-white overflow-hidden flex flex-col">
-          <div className="h-12 px-4 flex items-center border-b border-line"><h2 className="text-sm font-semibold">Voids by property</h2>{!archived && <span className="ml-auto text-xs text-[#646A78]">{WEEKS_LEFT} weeks left on the tenancy</span>}</div>
+          <div className="h-12 px-4 flex items-center border-b border-line"><h2 className="text-sm font-semibold">Voids by property</h2>{!archived && <span className="ml-auto text-xs text-[#737373]">{WEEKS_LEFT} weeks left on the tenancy</span>}</div>
           <table className="w-full text-sm">
-            <thead><tr className="text-xs text-[#646A78] border-b border-line bg-[#F9FAFB]">
-              <th className="text-left font-medium h-9 pl-4">Property</th><th className="text-right font-medium px-3">Void beds</th><th className="text-left font-medium px-3">Most void type</th><th className="text-right font-medium pr-4">{archived ? 'Rent lost' : 'Rent at risk'}</th>
+            <thead><tr className="text-xs text-[#737373] border-b border-line bg-[#FAFAFA]">
+              <th className="text-left font-medium h-9 pl-4">Property</th><th className="text-left font-medium px-3">Void beds</th><th className="text-left font-medium px-3">Most void type</th><th className="text-left font-medium px-3 pr-4">{archived ? 'Rent lost' : 'Rent at risk'}</th>
             </tr></thead>
             <tbody>{voids.map((r) => (
-              <tr key={r.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#FAFAFB] cursor-pointer" onClick={() => openHall(r.id)}>
+              <tr key={r.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => openHall(r.id)}>
                 <td className="h-10 pl-4 font-medium">{r.hall}</td>
-                <td className="text-right px-3 tabular-nums">{r.vac}</td>
-                <td className="px-3 text-[#646A78]">{MONEY[r.id].type}</td>
-                <td className="text-right pr-4 font-semibold tabular-nums">{gbp(atRisk(r))}</td>
+                <td className="px-3 tabular-nums">{r.vac}</td>
+                <td className="px-3 text-[#737373]">{MONEY[r.id].type}</td>
+                <td className="px-3 pr-4 font-semibold tabular-nums">{gbp(atRisk(r))}</td>
               </tr>
             ))}</tbody>
           </table>
@@ -308,16 +355,16 @@ export function OccupancyReport() {
         </div>
         <div className="rounded-xl border border-line bg-white overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="text-xs font-medium text-[#646A78] border-b border-line">
-              <th className="text-left font-medium h-9 pl-5">Hall</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked', 'Rent roll', 'Rent at risk'].map((h) => <th key={h} className="text-right font-medium px-3">{h}</th>)}<th className="text-left font-medium pl-8 pr-5 w-[220px]">Filled</th>
+            <thead><tr className="text-xs font-medium text-[#737373] border-b border-line">
+              <th className="text-left font-medium h-9 pl-5">Hall</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked', 'Rent roll', 'Rent at risk'].map((h) => <th key={h} className="text-left font-medium px-3">{h}</th>)}<th className="text-left font-medium px-3 pr-5 w-[220px]">Filled</th>
             </tr></thead>
             <tbody>{rows.map((r) => { const p = pct(r); return (
-              <tr key={r.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#FAFAFB] cursor-pointer" onClick={() => openHall(r.id)}>
+              <tr key={r.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => openHall(r.id)}>
                 <td className="h-10 pl-5 font-medium">{r.hall}</td>
-                {[r.beds, r.res, r.arr, r.vac, r.blk].map((v, i) => <td key={i} className="text-right px-3 tabular-nums">{fmt(v)}</td>)}
-                <td className="text-right px-3 tabular-nums">{gbpM(rentRoll(r))}</td>
-                <td className="text-right px-3 tabular-nums text-[#B91C1C]">{gbp(atRisk(r))}</td>
-                <td className="pl-8 pr-5"><span className="flex items-center gap-2"><span className="w-[107px] h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden"><span className="block h-full rounded-full bg-[#0B8A4C]" style={{ width: `${p}%` }} /></span><span className="text-xs text-[#646A78]">{p}%</span></span></td>
+                {[r.beds, r.res, r.arr, r.vac, r.blk].map((v, i) => <td key={i} className="px-3 tabular-nums">{fmt(v)}</td>)}
+                <td className="px-3 tabular-nums">{gbpM(rentRoll(r))}</td>
+                <td className="px-3 tabular-nums text-[#B91C1C]">{gbp(atRisk(r))}</td>
+                <td className="px-3 pr-5"><span className="flex items-center gap-2"><span className="w-[107px] h-1.5 rounded-full bg-[#F5F5F5] overflow-hidden"><span className="block h-full rounded-full bg-[#0B8A4C]" style={{ width: `${p}%` }} /></span><span className="text-xs text-[#737373]">{p}%</span></span></td>
               </tr>
             ); })}</tbody>
           </table>
@@ -397,9 +444,9 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
           <div className="rounded-[10px] border border-line px-3 py-1">
             {rec.map((r) => (
               <div key={r.id} className="group h-8 flex items-center gap-2.5">
-                {r.count > 1 ? <span className="size-6 rounded-full bg-[#F3F4F6] flex items-center justify-center"><UsersThree size={12} className="text-[#646A78]" /></span> : <Avatar name={r.name} size={24} />}
+                {r.count > 1 ? <span className="size-6 rounded-full bg-[#F5F5F5] flex items-center justify-center"><UsersThree size={12} className="text-[#737373]" /></span> : <Avatar name={r.name} size={24} />}
                 <span className="text-sm font-medium flex-1">{r.name}</span>
-                <span className="text-xs text-[#646A78]">{r.sub}</span>
+                <span className="text-xs text-[#737373]">{r.sub}</span>
                 {r.sub !== 'You' && <button type="button" onClick={() => setRec(rec.filter((x) => x.id !== r.id))} className="text-xs text-gray-400 hover:text-[#E0243A] opacity-0 group-hover:opacity-100 focus:opacity-100">Remove</button>}
               </div>
             ))}
@@ -410,17 +457,17 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
                   if (e.key === 'Escape') setAdding(false);
                 }} ref={(el) => el?.focus()} />
                 {err && <p role="alert" className="text-xs text-[#C11F14] mt-1.5">{err}</p>}
-                {sugg.length > 0 && <div className="mt-1 rounded-lg border border-line divide-y divide-line">{sugg.map((r) => <button key={r.id} type="button" onClick={() => add(r)} className="w-full h-8 px-2.5 flex items-center gap-2 text-left text-sm hover:bg-gray-50">{r.name}<span className="ml-auto text-xs text-[#646A78]">{r.sub}</span></button>)}</div>}
+                {sugg.length > 0 && <div className="mt-1 rounded-lg border border-line divide-y divide-line">{sugg.map((r) => <button key={r.id} type="button" onClick={() => add(r)} className="w-full h-8 px-2.5 flex items-center gap-2 text-left text-sm hover:bg-gray-50">{r.name}<span className="ml-auto text-xs text-[#737373]">{r.sub}</span></button>)}</div>}
               </div>
             ) : <button type="button" onClick={() => setAdding(true)} className="h-8 flex items-center gap-2 text-sm text-primary"><Plus size={13} />Add people or a group</button>}
           </div>
           <div className="mt-3 rounded-lg border border-primary/30 p-3 flex gap-2.5"><Info size={16} className="text-primary shrink-0 mt-0.5" />
-            <div><div className="text-sm font-medium text-primary">Recipients only see halls they have access to</div><div className="text-xs text-[#646A78] mt-0.5">Heads of college get their own college’s rows.</div></div></div>
+            <div><div className="text-sm font-medium text-primary">Recipients only see halls they have access to</div><div className="text-xs text-[#737373] mt-0.5">Heads of college get their own college’s rows.</div></div></div>
         </SheetSection>
         <SheetSection title="Format">
           <div className="grid grid-cols-2 gap-2">
             {([['pdf', 'PDF summary'], ['csv', 'CSV data']] as const).map(([k, l]) => (
-              <div key={k} className="h-10 rounded-[10px] border border-line px-3 flex items-center gap-2"><DownloadSimple size={14} className="text-[#646A78]" /><span className="text-sm font-medium flex-1">{l}</span><Switch checked={fmts[k]} onChange={(v) => setFmts({ ...fmts, [k]: v })} label={l} /></div>
+              <div key={k} className="h-10 rounded-[10px] border border-line px-3 flex items-center gap-2"><DownloadSimple size={14} className="text-[#737373]" /><span className="text-sm font-medium flex-1">{l}</span><Switch checked={fmts[k]} onChange={(v) => setFmts({ ...fmts, [k]: v })} label={l} /></div>
             ))}
           </div>
         </SheetSection>
@@ -451,32 +498,28 @@ export function ApplicationsReport() {
   ] as const;
   return (
     <>
-      <Header icon={FunnelIcon} crumbs={crumbs} title="Applications funnel">
+      <RHeader icon={FunnelIcon} title="Applications funnel">
         <Button icon={DownloadSimple} onClick={() => exportOnce(() => toast.success('Applications funnel.csv downloaded'))}>Export CSV</Button>
         <Button icon={ShareNetwork} onClick={() => { void navigator.clipboard?.writeText(location.href).catch(() => {}); toast.success('Link copied', { description: 'People see only the halls they have access to.' }); }}>Share</Button>
-      </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
+      </RHeader>
+      <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
         <Chip label="Cycle" value={cycle} onChange={setCycle} options={['2027/28', '2026/27']} />
       </Toolbar>
-      <div className="flex-1 overflow-auto p-5 space-y-4">
-        <div className="grid grid-cols-5 gap-3">
-          {/* Tile figures use text-safe tones; the bars keep the brighter fills. */}
-          {stages.map(([l, n, c]) => <Tile key={l} label={l} value={fmt(n)} color={c === '#F59E0B' ? '#9A5B00' : c} />)}
-          {/* £182 a week is the seed average rent (Collingwood's Standard single). */}
-          <Tile label="Rent booked" value={gbpM(f.accepted * 182 * 44)} sub="accepted × 44 weeks" />
-        </div>
+      <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
+        {/* Each stage keeps its chart colour on the bar. £182 a week is the seed average rent (Collingwood's Standard single). */}
+        <StatStrip items={[...stages.map(([l, n, c]) => ({ label: l, value: fmt(n), color: c })), { label: 'Rent booked', value: gbpM(f.accepted * 182 * 44), sub: 'accepted × 44 weeks' }]} />
         <div className="rounded-xl border border-line bg-white p-5">
           <h2 className="text-sm font-semibold mb-4">From application to booking · {cycle} cycle</h2>
           <div className="space-y-3">
             {stages.map(([label, n, c]) => (
               <div key={label} className="grid grid-cols-[110px_1fr_60px] items-center gap-4 text-sm">
                 <span className="font-medium">{label}</span>
-                <div className="h-7 rounded-md bg-[#F3F4F6] overflow-hidden"><div className="h-full rounded-md" style={{ width: `${stages[0][1] ? (n / stages[0][1]) * 100 : 0}%`, background: c }} /></div>
+                <div className="h-7 rounded-md bg-[#F5F5F5] overflow-hidden"><div className="h-full rounded-md" style={{ width: `${stages[0][1] ? (n / stages[0][1]) * 100 : 0}%`, background: c }} /></div>
                 <span className="text-right font-semibold tabular-nums">{stages[0][1] ? Math.round((n / stages[0][1]) * 100) : 0}%</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-[#646A78] mt-5">Median time from application to offer: 6 days. Target: 5.</p>
+          <p className="text-xs text-[#737373] mt-5">Median time from application to offer: 6 days. Target: 5.</p>
         </div>
       </div>
     </>
@@ -490,8 +533,8 @@ const SIMPLE: Record<string, Simple> = {
   rent: { title: 'Rent and arrears', tiles: [['Billed', '£4.12m', undefined, 'Michaelmas term'], ['Collected', '£3.86m', '#087A43', '94% of billed'], ['Overdue', '£61,240', '#E0243A', '£1,612 average'], ['Residents in arrears', '38', '#C2410C', '9 over 30 days']], cols: ['Hall', 'Billed', 'Collected', 'Overdue', 'In arrears'],
     rows: [['Ustinov', '£1.09m', '£1.01m', '£22,180', 14], ['Collingwood', '£0.92m', '£0.88m', '£9,460', 6], ['Van Mildert', '£1.06m', '£0.99m', '£18,120', 11], ['Josephine Butler', '£0.79m', '£0.74m', '£8,980', 5], ["St Mary’s", '£0.26m', '£0.24m', '£2,500', 2]] },
   'maintenance-sla': { title: 'Maintenance deadlines', tiles: [['Jobs closed', '412'], ['On time', '91%', '#087A43', '+3 pts vs last term'], ['Open and overdue', '9', '#E0243A'], ['Cost', '£18,640', undefined, '£45 a job']], cols: ['Hall', 'Jobs', 'On time', 'Median fix', 'Cost'],
-    rows: [['Ustinov', 121, '88%', '2.1 days', '£5,980'], ['Collingwood', 84, '94%', '1.4 days', '£3,410'], ['Van Mildert', 97, '90%', '1.9 days', '£4,720'], ['Josephine Butler', 78, '93%', '1.6 days', '£3,220'], ["St Mary’s", 32, '97%', '1.1 days', '£1,310']] },
-  requests: { title: 'Requests', tiles: [['Requests', '286'], ['Answered in 2 days', '84%', '#087A43'], ['Waiting', '6', '#C2410C'], ['Most asked', 'Room swap']], cols: ['Kind', 'Requests', 'Approved', 'Median reply'],
+    rows: [['Ustinov', 121, '88%', '50 h', '£5,980'], ['Collingwood', 84, '94%', '34 h', '£3,410'], ['Van Mildert', 97, '90%', '46 h', '£4,720'], ['Josephine Butler', 78, '93%', '38 h', '£3,220'], ["St Mary’s", 32, '97%', '26 h', '£1,310']] },
+  requests: { title: 'Requests', tiles: [['Requests', '286'], ['Answered in 2 days', '84%', '#087A43'], ['Waiting', '6', '#C2410C'], ['Most asked', '112', undefined, 'Room swap']], cols: ['Kind', 'Requests', 'Approved', 'Median reply'],
     rows: [['Room swap', 112, '61%', '1.8 days'], ['Early arrival', 74, '89%', '0.9 days'], ['Guest stay', 63, '95%', '0.6 days'], ['Lease change', 37, '46%', '3.2 days']] },
   'notice-reach': { title: 'Notice reach', tiles: [['Notices sent', '18'], ['Delivered', '99%', '#087A43'], ['Opened', '72%', '#1F45E0'], ['Clicked', '31%']], cols: ['Notice', 'Sent', 'Delivered', 'Opened', 'Clicked'],
     rows: [['Fire alarm test, Thursday', '10 Sep', '1,876', '81%', '12%'], ['Welcome week timetable', '7 Sep', '2,098', '77%', '46%'], ['Rent due for Michaelmas', '1 Sep', '2,203', '69%', '38%'], ['Water off in Fenwick Block', '28 Aug', '47', '91%', '4%']] },
@@ -532,7 +575,7 @@ function useLiveSimple(id: string): Simple | undefined {
     const halls = HALL_OCC.map((h) => {
       const mine = faults.filter((f) => hallKey(hallOfFault(f)) === h.hall), done = mine.filter((f) => f.status === 'Fixed');
       const med = median(done.map((f) => hoursOf(f.fixedIn) ?? 0));
-      return [h.hall, mine.length, pctS(done.filter(onTime).length, done.length), med === null ? '—' : med >= 24 ? `${(med / 24).toFixed(1)} days` : `${Math.round(med)} h`, gbp(done.length * COST_PER_JOB)];
+      return [h.hall, mine.length, pctS(done.filter(onTime).length, done.length), med === null ? '—' : `${Math.round(med)} h`, gbp(done.length * COST_PER_JOB)];
     });
     return { title: 'Maintenance deadlines', tiles: [['Jobs closed', fmt(fixed.length)], ['On time', pctS(fixed.filter(onTime).length, fixed.length), '#087A43', 'fixed within the deadline'], ['Open and overdue', fmt(overdue), '#E0243A'], ['Cost', gbp(fixed.length * COST_PER_JOB), undefined, `£${COST_PER_JOB} a job`]],
       cols: ['Hall', 'Jobs', 'On time', 'Median fix', 'Cost'], rows: halls };
@@ -541,9 +584,9 @@ function useLiveSimple(id: string): Simple | undefined {
     const kinds = [...new Set(requests.map((r) => r.kind))].sort((a, b) => requests.filter((r) => r.kind === b).length - requests.filter((r) => r.kind === a).length);
     const decided = (rs: typeof requests) => rs.filter((r) => r.status === 'Approved' || r.status === 'Declined');
     const waiting = requests.filter((r) => r.status === 'Open' || r.status === 'Waiting on resident');
-    return { title: 'Requests', tiles: [['Requests', fmt(requests.length)], ['Approved', pctS(requests.filter((r) => r.status === 'Approved').length, decided(requests).length), '#087A43', 'of decided requests'], ['Waiting', fmt(waiting.length), '#C2410C'], ['Most asked', kinds[0] ?? '—']],
+    return { title: 'Requests', tiles: [['Requests', fmt(requests.length)], ['Approved', pctS(requests.filter((r) => r.status === 'Approved').length, decided(requests).length), '#087A43', 'of decided requests'], ['Waiting', fmt(waiting.length), '#C2410C'], ['Most asked', kinds[0] ? fmt(requests.filter((r) => r.kind === kinds[0]).length) : '—', undefined, kinds[0]]],
       cols: ['Kind', 'Requests', 'Approved', 'Median wait'],
-      rows: kinds.map((k) => { const rs = requests.filter((r) => r.kind === k); const w = median(rs.filter((r) => r.status === 'Open' || r.status === 'Waiting on resident').map((r) => r.waitDays)); return [k, rs.length, pctS(rs.filter((r) => r.status === 'Approved').length, decided(rs).length), w === null ? '—' : `${w} ${w === 1 ? 'day' : 'days'}`]; }) };
+      rows: kinds.map((k) => { const rs = requests.filter((r) => r.kind === k); const w = median(rs.filter((r) => r.status === 'Open' || r.status === 'Waiting on resident').map((r) => r.waitDays)); return [k, rs.length, pctS(rs.filter((r) => r.status === 'Approved').length, decided(rs).length), w === null ? '—' : `${w.toFixed(1)} days`]; }) };
   }
   if (id === 'notice-reach') {
     const sent = notices.filter((n) => n.status === 'Sent');
@@ -555,27 +598,57 @@ function useLiveSimple(id: string): Simple | undefined {
   return undefined;
 }
 
-export function SimpleReport() {
-  const { id = '' } = useParams();
+/* Colour in the simple reports: a toned icon on each row's name, rates as bars, money owed in red. */
+const ROW_TONES: Tone[] = ['blue', 'purple', 'green', 'amber', 'orange'];
+const KIND_ICON: Record<string, [Icon, Tone]> = {
+  'Overnight guest': [Moon, 'purple'], 'Guest stay': [Moon, 'purple'], 'Room swap': [ArrowsLeftRight, 'blue'], 'Parking permit': [Car, 'amber'],
+  'Room move': [DoorOpen, 'green'], Furniture: [Lamp, 'orange'], 'Early arrival': [AirplaneLanding, 'blue'], 'Leave early': [SignOut, 'red'], 'Lease change': [FileText, 'grey'],
+};
+/* Engagement rates have no pass mark, so they stay one blue; the rest go green, amber or red against it. */
+const RATE_PLAIN = new Set(['Opened', 'Clicked']);
+const RATE_COLS = new Set(['Approved', 'On time', 'Opened', 'Clicked']);
+/* Dates read left to right, so they line up on their first letter rather than ragged on the right. */
+const DATE_COLS = new Set(['Sent']);
+const rateTone = (col: string, n: number) => (RATE_PLAIN.has(col) ? '#2563EB' : n >= 90 ? '#0B8A4C' : n >= 75 ? '#C47A00' : '#E0243A');
+function cellFor(col: string, v: string | number, row: number): ReactNode {
+  if (col === 'Hall' || col === 'Kind' || col === 'Notice') {
+    const [I, tone]: [Icon, Tone] = col === 'Kind' ? KIND_ICON[String(v)] ?? [ChatCircleText, 'grey'] : col === 'Notice' ? [Megaphone, ROW_TONES[row % ROW_TONES.length]] : [Buildings, ROW_TONES[row % ROW_TONES.length]];
+    return <span className="flex items-center gap-2.5 min-w-0"><IconTile icon={I} tone={tone} size={28} /><span className="truncate">{v}</span></span>;
+  }
+  const m = typeof v === 'string' ? /^(\d+)%$/.exec(v) : null;
+  if (m) {
+    const n = +m[1], c = rateTone(col, n);
+    /* Left-aligned like Occupancy's Filled column: every bar starts on one line and the value sits right after it. */
+    return <span className="flex items-center gap-2.5"><span className="w-20 h-1.5 shrink-0 rounded-full bg-[#F5F5F5] overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${n}%`, background: c }} /></span><span className="font-medium" style={{ color: c }}>{v}</span></span>;
+  }
+  if (v === '—' && RATE_COLS.has(col)) return <span className="text-[#A3A3A3]">—</span>;
+  if (col === 'Overdue') return <span className="text-[#B91C1C] font-medium">{v}</span>;
+  if (col === 'In arrears' && Number(v) > 0) return <span className="text-[#C2410C] font-medium">{v}</span>;
+  return v;
+}
+
+export function SimpleReport({ id: idProp }: { id?: string } = {}) {
+  const { id: idParam = '' } = useParams();
+  const id = idProp ?? idParam;
   const live = useLiveSimple(id);
   const r = live ?? SIMPLE[id];
   const def = REPORTS.find((x) => x.to === `/reports/${id}`);
-  if (!r) return <><Header icon={ChartBar} crumbs={crumbs} title="Report not found" /><div className="p-6 text-sm text-[#646A78]">There’s no report here. Pick one from the library.</div></>;
+  if (!r) return <><RHeader icon={ChartBar} title="Report not found" /><div className="p-6 text-sm text-[#737373]">There’s no report here. Pick one from the library.</div></>;
   const I = (def && AREA_ICON[def.id]) ?? ChartBar;
   if (useEmpty.getState().on) return <NoReportData icon={I} title={r.title} />;
   return (
     <>
-      <Header icon={I} crumbs={crumbs} title={r.title}>
+      <RHeader icon={I} title={r.title}>
         <Button icon={DownloadSimple} onClick={() => toast.success(`${r.title}.csv downloaded`)}>Export CSV</Button>
         <Button variant="primary" icon={CalendarBlank} onClick={() => toast('Scheduling is set up on Occupancy in the prototype', { description: 'Open Occupancy and choose Schedule.' })}>Schedule</Button>
-      </Header>
-      <Toolbar right={<span className="text-xs text-[#646A78] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
-      <div className="flex-1 overflow-auto p-5 space-y-4">
-        <div className="grid grid-cols-4 gap-3">{r.tiles.map(([l, v, c, sub]) => <Tile key={l} label={l} value={v} color={c} sub={sub} />)}</div>
+      </RHeader>
+      <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
+      <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
+        <StatStrip items={r.tiles.map(([l, v, c, sub]) => ({ label: l, value: v, color: c, sub }))} />
         <div className="rounded-xl border border-line bg-white overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="text-xs text-[#646A78] border-b border-line">{r.cols.map((c, i) => <th key={c} className={cx('font-medium h-9 px-3', i === 0 ? 'text-left pl-5' : 'text-right', i === r.cols.length - 1 && 'pr-5')}>{c}</th>)}</tr></thead>
-            <tbody>{r.rows.map((row) => <tr key={String(row[0])} className="border-b border-[#F3F4F6] last:border-0">{row.map((v, i) => <td key={i} className={cx('h-10 px-3 tabular-nums', i === 0 ? 'pl-5 font-medium' : 'text-right', i === row.length - 1 && 'pr-5')}>{v}</td>)}</tr>)}</tbody>
+            <thead><tr className="text-xs text-[#737373] border-b border-line">{r.cols.map((c, i) => <th key={c} className={cx('font-medium h-9 px-3 text-left', i === 0 && 'pl-5', RATE_COLS.has(c) && 'w-[200px]', i === r.cols.length - 1 && 'pr-5')}>{c}</th>)}</tr></thead>
+            <tbody>{r.rows.map((row, ri) => <tr key={String(row[0])} className="border-b border-[#F5F5F5] last:border-0">{row.map((v, i) => <td key={i} className={cx('h-12 px-3 tabular-nums', i === 0 ? 'pl-5 font-medium' : DATE_COLS.has(r.cols[i]) && 'whitespace-nowrap', i === row.length - 1 && 'pr-5')}>{cellFor(r.cols[i], v, ri)}</td>)}</tr>)}</tbody>
           </table>
         </div>
       </div>

@@ -4,14 +4,14 @@ import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Buildings, ClockCounterClockwise, EnvelopeSimple, Info, PaperPlaneTilt, Plus, Shield, ShieldCheck, User, UserPlus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Field, FilterButton, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Field, FilterButton, inFilter, type Filters, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useTab } from '../hooks';
 import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, snapOrg, undoSince, useOrg, type Member, type Role, type Scenario } from '../../data/org';
 import { Alert, EmptyState, Header, IconSelect, ODialog, RowMenu } from './parts';
 
 type TabId = 'members' | 'roles' | 'audit';
-const FOOT = 'Members sign in with their university account; a role sets what they can do, halls set where.';
+const FOOT = 'Members sign in with their operator account; a role sets what they can do, halls set where.';
 
 export function RoleTag({ role }: { role?: Role }) {
   if (!role) return <span className="text-gray-400">—</span>;
@@ -30,7 +30,7 @@ export function AccessPage() {
   const [sp, setSp] = useSearchParams();
   const loc = useLocation();
   const nav = useNavigate();
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<Filters>({});
   const [invite, setInvite] = useState<{ open: boolean; roleId?: string }>({ open: false });
   const [access, setAccess] = useState<{ m: Member; addHall?: string; roleId?: string } | null>(null);
   const [removing, setRemoving] = useState<Member | null>(null);
@@ -48,7 +48,7 @@ export function AccessPage() {
   }, [loc, nav]);
 
   const roleOf = (m: Member) => roles.find((r) => r.id === m.roleId);
-  const shown = members.filter((m) => (!f.role || roleOf(m)?.name === f.role) && (!f.hall || m.halls === 'all' || m.halls.some((h) => hallById(h)?.short === f.hall)) && (!f.status || m.status === f.status));
+  const shown = members.filter((m) => inFilter(f.role, roleOf(m)?.name) && (!f.hall?.length || m.halls === 'all' || m.halls.some((h) => inFilter(f.hall, hallById(h)?.short))) && inFilter(f.status, m.status));
 
   const resend = (m: Member) => {
     const before = snap();
@@ -70,13 +70,13 @@ export function AccessPage() {
 
   const memberCols: Col<Member>[] = [
     { key: 'm', label: 'Member', className: 'w-[36%]', render: (m) => (
-      <div className="flex items-center gap-2.5"><Avatar name={m.name} size={24} /><div className="leading-tight"><div className="text-sm font-medium">{m.name}</div><div className="text-xs text-[#646A78]">{m.email}</div></div></div>
+      <div className="flex items-center gap-2.5"><Avatar name={m.name} size={24} /><div className="leading-tight"><div className="text-sm font-medium">{m.name}</div><div className="text-xs text-[#737373]">{m.email}</div></div></div>
     ) },
     { key: 'r', label: 'Role', className: 'w-[22%]', render: (m) => <RoleTag role={roleOf(m)} /> },
     { key: 'h', label: 'Halls', className: 'w-[19%]', render: (m) => <span className="text-sm text-gray-700">{roleOf(m)?.scope === 'all' ? 'All halls' : hallsLabel(m.halls)}</span> },
     { key: 'a', label: 'Last active', render: (m) => m.status === 'Invited' ? <Pill tone="amber" icon={EnvelopeSimple}>Invited</Pill>
       : m.status === 'Invite expired' ? <span className="flex items-center gap-2"><Pill tone="orange" icon={Warning}>Invite expired</Pill><Button size="sm" onClick={(e) => { e.stopPropagation(); resend(m); }}>Resend</Button></span>
-      : <span className="text-sm text-[#646A78]">{m.lastActive}</span> },
+      : <span className="text-sm text-[#737373]">{m.lastActive}</span> },
     { key: 'x', label: '', className: 'w-12 text-right', render: (m) => (
       <RowMenu items={[
         { label: 'Change role', onClick: () => setAccess({ m }) },
@@ -90,7 +90,7 @@ export function AccessPage() {
   const roleCols: Col<Role>[] = [
     { key: 'n', label: 'Role', className: 'w-[30%]', render: (r) => <div className="flex items-center gap-2"><Shield size={14} className="text-gray-400" /><span className="text-sm font-medium">{r.name}</span>{r.createdByYou && <Pill tone="green">New</Pill>}</div> },
     { key: 'c', label: 'Members', className: 'w-[14%]', render: (r) => <span className="text-sm tabular-nums">{members.filter((m) => m.roleId === r.id).length}</span> },
-    { key: 'w', label: 'Can', render: (r) => <span className="text-sm text-[#646A78]">{roleCan(r)}</span> },
+    { key: 'w', label: 'Can', render: (r) => <span className="text-sm text-[#737373]">{roleCan(r)}</span> },
     { key: 'x', label: '', className: 'w-12 text-right', render: (r) => (
       <RowMenu items={[
         { label: 'Edit permissions', disabled: r.id === 'admin', onClick: () => nav(`/org/people/roles/${r.id}`) },
@@ -127,12 +127,12 @@ export function AccessPage() {
             <Button icon={Shield} onClick={() => setTab('roles')}>Review roles</Button>
           </EmptyState>
         </div>
-      ) : <Table cols={memberCols} rows={shown} onRow={(m) => setAccess({ m })} selected={access?.m.id} summary={FOOT} pageSize={50} />)}
+      ) : <Table cols={memberCols} rows={shown} onRow={(m) => setAccess({ m })} selected={access?.m.id} summary={FOOT} />)}
 
       {tab === 'roles' && <Table cols={roleCols} rows={roles} onRow={(r) => r.id !== 'admin' ? nav(`/org/people/roles/${r.id}`) : toast('Admin can do everything. It can’t be edited.')} />}
 
       {tab === 'audit' && <Table cols={[
-        { key: 'w', label: 'When', className: 'w-44', render: (a) => <span className="text-sm text-[#646A78]">{a.when}</span> },
+        { key: 'w', label: 'When', className: 'w-44', render: (a) => <span className="text-sm text-[#737373]">{a.when}</span> },
         { key: 'p', label: 'Who', className: 'w-48', render: (a) => <span className="flex items-center gap-2 text-sm"><Avatar name={a.who} size={20} />{a.who}</span> },
         { key: 'x', label: 'Change', render: (a) => <span className="text-sm">{a.what}</span> },
         { key: 'a', label: 'Area', className: 'w-32', render: (a) => <Pill>{a.area}</Pill> },
@@ -151,7 +151,7 @@ function PlainTable<T extends { id: string }>({ cols, rows }: { cols: Col<T>[]; 
   const { items, bodyRef } = useRowMotion(rows);
   return (
     <table className="w-full text-sm">
-      <thead><tr className="text-left text-xs text-[#646A78]">{cols.map((c, i) => <th key={c.key} className={cx('font-medium h-9 border-b border-line px-3', i === 0 && 'pl-[var(--cx,12px)]', i === cols.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{c.label}</th>)}</tr></thead>
+      <thead><tr className="text-left text-xs text-[#737373]">{cols.map((c, i) => <th key={c.key} className={cx('font-medium h-9 border-b border-line px-3', i === 0 && 'pl-[var(--cx,12px)]', i === cols.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{c.label}</th>)}</tr></thead>
       <tbody ref={bodyRef}>{items.map(({ row: r, motion }) => <tr key={r.id} {...rowAttrs(r.id, motion)} className="border-b border-line">{cols.map((c, i) => <td key={c.key} className={cx('h-10 px-3 py-1.5', i === 0 && 'pl-[var(--cx,12px)]', i === cols.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{c.render(r)}</td>)}</tr>)}</tbody>
     </table>
   );
@@ -176,7 +176,7 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
     if (busy.current) return;
     const e = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { toast.error('Enter an email address'); return; }
-    if (!e.endsWith('@durham.ac.uk')) { toast.error('Use a Durham address', { description: 'Members sign in with their university account.' }); return; }
+    if (!e.endsWith('@durham.ac.uk')) { toast.error('Use a Durham address', { description: 'Members sign in with their operator account.' }); return; }
     busy.current = true;
     const before = snap();
     const name = nameFromEmail(e);
@@ -194,7 +194,7 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
       <div className="space-y-4">
         <Field label="Email">
           <label className="relative flex items-center">
-            <EnvelopeSimple size={14} className="absolute left-2.5 text-[#646A78]" />
+            <EnvelopeSimple size={14} className="absolute left-2.5 text-[#737373]" />
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@durham.ac.uk" className="pl-8" onKeyDown={(e) => e.key === 'Enter' && !existing && send()} />
           </label>
         </Field>
@@ -203,13 +203,13 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
           <div><div className="text-sm font-medium text-gray-700 mb-1.5">Role</div>
             <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} /></div>
           <div><div className="text-sm font-medium text-gray-700 mb-1.5">Halls</div>
-            {role?.scope === 'all' ? <div className="h-8 px-2.5 rounded-lg border border-line bg-gray-50 text-sm text-[#646A78] flex items-center gap-2"><Buildings size={14} />All halls</div>
+            {role?.scope === 'all' ? <div className="h-8 px-2.5 rounded-lg border border-line bg-gray-50 text-sm text-[#737373] flex items-center gap-2"><Buildings size={14} />All halls</div>
               : <IconSelect ariaLabel="Halls" icon={Buildings} value={hall} onChange={setHall} options={[...HALLS.map((h) => ({ value: h.id, label: h.name })), { value: 'all', label: 'All halls' }]} />}</div>
         </div>
         {role && !existing && (
           <div className="rounded-lg border border-line p-3 flex gap-2.5">
             <Info size={16} className="text-primary shrink-0 mt-0.5" />
-            <div><div className="text-sm font-medium text-primary">{role.createdByYou ? 'New role: ' : ''}{role.name}</div><div className="text-xs text-[#646A78] mt-0.5">{roleSummary(role, halls)}</div></div>
+            <div><div className="text-sm font-medium text-primary">{role.createdByYou ? 'New role: ' : ''}{role.name}</div><div className="text-xs text-[#737373] mt-0.5">{roleSummary(role, halls)}</div></div>
           </div>
         )}
       </div>
@@ -244,21 +244,21 @@ function AccessSheet({ m, addHall, onClose , nav }: { nav?: SheetNav;  m: Member
       <SheetHero name={m.name} meta={`${m.email} · ${m.status === 'Active' ? `member since ${m.since}` : m.status.toLowerCase()}`} />
       <SheetSection title="Role">
         <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} />
-        {role && <p className="text-xs text-[#646A78] mt-1.5">{roleCan(role)}</p>}
+        {role && <p className="text-xs text-[#737373] mt-1.5">{roleCan(role)}</p>}
       </SheetSection>
       <SheetSection title="Halls">
-        {allScope ? <p className="text-sm text-[#646A78]">{role?.name} covers every hall.</p> : (
-          <div className="divide-y divide-[#F3F4F6]">
+        {allScope ? <p className="text-sm text-[#737373]">{role?.name} covers every hall.</p> : (
+          <div className="divide-y divide-[#F5F5F5]">
             {ordered.map((h) => { const on = halls.includes(h.id); const isNew = on && !orig.includes(h.id); return (
               <label key={h.id} className="flex items-center gap-3 h-12 cursor-pointer">
                 <Checkbox checked={on} onCheckedChange={(v) => setHalls((v === true) ? [...halls, h.id] : halls.filter((x) => x !== h.id))} />
                 <Buildings size={15} className="text-gray-400" />
-                <span className="flex-1"><span className="block text-sm font-medium">{h.name}</span><span className={cx('block text-xs', isNew ? 'text-[#0B8A4C]' : 'text-[#646A78]')}>{h.rooms} rooms{isNew ? ' · added' : ''}</span></span>
+                <span className="flex-1"><span className="block text-sm font-medium">{h.name}</span><span className={cx('block text-xs', isNew ? 'text-[#0B8A4C]' : 'text-[#737373]')}>{h.rooms} rooms{isNew ? ' · added' : ''}</span></span>
               </label>
             ); })}
           </div>
         )}
-        <p className="text-xs text-[#646A78] mt-3">Applies straight away; {m.name.split(' ')[0]} gets an email.</p>
+        <p className="text-xs text-[#737373] mt-3">Applies straight away; {m.name.split(' ')[0]} gets an email.</p>
       </SheetSection>
     </Sheet>
   );

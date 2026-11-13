@@ -4,7 +4,9 @@ import { Buildings, Camera, CheckCircle, Circle, Clock, DeviceMobile, DotsThree,
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
-import { TitleH1, Avatar, Button, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Table, Tabs, Textarea, Toolbar, gbp, SheetHero, SheetSection } from '../../components/ui';
+import { Avatar, Button, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, SheetNavButtons, Table, Tabs, Textarea, Toolbar, gbp, listNav, SheetHero, SheetSection } from '../../components/ui';
+import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
+import { LineTabs } from '../inventory/common';
 import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 import { kindIcon } from './Requests';
@@ -28,6 +30,8 @@ export function useCheckIn() {
 
 /* ---------------- List (no frame: same style as the other lists; 3218, 3219, 3221) ---------------- */
 type Tab = 'All' | 'In residence' | 'Arriving' | 'Leaving';
+/** The Residents rows in their on-screen order, so the resident modal's ⌃ ⌄ steps through what the list shows. */
+const shownResidents: { ids: string[] } = { ids: [] };
 export function ResidentsList() {
   const [sp] = useSearchParams();
   const open = sp.get('open');
@@ -35,12 +39,13 @@ export function ResidentsList() {
   const nav = useNavigate();
   const [tab, setTab] = useTab<Tab>('All');
   const [q, setQ] = useState('');
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<Filters>({});
   const checkIn = useCheckIn();
   if (open) return <Navigate to={`/residents/${open}`} replace />;
   const inTab = (r: Resident, t: Tab) => t === 'All' || (t === 'Arriving' ? !!r.arrivingThisWeek : r.status === t);
-  const scoped = residents.filter((r) => (!f.hall || r.hall === f.hall) && (!f.deposit || r.deposit === f.deposit) && (!f.week || (f.week === 'Arriving today' ? r.arrives === 'Today' && !r.checkedIn : f.week === 'Arriving this week' ? !!r.arrivingThisWeek : r.status === 'Leaving')) && (!q.trim() || `${r.name} ${r.email} ${r.room} ${r.hall}`.toLowerCase().includes(q.trim().toLowerCase())));
+  const scoped = residents.filter((r) => inFilter(f.hall, r.hall) && inFilter(f.deposit, r.deposit) && (!f.week?.length || f.week.some((w) => (w === 'Arriving today' ? r.arrives === 'Today' && !r.checkedIn : w === 'Arriving this week' ? !!r.arrivingThisWeek : r.status === 'Leaving'))) && (!q.trim() || `${r.name} ${r.email} ${r.room} ${r.hall}`.toLowerCase().includes(q.trim().toLowerCase())));
   const rows = scoped.filter((r) => inTab(r, tab)).sort((a, b) => (tab === 'Arriving' ? Number(b.arrives === 'Today') - Number(a.arrives === 'Today') : 0));
+  shownResidents.ids = rows.map((r) => r.id);
   return (
     <>
       <RHeader icon={Users} crumbs={[]} title="Residents" />
@@ -50,11 +55,11 @@ export function ResidentsList() {
       </>}>
         <Tabs value={tab} onChange={setTab} tabs={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ id: t, label: t, count: scoped.filter((r) => inTab(r, t)).length }))} />
       </Toolbar>
-      <Table rows={rows} paginate={false} footer={false} onRow={(r) => nav(`/residents/${r.id}`)}
+      <Table rows={rows} onRow={(r) => nav(`/residents/${r.id}`)}
         summary={`${rows.length} ${rows.length === 1 ? 'resident' : 'residents'}${tab === 'Arriving' ? ` · ${rows.filter((r) => r.checkedIn).length} checked in so far` : ''}`}
         empty={residents.length ? <Empty icon={Users} title="No residents match" sub="Try clearing the search or the filters." /> : <Empty art="team" icon={Users} title="No residents yet" sub="Residents show here once their bookings are confirmed." />}
         cols={[
-          { key: 'n', label: 'Resident', render: (r) => <span className="font-medium">{r.name}</span> },
+          { key: 'n', label: 'Resident', render: (r) => <span className="flex items-center gap-2.5 min-w-0"><Avatar name={r.name} size={28} /><span className="font-medium truncate">{r.name}</span></span> },
           { key: 'rm', label: 'Room', render: (r) => <span className="text-gray-500">{hallShort(r.hall)} {r.room}</span> },
           { key: 'a', label: tab === 'Leaving' ? 'Leaves' : 'Arrives', render: (r) => <span className="text-gray-500">{r.status === 'Leaving' ? r.leaves : r.arrivingThisWeek ? r.arrives : 'In since Sep'}</span> },
           { key: 'd', label: 'Deposit', render: (r) => <DepositPill r={r} /> },
@@ -73,6 +78,7 @@ export function ResidentDetail() {
   const nav = useNavigate();
   const { residents, requests, faults } = useRms();
   const r = residents.find((x) => x.id === id);
+  const stepper = listNav(shownResidents.ids.length ? shownResidents.ids : residents.map((x) => x.id), (x) => x === id, (x) => nav(`/residents/${x}`));
   const [tab, setTab] = useState<DTab>('Overview');
   const [msg, setMsg] = useState(false);
   const checkIn = useCheckIn();
@@ -88,33 +94,39 @@ export function ResidentDetail() {
     { t: 'ID checked', s: 'Passport or BRP, seen at the desk on arrival', ok: !arriving },
   ];
   const done = items.filter((i) => i.ok).length;
+  /* A centred modal over the Residents list (like a property), not a page of its own. */
   return (
     <>
-      <RHeader icon={Users} crumbs={[['Residents', '/residents']]} title={r.name}>
+      <UIDialog open onOpenChange={(o) => { if (!o) nav('/residents'); }}>
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:28px] [--cx:20px]">
+      <DialogHeader className="py-3">
+        <SheetNavButtons nav={stepper} />
+        <DialogTitle>Resident</DialogTitle>
         <Button icon={Envelope} onClick={() => setMsg(true)}>Message</Button>
         {arriving ? <Button variant="primary" icon={r.pending ? Clock : SignIn} disabled={!!r.pending} onClick={() => checkIn.start(r)}>{r.pending === 'payment' ? 'Waiting for payment' : r.pending ? 'Waiting for sign-off' : 'Check in'}</Button>
           : <Button icon={DotsThree} onClick={() => toast('More actions', { description: 'Move room, start move-out, or add a note.' })}>More</Button>}
-      </RHeader>
-      <div className="flex-1 overflow-auto">
-        <div className="px-6 pt-6 pb-5 flex items-start gap-3 border-b border-line">
-          <Avatar name={r.name} size={36} />
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <TitleH1 className="text-[20px] font-medium tracking-tight mr-1">{r.name}</TitleH1>
+        <DialogCloseButton />
+      </DialogHeader>
+      <div className="flex-1 min-h-0 overflow-auto">
+        {/* Same hero as the property modal: 64px avatar, 20px name with its tags, 14px grey meta; no rule before the tabs. */}
+        <div className="px-7 pt-6 pb-5 flex items-center gap-4">
+          <Avatar name={r.name} size={64} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h2 className="text-xl leading-7 font-medium tracking-[-0.2px] text-[#0A0A0A]">{r.name}</h2>
               {arriving ? <Pill tone="blue" outline icon={Buildings}>Arriving {r.arrives}</Pill> : <ResStatusPill r={r} />}
               {r.plan && <Pill tone="purple" outline>Accessibility plan</Pill>}
               <Pill tone="blue" outline>{r.year}</Pill>
             </div>
-            <p className="text-sm text-gray-500 mt-1">{r.hall} · {r.room} {r.roomType} · tenancy 19 Sep 2026 – 18 Jun 2027 · {gbp(r.rent)} / wk</p>
+            <p className="mt-1 text-sm leading-5 text-[#737373]">{r.hall} · {r.room} {r.roomType} · tenancy 19 Sep 2026 – 18 Jun 2027 · {gbp(r.rent)} / wk</p>
           </div>
         </div>
-        <div className="px-6 py-3 border-b border-line">
-          <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Payments', label: 'Payments' }, { id: 'Requests', label: 'Requests', count: reqs.length }, { id: 'Maintenance', label: 'Maintenance', count: mts.length }, { id: 'Documents', label: 'Documents', count: 4 }, { id: 'Activity', label: 'Activity' }]} />
-        </div>
-        <div className={['Payments', 'Requests', 'Maintenance', 'Documents'].includes(tab) ? 'pt-2' : 'p-6 max-w-[1200px]'}>
+        {/* Same underline tabs as the property modal. */}
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Payments', label: 'Payments' }, { id: 'Requests', label: `Requests · ${reqs.length}` }, { id: 'Maintenance', label: `Maintenance · ${mts.length}` }, { id: 'Documents', label: 'Documents · 4' }, { id: 'Activity', label: 'Activity' }]} />
+        <div className={['Payments', 'Requests', 'Maintenance', 'Documents'].includes(tab) ? '' : 'p-7 pt-5'}>
           {tab === 'Overview' && (
-            <div className="grid grid-cols-2 gap-5 items-start">
-              <div className="space-y-4">
+            <div className="grid grid-cols-[1fr_340px] gap-5 items-start">
+              <div className="space-y-5 min-w-0">
                 <Panel title="Before keys" right={`${done} of ${items.length} done`}>
                   <div>
                     {items.map((i) => (
@@ -130,7 +142,7 @@ export function ResidentDetail() {
                   : r.checkedIn ? <Note tone="green" icon={CheckCircle} title={`Checked in ${r.checkedIn}`}>{r.checkInNote ?? 'Keys handed over · room condition recorded'}</Note> : null}
               </div>
               <Panel title="Details">
-                <KV rows={[['Student ID', <span className="font-mono text-xs">{r.studentId}</span>], ['Email', r.email], ['Phone', r.phone], ['Course', r.course], ['Emergency contact', r.emergency], ['Application', r.application]]} />
+                <KV rows={[['Resident ID', <span className="font-mono text-xs">{r.studentId}</span>], ['Email', r.email], ['Phone', r.phone], ['Course', r.course], ['Emergency contact', r.emergency], ['Application', r.application]]} />
               </Panel>
             </div>
           )}
@@ -144,7 +156,7 @@ export function ResidentDetail() {
             ]} cols={[
               { key: 'i', label: 'Item', render: (x) => x.item },
               { key: 'd', label: 'Due', render: (x) => <span className="text-gray-500">{x.due}</span> },
-              { key: 'a', label: 'Amount', className: 'text-right', render: (x) => <span className="tabular-nums">{gbp(x.amount)}</span> },
+              { key: 'a', label: 'Amount', render: (x) => <span className="tabular-nums">{gbp(x.amount)}</span> },
               { key: 's', label: 'Status', render: (x) => <Pill tone={x.status === 'Paid' ? 'green' : x.status === 'Not paid' ? 'red' : x.status === 'Due' ? 'amber' : 'grey'}>{x.status}</Pill> },
             ]} />
           )}
@@ -178,6 +190,8 @@ export function ResidentDetail() {
           )}
         </div>
       </div>
+      </DialogContent>
+      </UIDialog>
       {checkIn.ui}
       <Modal open={msg} onClose={() => setMsg(false)} title={`Message ${r.name}`} sub={`${r.email} · and the resident portal`}
         footer={<><Button onClick={() => setMsg(false)}>Cancel</Button><Button variant="primary" icon={Envelope} onClick={() => { setMsg(false); toast.success(`Message sent to ${first}`); }}>Send</Button></>}>
@@ -189,7 +203,7 @@ export function ResidentDetail() {
 
 /* ---------------- Check-in sheet: 3006 ---------------- */
 const IconInput = ({ icon: I, invalid, ...p }: { icon: typeof Key; invalid?: boolean; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; 'aria-label': string }) => (
-  <div className="relative"><I size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#646A78]" /><Input className={invalid ? 'pl-8 border-[#C11F14] focus-visible:border-[#C11F14]' : 'pl-8'} aria-invalid={invalid || undefined} {...p} /></div>
+  <div className="relative"><I size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#737373]" /><Input className={invalid ? 'pl-8 border-[#C11F14] focus-visible:border-[#C11F14]' : 'pl-8'} aria-invalid={invalid || undefined} {...p} /></div>
 );
 function CheckInSheet({ r, onClose }: { r: Resident; onClose: () => void }) {
   const { update } = useRms();

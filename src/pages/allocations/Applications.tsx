@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowsDownUp, CaretLeft, CaretRight, Check, CheckCircle, DownloadSimple, Flag, FunnelX, MagicWand, ShieldWarning, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, Sheet, Toolbar, cx, listNav } from '../../components/ui';
+import { Button, PageHeader, Sheet, Tabs, Toolbar, cx, listNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { appCounts, fmtN, useAlloc, type App, type AppStatus } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
@@ -14,7 +14,7 @@ import { applyFilters, describe, fieldsFor, FilterPanel, type Filters } from './
 type TabId = 'To review' | 'Flagged' | 'Allocated' | 'Rejected' | 'All';
 const LEGACY: Record<string, TabId> = { 'Manual review': 'Flagged', New: 'To review', 'In review': 'To review', Offered: 'Allocated', Accepted: 'Allocated', Waitlisted: 'All', Declined: 'Rejected' };
 const tabStatus: Record<TabId, AppStatus | null> = { 'To review': 'review', Flagged: 'manual', Allocated: 'allocated', Rejected: 'rejected', All: null };
-const PAGE = 50;
+const PAGE = 25;
 
 /* "24 Oct" within a cycle → a sortable number: newer cycles first, then the date inside the cycle's
    September-to-August year. A plain string sort put 28 May next to 28 Sep. */
@@ -60,10 +60,16 @@ export function Applications() {
         <Button variant="primary" icon={MagicWand} onClick={() => setAuto(true)}>Auto-allocate</Button>
         </>}
       </PageHeader>
+      {/* The queue's views are page tabs again (the segmented tabs My tasks and Activity use), not sidebar rows. */}
       <Toolbar className={cx('!py-3', split && 'border-b border-line')} right={<>
         <FilterPanel rows={base} fs={fs} setFs={setFs} fields={fields} />
         {split ? <SortButton s={sort} setS={setSort} /> : <TableDisplay tab={tab} />}
-      </>} heading={tab} />
+      </>} heading={tab}>
+        <Tabs value={tab} onChange={(v) => setTab(v as TabId)} tabs={[
+          { id: 'To review', label: 'To review', count: counts.review }, { id: 'Flagged', label: 'Flagged', count: counts.manual },
+          { id: 'Allocated', label: 'Allocated', count: counts.allocated }, { id: 'Rejected', label: 'Rejected', count: counts.rejected }, { id: 'All', label: 'All', count: counts.all },
+        ]} />
+      </Toolbar>
       {notOpenYet ? (
         <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={`Applications for ${cycleSel!.name} open on ${cycleSel!.opens}. They arrive here once the application form is published on the on-campus portal.`}>
           <Button variant="primary" onClick={() => toast('The form builder opens on the on-campus portal', { description: `Application form ${cycleSel!.name} · Draft` })}>Open the form</Button>
@@ -71,13 +77,13 @@ export function Applications() {
         </EmptyArea>
       ) : !d.apps.length ? (
         /* First login: nothing has come in yet, whatever the tab. The next step is a cycle to apply to. */
-        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={d.cycles.length ? 'Applications arrive here once students apply through the on-campus portal.' : 'Open a cycle, and applications arrive here once students apply through the on-campus portal.'}>
+        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={d.cycles.length ? 'Applications arrive here once residents apply through the on-campus portal.' : 'Open a cycle, and applications arrive here once residents apply through the on-campus portal.'}>
           {d.cycles.length
             ? <Button onClick={() => { void navigator.clipboard?.writeText('https://accommodation.durham.ac.uk/apply'); toast.success('Portal link copied'); }}>Copy portal link</Button>
             : <Button variant="primary" onClick={() => nav('/allocations/cycles?new=1')}>Open a cycle</Button>}
         </EmptyArea>
       ) : tab === 'To review' && counts.review === 0 ? (
-        <EmptyArea art="queueClear" icon={CheckCircle} title="Queue clear" sub="New applications land here as students apply.">
+        <EmptyArea art="queueClear" icon={CheckCircle} title="Queue clear" sub="New applications land here as residents apply.">
           <Button onClick={() => setTab('Flagged')}>Open flagged · {counts.manual}</Button>
         </EmptyArea>
       ) : split ? (
@@ -141,7 +147,7 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
   return (
     <div className="flex-1 min-h-0 flex">
       <div className="w-[340px] shrink-0 border-r border-line flex flex-col">
-        <div className="h-10 shrink-0 px-3 flex items-center gap-2 border-b border-[#F3F4F6] text-xs text-gray-500">
+        <div className="h-10 shrink-0 px-3 flex items-center gap-2 border-b border-[#F5F5F5] text-xs text-gray-500">
           <Checkbox aria-label="Select all on this page" checked={checked} onCheckedChange={(v) => setChecked((v === true))} />
           {checked ? <>
             <span className="text-ink">{shown.length} selected</span>
@@ -149,14 +155,14 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
           </> : <>
             <span>{fmtN(total)} {tab === 'To review' ? (filtered || fs.order.length ? 'to review' : 'applications') : 'applications'}</span>
             <span className="ml-auto">{sorted.length ? `${page * PAGE + 1}–${Math.min(sorted.length, page * PAGE + PAGE)}` : '0'}</span>
-            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
-            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
+            <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+            <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
           </>}
         </div>
         <div className="flex-1 overflow-auto">
           {shown.map((a) => (
             <button key={a.id} type="button" onClick={() => setOpen(a.id)} data-selected={sel?.id === a.id || undefined}
-              className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F3F4F6] border-l-2', sel?.id === a.id ? 'bg-[#EFF6FF] border-l-primary' : 'border-l-transparent hover:bg-[#F9FAFB]')}>
+              className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F5F5F5] border-l-2', sel?.id === a.id ? 'bg-[#EFF6FF] border-l-primary' : 'border-l-transparent hover:bg-[#FAFAFA]')}>
               <Ini name={a.name} size={24} />
               <div className="min-w-0 flex-1">
                 <div className="text-sm truncate"><span className="font-semibold">{a.name}</span>{a.tag && <span className={cx('text-xs font-medium', a.tag === 'No study offer' ? 'text-[#9A5B00]' : 'text-[#8B2CF5]')}> · {a.tag}</span>}</div>
@@ -164,7 +170,7 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
               </div>
               <div className="text-right shrink-0">
                 <div className={cx('text-xs', a.waiting >= 7 ? 'font-semibold text-[#C11F14]' : a.waiting >= 5 ? 'font-semibold text-[#C2410C]' : 'font-medium text-gray-500')}>{a.waiting} d</div>
-                <div className="text-xs text-[#646A78] font-mono mt-0.5">{a.ref}</div>
+                <div className="text-xs text-[#737373] font-mono mt-0.5">{a.ref}</div>
               </div>
             </button>
           ))}
@@ -245,11 +251,11 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
       <div className="flex-1 overflow-auto">
         {order.length ? <Grid cols={cols} rows={shown} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} sort={tab === 'All' ? { key: 'sub', dir: newest ? 'desc' : 'asc', onToggle: () => setNewest((v) => !v) } : undefined} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()} for these filters`} sub="Clear a filter to see more." />}
       </div>
-      <Foot right={<>
+      <Foot right={pages > 1 && <>
         {pages > 1 && <span className="flex items-center gap-1 tabular-nums">
           {page * PAGE + 1}–{Math.min(order.length, page * PAGE + PAGE)} of {fmtN(order.length)}
-          <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
-          <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#111827] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
+          <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
+          <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
         </span>}
       </>} />
       <Sheet open={!!sel && !allocating && !rejecting} onClose={() => setOpen(null)} width={600} title="Application" nav={listNav(order, (a) => a.id === open, (a) => setOpen(a.id))}>

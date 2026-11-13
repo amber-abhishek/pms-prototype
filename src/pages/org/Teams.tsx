@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { Empty } from '../../components/ui';
 import { Buildings, Plus, UsersThree } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Field, Input, SearchInput, Sheet, Table, Toolbar, cx, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Field, Input, SearchInput, Sheet, Table, PageHeading, cx, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { HALLS, hallsLabel, oid, snapOrg, undoSince, useOrg, type Team } from '../../data/org';
 import { Header, IconSelect, RowMenu } from './parts';
@@ -17,14 +17,16 @@ export function TeamsPage() {
   return (
     <>
       <Header icon={UsersThree} crumbs={[{ label: 'Organisation' }]} title="Teams">
+        {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
+        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search teams" /></div>
         <Button variant="primary" icon={Plus} onClick={() => setEdit('new')}>New team</Button>
       </Header>
-      <Toolbar right={<SearchInput value={q} onChange={setQ} placeholder="Search teams" />} />
+      <PageHeading />
       <Table rows={rows} empty={<Empty art="team" title="No teams yet" sub="Group the people who work together, like a hall’s front desk." />} onRow={(t) => setEdit(t)} selected={edit && edit !== 'new' ? edit.id : undefined} cols={[
-        { key: 'n', label: 'Team', className: 'w-[30%]', render: (t) => <div className="leading-tight"><div className="text-sm font-medium">{t.name}</div><div className="text-xs text-[#646A78]">{t.purpose}</div></div> },
+        { key: 'n', label: 'Team', className: 'w-[30%]', render: (t) => <div className="leading-tight"><div className="text-sm font-medium">{t.name}</div><div className="text-xs text-[#737373]">{t.purpose}</div></div> },
         { key: 'l', label: 'Lead', render: (t) => t.leadId && members.some((m) => m.id === t.leadId) ? <span className="flex items-center gap-2 text-sm"><Avatar name={name(t.leadId)} size={20} />{name(t.leadId)}</span> : <span className="text-sm text-[#C2410C]">No lead</span> },
         { key: 'm', label: 'Members', render: (t) => (
-          <span className="flex items-center gap-2"><span className="flex -space-x-1.5">{t.memberIds.slice(0, 5).map((id) => <span key={id} className="ring-2 ring-white rounded-full"><Avatar name={name(id)} size={24} /></span>)}</span><span className="text-sm text-[#646A78]">{t.memberIds.length}</span></span>
+          <span className="flex items-center gap-2"><span className="flex -space-x-1.5">{t.memberIds.slice(0, 5).map((id) => <span key={id} className="ring-2 ring-white rounded-full"><Avatar name={name(id)} size={24} /></span>)}</span><span className="text-sm text-[#737373]">{t.memberIds.length}</span></span>
         ) },
         { key: 'h', label: 'Halls', render: (t) => <span className="text-sm text-gray-700">{hallsLabel(t.halls)}</span> },
         { key: 'x', label: '', className: 'w-12 text-right', render: (t) => <RowMenu items={[
@@ -77,7 +79,7 @@ function TeamSheet({ team, onClose , nav }: { nav?: SheetNav;  team?: Team; onCl
         <IconSelect ariaLabel="Halls" icon={Buildings} value={hall} onChange={setHall} options={[{ value: 'all', label: 'All halls' }, ...HALLS.map((h) => ({ value: h.id, label: h.name }))]} />
       </SheetSection>
       <SheetSection title={`Members · ${ids.length}`}>
-        <div className="divide-y divide-[#F3F4F6]">
+        <div className="divide-y divide-[#F5F5F5]">
           {members.map((m) => { const on = ids.includes(m.id); return (
             <label key={m.id} className="flex items-center gap-3 h-11 cursor-pointer">
               <Checkbox checked={on} onCheckedChange={(v) => setIds((v === true) ? [...ids, m.id] : ids.filter((x) => x !== m.id))} />

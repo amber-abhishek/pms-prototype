@@ -1,15 +1,17 @@
 import { Fragment, type ReactNode } from 'react';
-import { CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, WarningCircle, X, XCircle, Archive, type Icon } from '../../components/icons';
-import { Status, cx } from '../../components/ui';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../../components/shadcn/dialog';
+import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, WarningCircle, XCircle, Archive, type Icon } from '../../components/icons';
+import { ConfirmFrame, Pill, Status, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
+import type { Tone } from '../../data/seed';
+import { Dialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import type { PStatus, Tag, UStatus } from '../../data/inventory';
 
 /* Status pills as the CMS frames draw them: Draft is a white outlined chip. */
 export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' | 'Succeeded' | 'Failed' }) {
-  if (s === 'Draft') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-[#374151]">Draft</span>;
-  if (s === 'Queued') return <span className="inline-flex items-center h-[22px] px-2 rounded-md border border-line bg-white text-xs font-medium text-[#374151]">Queued</span>;
+  /* Figma 3884:43935: Draft is the amber tag; Queued stays grey. */
+  if (s === 'Draft') return <Status s="Draft" tone="amber" />;
+  if (s === 'Queued') return <Status s="Queued" tone="grey" />;
   if (s === 'Active' || s === 'Succeeded') return <Status s={s} tone="green" icon={CheckCircle} />;
   if (s === 'Inactive') return <Status s="Inactive" tone="grey" icon={MinusCircle} />;
   if (s === 'Archived') return <Status s="Archived" tone="grey" icon={Archive} />;
@@ -19,44 +21,109 @@ export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' 
 }
 
 /* Tag text colours from 2820:111; the border is the same colour at 35%. Self-catered/Riverside are teal, Common room pink. */
-const TAG_HEX: Record<string, string> = { green: '#087A43', blue: '#1F45E0', amber: '#9A5B00', orange: '#C2410C', red: '#C8102E', purple: '#6E3BD8', grey: '#374151' };
+const TAG_HEX: Record<string, string> = { green: '#087A43', blue: '#1F45E0', amber: '#9A5B00', orange: '#C2410C', red: '#C8102E', purple: '#6E3BD8', grey: '#404040' };
 const TAG_BY_LABEL: Record<string, string> = { 'Self-catered': '#0E7A80', Riverside: '#0E7A80', 'Common room': '#C0266D' };
-const tagColor = (t: Tag) => TAG_BY_LABEL[t.label] ?? TAG_HEX[t.tone] ?? '#374151';
+const tagColor = (t: Tag) => TAG_BY_LABEL[t.label] ?? TAG_HEX[t.tone] ?? '#404040';
 export function Tags({ tags, max = 2 }: { tags: Tag[]; max?: number }) {
-  if (!tags.length) return <span className="text-[#646A78]">—</span>;
+  if (!tags.length) return <span className="text-[#737373]">—</span>;
   return (
     <span className="inline-flex items-center gap-1.5">
-      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-[22px] px-2 rounded-md border bg-white text-xs font-medium whitespace-nowrap" style={{ color: c, borderColor: c + '59' }}>{t.label}</span>; })}
-      {tags.length > max && <span className="text-xs font-medium text-[#646A78]">+{tags.length - max}</span>}
+      {/* Figma 3884:39809 tag: Connect chip, 20px, r6, 6px sides, the tag colour at 10% over white, Geist Mono 12 medium uppercase. */}
+      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-5 px-1.5 rounded-[6px] font-mono text-xs leading-4 font-medium uppercase whitespace-nowrap" style={{ color: c, background: `linear-gradient(${c}1A, ${c}1A), #fff` }}>{t.label}</span>; })}
+      {tags.length > max && <span className="font-mono text-xs text-[#737373]">+{tags.length - max}</span>}
     </span>
   );
 }
 
 /* Icon tile used in front of a property name and in dialog headers. */
 export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; tone?: 'grey' | 'blue' | 'red' | 'green' | 'amber'; size?: number }) {
-  const c = { grey: 'bg-[#F3F4F6] text-gray-500', blue: 'bg-[#EFF6FF] text-[#2563EB]', red: 'bg-[#FFE3E7] text-[#E0243A]', green: 'bg-[#E8F7EE] text-[#0B8A4C]', amber: 'bg-[#FFF6E0] text-[#A16207]' }[tone];
+  const c = { grey: 'bg-[#F5F5F5] text-gray-500', blue: 'bg-[#EFF6FF] text-[#2563EB]', red: 'bg-[#FFE3E7] text-[#E0243A]', green: 'bg-[#E8F7EE] text-[#0B8A4C]', amber: 'bg-[#FFF6E0] text-[#A16207]' }[tone];
   return <span className={cx('inline-flex items-center justify-center shrink-0', c, size >= 36 ? 'rounded-[10px]' : 'rounded-lg')} style={{ width: size, height: size }}><I size={size <= 28 ? 14 : size <= 32 ? 16 : Math.round(size * 0.5)} /></span>;
+}
+
+/* ---- Add property design system (Figma "Modal · Add property", 3884:41314), shared by every inventory modal. ---- */
+
+/** Each layout level's tone, used by its pill and tile. */
+export const LV = { Property: 'blue', Block: 'purple', Floor: 'orange', Flat: 'amber', Room: 'green' } as const satisfies Record<string, Tone>;
+export type Level = keyof typeof LV;
+export type Layout = 'College' | 'House';
+const LAYOUTS: [Layout, number, Level[]][] = [['College', 6, ['Property', 'Block', 'Floor', 'Flat', 'Room']], ['House', 2, ['Property', 'Room']]];
+
+/** Property layout radio cards: name, "Used by n", then the level pills joined by carets. */
+export function LayoutRadios({ value, onChange }: { value: Layout; onChange: (l: Layout) => void }) {
+  return (
+    <div role="radiogroup" aria-label="Property layout" className="flex flex-col gap-2">
+      {LAYOUTS.map(([s, n, lv]) => (
+        <div key={s} role="radio" aria-checked={value === s} tabIndex={0} onClick={() => onChange(s)} onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChange(s)}
+          className={cx('rounded-xl border p-4 flex gap-3 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring', value === s ? 'border-[#2563EB] bg-[#2563EB]/[0.03]' : 'border-[#E5E5E5] hover:bg-[#FAFAFA]')}>
+          <span className={cx('size-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0', value === s ? 'border-[#2563EB] bg-[#2563EB]' : 'border-[#D4D4D4] bg-white')}>{value === s && <span className="size-1.5 rounded-full bg-white" />}</span>
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-2"><span className="text-sm font-medium text-[#0A0A0A]">{s}</span><span className="text-xs text-[#737373]">Used by {n} properties</span></div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">{lv.map((l, i) => <span key={l} className="flex items-center gap-1.5">{i > 0 && <CaretRight size={12} strokeWidth={1.5} className="text-[#A3A3A3]" />}<Pill tone={LV[l]}>{l}</Pill></span>)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Card: r12, a 32px #FAFAFA mono strip (grey label, ink value or an action on the right), then its body. */
+export function ACard({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-[#E5E5E5] bg-white overflow-hidden">
+      <div className="h-8 px-3 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#E5E5E5] font-mono uppercase text-xs leading-4 font-medium tracking-[0.48px]">
+        <span className="flex-1 text-[#737373]">{title}</span>{right && <span className="text-[#0A0A0A]">{right}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** A form label (14px Medium) over its control, with an optional 12px grey line under it. */
+export function FormRow({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <div>
+      <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{label}</div>
+      {children}
+      {hint && <p className="text-xs text-[#737373] mt-1.5">{hint}</p>}
+    </div>
+  );
+}
+
+/** The Add property modal frame: 56px header (16px title, plain ✕), a scrolling body, a 64px footer
+ *  (`left`: the ghost Cancel/Back; `right`: the primary action). */
+export function InvModal({ open, onClose, title, width = 600, left, right, children }: { open: boolean; onClose: () => void; title: string; width?: number; left?: ReactNode; right?: ReactNode; children: ReactNode }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent aria-describedby={undefined} style={{ maxWidth: width }} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }}>
+        <div className="h-14 shrink-0 border-b border-[#E5E5E5] pl-6 pr-4 flex items-center gap-3">
+          <DialogTitle className="flex-1 text-base leading-5 font-medium text-[#0A0A0A]">{title}</DialogTitle>
+          <DialogCloseButton />
+        </div>
+        <div className="flex-1 min-h-0 overflow-auto px-6 py-6 flex flex-col gap-6">{children}</div>
+        <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center">{left}<div className="ml-auto flex items-center gap-2">{right}</div></div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 /* Dialog: title, grey sub, body, grey footer bar. No header icon (2026-11-09); `icon`/`tone` are ignored. */
 export function Modal({ open, onClose, title, sub, children, footer, width = 560, center }: {
   open: boolean; onClose: () => void; icon?: Icon; tone?: 'grey' | 'blue' | 'red' | 'green' | 'amber'; title?: ReactNode; sub?: ReactNode; children?: ReactNode; footer?: ReactNode; width?: number; center?: boolean;
 }) {
-  /* shadcn Dialog. A dialog with no title still needs an accessible name, so it gets a hidden one. */
+  /* shadcn Dialog. A dialog with no title still needs an accessible name, so it gets a hidden one.
+     A question title with a footer is a confirmation, so it takes the shared confirm layout. */
+  const confirm = footer != null && isConfirmTitle(title);
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <div className="flex-1 overflow-auto p-5">
-          {title ? (
-            <div className={cx('flex gap-3', center ? 'flex-col items-center text-center' : 'items-start')}>
-              <DialogTitle className="leading-6">{title}</DialogTitle>
-              {!center && <DialogClose aria-label="Close" className="size-7 -my-0.5 -mr-1 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center shrink-0"><X size={16} /></DialogClose>}
-            </div>
-          ) : <DialogTitle className="sr-only">Dialog</DialogTitle>}
-          {sub && <DialogDescription className={cx('mt-1', center && 'text-center')}>{sub}</DialogDescription>}
-          {children && <div className="mt-4">{children}</div>}
-        </div>
-        {footer && <DialogFooter>{footer}</DialogFooter>}
+      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })} {...(confirm ? noAutoFocus : {})}>
+        {confirm ? <ConfirmFrame title={title} sub={sub} footer={footer}>{children}</ConfirmFrame> : title ? <DialogFrame title={title} sub={sub} footer={footer} close={!center}>{children}</DialogFrame> : (
+          <>
+            <DialogTitle className="sr-only">Dialog</DialogTitle>
+            <DialogBody className={cx(center && 'text-center')}>{sub && <DialogDescription>{sub}</DialogDescription>}{children && <div className={sub ? 'mt-4' : undefined}>{children}</div>}</DialogBody>
+            {footer && <DialogFooter>{footer}</DialogFooter>}
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -68,7 +135,7 @@ export function RadioCard({ checked, onClick, title, sub, right, disabled }: { c
     <div role="radio" aria-checked={checked} tabIndex={0} onClick={() => !disabled && onClick()} onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && !disabled && onClick()}
       className={cx('w-full text-left rounded-[10px] border px-3 py-2.5 flex items-center gap-3 transition-colors cursor-pointer', checked ? 'border-primary bg-white' : 'border-line bg-white hover:bg-gray-50', disabled && 'opacity-50 cursor-not-allowed')}>
       <span className={cx('size-4 rounded-full shrink-0 bg-white', checked ? 'border-[5px] border-primary' : 'border border-gray-300')} />
-      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#111827]">{title}</span>{sub && <span className="block text-xs leading-4 text-[#646A78]">{sub}</span>}</span>
+      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A]">{title}</span>{sub && <span className="block text-xs leading-4 text-[#737373]">{sub}</span>}</span>
       {right}
     </div>
   );
@@ -85,12 +152,13 @@ export function Seg<T extends string>({ value, onChange, options, className }: {
 }
 
 /* Underline tabs used on the property page (shadcn Tabs, underline style). */
-export function LineTabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string }[] }) {
+export function LineTabs<T extends string>({ value, onChange, tabs, className }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string }[]; className?: string }) {
   return (
     <Tabs value={value} onValueChange={(v) => onChange(v as T)}>
-      <TabsList slide={false} className="flex justify-start gap-0.5 rounded-none bg-transparent p-0 px-5 border-b border-line">
+      {/* The blue underline slides to the picked tab (2026-11-13). */}
+      <TabsList slide="underline" className={cx('flex h-auto justify-start gap-4 rounded-none bg-transparent p-0 px-5 border-b border-line', className)}>
         {tabs.map((t) => (
-          <TabsTrigger key={t.id} value={t.id} className="h-10 px-2.5 rounded-none -mb-px border-b-2 border-transparent text-[#646A78] data-[state=active]:border-[#111827] data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
+          <TabsTrigger key={t.id} value={t.id} className="h-10 px-2.5 rounded-none text-[#737373] hover:text-[#0A0A0A] data-[state=active]:text-[#2563EB] data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
         ))}
       </TabsList>
     </Tabs>
@@ -122,9 +190,9 @@ export function Menu({ trigger, items, align = 'right', width = 200 }: { trigger
 export function Stepper({ value, onChange, min = 1, max = 99 }: { value: number; onChange: (n: number) => void; min?: number; max?: number }) {
   return (
     <div className="inline-flex h-8 rounded-lg border border-input bg-white overflow-hidden">
-      <button type="button" aria-label="Fewer" onClick={() => onChange(Math.max(min, value - 1))} className="w-8 flex items-center justify-center text-[#646A78] hover:bg-gray-50 border-r border-gray-200"><Minus size={13} /></button>
+      <button type="button" aria-label="Fewer" onClick={() => onChange(Math.max(min, value - 1))} className="w-8 flex items-center justify-center text-[#737373] hover:bg-gray-50 border-r border-gray-200"><Minus size={13} /></button>
       <input aria-label="Count" value={value} onChange={(e) => { const n = parseInt(e.target.value, 10); if (!Number.isNaN(n)) onChange(Math.min(max, Math.max(min, n))); }} className="w-12 text-center text-sm outline-none" />
-      <button type="button" aria-label="More" onClick={() => onChange(Math.min(max, value + 1))} className="w-8 flex items-center justify-center text-[#646A78] hover:bg-gray-50 border-l border-gray-200"><Plus size={13} /></button>
+      <button type="button" aria-label="More" onClick={() => onChange(Math.min(max, value + 1))} className="w-8 flex items-center justify-center text-[#737373] hover:bg-gray-50 border-l border-gray-200"><Plus size={13} /></button>
     </div>
   );
 }
@@ -146,7 +214,7 @@ const digits = (v: string) => v.replace(/[^0-9.]/g, '');
 export function MoneyInput({ value, onChange, suffix, className, autoFocusRef }: { value: string; onChange: (v: string) => void; suffix?: string; className?: string; autoFocusRef?: React.Ref<HTMLInputElement> }) {
   return (
     <label className={cx('h-8 flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 text-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25', className)}>
-      <span className="text-[#646A78]">£</span>
+      <span className="text-[#737373]">£</span>
       <input ref={autoFocusRef} value={value} inputMode="decimal" onChange={(e) => onChange(digits(e.target.value))} className="flex-1 min-w-0 outline-none bg-transparent" />
       {suffix && <span className="text-gray-400">{suffix}</span>}
     </label>
@@ -167,7 +235,7 @@ export function Picker<T extends string>({ value, onChange, options, icon: I, pl
       <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-72">
         {options.map((o) => (
           <DropdownMenuItem key={o.id} onSelect={() => onChange(o.id)} className="px-2.5 focus:bg-gray-50">
-            {o.icon && <o.icon size={15} className="text-[#646A78]" />}<span className="flex-1">{o.label}</span>{o.id === value && <Check size={13} className="text-primary" />}
+            {o.icon && <o.icon size={15} className="text-[#737373]" />}<span className="flex-1">{o.label}</span>{o.id === value && <Check size={13} className="text-primary" />}
           </DropdownMenuItem>
         ))}
         {footer && <div className="border-t border-line mt-1 pt-1">{footer}</div>}
@@ -177,12 +245,12 @@ export function Picker<T extends string>({ value, onChange, options, icon: I, pl
 }
 
 export function Kbd({ children }: { children: ReactNode }) {
-  return <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-line bg-white text-xs text-[#646A78] font-sans">{children}</kbd>;
+  return <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-line bg-white text-xs text-[#737373] font-sans">{children}</kbd>;
 }
 
 /* Thin progress bar in primary or green. */
 export function Progress({ value, tone = 'blue', className }: { value: number; tone?: 'blue' | 'green' | 'grey'; className?: string }) {
-  return <div className={cx('h-1.5 rounded-full bg-gray-100 overflow-hidden', className)}><div className="h-full w-full rounded-full origin-left transition-transform duration-300 ease-snappy" style={{ transform: `scaleX(${Math.min(100, Math.max(0, value)) / 100})`, background: tone === 'green' ? '#0B8A4C' : tone === 'grey' ? '#D1D5DB' : '#2563EB' }} /></div>;
+  return <div className={cx('h-1.5 rounded-full bg-gray-100 overflow-hidden', className)}><div className="h-full w-full rounded-full origin-left transition-transform duration-300 ease-snappy" style={{ transform: `scaleX(${Math.min(100, Math.max(0, value)) / 100})`, background: tone === 'green' ? '#0B8A4C' : tone === 'grey' ? '#D4D4D4' : '#2563EB' }} /></div>;
 }
 
 export function EditLink({ onClick, children = 'Edit' }: { onClick: () => void; children?: ReactNode }) {

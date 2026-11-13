@@ -75,19 +75,9 @@ export function MaintenanceList() {
         <Button icon={HardHat} onClick={() => setContractors(true)}>Contractors</Button>
         <Button variant="primary" icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>
       </RHeader>
-      <Toolbar right={<>
-        {view === 'board' && (
-          <label className="flex items-center gap-2 text-sm text-[#737373] cursor-pointer select-none mr-1">
-            <Checkbox checked={showResolved} onCheckedChange={(v) => setShowResolved(v === true)} />Show resolved (7 days)
-          </label>
-        )}
-        <SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" />
-        <FilterButton value={f} onChange={setF} defs={[
-          { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], chips: true },
-          { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], chips: true },
-          { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
-          { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
-        ]} />
+      {/* Two rows so nothing is cramped (2026-11-13): status tabs and the Table/Board switch on top; search on the left
+          and the filters on the right below. */}
+      <Toolbar className="pb-3" right={
         <UITabs value={view} onValueChange={setView}>
           <TabsList aria-label="View">
             {([['table', 'Table', List], ['board', 'Board', Kanban]] as const).map(([id, label, I]) => (
@@ -95,8 +85,22 @@ export function MaintenanceList() {
             ))}
           </TabsList>
         </UITabs>
-      </>}>
-        {view === 'table' && <Tabs value={tab} onChange={setTab} tabs={STATUSES.map((t) => ({ id: t, label: t, count: statusCount(t) }))} />}
+      }>
+        {view === 'table' ? <Tabs value={tab} onChange={setTab} tabs={STATUSES.map((t) => ({ id: t, label: t, count: statusCount(t) }))} /> : (
+          <label className="flex items-center gap-2 text-sm text-[#737373] cursor-pointer select-none">
+            <Checkbox checked={showResolved} onCheckedChange={(v) => setShowResolved(v === true)} />Show resolved (7 days)
+          </label>
+        )}
+      </Toolbar>
+      <Toolbar heading={false} className="pt-0" right={
+        <FilterButton value={f} onChange={setF} defs={[
+          { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], chips: true },
+          { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], chips: true },
+          { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
+          { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
+        ]} />
+      }>
+        <SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" />
       </Toolbar>
       {view === 'board' ? <MaintenanceBoard faults={scoped} showResolved={showResolved} onLog={() => setLogging(true)} selected={job} onOpen={setJob} /> : (
       <Table rows={rows} onRow={(x) => setJob(x.id)} selected={job ?? undefined} sort={slaFirst ? { key: 's', dir: 'asc', onToggle: () => setSlaFirst(false) } : { key: 'r', dir: 'desc', onToggle: () => setSlaFirst(true) }} footer={false}

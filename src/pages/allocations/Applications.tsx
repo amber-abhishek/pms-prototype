@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowsDownUp, CaretLeft, CaretRight, Check, CheckCircle, DownloadSimple, Flag, FunnelX, MagicWand, ShieldWarning, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, Sheet, Tabs, Toolbar, cx, listNav } from '../../components/ui';
+import { Button, PageHeader, Sheet, Toolbar, cx, listNav } from '../../components/ui';
+import { FolderTabs } from '../../components/overview';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { appCounts, fmtN, useAlloc, type App, type AppStatus } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
@@ -14,6 +15,7 @@ import { applyFilters, describe, fieldsFor, FilterPanel, type Filters } from './
 type TabId = 'To review' | 'Flagged' | 'Allocated' | 'Rejected' | 'All';
 const LEGACY: Record<string, TabId> = { 'Manual review': 'Flagged', New: 'To review', 'In review': 'To review', Offered: 'Allocated', Accepted: 'Allocated', Waitlisted: 'All', Declined: 'Rejected' };
 const tabStatus: Record<TabId, AppStatus | null> = { 'To review': 'review', Flagged: 'manual', Allocated: 'allocated', Rejected: 'rejected', All: null };
+const TABS: TabId[] = ['To review', 'Flagged', 'Allocated', 'Rejected', 'All'];
 const PAGE = 25;
 
 /* "24 Oct" within a cycle → a sortable number: newer cycles first, then the date inside the cycle's
@@ -45,6 +47,7 @@ export function Applications() {
   const [auto, setAuto] = useState(() => new URLSearchParams(window.location.hash.split('?')[1]).get('auto') === '1');
   const counts = appCounts(d);
   const status = tabStatus[tab];
+  const tabCount: Record<TabId, number> = { 'To review': counts.review, Flagged: counts.manual, Allocated: counts.allocated, Rejected: counts.rejected, All: counts.all };
   const base = d.apps.filter((a) => (status ? a.status === status : true));
   const rows = applyFilters(base, fs, fields);
   const isDefault = fs.order.length === 1 && fs.order[0] === 'cycle' && fs.vals.cycle?.v === liveCycle;
@@ -60,16 +63,12 @@ export function Applications() {
         <Button variant="primary" icon={MagicWand} onClick={() => setAuto(true)}>Auto-allocate</Button>
         </>}
       </PageHeader>
-      {/* The queue's views are page tabs again (the segmented tabs My tasks and Activity use), not sidebar rows. */}
+      {/* The queue's views are folder tabs under the header (Figma 3884:39395), as Home's were. */}
+      <FolderTabs current={TABS.indexOf(tab)} tabs={TABS.map((t) => ({ to: `/allocations/applications?tab=${encodeURIComponent(t)}`, label: t, count: tabCount[t] }))} />
       <Toolbar className={cx('!py-3', split && 'border-b border-line')} right={<>
         <FilterPanel rows={base} fs={fs} setFs={setFs} fields={fields} />
         {split ? <SortButton s={sort} setS={setSort} /> : <TableDisplay tab={tab} />}
-      </>} heading={tab}>
-        <Tabs value={tab} onChange={(v) => setTab(v as TabId)} tabs={[
-          { id: 'To review', label: 'To review', count: counts.review }, { id: 'Flagged', label: 'Flagged', count: counts.manual },
-          { id: 'Allocated', label: 'Allocated', count: counts.allocated }, { id: 'Rejected', label: 'Rejected', count: counts.rejected }, { id: 'All', label: 'All', count: counts.all },
-        ]} />
-      </Toolbar>
+      </>} heading={tab} />
       {notOpenYet ? (
         <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={`Applications for ${cycleSel!.name} open on ${cycleSel!.opens}. They arrive here once the application form is published on the on-campus portal.`}>
           <Button variant="primary" onClick={() => toast('The form builder opens on the on-campus portal', { description: `Application form ${cycleSel!.name} · Draft` })}>Open the form</Button>

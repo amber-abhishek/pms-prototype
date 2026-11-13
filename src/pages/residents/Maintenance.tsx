@@ -10,7 +10,6 @@ import { fmtSla, useRms, type Fault, type FaultIcon, type Priority } from '../..
 import { Avatar, Button, Card, Empty, Field, FilterButton, Input, Note, Pill, SearchInput, Select, SelectFilter, Sheet, SheetHero, SheetSection, Table, Textarea, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
-import { Kanban, List } from '../../components/icons';
 import { MaintenanceBoard } from './MaintenanceBoard';
 import { KV, Modal, Panel, Person, Photo, RHeader, RadioCard, SideSheet, Timeline, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
@@ -73,31 +72,30 @@ export function MaintenanceList() {
     <>
       <RHeader icon={Wrench} crumbs={[['Residents']]} title="Maintenance">
         {/* V3 (Figma 3918:47856): the Table/Board switch is a page-level choice, so it sits in the header, with its labels. */}
-        <UITabs value={view} onValueChange={setView}>
-          <TabsList aria-label="View" className="h-8 p-0.5 bg-[#EBEBEB]">
-            {([['table', 'Table', List], ['board', 'Board', Kanban]] as const).map(([id, label, I]) => (
-              <TabsTrigger key={id} value={id} className="h-7 gap-1.5"><I size={14} />{label}</TabsTrigger>
-            ))}
-          </TabsList>
-        </UITabs>
         <Button icon={HardHat} onClick={() => setContractors(true)}>Contractors</Button>
         <Button variant="primary" icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>
       </RHeader>
-      {/* One toolbar row (V3): status tabs on the left; a short search and the four filters on the right. */}
+      {/* Toolbar (Figma 3918:48236): status and the four filters on the left; search and the Table/Board switch on the right. */}
       <Toolbar right={<>
-        <div className="w-[200px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search" /></div>
+        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" /></div>
+        <UITabs value={view} onValueChange={setView}>
+          <TabsList aria-label="View">
+            <TabsTrigger value="table">Table</TabsTrigger>
+            <TabsTrigger value="board">Board</TabsTrigger>
+          </TabsList>
+        </UITabs>
+      </>}>
+        {view === 'table' ? <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as Tab)} width={240} options={STATUSES.map((t) => ({ value: t, meta: statusCount(t) }))} /> : (
+          <label className="flex items-center gap-2 mr-2 text-sm text-[#737373] cursor-pointer select-none whitespace-nowrap">
+            <Checkbox checked={showResolved} onCheckedChange={(v) => setShowResolved(v === true)} />Show resolved (7 days)
+          </label>
+        )}
         <FilterButton value={f} onChange={setF} defs={[
           { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], chips: true },
           { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], chips: true },
           { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
           { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
         ]} />
-      </>}>
-        {view === 'table' ? <SelectFilter value={tab} onChange={(v) => setTab(v as Tab)} width={240} suffix={<span className="font-mono text-xs text-[#737373] tabular-nums">{statusCount(tab)}</span>} options={STATUSES.map((t) => ({ value: t, meta: statusCount(t) }))} /> : (
-          <label className="flex items-center gap-2 text-sm text-[#737373] cursor-pointer select-none whitespace-nowrap">
-            <Checkbox checked={showResolved} onCheckedChange={(v) => setShowResolved(v === true)} />Show resolved (7 days)
-          </label>
-        )}
       </Toolbar>
       {view === 'board' ? <MaintenanceBoard faults={scoped} showResolved={showResolved} onLog={() => setLogging(true)} selected={job} onOpen={setJob} /> : (
       <Table rows={rows} onRow={(x) => setJob(x.id)} selected={job ?? undefined} sort={slaFirst ? { key: 's', dir: 'asc', onToggle: () => setSlaFirst(false) } : { key: 'r', dir: 'desc', onToggle: () => setSlaFirst(true) }} footer={false}

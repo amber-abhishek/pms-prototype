@@ -369,12 +369,14 @@ export type SelectOption = { value: string; label?: string; tone?: Tone; meta?: 
 /** Amber Connect single-choice dropdown: MultiFilter's 34px trigger and 16/10 popover rows, a blue check on the chosen row;
  *  a pick applies straight away (one choice needs no Apply). With `label` it is a filter: an "All" row clears it, and the
  *  trigger turns blue and reads the choice. Without `label` it is a picker (hall, block, year) and shows its value. */
-export function SelectFilter({ label, icon: I, value, options, onChange, width = 220, suffix }: {
+export function SelectFilter({ label, icon: I, value, options, onChange, width = 220, suffix, prefix }: {
   label?: string; icon?: Icon; value: string; options: SelectOption[]; onChange: (v: string) => void; width?: number; suffix?: ReactNode;
+  /** A picker that is always set (Status: Open): reads "prefix: value" in blue, with no All row. */
+  prefix?: string;
 }) {
   const [open, setOpen] = useState(false);
   const sel = options.find((o) => o.value === value);
-  const on = !!label && !!sel;
+  const on = (!!label || !!prefix) && !!sel;
   const row = (v: string, body: ReactNode, chosen: boolean) => (
     <button key={v || '_all'} type="button" role="menuitemradio" aria-checked={chosen} onClick={() => { onChange(v); setOpen(false); }}
       className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F5F5] focus-visible:bg-[#F5F5F5] outline-none transition-colors">
@@ -389,7 +391,7 @@ export function SelectFilter({ label, icon: I, value, options, onChange, width =
           <span className="flex items-center gap-2 min-w-0">
             {I && <I size={16} strokeWidth={1.5} className="shrink-0" />}
             {/* A set filter reads as its value in blue (as Connect's "Status (1)" stays short); the field name is in the aria-label. */}
-            <span className="truncate">{sel ? sel.label ?? sel.value : label ?? value}</span>{suffix}
+            <span className="truncate">{prefix && `${prefix}: `}{sel ? sel.label ?? sel.value : label ?? value}</span>{suffix}
           </span>
           <CaretDown size={20} strokeWidth={1.5} className="text-[#737373] shrink-0" />
         </button>

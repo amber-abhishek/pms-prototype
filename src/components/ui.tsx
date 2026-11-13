@@ -31,7 +31,7 @@ import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogDescription
 import { toneCls, toneDot } from './tones';
 import { rowAttrs, useRowMotion } from './rowMotion';
 import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, CaretUp, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
-import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag, House } from './icons';
+import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag } from './icons';
 export { toneCls, toneDot, toneLine } from './tones';
 import type { Tone } from '../data/seed';
 export type { Tone };
@@ -142,15 +142,13 @@ export function CrumbLink({ c }: { c: Crumb }) {
 /** Amber Connect page header (Figma 3884:39809): 56px #F5F5F5 band with a bottom line; a home link and a divider, then
  *  Geist Mono uppercase crumbs (#737373) and the current page in ink. Actions keep their own variants: bordered
  *  secondaries and one blue primary. */
-/* Figma 3884:39270 top bar: 56px #F5F5F5 band, 24/16 sides, 12px gap; 20px #404040 house, a 1×20 rule, then
+/* Figma 3884:39270 top bar: 56px #F5F5F5 band, 24/16 sides, 12px gap; no home button (2026-11-13), just
    Geist Mono Medium 14 uppercase crumbs (#737373 parents with a 16px chevron, the page in #0A0A0A).
    `search` adds the 280px "Search anything ⌘K" field, which opens the palette. */
 export function PageHeader({ title, crumbs, children, search, meta }: { icon?: Icon; title: string; crumbs?: Crumb[]; children?: ReactNode; search?: boolean; meta?: ReactNode }) {
   usePublishTitle(title);
   return (
     <div data-page-head className="h-14 shrink-0 border-b border-[#E5E5E5] bg-[#F5F5F5] flex items-center gap-3 pl-6 pr-4">
-      <Link to="/" aria-label="Home" className="size-7 -mx-1 rounded-lg flex items-center justify-center text-[#404040] hover:bg-black/[0.04] shrink-0"><House size={20} strokeWidth={1.5} /></Link>
-      <span aria-hidden className="w-px h-5 bg-[#E5E5E5] shrink-0" />
       <div className="flex items-center gap-2 min-w-0 font-mono uppercase text-sm leading-5 font-medium">
         {crumbs?.filter((c) => (typeof c === 'string' ? c : c.label)).map((c, i) => <CrumbLink key={i} c={c} />)}
         <CrumbTitle className="text-[#0A0A0A] truncate">{title}</CrumbTitle>

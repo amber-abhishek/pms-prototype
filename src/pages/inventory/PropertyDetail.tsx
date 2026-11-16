@@ -84,7 +84,7 @@ export function PropertyDetail() {
   };
   const archiveNow = () => {
     const was = p.status;
-    patchProp(p.id, (x) => ({ status: 'Archived', activity: logAct(x, `${x.name} archived`) }));
+    patchProp(p.id, (x) => ({ status: 'Archived', archivedFrom: x.status, activity: logAct(x, `${x.name} archived`) }));
     setArchiveAsk(false);
     nav('/inventory/properties');
     toast.success(`${p.name} archived`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: was })) } });

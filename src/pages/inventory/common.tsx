@@ -14,7 +14,7 @@ export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' 
   if (s === 'Queued') return <Status s="Queued" tone="grey" />;
   if (s === 'Active' || s === 'Succeeded') return <Status s={s} tone="green" icon={CheckCircle} />;
   if (s === 'Inactive') return <Status s="Inactive" tone="grey" icon={MinusCircle} />;
-  if (s === 'Archived') return <Status s="Archived" tone="grey" icon={Archive} />;
+  if (s === 'Archived') return <Status s="Archived" tone="red" icon={Archive} />;
   if (s === 'Closed to allocations') return <Status s="Closed to allocations" tone="amber" icon={PauseCircle} />;
   if (s === 'Failed') return <Status s="Failed" tone="red" icon={XCircle} />;
   return <Status s={s} tone="blue" icon={RadioButton} />;

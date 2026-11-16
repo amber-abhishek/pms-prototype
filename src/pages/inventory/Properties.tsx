@@ -3,7 +3,7 @@ import { Illustration } from '../../components/Illustration';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Archive, ArrowsDownUp, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, UploadSimple, WarningCircle, X, Clock, CheckCircle,
+  Archive, ArrowCounterClockwise, ArrowsDownUp, Buildings, ClockCounterClockwise, Copy, DotsThree, DownloadSimple, FileCsv, FileText, Info, PauseCircle, PencilSimple, Plus, SlidersHorizontal, UploadSimple, WarningCircle, X, Clock, CheckCircle,
 } from '../../components/icons';
 import { Button, Check, Empty, MultiFilter, PageHeader, SearchInput, Table, cx, PIN } from '../../components/ui';
 import { PHOTO } from './photos';
@@ -41,7 +41,11 @@ export function PropertiesPage() {
   const [statusF, setStatusF] = useState<string[]>([]);
   const [sort, setSort] = useState<{ key: 'name' | 'units'; dir: 1 | -1 } | null>(null);
   const list = useMemo(() => (empty ? [] : props).filter((p) => p.status !== 'Archived'), [props, empty]);
-  const rows = list
+  /* Archived properties stay out of the list until the Status filter asks for them. */
+  const archivedShown = !empty && statusF.includes('Archived');
+  /* The list and its toolbar stay while anything exists, archived included, so the Archived filter is always reachable. */
+  const anyProps = !empty && props.length > 0;
+  const rows = (archivedShown ? props : list)
     .filter((p) => (!campusF.length || campusF.includes(p.campus)) && (!layoutF.length || layoutF.includes(p.structure)) && (!statusF.length || statusF.includes(p.status)) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => !sort ? 0 : sort.dir * (sort.key === 'units' ? a.units - b.units : a.name.localeCompare(b.name)));
   shownOrder.ids = rows.map((p) => p.id);
@@ -64,8 +68,14 @@ export function PropertiesPage() {
 
   const archive = (p: Property) => {
     if (p.liveTenancies > 0) return setArchiving(p);
-    patchProp(p.id, (x) => ({ status: 'Archived', activity: logAct(x, `${x.name} archived`) }));
+    patchProp(p.id, (x) => ({ status: 'Archived', archivedFrom: x.status, activity: logAct(x, `${x.name} archived`) }));
     toast.success(`${p.name} archived`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: p.status })) } });
+  };
+  /* Restore puts it back as it was when archived (Inactive if that isn't known), so nothing starts letting by surprise. */
+  const restore = (p: Property) => {
+    const to = p.archivedFrom && p.archivedFrom !== 'Archived' ? p.archivedFrom : 'Inactive';
+    patchProp(p.id, (x) => ({ status: to, archivedFrom: undefined, activity: logAct(x, `${x.name} restored`) }));
+    toast.success(`${p.name} restored · ${to.toLowerCase()}`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: 'Archived', archivedFrom: p.archivedFrom })) } });
   };
   const duplicate = (p: Property) => {
     const id = invId('p');
@@ -97,7 +107,7 @@ export function PropertiesPage() {
     {
       key: 'menu', label: <span className="sr-only">Actions</span>, className: 'w-14 text-right', render: (p: Property) => (
         <Menu width={168} trigger={(o) => <button type="button" aria-label={`More for ${p.name}`} onClick={(e) => { e.stopPropagation(); o(); }} className="size-8 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] inline-flex items-center justify-center text-[#404040]"><DotsThree size={16} strokeWidth={1.75} /></button>}
-          items={[{ label: 'Edit', icon: PencilSimple, onClick: () => nav(`/inventory/properties/${p.id}`) }, { label: 'Duplicate', icon: Copy, onClick: () => duplicate(p) }, 'sep', { label: 'Archive', icon: Archive, danger: true, onClick: () => archive(p) }]} />
+          items={p.status === 'Archived' ? [{ label: 'Restore', icon: ArrowCounterClockwise, onClick: () => restore(p) }] : [{ label: 'Edit', icon: PencilSimple, onClick: () => nav(`/inventory/properties/${p.id}`) }, { label: 'Duplicate', icon: Copy, onClick: () => duplicate(p) }, 'sep', { label: 'Archive', icon: Archive, danger: true, onClick: () => archive(p) }]} />
       ),
     },
   ].filter((c) => !hidden.includes(c.key));
@@ -106,12 +116,12 @@ export function PropertiesPage() {
     <>
       <PageHeader icon={Buildings} title="Properties" crumbs={['Inventory']}>
         {/* While empty, the empty state carries Add and Import; the header doesn't repeat them. */}
-        {list.length > 0 && <>
+        {anyProps && <>
           <Button icon={UploadSimple} onClick={() => setImport(true)}>Import</Button>
           <Button variant="primary" icon={Plus} onClick={() => nav('/inventory/properties/new')}>Add property</Button>
         </>}
       </PageHeader>
-      {!list.length ? (
+      {!anyProps ? (
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="max-w-md text-center">
             <EmptyArt />
@@ -131,13 +141,13 @@ export function PropertiesPage() {
             <div className="ml-auto flex items-center gap-3">
               <MultiFilter label="Campus" value={campusF} onChange={setCampusF} options={[{ value: 'Durham City' }, { value: 'Queen’s Campus' }]} />
               <MultiFilter label="Layout" value={layoutF} onChange={setLayoutF} options={[{ value: 'College' }, { value: 'House' }]} />
-              <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={240} options={[{ value: 'Active', tone: 'green' }, { value: 'Draft', tone: 'amber' }, { value: 'Inactive', tone: 'grey' }, { value: 'Closed to allocations', tone: 'amber' }]} />
+              <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={240} options={[{ value: 'Active', tone: 'green' }, { value: 'Draft', tone: 'amber' }, { value: 'Inactive', tone: 'grey' }, { value: 'Closed to allocations', tone: 'amber' }, { value: 'Archived', tone: 'red' }]} />
               <Display hidden={hidden} setHidden={setHidden} />
             </div>
           </div>
           <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)}
             empty={<Empty title="No properties match" sub="Try another campus or clear the search." />}
-            footer="always" summary={rows.length === list.length ? `${list.length} ${list.length === 1 ? 'property' : 'properties'}` : `${rows.length} of ${list.length} properties`} />
+            footer="always" summary={archivedShown ? `${rows.length} ${rows.length === 1 ? 'property' : 'properties'}` : rows.length === list.length ? `${list.length} ${list.length === 1 ? 'property' : 'properties'}` : `${rows.length} of ${list.length} properties`} />
         </>
       )}
       <ImportDialog open={importOpen} onClose={() => setImport(false)} />

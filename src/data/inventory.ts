@@ -17,6 +17,7 @@ export type Property = {
   photos: number; description: string; amenities: string[]; wardenPhone: string;
   createdBy: string; created: string; activity: ActivityRow[]; roomTypes: RoomType[];
   liveTenancies: number; archiveOn?: string; pendingRows?: number; counts: Counts; fees: number;
+  /** The status it had when archived, so Restore can put it back. */ archivedFrom?: PStatus;
   /** false when the rooms came from a spreadsheet: they have no tenancies yet. */ tenancies?: boolean;
 };
 export type Template = {

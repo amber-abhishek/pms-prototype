@@ -111,9 +111,10 @@ export const Kbd = ({ children }: { children: ReactNode }) => <span className="i
 
 /** Simple full-bleed table: 36px header, 40px rows. */
 export type C<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
-export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [], selected, fill, sort }: { cols: C<T>[]; rows: T[]; onRow?: (r: T) => void; hidden?: string[]; selected?: string | null; /** edge-to-edge rows; default on for 6+ columns */ fill?: boolean;
+export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [], selected, fill, sort, numberFrom }: { cols: C<T>[]; rows: T[]; /** Adds a leading # column, counting from this number (pass the page offset + 1). */ numberFrom?: number; onRow?: (r: T) => void; hidden?: string[]; selected?: string | null; /** edge-to-edge rows; default on for 6+ columns */ fill?: boolean;
   /** Sorted column: its header goes ink with an arrow, like `Table sort`; click flips it. */ sort?: { key: string; dir: 'asc' | 'desc'; onToggle?: () => void } }) {
-  const cs = cols.filter((c) => !hidden.includes(c.key));
+  const shownCols = cols.filter((c) => !hidden.includes(c.key));
+  const cs: C<T>[] = numberFrom === undefined ? shownCols : [{ key: '#', label: '#', className: 'w-[56px]', render: (r) => <span className="font-mono text-xs text-[#737373] tabular-nums">{rows.indexOf(r) + numberFrom}</span> }, ...shownCols];
   const { items, bodyRef } = useRowMotion(rows);
   return (
     <div data-scroller {...((fill ?? cs.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="px-[var(--gx,16px)]">

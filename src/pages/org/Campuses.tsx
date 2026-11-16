@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ImageSquare, MagnifyingGlass, MapPin, Plus } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Input, Pill, Status, Table, TitleH1, Toolbar, cx } from '../../components/ui';
+import { Button, Input, Pill, Status, Table, TitleH1, cx } from '../../components/ui';
 import { useDb } from '../../data/store';
 import { oid, useOrg, type Campus } from '../../data/org';
 import { EmptyState, Header, IconSelect, ODialog } from './parts';
@@ -46,6 +46,7 @@ export function CampusesPage() {
   return (
     <>
       <Header icon={ICON} crumbs={[{ label: 'Organisation' }]} title="Campuses">
+        {campuses.length > 0 && <Button variant="ghost" icon={BookOpen} onClick={() => setHow(true)}>How campuses work</Button>}
         {campuses.length > 0 && <Button variant="primary" icon={Plus} onClick={() => nav('/org/campuses/new')}>Add a campus</Button>}
       </Header>
       {campuses.length === 0 ? (
@@ -57,12 +58,11 @@ export function CampusesPage() {
         </div>
       ) : (
         <>
-          <Toolbar right={<><Button variant="ghost" icon={BookOpen} onClick={() => setHow(true)}>How campuses work</Button></>} />
           <Table rows={rows} onRow={(c) => nav(`/org/campuses/${c.id}`)} cols={[
             { key: 'n', label: 'Campus', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#737373]">{c.address || 'No address yet'}</div></div> },
-            { key: 's', label: 'Status', render: (c) => <Status s={c.status} /> },
-            { key: 'c', label: 'City', render: (c) => <span className="text-sm">{c.city || '—'}</span> },
-            { key: 'r', label: 'Partner region', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
+            { key: 's', label: 'Status', className: 'w-[12%]', render: (c) => <Status s={c.status} /> },
+            { key: 'c', label: 'City', className: 'w-[14%]', render: (c) => <span className="text-sm whitespace-nowrap">{c.city || '—'}</span> },
+            { key: 'r', label: 'Partner region', className: 'w-[14%]', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
             { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()} className="relative inline-flex after:absolute after:inset-x-0 after:-inset-y-px after:content-['']"><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-[#737373]">None yet</span>; } },
           ]} />
         </>

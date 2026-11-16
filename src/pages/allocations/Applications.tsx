@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowsDownUp, CaretLeft, CaretRight, Check, CheckCircle, DownloadSimple, Flag, FunnelX, MagicWand, ShieldWarning, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, Sheet, Tabs, Toolbar, cx, listNav } from '../../components/ui';
+import { Button, PageHeader, Pager, SearchInput, Sheet, Tabs, Toolbar, cx, listNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { appCounts, fmtN, useAlloc, type App, type AppStatus } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
@@ -46,7 +46,10 @@ export function Applications() {
   const counts = appCounts(d);
   const status = tabStatus[tab];
   const base = d.apps.filter((a) => (status ? a.status === status : true));
-  const rows = applyFilters(base, fs, fields);
+  /* The header search narrows the current tab by name or application number, on top of the filters. */
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const rows = applyFilters(base, fs, fields).filter((x) => !needle || x.name.toLowerCase().includes(needle) || x.ref.toLowerCase().includes(needle));
   const isDefault = fs.order.length === 1 && fs.order[0] === 'cycle' && fs.vals.cycle?.v === liveCycle;
   const split = tab === 'To review';
   const cycleSel = d.cycles.find((c) => c.name === fs.vals.cycle?.v);
@@ -56,12 +59,13 @@ export function Applications() {
       <PageHeader icon={Tray} title="Applications" crumbs={['Allocations']}>
         {/* Nothing to export or allocate before the first application. */}
         {d.apps.length > 0 && <>
+        <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search applications" /></div>
         <Button icon={DownloadSimple} onClick={() => toast.success(`Exporting ${fmtN(rows.length)} applications`, { description: 'The CSV downloads when it’s ready · filters are kept' })}>Export</Button>
         <Button variant="primary" icon={MagicWand} onClick={() => setAuto(true)}>Auto-allocate</Button>
         </>}
       </PageHeader>
       {/* The queue's views are page tabs again (the segmented tabs My tasks and Activity use), not sidebar rows. */}
-      <Toolbar className={cx('!py-3', split && 'border-b border-line')} right={<>
+      <Toolbar className={cx(split && 'border-b border-line')} right={<>
         <FilterPanel rows={base} fs={fs} setFs={setFs} fields={fields} />
         {split ? <SortButton s={sort} setS={setSort} /> : <TableDisplay tab={tab} />}
       </>} heading={tab}>
@@ -245,19 +249,16 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
     { key: 'on', label: 'On', render: (a) => <span className="text-gray-400">{a.rejOn}</span> },
     { key: 'emailed', label: 'Emailed', render: (a) => (a.emailed ? <span className="flex items-center gap-1.5"><Check size={14} className="text-[#0B8A4C]" />Yes</span> : <span className="text-gray-400">No</span>) },
   ];
+  /* Row number first, counted through the whole list, so page 2 carries on from 26. */
+  const numbered: C<App>[] = [{ key: 'no', label: '#', className: 'w-[56px]', render: (a) => <span className="font-mono text-xs text-[#737373] tabular-nums">{order.indexOf(a) + 1}</span> }, ...cols];
   /* The foot counts the rows in the list (all filters applied), so it always matches what you can page through. */
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex-1 overflow-auto">
-        {order.length ? <Grid cols={cols} rows={shown} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} sort={tab === 'All' ? { key: 'sub', dir: newest ? 'desc' : 'asc', onToggle: () => setNewest((v) => !v) } : undefined} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()} for these filters`} sub="Clear a filter to see more." />}
+        {order.length ? <Grid cols={numbered} fill={cols.length >= 6} rows={shown} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} sort={tab === 'All' ? { key: 'sub', dir: newest ? 'desc' : 'asc', onToggle: () => setNewest((v) => !v) } : undefined} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()} for these filters`} sub="Clear a filter to see more." />}
       </div>
-      <Foot right={pages > 1 && <>
-        {pages > 1 && <span className="flex items-center gap-1 tabular-nums">
-          {page * PAGE + 1}–{Math.min(order.length, page * PAGE + PAGE)} of {fmtN(order.length)}
-          <button type="button" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretLeft size={12} /></button>
-          <button type="button" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className="size-7 rounded-lg border border-line bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CaretRight size={12} /></button>
-        </span>}
-      </>} />
+      {/* The footer every table page has: the count on the left, the numbered pager on the right. */}
+      <Foot right={pages > 1 && <Pager pages={pages} page={page} onPage={setPage} />}>{pages > 1 && `Showing ${shown.length} of ${fmtN(order.length)} entries`}</Foot>
       <Sheet open={!!sel && !allocating && !rejecting} onClose={() => setOpen(null)} width={600} title="Application" nav={listNav(order, (a) => a.id === open, (a) => setOpen(a.id))}>
         {sel && <div className="-m-5 h-[calc(100vh-16px-56px)] flex"><AppDetail a={sel} onAllocate={(p) => setAllocating({ a: sel, p })} onReject={() => setRejecting(sel)} onAfter={() => setOpen(null)} /></div>}
       </Sheet>

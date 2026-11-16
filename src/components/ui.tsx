@@ -128,6 +128,11 @@ export const Status = ({ s, tone, icon }: { s: string; tone?: Tone; icon?: Icon 
  *  Organisation…) are sidebar groups, not pages, so they stay plain text. */
 const CRUMB_TO: Record<string, string> = { Properties: '/inventory/properties' };
 export type Crumb = string | { label: string; to?: string; onClick?: () => void };
+/* The module's name (Allocations, Residents…) is already the sidebar panel's title, so it is not repeated as a crumb:
+   a page of a module shows its own name alone. A crumb stays when it leads somewhere, i.e. it is the parent page of a
+   full page ("Residents › Amira Rahman", "Campuses › Durham City"). */
+const MODULE_NAMES = new Set(['Inventory', 'Allocations', 'Residents', 'Off-campus', 'Booking site', 'Reports', 'Organisation', 'Settings']);
+const isModuleCrumb = (c: Crumb) => (typeof c === 'string' ? MODULE_NAMES.has(c) && !CRUMB_TO[c] : MODULE_NAMES.has(c.label) && !c.to && !c.onClick && !CRUMB_TO[c.label]);
 /** One clickable crumb + chevron. Strings resolve through CRUMB_TO; a crumb with neither `to` nor `onClick` stays plain text. */
 export function CrumbLink({ c }: { c: Crumb }) {
   const { label, to, onClick } = typeof c === 'string' ? { label: c, to: CRUMB_TO[c], onClick: undefined } : { ...c, to: c.to ?? (c.onClick ? undefined : CRUMB_TO[c.label]) };
@@ -150,7 +155,7 @@ export function PageHeader({ title, crumbs, children, search, meta }: { icon?: I
   return (
     <div data-page-head className="h-14 shrink-0 border-b border-[#E5E5E5] bg-[#F5F5F5] flex items-center gap-3 pl-6 pr-4">
       <div className="flex items-center gap-2 min-w-0 font-mono uppercase text-sm leading-5 font-medium">
-        {crumbs?.filter((c) => (typeof c === 'string' ? c : c.label)).map((c, i) => <CrumbLink key={i} c={c} />)}
+        {crumbs?.filter((c) => (typeof c === 'string' ? c : c.label) && !isModuleCrumb(c)).map((c, i) => <CrumbLink key={i} c={c} />)}
         <CrumbTitle className="text-[#0A0A0A] truncate">{title}</CrumbTitle>
       </div>
       {meta}
@@ -353,11 +358,14 @@ export function SearchInput({ value, onChange, placeholder = 'Search' }: { value
     </label>
   );
 }
-const FILTER_TRIGGER = 'shrink-0 h-8 min-w-[96px] max-w-[280px] px-3 rounded-lg border bg-white text-sm font-medium flex items-center justify-between gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:bg-[#F5F5F5] transition-colors data-[state=open]:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const FILTER_TRIGGER = 'shrink-0 h-8 min-w-[96px] max-w-[280px] px-3 rounded-lg border bg-white text-sm font-medium flex items-center justify-between gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:bg-[#F5F5F5] transition-colors data-[state=open]:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring '
+  /* In the page header the ground is already #F5F5F5 / #FAFAFA, so that hover vanishes into it: one step darker there. */
+  + '[[data-page-head]_&]:hover:bg-[#EBEBEB] [[data-page-head]_&]:data-[state=open]:bg-[#EBEBEB]';
 /** Amber Connect multi-select filter (its Status dropdown): a 34px bordered trigger reading "Status" or "Status (2)";
  *  a 200px popover of checkbox rows (16px sides, 10px tall padding), each option a plain label or a tinted chip
  *  (13px medium, 2/8 padding, r6, the tone at 10%); a rule, then Clear and Apply side by side. Picks stay a draft until Apply. */
-export function MultiFilter({ label, options, value, onChange, width = 200, align = 'end' }: {
+export function MultiFilter({ label, options, value, onChange, width = 200, align = 'end', named }: {
+  /** With one option ticked the trigger names it ("Cycle: 2027/28") instead of counting it; two or more still read "Cycle (2)". */ named?: boolean;
   label: string; options: { value: string; label?: string; tone?: Tone }[]; value: string[]; onChange: (v: string[]) => void; width?: number; align?: 'start' | 'end';
 }) {
   const [open, setOpen] = useState(false);
@@ -369,7 +377,7 @@ export function MultiFilter({ label, options, value, onChange, width = 200, alig
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button type="button" className={cx(FILTER_TRIGGER, on ? 'border-[#2563EB] text-[#2563EB]' : 'border-[#E5E5E5] text-[#404040]')}>
-          <span>{label}{on && ` (${value.length})`}</span><CaretDown size={20} strokeWidth={1.5} className="text-[#737373]" />
+          <span>{label}{on && (named && value.length === 1 ? `: ${options.find((o) => o.value === value[0])?.label ?? value[0]}` : ` (${value.length})`)}</span><CaretDown size={20} strokeWidth={1.5} className="text-[#737373]" />
         </button>
       </PopoverTrigger>
       <PopoverContent align={align} className="p-0 overflow-hidden" style={{ width }}>
@@ -458,7 +466,7 @@ export const optionPill = (on: boolean) => cx(
   on ? 'text-[#2563EB] [background:linear-gradient(#EFF6FF,#EFF6FF)_padding-box,linear-gradient(180deg,#DBEAFE,#93C5FD)_border-box]'
     : 'text-[#404040] [background:linear-gradient(#FFFFFF,#FFFFFF)_padding-box,linear-gradient(180deg,#F7F8FA,#D3D7DE)_border-box] hover:[background:linear-gradient(#FAFAFA,#FAFAFA)_padding-box,linear-gradient(180deg,#F1F2F5,#C9CED7)_border-box]');
 /** chips: show the options as toggle chips instead of a dropdown (short lists such as Priority). */
-export type FilterDef = { id: string; label: string; options: string[]; chips?: boolean; tones?: Record<string, Tone> };
+export type FilterDef = { id: string; label: string; options: string[]; chips?: boolean; tones?: Record<string, Tone>; /** Name a single pick on the trigger (see MultiFilter). */ named?: boolean };
 /** Toolbar filter values: each filter holds the options ticked in its popover (none = all). */
 export type Filters = Record<string, string[]>;
 /** True when a filter is unset or includes `v`. */
@@ -466,7 +474,7 @@ export const inFilter = (sel: string[] | undefined, v: string | null | undefined
 /** One Connect dropdown per field (as Connect's Status filter), each a single choice that applies straight away. */
 /** Every toolbar filter is the multi-select popover (checkbox rows, Clear and Apply), one trigger per filter. */
 export function FilterButton({ defs, value, onChange }: { defs: FilterDef[]; value: Filters; onChange: (v: Filters) => void }) {
-  return <>{defs.map((d) => <MultiFilter key={d.id} align="start" label={d.label} width={Math.max(200, ...d.options.map((o) => o.length * 8 + 96))} value={value[d.id] ?? []}
+  return <>{defs.map((d) => <MultiFilter key={d.id} align="start" label={d.label} named={d.named} width={Math.max(200, ...d.options.map((o) => o.length * 8 + 96))} value={value[d.id] ?? []}
     options={d.options.map((o) => ({ value: o, tone: d.tones?.[o] }))} onChange={(v) => onChange({ ...value, [d.id]: v })} />)}</>;
 }
 
@@ -481,6 +489,19 @@ const pageList = (n: number, cur: number): (number | '…')[] => {
   if (cur > n - 4) return [0, '…', n - 3, n - 2, n - 1];
   return [0, '…', cur, '…', n - 1];
 };
+/** The table footer's pager: "‹ Previous · 1 2 3 … · Next ›", the current page a 28px blue-tinted square. */
+export function Pager({ pages, page, onPage }: { pages: number; page: number; onPage: (p: number) => void }) {
+  return (
+    <nav aria-label="Pages" className="flex items-center gap-1">
+      <button type="button" disabled={page === 0} onClick={() => onPage(page - 1)} className={cx(PAGER_STEP, 'mr-1')}><CaretLeft size={16} strokeWidth={1.75} />Previous</button>
+      {pageList(pages, page).map((p, i) => p === '…'
+        ? <span key={`e${i}`} className="w-5 text-center text-[#0A0A0A]">…</span>
+        : <button key={p} type="button" aria-current={p === page ? 'page' : undefined} onClick={() => onPage(p)}
+            className={cx('size-7 rounded-lg text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', p === page ? 'bg-[#EDF3FF] border border-[#1A6CF8] text-[#1A6CF8]' : 'text-[#0A0A0A] hover:bg-[#F5F5F5]')}>{p + 1}</button>)}
+      <button type="button" disabled={page >= pages - 1} onClick={() => onPage(page + 1)} className={cx(PAGER_STEP, 'ml-1')}>Next<CaretRight size={16} strokeWidth={1.75} /></button>
+    </nav>
+  );
+}
 export type Col<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
 export function Table<T extends { id: string }>({ cols, rows, onRow, empty, after, pageSize = 25, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
   cols: Col<T>[]; rows: T[]; onRow?: (r: T) => void; empty?: ReactNode; pageSize?: number; selected?: string;
@@ -525,14 +546,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
       <span>{showFooter && summary ? summary : `Showing ${shown.length} of ${rows.length} entries`}</span>
       <div className="ml-auto flex items-center gap-1.5">
         {footerRight}
-        {pages > 1 && <nav aria-label="Pages" className="flex items-center gap-1">
-          <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className={cx(PAGER_STEP, 'mr-1')}><CaretLeft size={16} strokeWidth={1.75} />Previous</button>
-          {pageList(pages, page).map((p, i) => p === '…'
-            ? <span key={`e${i}`} className="w-5 text-center text-[#0A0A0A]">…</span>
-            : <button key={p} type="button" aria-current={p === page ? 'page' : undefined} onClick={() => setPage(p)}
-                className={cx('size-7 rounded-lg text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', p === page ? 'bg-[#EDF3FF] border border-[#1A6CF8] text-[#1A6CF8]' : 'text-[#0A0A0A] hover:bg-[#F5F5F5]')}>{p + 1}</button>)}
-          <button type="button" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} className={cx(PAGER_STEP, 'ml-1')}>Next<CaretRight size={16} strokeWidth={1.75} /></button>
-        </nav>}
+        {pages > 1 && <Pager pages={pages} page={page} onPage={setPage} />}
       </div>
     </div>
   );
@@ -564,8 +578,9 @@ export function Empty({ title, sub, icon: I = MagnifyingGlass, action, art }: { 
 export function Note({ tone = 'amber', title, children, icon: I, plain }: { tone?: 'amber' | 'red' | 'blue' | 'green' | 'grey'; title: string; children?: ReactNode; icon?: Icon; /** No box: icon and text sit straight on the page. */ plain?: boolean }) {
   const c = { amber: ['#A16207', '#A16207', '#A1620759'], red: ['#E0243A', '#E0243A', '#E0243A4D'], blue: ['#2563EB', '#2563EB', '#2563EB4D'], green: ['#0B8A4C', '#0B8A4C', '#0B8A4C4D'], grey: ['#737373', '#404040', '#E5E5E5'] }[tone];
   return (
-    <div className={cx('flex items-center gap-2.5', !plain && 'rounded-lg border px-3 py-2.5', !plain && (tone === 'grey' ? 'bg-[#FAFAFA]' : 'bg-white'))} style={plain ? undefined : { borderColor: c[2] }}>
-      {I && <I size={16} weight="regular" style={{ color: c[0] }} className="shrink-0" />}
+    <div className={cx('flex items-start gap-2.5', !plain && 'rounded-lg border px-3 py-2.5', !plain && (tone === 'grey' ? 'bg-[#FAFAFA]' : 'bg-white'))} style={plain ? undefined : { borderColor: c[2] }}>
+      {/* The icon sits on the title line (16px icon in a 20px line), not centred on the whole note. */}
+      {I && <I size={16} weight="regular" style={{ color: c[0] }} className="shrink-0 mt-0.5" />}
       <div className="min-w-0"><div className="text-sm leading-5 font-medium" style={{ color: c[1] }}>{title}</div>{children && <div className="text-xs leading-4 text-[#737373]">{children}</div>}</div>
     </div>
   );
@@ -587,9 +602,10 @@ export function Dropdown({ value, onChange, options, icon: I, className, ariaLab
   const sel = options.find((o) => o.value === value);
   return (
     <DropdownMenu modal={false}>
-      {/* Same box as the old select: 32px, #D4D4D4 border, 8px radius, chevrons-up-down at the right. */}
+      {/* Same box as Input, and the same height: 32px on a page, 36px in a modal or sheet (--density-input), so a
+          dropdown and a text field in one row line up. #D4D4D4 border, 8px radius, chevrons-up-down at the right. */}
       <DropdownMenuTrigger id={id} aria-label={ariaLabel} disabled={disabled}
-        className={cx('h-data w-full min-w-0 flex items-center gap-2 rounded-lg border border-input bg-background pl-2.5 pr-2 text-sm text-[#0A0A0A] text-left outline-none transition-[border-color,box-shadow] duration-150',
+        className={cx('h-input w-full min-w-0 flex items-center gap-2 rounded-lg border border-input bg-background pl-2.5 pr-2 text-sm text-[#0A0A0A] text-left outline-none transition-[border-color,box-shadow] duration-150',
           'hover:bg-gray-50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25 disabled:opacity-50 disabled:cursor-not-allowed', className)}>
         {I && <I size={14} className="text-[#737373] shrink-0" />}
         <span className={cx('flex-1 min-w-0 truncate', !sel && 'text-gray-400')}>{sel ? sel.label : placeholder ?? 'Select'}</span>

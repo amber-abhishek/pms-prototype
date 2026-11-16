@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, CalendarCheck, CalendarDots, Lock, Plus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Field, Input, PageHeader, Sheet, SheetSection, StatStrip, Tabs, Toolbar, cx } from '../../components/ui';
+import { Button, Dialog, Field, Input, PageHeader, SheetSection, StatStrip, Tabs, Toolbar, cx } from '../../components/ui';
 import { TODAY, appCounts, fmtN, offerCounts, useAlloc, type Cycle } from '../../data/allocations';
 import { useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Modal, Radio, St } from './common';
@@ -140,7 +140,8 @@ function NewCycleSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
   };
   const bars: [string, number, number, string][] = [['Applications', 0, 6, '#2563EB'], ['Review & allocate', 0.6, 7.5, '#7C3AED'], ['Offers open', 0.65, 10, '#F59E0B'], ['Move-in', 11.4, 12, '#0B8A4C']];
   return (
-    <Sheet open onClose={onClose} title="New cycle" width={560}
+    /* Creating something opens a centred modal; side sheets are for reading and editing a record. */
+    <Dialog open onClose={onClose} title="New cycle" width={560}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!valid} onClick={create}>Create cycle</Button></>}>
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="Cycle">
@@ -177,7 +178,7 @@ function NewCycleSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
           </div>
         </SheetSection>
       </div>
-    </Sheet>
+    </Dialog>
   );
 }
 

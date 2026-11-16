@@ -1,11 +1,13 @@
-import { useRef, useState } from 'react';
-import { ArrowsLeftRight, Bell, Check, CircleDashed, DownloadSimple, FileText, PaperPlaneTilt, Plus, Prohibit, Warning, WarningCircle } from '../../components/icons';
+import { useMemo, useRef, useState } from 'react';
+import { CaretUpDown, ArrowsLeftRight, Bell, Check, CircleDashed, DownloadSimple, FileText, PaperPlaneTilt, Plus, Prohibit, Warning, WarningCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Pill, Dialog, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Tabs, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
-import { HALLS, ROOMS, TODAY, bookingCounts, fmtN, firstName, hallFull, roomTerms, useAlloc, type Booking, type Conflict, type Data, type Offer } from '../../data/allocations';
+import { Button, SelectFilter, Pill, Dialog, DL, Field, FilterButton, inFilter, type Filters, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { HALLS, ROOMS, TODAY, bookingCounts, fmtN, firstName, hallFull, heldUnits, roomTerms, unitCode, useAlloc, type App, type Booking, type Conflict, type Data, type Offer } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
 import { useAllocActions } from './actions';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '../../components/shadcn/command';
 
 type TabId = 'All' | 'Awaiting signature' | 'Lease not sent' | 'Conflicts' | 'Cancelled';
 const TABS: TabId[] = ['All', 'Awaiting signature', 'Lease not sent', 'Conflicts', 'Cancelled'];
@@ -97,8 +99,13 @@ export function Bookings() {
         {tab === 'Awaiting signature' && late.length > 0 && <Button icon={Bell} onClick={() => remind(late)}>Remind all {late.length}</Button>}
         <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New booking</Button>
       </PageHeader>
-      <Toolbar right={<><SearchInput value={q} onChange={setQ} placeholder="Search" /><FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} /></>}>
-        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'All', label: 'All', count: c.all }, { id: 'Awaiting signature', label: 'Awaiting signature', count: c.sent }, { id: 'Lease not sent', label: 'Lease not sent', count: c.drafts }, { id: 'Conflicts', label: 'Conflicts', count: c.conflicts }, { id: 'Cancelled', label: 'Cancelled', count: c.cancelled }]} />
+      {/* Toolbar, as Offers & waitlist: search on the left; on the right the view (was the tab strip) as a single-choice dropdown, then the filters. */}
+      <Toolbar right={<>
+        <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as typeof tab)} width={240}
+          options={[{ value: 'All', meta: fmtN(c.all) }, { value: 'Awaiting signature', meta: fmtN(c.sent) }, { value: 'Lease not sent', meta: fmtN(c.drafts) }, { value: 'Conflicts', meta: fmtN(c.conflicts) }, { value: 'Cancelled', meta: fmtN(c.cancelled) }]} />
+        <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} />
+      </>}>
+        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search bookings" /></div>
       </Toolbar>
       {none ? (
         <EmptyArea art="bookings" icon={FileText} title="No bookings yet" sub="Bookings are made when an applicant accepts an offer.">
@@ -275,36 +282,91 @@ function Resolve({ k, onClose, withUndo }: { k: Conflict; onClose: () => void; w
 }
 
 /** A booking made by hand: starts as a Draft, the lease isn't sent. */
+/** The fields' box (as Input and Dropdown), for the pickers below. */
+const PICK = 'h-input w-full min-w-0 flex items-center gap-2 rounded-lg border border-input bg-background pl-2.5 pr-2 text-sm text-[#0A0A0A] text-left shadow-[0_1px_2px_rgba(0,0,0,0.04)] outline-none transition-[border-color,box-shadow] duration-150 hover:bg-gray-50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25';
+
+/** Find an applicant by name or reference. The list shows the first 40 matches; typing narrows it. */
+function ResidentPicker({ value, options, onPick }: { value: App | null; options: App[]; onPick: (a: App) => void }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const t = q.trim().toLowerCase();
+  const found = (t ? options.filter((a) => a.name.toLowerCase().includes(t) || a.ref.toLowerCase().includes(t)) : options).slice(0, 40);
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQ(''); }}>
+      <PopoverTrigger id="nb-resident" className={PICK}>
+        {value ? <><Ini name={value.name} size={20} /><span className="flex-1 min-w-0 truncate">{value.name}</span><span className="font-mono text-xs text-[#737373]">{value.ref}</span></>
+          : <span className="flex-1 text-gray-400">Find an applicant</span>}
+        <CaretUpDown size={14} className="text-gray-400 shrink-0" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+        <Command shouldFilter={false}>
+          <CommandInput value={q} onValueChange={setQ} placeholder="Name or reference" />
+          <CommandList className="p-1 max-h-64">
+            <CommandEmpty className="px-2 h-8 flex items-center text-sm text-[#737373]">No applicant matches</CommandEmpty>
+            {found.map((a) => (
+              <CommandItem key={a.id} value={a.id} onSelect={() => { onPick(a); setOpen(false); setQ(''); }} className={cx('!h-auto min-h-11 gap-2 py-1.5', value?.id === a.id && 'bg-gray-50')}>
+                <Ini name={a.name} size={24} />
+                <span className="flex-1 min-w-0"><span className="block truncate font-medium">{a.name}</span><span className="block truncate text-xs text-[#737373]">{[a.year, a.course].filter((x) => x && x !== "—").join(" · ")}</span></span>
+                <span className="font-mono text-xs text-[#737373]">{a.ref}</span>
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function NewBooking({ onClose, onMade }: { onClose: () => void; onMade: (id: string) => void }) {
-  const up = useAlloc((s) => s.up);
-  const n = useAlloc((s) => s.bookings.length);
-  const [name, setName] = useState('');
+  const d = useAlloc();
+  const up = d.up;
+  const n = d.bookings.length;
+  const [who, setWho] = useState<App | null>(null);
   const [hall, setHall] = useState<string>('Collingwood');
   const [room, setRoom] = useState<string>('Standard single');
   const [unit, setUnit] = useState('');
   const [deposit, setDeposit] = useState('Due £250');
   const busy = useRef(false);
-  const ok = name.trim() && unit.trim();
+  /* Applicants in this cycle who don't hold a booking yet. */
+  const people = useMemo(() => {
+    const booked = new Set(d.bookings.filter((b) => !b.cancelled).map((b) => b.name));
+    return d.apps.filter((a) => a.cycle === '2027/28' && a.status !== 'rejected' && !booked.has(a.name));
+  }, [d.apps, d.bookings]);
+  /* The first free units in the hall; the applicant's own allocated unit comes first when it is in this hall. */
+  const units = useMemo(() => {
+    const held = heldUnits(d, '2027/28', who?.name);
+    const out: string[] = [];
+    const own = who?.unit?.startsWith(`${hall} · `) ? who.unit.slice(hall.length + 3) : null;
+    if (own) out.push(own);
+    for (let k = 0; k < 720 && out.length < 8; k++) { const c = unitCode(k); if (c !== own && !held.has(`${hall} · ${c}`)) out.push(c); }
+    return out;
+  }, [d, who, hall]);
+  const code = units.includes(unit) ? unit : units[0] ?? '';
+  const terms = roomTerms(hall, room);
+  const ok = !!who && !!code;
   return (
-    <Dialog open onClose={onClose} title="New booking" footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!ok} onClick={() => {
-      if (busy.current) return; busy.current = true;
+    <Dialog open onClose={onClose} title="New booking" width={520} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!ok} onClick={() => {
+      if (busy.current || !who) return; busy.current = true;
       const id = `b${Date.now()}`;
-      const b: Booking = { id, ref: `BKG-2027-00${5000 + n}`, name: name.trim(), hall, room, unit: unit.trim(), term: '19 Sep 2027 – 9 Sep 2028', lease: 'Draft', deposit, created: TODAY, missing: 'Made by hand · lease not sent', history: [{ t: 'Booking made by hand by Priya Shah', when: `${TODAY} 10:44` }] };
+      const b: Booking = { id, ref: `BKG-2027-00${5000 + n}`, name: who.name, hall, room, unit: code, term: '19 Sep 2027 – 9 Sep 2028', lease: 'Draft', deposit, created: TODAY, missing: 'Made by hand · lease not sent', history: [{ t: 'Booking made by hand by Priya Shah', when: `${TODAY} 10:44` }] };
       up((x) => ({ bookings: [b, ...x.bookings] }));
       toast.success(`Draft booking made for ${b.name}`, { description: `${hall} · ${b.unit} · send the lease when you’re ready` });
       onMade(id);
     }}>Create draft</Button></>}>
-      <div className="space-y-3">
-        <Field label="Resident"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" /></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Hall"><Select value={hall} onChange={(e) => setHall(e.target.value)}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
+      <div className="flex flex-col gap-4">
+        <Field label="Resident">
+          <ResidentPicker value={who} options={people} onPick={(a) => { setWho(a); if ((HALLS as readonly string[]).includes(a.hall)) setHall(a.hall); if ((ROOMS as readonly string[]).includes(a.room)) setRoom(a.room); setUnit(''); }} />
+        </Field>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+          <Field label="Hall"><Select value={hall} onChange={(e) => { setHall(e.target.value); setUnit(''); }}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
           <Field label="Room type"><Select value={room} onChange={(e) => setRoom(e.target.value)}>{ROOMS.map((r) => <option key={r}>{r}</option>)}</Select></Field>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Unit"><Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. 2.4.C" /></Field>
+          <Field label="Unit"><Select value={code} onChange={(e) => setUnit(e.target.value)}>{units.map((u) => <option key={u}>{u}</option>)}</Select></Field>
           <Field label="Deposit"><Select value={deposit} onChange={(e) => setDeposit(e.target.value)}>{['Due £250', 'Paid £250', 'Waived'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
         </div>
-        <p className="text-xs text-gray-500">Term 19 Sep 2027 – 9 Sep 2028 · starts as a draft.</p>
+        {/* What the draft will carry, read-only: it follows the cycle and the room type. */}
+        <div className="rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] px-3 py-3">
+          <DL rows={[['Cycle', '2027/28'], ['Term', '19 Sep 2027 – 9 Sep 2028'], ['Rent', `£${terms.rate} a week`], ['Lease', 'Draft · not sent']]} />
+        </div>
       </div>
     </Dialog>
   );

@@ -4,7 +4,7 @@ import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
 import { ArrowCounterClockwise, ChevronDown, ChevronRight, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
-import { modules, moduleFor, pinnable, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
+import { modules, moduleFor, pinnable, rollup, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
 import { useDb, type Role } from '../data/store';
 import { cx, Pill } from '../components/ui';
@@ -19,6 +19,8 @@ import { Switch } from '../components/shadcn/switch';
 import { useTheme } from '../data/theme';
 import { useEmpty } from '../data/empty';
 import { NoAccess } from '../pages/Misc';
+import { SHELL_VERSIONS, useShellVersion } from '../data/shellVersion';
+import { ShellV2 } from './ShellV2';
 
 /* Amber Connect shell (Figma 3882:39269, code: amber-connect NavigationMenu). One sidebar, 256px (68 folded with ⌘.),
    #FAFAFA with a right line: 56px logo header, 36px rows (8/12 padding, r8, 4px apart, 16px icons), the selected row
@@ -53,6 +55,7 @@ export function Shell() {
   const allowed = moduleFor(pathname).roles.includes(role);
   const emptyKey = useEmpty((s) => s.on);
   const signedIn = useAuth((s) => s.signedIn);
+  const version = useShellVersion((s) => s.version);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -65,12 +68,21 @@ export function Shell() {
 
   if (!signedIn) return <Navigate to="/login" replace />;
 
+  const toggle = () => setOpen((p) => !p);
+  const main = <main ref={mainRef} onScroll={onMainScroll} className="pms-main flex-1 min-w-0 flex flex-col bg-white">{allowed ? <Outlet key={emptyKey ? 'empty' : 'full'} /> : <NoAccess />}</main>;
+  /* Two shells over the same pages, switched from the account menu (data/shellVersion): v1 is the single sidebar,
+     v2 a rail with the open module's pages in a panel. */
   return (
-    <div className="h-full flex bg-white min-w-[1024px]">
-      <Sidebar visible={visible} active={mod} collapsed={!open} onToggle={() => setOpen((p) => !p)} />
-      <main ref={mainRef} onScroll={onMainScroll} className="pms-main flex-1 min-w-0 flex flex-col bg-white">{allowed ? <Outlet key={emptyKey ? 'empty' : 'full'} /> : <NoAccess />}</main>
+    <>
+      {version === 'v2' ? <ShellV2 visible={visible} active={mod} panelOpen={open} onToggle={toggle} userMenu={<UserMenu rail />}>{main}</ShellV2>
+        : (
+          <div className="h-full flex bg-white min-w-[1024px]">
+            <Sidebar visible={visible} active={mod} collapsed={!open} onToggle={toggle} />
+            {main}
+          </div>
+        )}
       <Palette open={palette} onClose={() => setPalette(false)} />
-    </div>
+    </>
   );
 }
 
@@ -141,17 +153,6 @@ function Sidebar({ visible, active, collapsed: target, onToggle }: { visible: Mo
 
 export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="h-5 px-1.5 rounded border border-[#E5E5E5] bg-white font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#737373] flex items-center">{children}</kbd>;
-}
-
-/** Work waiting in a module, for its closed row: every page count except sizes (7 properties). Red when any of it is an alert (repairs). */
-function rollup(m: Module, counts: NavCounts) {
-  let n = 0; let alert = false;
-  for (const s of m.sections) for (const it of s.items) {
-    if (it.total || !it.count) continue;
-    const c = it.count(counts);
-    if (c > 0) { n += c; if (it.alert) alert = true; }
-  }
-  return { n, alert };
 }
 
 /** Every page of a module, flattened with its section labels, for the collapsed sidebar's flyout. */
@@ -461,7 +462,7 @@ function PinPicker() {
 /** A Connect profile-menu row: 20px, no padding or hover fill; the text and icon darken when highlighted. */
 const MENU_ROW = 'h-5 p-0 gap-2 rounded-none cursor-pointer text-sm leading-5 text-[#404040] focus:bg-transparent focus:text-[#0A0A0A] [&>svg]:text-[#404040] focus:[&>svg]:text-[#0A0A0A]';
 /** The profile in the sidebar footer (68px, Connect): r10 photo, name, light email, up/down chevrons. Opens the account menu. */
-function UserMenu({ collapsed }: { collapsed: boolean }) {
+function UserMenu({ collapsed = false, rail }: { collapsed?: boolean; /** v2: just the photo, at the foot of the rail; the menu opens to its right. */ rail?: boolean }) {
   const { role, setRole, reset } = useDb();
   const nav = useNavigate();
   const roles: { id: Role; label: string; sub: string }[] = useMemo(() => [
@@ -473,6 +474,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
   const [leaving, setLeaving] = useState<'pending' | 'done'>();
   const { theme, setTheme } = useTheme();
   const { on: emptyOn, setOn: setEmpty } = useEmpty();
+  const { version, setVersion } = useShellVersion();
   const signOut = () => {
     setLeaving('pending');
     setTimeout(() => setLeaving('done'), 900);
@@ -482,9 +484,9 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
     <>
     <DropdownMenu modal={false}>
       {/* Profile (3884:39336): 59px so its line meets the page footer's; 16px sides, 10px gap, round photo. */}
-      <DropdownMenuTrigger aria-label="Account" className={cx('h-[59px] shrink-0 border-t border-[#E5E5E5] flex items-center gap-2.5 px-4 outline-none transition-colors duration-150 hover:bg-black/[0.02] data-[state=open]:bg-[#F4F4F5] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring text-left', collapsed ? 'w-[68px] justify-center px-0' : 'w-64')}>
+      <DropdownMenuTrigger aria-label="Account" className={rail ? 'size-9 shrink-0 rounded-full flex items-center justify-center outline-none transition-transform duration-200 hover:scale-[1.06] focus-visible:ring-2 focus-visible:ring-ring' : cx('h-[59px] shrink-0 border-t border-[#E5E5E5] flex items-center gap-2.5 px-4 outline-none transition-colors duration-150 hover:bg-black/[0.02] data-[state=open]:bg-[#F4F4F5] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring text-left', collapsed ? 'w-[68px] justify-center px-0' : 'w-64')}>
         <PersonPhoto name={me.name} size={32} />
-        {!collapsed && <>
+        {!collapsed && !rail && <>
           <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#737373] truncate">{me.email}</span></span>
           <ChevronsUpDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="text-[#404040] shrink-0" />
         </>}
@@ -492,7 +494,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
       {/* Connect profile menu (Amber Connect 2.0, 3095:20192): 240px, r10, #E5E5E5 edge, two soft drops. A #F5F5F5 band
           (12px padding, 9px gap, r10 photo, 14px medium name, 12px light email), then a 16px body: groups 16px apart split by
           #E5E5E5 rules, 20px rows 14px apart, each a 16px icon, 8px gap and 14px regular #404040 text. */}
-      <DropdownMenuContent side="top" align="start" sideOffset={8} alignOffset={8} className="w-60 p-0 overflow-hidden rounded-[10px] border-[#E5E5E5] shadow-[0_2px_4px_rgba(0,0,0,0.1),0_4px_6px_rgba(0,0,0,0.1)]">
+      <DropdownMenuContent side="top" align="start" sideOffset={8} alignOffset={rail ? 0 : 8} className="w-60 p-0 overflow-hidden rounded-[10px] border-[#E5E5E5] shadow-[0_2px_4px_rgba(0,0,0,0.1),0_4px_6px_rgba(0,0,0,0.1)]">
         <DropdownMenuLabel className="p-3 font-normal bg-[#F5F5F5] border-b border-[#E5E5E5] flex items-center gap-[9px]">
           <PersonPhoto name={me.name} size={32} square />
           <span className="min-w-0"><span className="block text-sm leading-5 font-medium text-[#404040] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#404040] truncate">{me.email}</span></span>
@@ -509,6 +511,18 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
             ))}
           </div>
           <DropdownMenuSeparator className="m-0 bg-[#E5E5E5]" />
+          {/* Demo: which navigation shell to show. A segmented track (white raised current tab); stays open so the shell changes behind it. */}
+          <div className="h-5 flex items-center gap-2 text-sm leading-5 text-[#404040]">
+            <SidebarSimple size={16} strokeWidth={1.5} /><span className="flex-1">Sidebar</span>
+            <div role="group" aria-label="Sidebar version" className="flex gap-0.5 p-0.5 rounded-lg bg-[#F5F5F5]">
+              {SHELL_VERSIONS.map((v) => (
+                <DropdownMenuItem key={v} aria-pressed={version === v} onSelect={(e) => { e.preventDefault(); setVersion(v); }}
+                  className={cx('h-6 px-2 rounded-md cursor-pointer font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] focus:bg-transparent', version === v ? 'bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.08)] focus:bg-white' : 'text-[#737373] focus:text-[#0A0A0A]')}>
+                  {v}
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </div>
           <div className="flex flex-col gap-[14px]">
             {/* Stays open when toggled, so you see the switch flip and the app change behind it. */}
             <DropdownMenuItem className={MENU_ROW} onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>

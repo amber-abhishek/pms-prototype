@@ -4,7 +4,7 @@ import { Buildings, Camera, CheckCircle, Circle, Clock, DeviceMobile, DotsThree,
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
-import { Avatar, Button, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, SheetNavButtons, Table, Tabs, Textarea, Toolbar, gbp, listNav, SheetHero, SheetSection } from '../../components/ui';
+import { Avatar, Button, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, SelectFilter, SheetNavButtons, Table, Textarea, Toolbar, gbp, listNav, SheetHero, SheetSection } from '../../components/ui';
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
 import { LineTabs } from '../inventory/common';
 import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
@@ -49,16 +49,20 @@ export function ResidentsList() {
   return (
     <>
       <RHeader icon={Users} crumbs={[]} title="Residents" />
+      {/* Toolbar, as Bookings: search on the left; on the right the view (was the tab strip) as a single-choice dropdown, then the filters. */}
       <Toolbar right={<>
-        <SearchInput value={q} onChange={setQ} placeholder="Search name or room" />
+        <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as Tab)} width={220}
+          options={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ value: t, meta: scoped.filter((r) => inTab(r, t)).length }))} />
         <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: [...new Set(residents.map((r) => r.hall))] }, { id: 'deposit', label: 'Deposit', options: ['Paid', 'Not paid'] }, { id: 'week', label: 'This week', chips: true, options: ['Arriving today', 'Arriving this week', 'Leaving'] }]} />
       </>}>
-        <Tabs value={tab} onChange={setTab} tabs={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ id: t, label: t, count: scoped.filter((r) => inTab(r, t)).length }))} />
+        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or room" /></div>
       </Toolbar>
       <Table rows={rows} onRow={(r) => nav(`/residents/${r.id}`)}
         summary={`${rows.length} ${rows.length === 1 ? 'resident' : 'residents'}${tab === 'Arriving' ? ` · ${rows.filter((r) => r.checkedIn).length} checked in so far` : ''}`}
         empty={residents.length ? <Empty icon={Users} title="No residents match" sub="Try clearing the search or the filters." /> : <Empty art="team" icon={Users} title="No residents yet" sub="Residents show here once their bookings are confirmed." />}
         cols={[
+          /* Row number: the resident's place in the filtered list, so it carries on across pages. */
+          { key: 'no', label: '#', className: 'w-[56px]', render: (r) => <span className="font-mono text-xs text-[#737373] tabular-nums">{rows.indexOf(r) + 1}</span> },
           { key: 'n', label: 'Resident', render: (r) => <span className="flex items-center gap-2.5 min-w-0"><Avatar name={r.name} size={28} /><span className="font-medium truncate">{r.name}</span></span> },
           { key: 'rm', label: 'Room', render: (r) => <span className="text-gray-500">{hallShort(r.hall)} {r.room}</span> },
           { key: 'a', label: tab === 'Leaving' ? 'Leaves' : 'Arrives', render: (r) => <span className="text-gray-500">{r.status === 'Leaving' ? r.leaves : r.arrivingThisWeek ? r.arrives : 'In since Sep'}</span> },

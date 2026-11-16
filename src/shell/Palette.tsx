@@ -22,7 +22,7 @@ export function Palette({ open, onClose }: { open: boolean; onClose: () => void 
   const hits = useMemo<Hit[]>(() => {
     const t = q.trim().toLowerCase();
     const has = (s: string) => s.toLowerCase().includes(t);
-    const pages: Hit[] = allPages.filter((p) => p.roles.includes(db.role) && (!t || has(p.label) || has(p.module))).map((p) => ({ group: 'Pages', label: p.label, sub: p.module, to: p.to, icon: p.icon }));
+    const pages: Hit[] = allPages.filter((p) => p.roles.includes(db.role) && (!t || has(p.label) || has(p.module))).map((p) => ({ group: 'Pages', label: p.label, to: p.to, icon: p.icon }));
     if (!t) return pages.slice(0, 8);
     const admin = db.role === 'admin';
     return [

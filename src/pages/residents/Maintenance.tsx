@@ -68,16 +68,8 @@ export function MaintenanceList() {
         <Button icon={HardHat} onClick={() => setContractors(true)}>Contractors</Button>
         <Button variant="primary" icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>
       </RHeader>
-      {/* Toolbar (Figma 3918:48236): status and the four filters on the left; search and the Table/Board switch on the right. */}
+      {/* Toolbar: search on the left; the filters and the Table/Board switch together on the right. */}
       <Toolbar right={<>
-        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" /></div>
-        <UITabs value={view} onValueChange={setView}>
-          <TabsList aria-label="View">
-            <TabsTrigger value="table">Table</TabsTrigger>
-            <TabsTrigger value="board">Board</TabsTrigger>
-          </TabsList>
-        </UITabs>
-      </>}>
         <FilterButton value={f} onChange={setF} defs={[
           ...(view === 'table' ? [{ id: 'status', label: 'Status', options: STATUSES, tones: { New: 'blue', 'In progress': 'amber', 'Waiting on parts': 'purple', Fixed: 'green' } as const }] : []),
           { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], tones: { Urgent: 'red', High: 'orange', Normal: 'grey' } },
@@ -85,6 +77,14 @@ export function MaintenanceList() {
           { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
           { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
         ]} />
+        <UITabs value={view} onValueChange={setView}>
+          <TabsList aria-label="View">
+            <TabsTrigger value="table">Table</TabsTrigger>
+            <TabsTrigger value="board">Board</TabsTrigger>
+          </TabsList>
+        </UITabs>
+      </>}>
+        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" /></div>
       </Toolbar>
       {view === 'board' ? <MaintenanceBoard faults={scoped} onLog={() => setLogging(true)} selected={job} onOpen={setJob} /> : (
       <Table rows={rows} onRow={(x) => setJob(x.id)} selected={job ?? undefined} sort={slaFirst ? { key: 's', dir: 'asc', onToggle: () => setSlaFirst(false) } : { key: 'r', dir: 'desc', onToggle: () => setSlaFirst(true) }} footer={false}

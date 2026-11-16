@@ -32,7 +32,7 @@ export function RequestsList() {
   return (
     <>
       <RHeader icon={ArrowsLeftRight} crumbs={[['Residents']]} title="Requests">
-        <Button icon={Plus} onClick={() => setCreating(true)}>New request</Button>
+        <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New request</Button>
       </RHeader>
       <Toolbar right={<>
         <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: ['Collingwood', 'Ustinov College'] }, { id: 'kind', label: 'Type', options: Object.keys(kindIcon) }]} />

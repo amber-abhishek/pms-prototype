@@ -4,7 +4,7 @@ import { ArrowDownRight, ArrowUpRight, Building, ChartColumnIcon, ChartLine, Tab
 import { Card, cx, Pill, TitleH1 } from './ui';
 
 /* Overview kit in the Amber Connect language (Figma 3884:39270):
-   - a #F5F5F5 greeting band (48px r10 photo, 18px semibold title, 16px #737373 line, actions on the right),
+   - a white greeting band (2026-11-16; was #F5F5F5) (48px r10 photo, 18px semibold title, 16px #737373 line, actions on the right),
    - optional 200×40 folder tabs on the same band,
    - a white content area, 24px padding, cards 16px apart. Every card is r16 with a 33px #FAFAFA mono strip
      (Geist Mono Medium 12 uppercase, #171717) and a 20px body. */
@@ -22,8 +22,9 @@ export function OverviewPage({ title, sub, actions, avatar, tabs, children }: {
 }
 
 export function GreetingBand({ title, sub, actions, avatar }: { title: string; sub: ReactNode; actions?: ReactNode; avatar?: ReactNode }) {
+  /* White like the page under it, so it has no bottom padding of its own: the content's 24px is the only gap to the cards. */
   return (
-    <div className="shrink-0 bg-[#F5F5F5] px-6 py-5 flex items-center gap-4">
+    <div className="shrink-0 bg-white px-6 pt-6 flex items-center gap-4">
       {avatar}
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <TitleH1 className="text-lg leading-7 font-semibold text-[#0A0A0A] truncate">{title}</TitleH1>

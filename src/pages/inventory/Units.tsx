@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Archive, ArrowSquareOut, ArrowUUpLeft, ArrowsOutCardinal, Bed, Buildings, CaretDown, CaretRight, Door, DotsThree, Info, LinkSimple, ListDashes, PencilSimple, Plus, Stack, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Button, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetSection, Tabs, cx, listNav, type SheetNav, PIN } from '../../components/ui';
+import { Button, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, flatsOf, money, per, useInv, type ArchivedRow, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
@@ -144,13 +144,12 @@ function UnitsView({ props }: { props: Property[] }) {
               { label: curFlat ? `Archive ${curFlat.name}…` : 'Archive…', icon: Archive, danger: true, disabled: !curFlat, onClick: () => curFlat && setArchiveFlat(curFlat) },
             ]} />
           </div>
-          {/* Toolbar: status tabs on the left; search and the room-type dropdown together on the right. */}
+          {/* Toolbar: search on the left; the status (was the tab strip) as a single-choice dropdown and the room-type filter on the right. */}
           <div {...PIN} className="shrink-0 px-6 pt-3 pb-4 flex items-center gap-2">
-            <Tabs value={tab} onChange={(t) => { setTab(t); setCursor(0); }} tabs={[
-              { id: 'all', label: 'All', count: counts.all }, { id: 'Active', label: 'Active', count: counts.Active }, { id: 'Draft', label: 'Draft', count: counts.Draft }, { id: 'Inactive', label: 'Inactive', count: counts.Inactive }, { id: 'Archived', label: 'Archived', count: counts.Archived },
-            ]} />
+            <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder="Search units" /></div>
             <div className="ml-auto min-w-0 flex items-center gap-2">
-              <div className="w-[240px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder="Search units" /></div>
+              <SelectFilter prefix="Status" value={tab} onChange={(t) => { setTab(t as typeof tab); setCursor(0); }} width={220}
+                options={[{ value: 'all', label: 'All', meta: counts.all }, { value: 'Active', meta: counts.Active }, { value: 'Draft', meta: counts.Draft }, { value: 'Inactive', meta: counts.Inactive }, { value: 'Archived', meta: counts.Archived }]} />
               <MultiFilter label="Room type" width={220} value={typeF} onChange={(v) => { setTypeF(v); setCursor(0); }} options={ROOM_TYPES.map((t) => ({ value: t }))} />
             </div>
           </div>

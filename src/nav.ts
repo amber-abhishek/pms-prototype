@@ -137,7 +137,7 @@ export const modules: Module[] = [
     ] }],
   },
   {
-    id: 'reports', label: 'Reports', icon: ChartColumn, home: '/reports', group: 'top', roles: ['admin'],
+    id: 'reports', label: 'Reports', icon: ChartColumn, home: '/reports', group: 'bottom', roles: ['admin'],
     match: starts('/reports'),
     sections: [{ items: [
       { label: 'Occupancy', to: '/reports', icon: ChartLine },
@@ -169,6 +169,17 @@ export const modules: Module[] = [
     ] }],
   },
 ];
+
+/** Work waiting in a module, for its closed row: every page count except sizes (7 properties). Red when any of it is an alert (repairs). */
+export function rollup(m: Module, counts: NavCounts) {
+  let n = 0; let alert = false;
+  for (const s of m.sections) for (const it of s.items) {
+    if (it.total || !it.count) continue;
+    const c = it.count(counts);
+    if (c > 0) { n += c; if (it.alert) alert = true; }
+  }
+  return { n, alert };
+}
 
 export const moduleFor = (path: string) => modules.find((m) => m.match(path)) ?? modules[0];
 const HOME_IDS = ['overview', 'tasks', 'activity'];

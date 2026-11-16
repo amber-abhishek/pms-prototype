@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Empty, PIN } from '../../components/ui';
+import { Empty, PIN, Tabs } from '../../components/ui';
 import { Link } from 'react-router-dom';
 import { Archive, ArrowCounterClockwise, Buildings, CaretLeft, CaretRight, CheckCircle, EyeSlash, Pause, PauseCircle, WarningCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, SearchInput, Table, Tabs } from '../../components/ui';
+import { Button, PageHeader, SearchInput, Table } from '../../components/ui';
 import { useTab } from '../hooks';
 import { regionOf, stamp, useOc, type Hmo, type HmoStatus, type Pbsa } from '../../data/offcampus';
 import { NoteDialog, Tag, Thumb, Title, listingPhoto } from './parts';
@@ -63,8 +63,9 @@ function HmoTab() {
   return (
     <>
       <div {...PIN} className="px-6 pt-6 pb-4 flex items-center gap-3 empty:hidden">
-        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Paused', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} />
-        <div className="ml-auto w-[320px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search address or landlord" /></div>
+        {/* Search on the left; the status tabs at the right edge. */}
+        <div className="w-[320px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search address or landlord" /></div>
+        <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Paused', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} /></div>
       </div>
       <Table fill rows={rows} footer={false}
         empty={hmos.length ? <div className="py-16 text-center text-sm text-gray-500">{t ? 'No listing matches that search.' : `No ${tab === 'all' ? '' : `${tab} `}Landlord listings.`}</div> : <Empty art="properties" title="No landlord listings yet" sub="Listings show here once landlords are approved and add their houses." />}

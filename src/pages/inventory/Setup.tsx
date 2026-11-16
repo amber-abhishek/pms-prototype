@@ -211,7 +211,7 @@ function AttachGrid({ structures, attached, onChange }: { structures: Structure[
             <tr className="bg-[#FAFAFA]">
               <th scope="col" className="h-16 pl-3.5 text-left font-mono text-xs font-medium uppercase tracking-[0.48px] text-[#737373]">Layout</th>
               {levels.map((lv) => { const [I, tone] = lookOf(lv); return (
-                <th key={lv} scope="col" className="x-keep font-normal"><span className="flex flex-col items-center gap-1"><IconTile icon={I} tone={tone} size={22} /><span className="text-[11px] leading-[14px] text-[#737373]">{lv}</span></span></th>
+                <th key={lv} scope="col" className="x-keep font-normal py-3"><span className="flex flex-col items-center gap-1"><IconTile icon={I} tone={tone} size={22} /><span className="text-[11px] leading-[14px] text-[#737373]">{lv}</span></span></th>
               ); })}
               <th aria-hidden />
             </tr>

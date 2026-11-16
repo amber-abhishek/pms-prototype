@@ -160,13 +160,15 @@ export function Offers() {
         {tab === 'Waitlist' ? <Button icon={Plus} onClick={() => setAdding(true)}>Add to waitlist</Button> : !noOffers && <Button icon={PaperPlaneTilt} onClick={remind}>Send reminders</Button>}
       </PageHeader>
       {/* Toolbar: search on the left; on the right the view (was the tab strip) as a single-choice dropdown, then the filters. */}
-      <Toolbar right={<>
-        <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as TabId)} width={220}
-          options={[{ value: 'Recent' }, { value: 'Open', meta: fmtN(c.open) }, { value: 'Accepted', meta: fmtN(c.accepted) }, { value: 'Declined', meta: fmtN(c.declined) }, { value: 'Lapsed', meta: fmtN(c.lapsed) }, { value: 'Waitlist', meta: fmtN(c.waitlist) }]} />
-        <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }]} />
-      </>}>
-        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search offers" /></div>
-      </Toolbar>
+      {!(noOffers && c.waitlist === 0) && (
+        <Toolbar right={<>
+          <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as TabId)} width={220}
+            options={[{ value: 'Recent' }, { value: 'Open', meta: fmtN(c.open) }, { value: 'Accepted', meta: fmtN(c.accepted) }, { value: 'Declined', meta: fmtN(c.declined) }, { value: 'Lapsed', meta: fmtN(c.lapsed) }, { value: 'Waitlist', meta: fmtN(c.waitlist) }]} />
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }]} />
+        </>}>
+          <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search offers" /></div>
+        </Toolbar>
+      )}
       {noOffers && tab !== 'Waitlist' ? (
         <EmptyArea art="offers" icon={PaperPlaneTilt} title="No offers yet" sub="Offers are made when you allocate a unit.">
           <Button variant="primary" icon={Tray} onClick={() => nav('/allocations/applications?tab=To%20review')}>Open applications</Button>
@@ -180,7 +182,7 @@ export function Offers() {
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
-            {rows.length ? <Grid key={tab} fill numberFrom={page * PAGE + 1} cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea art="offers" icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || (f.cycle?.length !== 1 || f.cycle[0] !== liveCycle) ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
+            {rows.length ? <Grid key={tab} fill numberFrom={page * PAGE + 1} cols={cols[tab]} rows={shown} onRow={(o) => setOpen(o.id)} selected={open} /> : <EmptyArea art={q || f.hall || (f.cycle?.length !== 1 || f.cycle[0] !== liveCycle) ? 'noResults' : 'nothingHere'} icon={PaperPlaneTilt} title={`No ${tab.toLowerCase()} offers`} sub={q || f.hall || (f.cycle?.length !== 1 || f.cycle[0] !== liveCycle) ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
           <Foot right={pages > 1 && <Pager pages={pages} page={page} onPage={setPage} />}>{pages > 1 && `Showing ${shown.length} of ${fmtN(rows.length)} entries`}</Foot>
         </div>

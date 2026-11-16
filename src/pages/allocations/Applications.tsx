@@ -65,15 +65,17 @@ export function Applications() {
         </>}
       </PageHeader>
       {/* The queue's views are page tabs again (the segmented tabs My tasks and Activity use), not sidebar rows. */}
-      <Toolbar className={cx(split && 'border-b border-line')} right={<>
-        <FilterPanel rows={base} fs={fs} setFs={setFs} fields={fields} />
-        {split ? <SortButton s={sort} setS={setSort} /> : <TableDisplay tab={tab} />}
-      </>} heading={tab}>
-        <Tabs value={tab} onChange={(v) => setTab(v as TabId)} tabs={[
-          { id: 'To review', label: 'To review', count: counts.review }, { id: 'Flagged', label: 'Flagged', count: counts.manual },
-          { id: 'Allocated', label: 'Allocated', count: counts.allocated }, { id: 'Rejected', label: 'Rejected', count: counts.rejected }, { id: 'All', label: 'All', count: counts.all },
-        ]} />
-      </Toolbar>
+      {d.apps.length > 0 && (
+        <Toolbar className={cx(split && 'border-b border-line')} right={<>
+          <FilterPanel rows={base} fs={fs} setFs={setFs} fields={fields} />
+          {split ? <SortButton s={sort} setS={setSort} /> : <TableDisplay tab={tab} />}
+        </>} heading={tab}>
+          <Tabs value={tab} onChange={(v) => setTab(v as TabId)} tabs={[
+            { id: 'To review', label: 'To review', count: counts.review }, { id: 'Flagged', label: 'Flagged', count: counts.manual },
+            { id: 'Allocated', label: 'Allocated', count: counts.allocated }, { id: 'Rejected', label: 'Rejected', count: counts.rejected }, { id: 'All', label: 'All', count: counts.all },
+          ]} />
+        </Toolbar>
+      )}
       {notOpenYet ? (
         <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={`Applications for ${cycleSel!.name} open on ${cycleSel!.opens}. They arrive here once the application form is published on the on-campus portal.`}>
           <Button variant="primary" onClick={() => toast('The form builder opens on the on-campus portal', { description: `Application form ${cycleSel!.name} · Draft` })}>Open the form</Button>

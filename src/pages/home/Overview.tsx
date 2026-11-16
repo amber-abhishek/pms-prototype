@@ -10,6 +10,7 @@ import { Button, ButtonGroup, Card, PageHeader, Pill, cx } from '../../component
 import { KpiCards, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
 import { HomeBand, MenuButton } from './parts';
 import { useEmpty } from '../../data/empty';
+import { PersonPhoto } from '../../components/Logo';
 import { ME, useHome } from '../../data/home';
 
 function Header() {
@@ -97,7 +98,6 @@ function Today() {
 }
 
 /* ---------- 3672:12883 · First day on Overview: a new workspace (?empty=1, or the Empty states demo) ---------- */
-const TILES: [string, boolean][] = [['Occupancy', true], ['Applications to review', false], ['Offers expiring in 48 h', false], ['Arriving this week', true], ['Open maintenance', false]];
 function FirstDay() {
   const nav = useNavigate();
   const campuses = useDb((s) => s.campuses.length);
@@ -107,7 +107,7 @@ function FirstDay() {
   const steps = [
     { id: 's1', title: 'Choose the resident site domain', sub: 'Portals · durham.residents.app', done: true },
     { id: 's2', title: 'Add campuses', sub: `Organisation · ${campuses} campuses`, done: campuses > 0, cta: 'Add campuses', to: '/org/campuses' },
-    { id: 's3', title: 'Add your first property', sub: 'Inventory · guided setup or a spreadsheet', done: props > 0, cta: 'Add a property', to: '/inventory/properties' },
+    { id: 's3', title: 'Add your first property', sub: 'Inventory · guided setup or a spreadsheet', done: props > 0, cta: 'Add a property', to: '/inventory/properties/new' },
     { id: 's4', title: 'Invite your team', sub: 'Roles and access · wardens, front desk, estates', done: members > 1, cta: 'Invite', to: '/org/people' },
     { id: 's5', title: 'Open an allocation cycle', sub: 'Allocations · needs at least one active property', done: cycles > 0, cta: 'Open a cycle', to: '/allocations/cycles' },
   ];
@@ -120,20 +120,15 @@ function FirstDay() {
       <Header />
       <div className="flex-1 overflow-auto px-14 pt-8 pb-8">
         <div className="max-w-[1040px]">
-          <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Arjun</h2>
-          <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a cycle exist.</p>
-          {/* Five metric tiles waiting for data: grey dash, empty meter where the tile has one, "No data yet". */}
-          <div className="grid grid-cols-5 gap-3 mt-5">
-            {TILES.map(([label, meter]) => (
-              <Card key={label} className="px-4 py-3.5 flex flex-col gap-2">
-                <div className="text-xs font-medium text-[#404040] truncate">{label}</div>
-                <div className="pt-1 text-[26px] leading-[34px] font-semibold text-[#A3A3A3]">—</div>
-                {meter && <div className="h-1.5 rounded-[3px] bg-[#F5F5F5]" />}
-                <div className="text-xs text-[#A3A3A3]">No data yet</div>
-              </Card>
-            ))}
+          {/* Greeting with the profile photo, as on the populated Overview; no metric tiles until there is data. */}
+          <div className="flex items-center gap-4">
+            <PersonPhoto name="Arjun Mehta" size={48} square />
+            <div className="min-w-0">
+              <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Arjun</h2>
+              <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a cycle exist.</p>
+            </div>
           </div>
-          <Card className="mt-4 max-w-[640px] pt-4 pb-2 overflow-hidden">
+          <Card className="mt-6 max-w-[640px] pt-4 pb-2 overflow-hidden">
             <div className="flex items-center gap-4 px-5 pb-3">
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-[#404040]">Set up Durham</h3>

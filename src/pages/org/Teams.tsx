@@ -18,7 +18,7 @@ export function TeamsPage() {
     <>
       <Header icon={UsersThree} crumbs={[{ label: 'Organisation' }]} title="Teams">
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
-        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search teams" /></div>
+        {teams.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search teams" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setEdit('new')}>New team</Button>
       </Header>
       <PageHeading />

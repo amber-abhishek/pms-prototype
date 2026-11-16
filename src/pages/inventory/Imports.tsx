@@ -62,7 +62,7 @@ export function ImportsPage() {
       </div>
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 min-w-0 flex flex-col">
-          <Table rows={rows} empty={<Empty art="rooms" title="No imports yet" sub="Spreadsheets you import show here with what was added." />} onRow={(j) => setOpen(j.id)} selected={open ?? undefined} summary="Latest 100 imports"
+          <Table rows={rows} empty={<Empty art="nothingToShow" title="No imports yet" sub="Spreadsheets you import show here with what was added." />} onRow={(j) => setOpen(j.id)} selected={open ?? undefined} summary="Latest 100 imports"
             cols={[
               { key: 'n', label: 'Import', render: (j) => <span className="flex items-center gap-2.5">{j.kind === 'Spreadsheet' ? <IconTile icon={FileCsv} tone="green" /> : <IconTile icon={Stack} tone="purple" />}<span className="font-medium">{j.name}</span></span> },
               { key: 'k', label: 'Kind', render: (j) => <span className="text-[#737373]">{j.kind}</span> },

@@ -82,11 +82,11 @@ export function Landlords() {
       <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Landlord applications" />
       <div className="flex-1 min-h-0 flex flex-col relative">
         <Title title="Landlord applications" />
-        <div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3">
+        {rows0.length > 0 && (<div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3">
           {/* Search on the left; the status tabs at the right edge. */}
           <div className="w-[320px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or email" /></div>
           <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: counted(x.id) }))} /></div>
-        </div>
+        </div>)}
         {!rows0.length ? <NoLandlords /> : (
           <Table fill rows={rows} onRow={(l) => setOpen(l.id)} selected={open ?? undefined}
             footer={false}

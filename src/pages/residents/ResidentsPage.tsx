@@ -50,16 +50,18 @@ export function ResidentsList() {
     <>
       <RHeader icon={Users} crumbs={[]} title="Residents" />
       {/* Toolbar, as Bookings: search on the left; on the right the view (was the tab strip) as a single-choice dropdown, then the filters. */}
-      <Toolbar right={<>
-        <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as Tab)} width={220}
-          options={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ value: t, meta: scoped.filter((r) => inTab(r, t)).length }))} />
-        <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: [...new Set(residents.map((r) => r.hall))] }, { id: 'deposit', label: 'Deposit', options: ['Paid', 'Not paid'] }, { id: 'week', label: 'This week', chips: true, options: ['Arriving today', 'Arriving this week', 'Leaving'] }]} />
-      </>}>
-        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or room" /></div>
-      </Toolbar>
+      {residents.length > 0 && (
+        <Toolbar right={<>
+          <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as Tab)} width={220}
+            options={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ value: t, meta: scoped.filter((r) => inTab(r, t)).length }))} />
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: [...new Set(residents.map((r) => r.hall))] }, { id: 'deposit', label: 'Deposit', options: ['Paid', 'Not paid'] }, { id: 'week', label: 'This week', chips: true, options: ['Arriving today', 'Arriving this week', 'Leaving'] }]} />
+        </>}>
+          <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or room" /></div>
+        </Toolbar>
+      )}
       <Table rows={rows} onRow={(r) => nav(`/residents/${r.id}`)}
         summary={`${rows.length} ${rows.length === 1 ? 'resident' : 'residents'}${tab === 'Arriving' ? ` · ${rows.filter((r) => r.checkedIn).length} checked in so far` : ''}`}
-        empty={residents.length ? <Empty icon={Users} title="No residents match" sub="Try clearing the search or the filters." /> : <Empty art="team" icon={Users} title="No residents yet" sub="Residents show here once their bookings are confirmed." />}
+        empty={residents.length ? <Empty art="noResults" icon={Users} title="No residents match" sub="Try clearing the search or the filters." /> : <Empty art="records" icon={Users} title="No residents yet" sub="Residents show here once their bookings are confirmed." />}
         cols={[
           /* Row number: the resident's place in the filtered list, so it carries on across pages. */
           { key: 'no', label: 'S.No.', className: 'w-[56px]', render: (r) => <span className="font-mono text-xs text-[#737373] tabular-nums">{rows.indexOf(r) + 1}</span> },

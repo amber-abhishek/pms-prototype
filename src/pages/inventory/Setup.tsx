@@ -19,7 +19,7 @@ export function StructuresPage() {
     <>
       <PageHeader icon={TreeStructure} title="Property layouts" crumbs={['Inventory']}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
-        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search layouts" /></div>
+        {structures.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search layouts" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New layout</Button>
       </PageHeader>
       <PageHeading />
@@ -120,11 +120,12 @@ export function CustomFieldsPage() {
     <>
       <PageHeader icon={Textbox} title="Custom fields" crumbs={['Inventory']}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
-        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search fields" /></div>
+        {fields.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search fields" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New field</Button>
       </PageHeader>
       <PageHeading />
       <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
+            empty={fields.length ? <Empty title="No fields match" sub="Try a field name or key." /> : <Empty art="records" title="No custom fields yet" sub="Add your own details to rooms, flats or buildings." />}
             cols={[
               /* Numbered in list order, so a search renumbers what's left. */
               { key: 'no', label: 'S.No.', className: 'w-14', render: (f) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(f) + 1}</span> },
@@ -257,11 +258,11 @@ export function TagsPage() {
     <>
       <PageHeader icon={Tag} title="Tags" crumbs={['Inventory']}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
-        <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search tags" /></div>
+        {tags.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search tags" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New tag</Button>
       </PageHeader>
       <PageHeading />
-      <Table rows={rows} empty={<Empty title="No tags yet" sub="Tags label properties, like Catered or Postgraduate." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
+      <Table rows={rows} empty={<Empty art="noResults" title="No tags yet" sub="Tags label properties, like Catered or Postgraduate." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'no', label: 'S.No.', className: 'w-14', render: (t) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(t) + 1}</span> },
               { key: 'n', label: 'Tag', render: (t) => <Pill tone={t.tone} outline>{t.label}</Pill> },

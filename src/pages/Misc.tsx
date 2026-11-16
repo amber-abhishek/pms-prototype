@@ -32,7 +32,7 @@ export function NoAccess() {
 export function NotFound() {
   return (
     <Page className="flex items-center justify-center">
-      <Empty title="Page not found" sub="That link doesn't go anywhere in this prototype." action={<Link to="/"><Button>Back to Overview</Button></Link>} />
+      <Empty art="notFound" title="Page not found" sub="That link doesn't go anywhere in this prototype." action={<Link to="/"><Button>Back to Overview</Button></Link>} />
     </Page>
   );
 }

@@ -69,23 +69,25 @@ export function MaintenanceList() {
         <Button variant="primary" icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>
       </RHeader>
       {/* Toolbar: search on the left; the filters and the Table/Board switch together on the right. */}
-      <Toolbar right={<>
-        <FilterButton value={f} onChange={setF} defs={[
-          ...(view === 'table' ? [{ id: 'status', label: 'Status', options: STATUSES, tones: { New: 'blue', 'In progress': 'amber', 'Waiting on parts': 'purple', Fixed: 'green' } as const }] : []),
-          { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], tones: { Urgent: 'red', High: 'orange', Normal: 'grey' } },
-          { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], tones: { Overdue: 'red', 'On time': 'green' } },
-          { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
-          { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
-        ]} />
-        <UITabs value={view} onValueChange={setView}>
-          <TabsList aria-label="View">
-            <TabsTrigger value="table">Table</TabsTrigger>
-            <TabsTrigger value="board">Board</TabsTrigger>
-          </TabsList>
-        </UITabs>
-      </>}>
-        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" /></div>
-      </Toolbar>
+      {faults.length > 0 && (
+        <Toolbar right={<>
+          <FilterButton value={f} onChange={setF} defs={[
+            ...(view === 'table' ? [{ id: 'status', label: 'Status', options: STATUSES, tones: { New: 'blue', 'In progress': 'amber', 'Waiting on parts': 'purple', Fixed: 'green' } as const }] : []),
+            { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], tones: { Urgent: 'red', High: 'orange', Normal: 'grey' } },
+            { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], tones: { Overdue: 'red', 'On time': 'green' } },
+            { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
+            { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
+          ]} />
+          <UITabs value={view} onValueChange={setView}>
+            <TabsList aria-label="View">
+              <TabsTrigger value="table">Table</TabsTrigger>
+              <TabsTrigger value="board">Board</TabsTrigger>
+            </TabsList>
+          </UITabs>
+        </>}>
+          <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Job, resident or room" /></div>
+        </Toolbar>
+      )}
       {view === 'board' ? <MaintenanceBoard faults={scoped} onLog={() => setLogging(true)} selected={job} onOpen={setJob} /> : (
       <Table rows={rows} onRow={(x) => setJob(x.id)} selected={job ?? undefined} sort={slaFirst ? { key: 's', dir: 'asc', onToggle: () => setSlaFirst(false) } : { key: 'r', dir: 'desc', onToggle: () => setSlaFirst(true) }} footer={false}
         empty={<Empty art="faults" icon={Wrench} title="No faults match" sub="Everything reported has been fixed." action={<Button icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>} />}

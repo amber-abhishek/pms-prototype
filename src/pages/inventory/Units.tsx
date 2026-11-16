@@ -27,7 +27,7 @@ export function UnitsPage() {
   if (!props.length) return (
     <>
       <PageHeader icon={ListDashes} title="Units" crumbs={['Inventory']} />
-      <EmptyArea art="beds" icon={ListDashes} title="No units yet" sub="Rooms show here once a property is built or imported.">
+      <EmptyArea art="getStarted" icon={ListDashes} title="No units yet" sub="Rooms show here once a property is built or imported.">
         <Button variant="primary" onClick={() => location.assign('#/inventory/properties')}>Add a property</Button>
       </EmptyArea>
     </>

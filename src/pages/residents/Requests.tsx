@@ -34,11 +34,13 @@ export function RequestsList() {
       <RHeader icon={ArrowsLeftRight} crumbs={[['Residents']]} title="Requests">
         <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New request</Button>
       </RHeader>
-      <Toolbar right={<>
-        <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: ['Collingwood', 'Ustinov College'] }, { id: 'kind', label: 'Type', options: Object.keys(kindIcon) }]} />
-      </>}>
-        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Open', label: 'Open', count: count('Open') }, { id: 'Waiting', label: 'Waiting on resident', count: count('Waiting') }, { id: 'Approved', label: 'Approved', count: count('Approved') }, { id: 'Declined', label: 'Declined', count: count('Declined') }]} />
-      </Toolbar>
+      {requests.length > 0 && (
+        <Toolbar right={<>
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: ['Collingwood', 'Ustinov College'] }, { id: 'kind', label: 'Type', options: Object.keys(kindIcon) }]} />
+        </>}>
+          <Tabs value={tab} onChange={setTab} tabs={[{ id: 'Open', label: 'Open', count: count('Open') }, { id: 'Waiting', label: 'Waiting on resident', count: count('Waiting') }, { id: 'Approved', label: 'Approved', count: count('Approved') }, { id: 'Declined', label: 'Declined', count: count('Declined') }]} />
+        </Toolbar>
+      )}
       {f.hall?.length === 1 && rows.length > 0 && <div className="shrink-0 -mt-1 pb-4 px-[calc(var(--gx,16px)+var(--cx,12px))] text-xs leading-4 text-[#737373]">Showing {f.hall[0]}, the halls you look after</div>}
       <Table rows={rows} onRow={(r) => setOpen(r.id)} selected={open ?? undefined} sort={{ key: 'wt', dir: oldest ? 'desc' : 'asc', onToggle: () => setOldest((o) => !o) }}
         empty={<Empty art="requests" icon={ArrowsLeftRight} title={tab === 'Open' ? 'No open requests' : `No ${tab === 'Waiting' ? 'requests waiting on a resident' : tab.toLowerCase() + ' requests'}`}

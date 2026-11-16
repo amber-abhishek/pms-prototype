@@ -109,7 +109,7 @@ export function ReportsLibrary() {
       )}
       {tab === 'scheduled' && (schedules.length === 0 ? (
         <div className="flex-1 overflow-auto flex items-center justify-center">
-          <EmptyState art="schedule" icon={CalendarBlank} title="Nothing scheduled" sub="Open a report and choose Schedule to email it.">
+          <EmptyState art="calendar" icon={CalendarBlank} title="Nothing scheduled" sub="Open a report and choose Schedule to email it.">
             <Button variant="primary" onClick={() => setTab('library')}>Browse the library</Button>
           </EmptyState>
         </div>

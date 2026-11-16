@@ -49,7 +49,7 @@ export function CaughtUp({ children }: { children?: ReactNode }) {
   return (
     /* data-inset: same 120px gutter as the task table on the other tabs, so the heading and tabs don’t jump when switching. */
     <div data-inset className="flex-1 flex flex-col items-center justify-center text-center py-16 px-6">
-      <Illustration name="caughtUp" className="block w-[203px] h-[160px] mb-6" />
+      <Illustration name="caughtUp" className="block w-[254px] h-[200px] mb-6" />
       <div className="text-sm font-semibold">You’re all caught up</div>
       <p className="text-sm leading-5 text-gray-500 mt-1.5 max-w-[440px]">Nothing is overdue or due today. New tasks arrive here from Applications, Requests, Maintenance and Bookings.</p>
       {children && <div className="mt-5 flex gap-2">{children}</div>}

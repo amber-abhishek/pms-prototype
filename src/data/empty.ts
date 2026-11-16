@@ -20,7 +20,7 @@ const STORES: [string, AnyStore, string[]][] = [
   ['alloc', useAlloc as unknown as AnyStore, ['cycles', 'apps', 'offers', 'recent', 'waitlist', 'bookings', 'conflicts', 'used', 'usedUnits', 'hidden']],
   ['home', useHome as unknown as AnyStore, ['rows']],
   ['oc', useOc as unknown as AnyStore, ['landlords', 'reviews', 'hmos', 'pbsa', 'hidden', 'enquiries']],
-  ['inv', useInv as unknown as AnyStore, ['properties', 'templates', 'fees', 'imports', 'archived', 'tags', 'archivedFlats']],
+  ['inv', useInv as unknown as AnyStore, ['properties', 'templates', 'fees', 'imports', 'archived', 'tags', 'archivedFlats', 'fields']],
   ['rms', useRms as unknown as AnyStore, ['residents', 'requests', 'notices', 'faults']],
   ['org', useOrg as unknown as AnyStore, ['members', 'campuses', 'teams', 'audit']],
   ['ws', useWorkspace as unknown as AnyStore, ['schedules', 'integrations']],
@@ -43,6 +43,26 @@ const blank = (v: unknown): unknown => {
 };
 
 const read = () => { try { return sessionStorage.getItem(KEY) === '1'; } catch { return false; } };
+
+/* A tab that switched the demo on before a list joined STORES still holds that list's data: empty it now,
+   keeping the real data in the backup so it still comes back when the switch goes off. */
+const topUp = () => {
+  if (!read()) return;
+  try {
+    const backup = JSON.parse(sessionStorage.getItem(BACKUP) ?? '{}') as Record<string, Record<string, unknown>>;
+    let changed = false;
+    for (const [name, store, keys] of STORES) {
+      const st = store.getState() as Record<string, unknown>;
+      const missing = keys.filter((k) => !(backup[name] && k in backup[name]));
+      if (!missing.length) continue;
+      backup[name] = { ...backup[name], ...Object.fromEntries(missing.map((k) => [k, st[k]])) };
+      store.setState(Object.fromEntries(missing.map((k) => [k, FIRST_LOGIN[k] ? FIRST_LOGIN[k](st[k]) : blank(st[k])])));
+      changed = true;
+    }
+    if (changed) sessionStorage.setItem(BACKUP, JSON.stringify(backup));
+  } catch { /* ignore */ }
+};
+topUp();
 
 export const useEmpty = create<{ on: boolean; setOn: (on: boolean) => void }>((set) => ({
   on: read(),

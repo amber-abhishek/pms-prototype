@@ -101,13 +101,15 @@ export function Bookings() {
         <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New booking</Button>
       </PageHeader>
       {/* Toolbar, as Offers & waitlist: search on the left; on the right the view (was the tab strip) as a single-choice dropdown, then the filters. */}
-      <Toolbar right={<>
-        <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as typeof tab)} width={240}
-          options={[{ value: 'All', meta: fmtN(c.all) }, { value: 'Awaiting signature', meta: fmtN(c.sent) }, { value: 'Lease not sent', meta: fmtN(c.drafts) }, { value: 'Conflicts', meta: fmtN(c.conflicts) }, { value: 'Cancelled', meta: fmtN(c.cancelled) }]} />
-        <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} />
-      </>}>
-        <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search bookings" /></div>
-      </Toolbar>
+      {!none && (
+        <Toolbar right={<>
+          <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as typeof tab)} width={240}
+            options={[{ value: 'All', meta: fmtN(c.all) }, { value: 'Awaiting signature', meta: fmtN(c.sent) }, { value: 'Lease not sent', meta: fmtN(c.drafts) }, { value: 'Conflicts', meta: fmtN(c.conflicts) }, { value: 'Cancelled', meta: fmtN(c.cancelled) }]} />
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} />
+        </>}>
+          <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search bookings" /></div>
+        </Toolbar>
+      )}
       {none ? (
         <EmptyArea art="bookings" icon={FileText} title="No bookings yet" sub="Bookings are made when an applicant accepts an offer.">
           <Button icon={Plus} onClick={() => setCreating(true)}>New booking</Button>
@@ -143,7 +145,7 @@ export function Bookings() {
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
             {rows.length ? <Grid key={tab} fill cols={cols[tab]} rows={rows} onRow={(b) => setOpen(b.id)} selected={open} />
-              : <EmptyArea art="bookings" icon={FileText} title={tab === 'Lease not sent' ? 'Every lease is sent' : tab === 'Awaiting signature' ? 'Every lease is signed' : `No ${tab.toLowerCase()} bookings`} sub={q || f.hall || f.lease ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
+              : <EmptyArea art={q || f.hall || f.lease ? 'noResults' : 'nothingHere'} icon={FileText} title={tab === 'Lease not sent' ? 'Every lease is sent' : tab === 'Awaiting signature' ? 'Every lease is signed' : `No ${tab.toLowerCase()} bookings`} sub={q || f.hall || f.lease ? 'Clear the search or filter to see more.' : 'Nothing here right now.'} />}
           </div>
         </div>
       )}

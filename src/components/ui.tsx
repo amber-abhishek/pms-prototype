@@ -101,6 +101,10 @@ export function Pill({ tone = 'grey', icon: I, dot, outline, children }: { tone?
   );
 }
 
+/** One colour per product area, for the Area pill in activity and audit tables. */
+const AREA_TONE: Record<string, Tone> = { Inventory: 'blue', Allocations: 'purple', Residents: 'green', 'Off-campus': 'orange', Finance: 'amber', Maintenance: 'red', Workspace: 'grey', Members: 'blue', Roles: 'purple', Campuses: 'green', Teams: 'amber' };
+export const AreaPill = ({ area }: { area: string }) => <Pill tone={AREA_TONE[area] ?? 'grey'}>{area}</Pill>;
+
 const statusTone: Record<string, Tone> = {
   New: 'blue', 'In review': 'purple', Offered: 'amber', Accepted: 'green', Waitlisted: 'orange', Declined: 'grey',
   Sent: 'blue', Expired: 'grey', Confirmed: 'green', 'Lease unsigned': 'amber', 'Checked in': 'green', Cancelled: 'grey',

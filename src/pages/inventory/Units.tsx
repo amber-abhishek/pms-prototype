@@ -103,7 +103,7 @@ function UnitsView({ props }: { props: Property[] }) {
 
   const doArchiveFlat = (f: Flat) => {
     const st = useInv.getState();
-    const rows: ArchivedRow[] = [{ id: f.id, name: f.name, type: 'Flat', flat: true, units: f.units.length, who: 'Priya Shah', when: 'Just now' }, ...f.units.map((u) => ({ id: `${f.id}#${u.code}`, name: u.code, type: u.type, who: 'Priya Shah', when: 'Just now', parent: f.id }))];
+    const rows: ArchivedRow[] = [{ id: f.id, name: f.name, type: 'Flat', flat: true, units: f.units.length, who: 'Arjun Mehta', when: 'Just now' }, ...f.units.map((u) => ({ id: `${f.id}#${u.code}`, name: u.code, type: u.type, who: 'Arjun Mehta', when: 'Just now', parent: f.id }))];
     st.set('archivedFlats', (l) => [...l, f.id]);
     st.set('archived', (a) => ({ ...a, [p.id]: [...rows, ...(a[p.id] ?? [])] }));
     setArchiveFlat(null);

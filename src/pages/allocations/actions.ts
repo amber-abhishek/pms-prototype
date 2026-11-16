@@ -49,7 +49,7 @@ export function useAllocActions() {
   function manual(a: App) {
     if (now(a).status === 'manual') return;
     const undo = withUndo();
-    const why = a.tag === 'Manual review' || a.toCheck?.length ? 'Medical evidence to check' : a.tag === 'Requirements' ? 'Requirements to match by hand' : a.tag === 'No study offer' ? 'Study offer to confirm' : 'Sent by Priya Shah';
+    const why = a.tag === 'Manual review' || a.toCheck?.length ? 'Medical evidence to check' : a.tag === 'Requirements' ? 'Requirements to match by hand' : a.tag === 'No study offer' ? 'Study offer to confirm' : 'Sent by Arjun Mehta';
     up((d) => ({ apps: setApp(d, a.id, { status: 'manual', why, assignee: ME, log: [{ t: `Flagged by ${ME}`, when: '27 Oct, 10:44', sub: why }] }) }));
     toast(`${a.name} flagged`, { description: 'Assigned to you · left out of auto-allocate', action: undo });
   }

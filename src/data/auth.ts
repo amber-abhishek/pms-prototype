@@ -3,7 +3,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type Remembered = { email: string; name: string; tenantId?: string };
+/** `photo`: an uploaded picture (data URL) or a chosen illustration path; none = the default illustration. */
+export type Remembered = { email: string; name: string; tenantId?: string; photo?: string };
 export type Tenant = { id: string; name: string; host: string };
 
 /** Demo codes: 000000 is a wrong code, 999999 an expired one. Anything else signs you in. */
@@ -19,7 +20,7 @@ export const TENANTS: Tenant[] = [
 ];
 export const needsPicker = (email: string) => /@pms\.app$/i.test(email.trim());
 
-/** A display name from an email, for the "You're in" line: priya.shah@… → Priya Shah. */
+/** A display name from an email, for the "You're in" line: arjun.mehta@… → Arjun Mehta. */
 export const nameFrom = (email: string) =>
   email.split('@')[0].split(/[._-]+/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ') || email;
 
@@ -35,11 +36,16 @@ export const useAuth = create<Auth>()(
   persist(
     (set) => ({
       signedIn: true,
-      remembered: { email: 'priya.shah@durham.ac.uk', name: 'Priya Shah', tenantId: 'durham' },
+      remembered: { email: 'arjun.mehta@durham.ac.uk', name: 'Arjun Mehta', tenantId: 'durham' },
       signIn: (remembered) => set({ signedIn: true, remembered }),
       signOut: () => set({ signedIn: false }),
       forget: () => set({ remembered: undefined }),
     }),
-    { name: 'pms-prototype-auth', storage: createJSONStorage(() => sessionStorage) },
+    /* v1: the demo user became Arjun Mehta; a tab still signed in as the old user switches over. */
+    { name: 'pms-prototype-auth', storage: createJSONStorage(() => sessionStorage), version: 1,
+      migrate: (s) => {
+        const a = s as Auth;
+        return a.remembered?.email === 'priya.shah@durham.ac.uk' ? { ...a, remembered: { ...a.remembered, email: 'arjun.mehta@durham.ac.uk', name: 'Arjun Mehta', photo: undefined } } : a;
+      } },
   ),
 );

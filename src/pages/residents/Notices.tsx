@@ -282,7 +282,7 @@ function NoticeSheet({ n, onClose , nav: sheetNav }: { nav?: SheetNav;  n: Notic
         {scheduled && (
           <div className="mb-5"><Note tone="blue" icon={Clock} title="The audience stays live">{n.count.toLocaleString('en-GB')} match today; new matches before it sends get it too.{n.pinned && ` Pinned on the portal until ${n.pinned}.`}</Note></div>
         )}
-        <SheetSection title="Details" rows={[['Sent by', by], ...(n.urgent ? [['Urgent', 'Marked by Priya Shah'] as [string, string]] : []), ['Audience', `${n.audience} · ${n.count.toLocaleString('en-GB')}`]]} />
+        <SheetSection title="Details" rows={[['Sent by', by], ...(n.urgent ? [['Urgent', 'Marked by Arjun Mehta'] as [string, string]] : []), ['Audience', `${n.audience} · ${n.count.toLocaleString('en-GB')}`]]} />
         {!scheduled && (
           <>
             <SheetSection title="Delivery">

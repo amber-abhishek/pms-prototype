@@ -305,7 +305,7 @@ export const occColor = (pct: number) => (pct >= 95 ? '#0B8A4C' : pct >= 80 ? '#
 
 /* Avatars (3770:15786): initials in the person's tone on a soft gradient circle, with a white top highlight and a
    20% tone ring. Named people keep fixed tones (3010:2, 3023:2); everyone else gets one from their name. */
-const personColor: Record<string, string> = { 'Priya Shah': '#E5530C', 'Tom Baker': '#0E7A80', 'Aisha Khan': '#8B2CF5' };
+const personColor: Record<string, string> = { 'Arjun Mehta': '#E5530C', 'Tom Baker': '#0E7A80', 'Aisha Khan': '#8B2CF5' };
 const avatarBg = ['#0E7A80', '#8B2CF5', '#E5530C', '#0B8A4C', '#C0266D', '#1F45E0', '#C47A00', '#E0243A'];
 const avatarGround: Record<string, [string, string]> = {
   '#E5530C': ['#FFF0E0', '#FFDDBA'], '#0E7A80': ['#E3F6F6', '#C8ECEC'], '#8B2CF5': ['#F1E7FF', '#E2CFFF'], '#6E3BD8': ['#F1E7FF', '#E2CFFF'],

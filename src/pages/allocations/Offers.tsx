@@ -31,8 +31,8 @@ export function Offers() {
   const d = useAlloc();
   const nav = useNavigate();
   const { withUndo } = useAllocActions();
-  const [raw, setTab] = useTab<TabId>('Recent');
-  const tab: TabId = LEGACY[raw] ?? (['Recent', 'Open', 'Accepted', 'Declined', 'Lapsed', 'Waitlist'].includes(raw) ? raw : 'Recent');
+  const [raw, setTab] = useTab<TabId>('Open');
+  const tab: TabId = LEGACY[raw] ?? (['Recent', 'Open', 'Accepted', 'Declined', 'Lapsed', 'Waitlist'].includes(raw) ? raw : 'Open');
   const [open, setOpen] = useOpen();
   const [q, setQ] = useState('');
   const [f, setF] = useState<Filters>({ cycle: ['2027/28'] });
@@ -209,7 +209,7 @@ function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void 
     <div className="flex-1 min-h-0 flex flex-col">
       <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-white z-[1]"><tr className="text-left text-xs text-gray-500"><th className="w-12 h-9 pl-[var(--cx,12px)] font-medium border-b border-line">#</th><th className="font-medium border-b border-line px-3">Applicant</th><th className="font-medium border-b border-line px-3">Note</th><th className="font-medium border-b border-line px-3">Joined</th><th className="border-b border-line pr-[var(--cx,12px)]" /></tr></thead>
+          <thead className="sticky top-0 bg-white z-[1]"><tr className="text-left text-xs text-gray-500"><th className="w-12 h-9 pl-[var(--cx,12px)] font-medium border-b border-line">S.No.</th><th className="font-medium border-b border-line px-3">Applicant</th><th className="font-medium border-b border-line px-3">Note</th><th className="font-medium border-b border-line px-3">Joined</th><th className="border-b border-line pr-[var(--cx,12px)]" /></tr></thead>
           <GhostZone.Provider value><tbody>
             {groups.map((g) => {
               const [hall, room] = g.split('|');

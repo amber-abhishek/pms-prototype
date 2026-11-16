@@ -376,7 +376,7 @@ export function OccupancyReport() {
 }
 
 const DEFAULT_RECIPIENTS: Recipient[] = [
-  { id: 'r1', name: 'Priya Shah', sub: 'You', count: 1 },
+  { id: 'r1', name: 'Arjun Mehta', sub: 'You', count: 1 },
   { id: 'r2', name: 'James Reed', sub: 'Finance', count: 1 },
   { id: 'r3', name: 'Heads of college', sub: '5 people · group', count: 5 },
 ];
@@ -399,7 +399,7 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
     const t = q.trim().toLowerCase();
     const groups: Recipient[] = [{ id: 'g-wardens', name: 'Hall wardens', sub: '4 people · group', count: 4 }, { id: 'g-estates', name: 'Estates', sub: '3 people · group', count: 3 }];
     const ps: Recipient[] = people.map((p) => ({ id: p.id, name: p.name, sub: p.role, count: 1 }));
-    /* Hide anyone already on the list, by id or by name ("Priya Shah" is also "You"). */
+    /* Hide anyone already on the list, by id or by name ("Arjun Mehta" is also "You"). */
     return [...groups, ...ps].filter((r) => !rec.some((x) => x.id === r.id || x.name === r.name) && (!t || r.name.toLowerCase().includes(t))).slice(0, 5);
   }, [q, people, rec]);
   const add = (r: Recipient) => { setRec([...rec, r]); setQ(''); setErr(''); setAdding(false); };

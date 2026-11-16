@@ -89,22 +89,22 @@ export function makeInventorySeed() {
   ];
   const imports: ImportJob[] = [
     { id: 'im2', name: 'ustinov-annex.csv', kind: 'Spreadsheet', status: 'Queued', done: 0, total: 60, by: 'Tom Reid', started: 'Today 11:44', structure: 'College', creates: '60 rooms' },
-    { id: 'im3', name: 'Fenwick Block · 48 rooms', kind: 'Bulk create', status: 'Succeeded', done: 48, total: 48, by: 'Priya Shah', started: 'Today 10:05', structure: 'College', creates: '1 block · 63 entities' },
+    { id: 'im3', name: 'Fenwick Block · 48 rooms', kind: 'Bulk create', status: 'Succeeded', done: 48, total: 48, by: 'Arjun Mehta', started: 'Today 10:05', structure: 'College', creates: '1 block · 63 entities' },
     { id: 'im4', name: 'hild-bede-flats.csv', kind: 'Spreadsheet', status: 'Failed', done: 0, total: 72, errors: 2, by: 'Tom Reid', started: 'Yesterday 16:20', structure: 'College', creates: '72 rooms' },
-    { id: 'im5', name: 'John Snow · Block D', kind: 'Bulk create', status: 'Succeeded', done: 120, total: 120, by: 'Priya Shah', started: '24 Oct', structure: 'College', creates: '1 block · 145 entities' },
+    { id: 'im5', name: 'John Snow · Block D', kind: 'Bulk create', status: 'Succeeded', done: 120, total: 120, by: 'Arjun Mehta', started: '24 Oct', structure: 'College', creates: '1 block · 145 entities' },
   ];
   const archived: Record<string, ArchivedRow[]> = {
     col: [
       { id: 'ar1', name: '1.2.F', type: 'Standard single', who: 'Tom Okafor', when: '12 Sep' },
       { id: 'ar2', name: '2.1.C', type: 'Studio', who: 'Tom Okafor', when: '12 Sep' },
-      { id: 'ar3', name: '4.4.A', type: 'Ensuite single', who: 'Priya Shah', when: '3 Aug' },
+      { id: 'ar3', name: '4.4.A', type: 'Ensuite single', who: 'Arjun Mehta', when: '3 Aug' },
     ],
   };
   const structures: Structure[] = [
-    { id: 'st1', name: 'Halls with flats', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Flat', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 6, updated: 'Priya Shah · 2 Sep' },
-    { id: 'st2', name: 'Halls, rooms only', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 9, updated: 'Priya Shah · 2 Sep' },
+    { id: 'st1', name: 'Halls with flats', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Flat', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 6, updated: 'Arjun Mehta · 2 Sep' },
+    { id: 'st2', name: 'Halls, rooms only', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 9, updated: 'Arjun Mehta · 2 Sep' },
     { id: 'st3', name: 'Studio block', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Studio', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 2, updated: 'Tom Baker · 14 Sep' },
-    { id: 'st4', name: 'Shared houses', levels: [{ name: 'House', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 0, updated: 'Priya Shah · 20 Sep' },
+    { id: 'st4', name: 'Shared houses', levels: [{ name: 'House', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 0, updated: 'Arjun Mehta · 20 Sep' },
   ];
   const fields: Field[] = [
     { id: 'cf1', name: 'Accessible room', key: 'accessible_room', type: 'Yes / no', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'] },
@@ -139,7 +139,7 @@ export const useInv = create<InvState>()(
 );
 
 export const invId = (p: string) => `${p}${Math.random().toString(36).slice(2, 8)}`;
-export const logAct = (p: Property, what: string): ActivityRow[] => [{ who: 'Priya Shah', what, when: 'Just now' }, ...p.activity];
+export const logAct = (p: Property, what: string): ActivityRow[] => [{ who: 'Arjun Mehta', what, when: 'Just now' }, ...p.activity];
 
 /* ---------------- Hierarchy: blocks → floors → flats → units ---------------- */
 const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';

@@ -110,15 +110,15 @@ export function AddPropertyWizard() {
     const p: Property = {
       id, name: name.trim(), campus, structure, tags: [], units: total, status: 'Draft', address: 'Elvet Hill Road, Durham DH1 3LR', zone, invNo, letting,
       blocks: blocks.map((b) => ({ name: b.name, floors: house ? 1 : b.floors, flats: house ? 1 : b.flats, rooms: rooms(b, house), roomType: b.roomType, size: +b.size })),
-      build: total ? { done: 0, total } : null, photos: 0, description: '', amenities: [], wardenPhone: '', createdBy: 'Priya Shah', created: '27 Oct',
-      activity: [{ who: 'Priya Shah', what: `${name.trim()} created · building its rooms`, when: 'Just now' }],
+      build: total ? { done: 0, total } : null, photos: 0, description: '', amenities: [], wardenPhone: '', createdBy: 'Arjun Mehta', created: '27 Oct',
+      activity: [{ who: 'Arjun Mehta', what: `${name.trim()} created · building its rooms`, when: 'Just now' }],
       roomTypes: types.map((t) => ({ name: t.name, rooms: t.rooms, rent: +t.rent })), liveTenancies: 0, fees: 1,
       counts: { all: total + extra, active: 0, draft: total + extra, inactive: 0, archived: 0 },
     };
     const st = useInv.getState();
     st.set('properties', (ps) => [...ps.filter((x) => x.id !== id), p]);
     st.set('templates', (ts) => [...ts.filter((x) => x.propertyId !== id), ...tpls]);
-    if (total) st.set('imports', (l) => [{ id: invId('im'), name: `${p.name} · ${total} rooms`, kind: 'Bulk create', status: 'Running', done: 0, total, by: 'Priya Shah', started: 'Just now', structure, creates: `1 property · ${total + flats + floors + blocks.length} entities` }, ...l]);
+    if (total) st.set('imports', (l) => [{ id: invId('im'), name: `${p.name} · ${total} rooms`, kind: 'Bulk create', status: 'Running', done: 0, total, by: 'Arjun Mehta', started: 'Just now', structure, creates: `1 property · ${total + flats + floors + blocks.length} entities` }, ...l]);
     nav(`/inventory/properties/${id}`, { replace: true });
     toast.success(total ? `${p.name} created · building its rooms` : `${p.name} created as a draft`);
   };

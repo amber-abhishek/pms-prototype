@@ -42,7 +42,7 @@ export function AuthFrame({ children, demo = true }: { children: ReactNode; demo
 /** Prototype only: jump straight to each state, and the codes that show the errors. */
 function DemoStrip() {
   const forget = useAuth((s) => s.forget);
-  const remember = () => useAuth.setState({ remembered: { email: 'priya.shah@durham.ac.uk', name: 'Priya Shah', tenantId: 'durham' } });
+  const remember = () => useAuth.setState({ remembered: { email: 'arjun.mehta@durham.ac.uk', name: 'Arjun Mehta', tenantId: 'durham' } });
   const link = 'text-[#737373] hover:text-ink underline-offset-2 hover:underline';
   return (
     <div className="mt-10 pt-4 border-t border-[#F5F5F5] text-xs leading-5 text-[#A3A3A3]">
@@ -280,7 +280,7 @@ export function Invite() {
   const expired = sp.get('expired') === '1';
   const activate = async () => {
     setState('busy'); await wait(900); setState('done'); await wait(900);
-    signIn({ email: 'priya.shah@durham.ac.uk', name: 'Priya Shah', tenantId: 'durham' });
+    signIn({ email: 'arjun.mehta@durham.ac.uk', name: 'Arjun Mehta', tenantId: 'durham' });
     nav('/', { replace: true });
   };
   return (
@@ -288,13 +288,13 @@ export function Invite() {
       <Title title={expired ? 'This invite has expired' : 'You have been invited'} sub={expired ? 'Invites last 7 days. Ask whoever invited you to send a new one.' : 'Durham Residences’ housing workspace is ready. Activate your account to sign in and start setting it up.'} />
       {expired ? (
         <>
-          <Note tone="red" title="Invite expired on 28 Oct 2026">Sent to priya.shah@durham.ac.uk</Note>
+          <Note tone="red" title="Invite expired on 28 Oct 2026">Sent to arjun.mehta@durham.ac.uk</Note>
           <Link to="/login" className="mt-7 h-11 w-full rounded-[10px] bg-primary hover:bg-primary-hover text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_1px_2px_rgba(37,99,235,0.28)] text-base font-medium flex items-center justify-center gap-1.5">Go to sign in<ArrowRight size={16} /></Link>
         </>
       ) : (
         <>
           <dl className="border-b border-[#F5F5F5] text-sm">
-            {([['Email', 'priya.shah@durham.ac.uk'], ['Operator', 'Durham Residences'], ['Role', 'Admin'], ['Expires', <>5 Nov 2026 <span className="font-normal text-[#A3A3A3]">· in 7 days</span></>]] as const).map(([k, v]) => (
+            {([['Email', 'arjun.mehta@durham.ac.uk'], ['Operator', 'Durham Residences'], ['Role', 'Admin'], ['Expires', <>5 Nov 2026 <span className="font-normal text-[#A3A3A3]">· in 7 days</span></>]] as const).map(([k, v]) => (
               <div key={k} className="h-10 flex items-center border-t border-[#F5F5F5]"><dt className="w-28 shrink-0 text-[#737373]">{k}</dt><dd className="min-w-0 truncate font-medium text-ink">{v}</dd></div>
             ))}
           </dl>

@@ -202,7 +202,7 @@ function Activity({ a }: { a: App }) {
   type E = { icon: Icon; tone: string; t: string; when: string; sub?: string };
   const items: E[] = [
     ...(a.log ?? []).map((l) => ({ icon: CheckCircle, tone: 'bg-[#E8F7EE] text-[#0B8A4C]', t: l.t, when: l.when, sub: l.sub })),
-    ...(a.opened ? [{ icon: Eye, tone: 'bg-[#E6ECFF] text-[#1F45E0]', t: 'Priya Shah opened the application', when: '27 Oct, 10:42' }] : []),
+    ...(a.opened ? [{ icon: Eye, tone: 'bg-[#E6ECFF] text-[#1F45E0]', t: 'Arjun Mehta opened the application', when: '27 Oct, 10:42' }] : []),
     ...(a.tag ? [{ icon: MagicWand, tone: 'bg-[#F1E7FF] text-[#8B2CF5]', t: `Auto-allocate skipped ${firstName(a.name)}`, when: '22 Oct, 02:00', sub: a.tag === 'Requirements' ? 'Step-free requirement' : a.tag === 'No study offer' ? 'No study offer' : 'Flagged' }] : []),
     ...(stepFree(a) ? [{ icon: ShieldCheck, tone: 'bg-[#E8F7EE] text-[#0B8A4C]', t: 'Disability Support verified step-free access', when: '20 Oct, 15:18' }] : []),
     ...(a.reqs.includes('Medication fridge') ? [{ icon: UploadSimple, tone: 'bg-[#F5F5F5] text-gray-500', t: `${a.name} uploaded a GP note`, when: '19 Oct, 09:05' }] : []),

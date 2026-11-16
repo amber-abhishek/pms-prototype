@@ -76,7 +76,7 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
     if (busy.current || !name.trim() || levels.some((l) => !l.name.trim())) return;
     busy.current = true;
     const lv = levels.map(({ name: n, bsu }) => ({ name: n.trim(), bsu }));
-    useInv.getState().set('structures', (l) => (isNew ? [...l, { id: invId('st'), name: name.trim(), levels: lv, properties: 0, updated: 'Priya Shah · Just now' }] : l.map((x) => (x.id === s.id ? { ...x, name: name.trim(), levels: locked ? x.levels.map((o, i) => ({ ...o, name: lv[i]?.name ?? o.name })) : lv, updated: 'Priya Shah · Just now' } : x))));
+    useInv.getState().set('structures', (l) => (isNew ? [...l, { id: invId('st'), name: name.trim(), levels: lv, properties: 0, updated: 'Arjun Mehta · Just now' }] : l.map((x) => (x.id === s.id ? { ...x, name: name.trim(), levels: locked ? x.levels.map((o, i) => ({ ...o, name: lv[i]?.name ?? o.name })) : lv, updated: 'Arjun Mehta · Just now' } : x))));
     onClose();
     toast.success(isNew ? `${name.trim()} layout created` : `${name.trim()} saved`);
   };
@@ -127,7 +127,7 @@ export function CustomFieldsPage() {
       <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               /* Numbered in list order, so a search renumbers what's left. */
-              { key: 'no', label: '#', className: 'w-14', render: (f) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(f) + 1}</span> },
+              { key: 'no', label: 'S.No.', className: 'w-14', render: (f) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(f) + 1}</span> },
               { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#2563EB] font-mono">{f.key}</span></span> },
               { key: 't', label: 'Type', render: (f) => <span className="text-[#737373]">{f.type}</span> },
               { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <Pill key={a} tone={lookOf(a.split(' › ').pop() ?? '')[1]}>{a}</Pill>)}</span> },
@@ -263,7 +263,7 @@ export function TagsPage() {
       <PageHeading />
       <Table rows={rows} empty={<Empty title="No tags yet" sub="Tags label properties, like Catered or Postgraduate." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
-              { key: 'no', label: '#', className: 'w-14', render: (t) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(t) + 1}</span> },
+              { key: 'no', label: 'S.No.', className: 'w-14', render: (t) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(t) + 1}</span> },
               { key: 'n', label: 'Tag', render: (t) => <Pill tone={t.tone} outline>{t.label}</Pill> },
               { key: 'u', label: 'Used on', render: (t) => { const u = used(t); return <span className="text-[#737373]">{u.length ? `${u.length} ${u.length === 1 ? 'property' : 'properties'}` : 'Not used yet'}</span>; } },
               { key: 'p', label: 'Properties', render: (t) => <span className="text-[#737373] truncate block max-w-[420px]">{used(t).map((p) => p.name).join(', ') || '—'}</span> },

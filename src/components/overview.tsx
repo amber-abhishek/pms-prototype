@@ -27,7 +27,7 @@ export function GreetingBand({ title, sub, actions, avatar }: { title: string; s
     <div className="shrink-0 bg-white px-6 pt-6 flex items-center gap-4">
       {avatar}
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <TitleH1 className="text-lg leading-7 font-semibold text-[#0A0A0A] truncate">{title}</TitleH1>
+        <TitleH1 className="text-xl leading-7 font-semibold text-[#0A0A0A] truncate">{title}</TitleH1>
         <p className="text-base leading-6 text-[#737373] truncate">{sub}</p>
       </div>
       {actions && <div className="shrink-0 flex items-center gap-2">{actions}</div>}
@@ -94,33 +94,42 @@ export function Strip({ title, sub, right }: { title: string; sub?: ReactNode; r
 }
 const stripNote = 'text-sm leading-5 text-[#737373]';
 
-/** Connect KPI card: mono uppercase label, 32px figure, then a trend arrow, the change in green or red and a grey "vs" line. */
+/** Connect number band (Amber Connect bookings): one edge-to-edge strip, columns split by dashed rules. Each column is a
+ *  14px grey label, a 32px mono figure, a filled caret with the change in green or red plus a grey "vs" line, and a 4px
+ *  bar along the foot in the column's colour (violet and cyan alternate). */
 export type Kpi = { label: string; value: string; delta?: string; good?: boolean; vs?: string; to?: string };
+const KPI_BARS = ['bg-[#7C3AED]', 'bg-[#5BCFE3]'];
 export function KpiCards({ items }: { items: Kpi[] }) {
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
-      {items.map((k) => {
+    <div className="shrink-0 mt-6 grid border-y border-[#E5E5E5] px-6 py-5" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+      {items.map((k, i) => {
         const up = k.delta ? !/^[−-]/.test(k.delta) : false;
         const good = k.good ?? up;
-        const A = up ? ArrowUpRight : ArrowDownRight;
         const body = (
           <>
-            <div className="font-mono uppercase text-xs leading-4 tracking-[0.04em] font-medium text-[#737373] truncate">{k.label}</div>
-            <div className="mt-3 text-[32px] leading-10 font-semibold tracking-[-0.48px] tabular-nums text-[#0A0A0A] truncate">{k.value}</div>
-            <div className="mt-2 h-5 flex items-center gap-1.5 text-sm leading-5 text-[#737373] whitespace-nowrap">
-              {k.delta && <span className={cx('flex items-center gap-0.5 font-medium tabular-nums', good ? 'text-[#16A34A]' : 'text-[#DC2626]')}><A size={14} strokeWidth={1.75} />{k.delta}</span>}
-              {k.delta && (k.vs ?? 'vs last 30 days')}
+            <div className="text-sm leading-5 text-[#737373] truncate">{k.label}</div>
+            <div className="mt-1 font-mono text-[32px] leading-10 font-semibold tracking-[-0.02em] tabular-nums text-[#0A0A0A] truncate">{k.value}</div>
+            <div className="mt-4 h-5 flex items-center gap-1 text-sm leading-5 text-[#404040] whitespace-nowrap">
+              {k.delta && <>
+                <span className={cx('flex items-center gap-1 font-semibold tabular-nums', good ? 'text-[#16A34A]' : 'text-[#DC2626]')}>
+                  <svg width="8" height="6" viewBox="0 0 8 6" aria-hidden className={up ? '' : 'rotate-180'}><path d="M4 0 8 6H0z" fill="currentColor" /></svg>
+                  {k.delta.replace(/^[−+-]/, '')}
+                </span>
+                {k.vs ?? 'vs last 30 days'}
+              </>}
             </div>
+            <div className={cx('mt-5 h-1 rounded-full', KPI_BARS[i % KPI_BARS.length])} />
           </>
         );
+        const cell = cx('min-w-0 block outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md',
+          i > 0 && 'pl-6 border-l border-dashed border-[#E5E5E5]', i < items.length - 1 && 'pr-6');
         return k.to
-          ? <Link key={k.label} to={k.to} className={cx(kpiCard, 'hover:shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-shadow')}>{body}</Link>
-          : <div key={k.label} className={kpiCard}>{body}</div>;
+          ? <Link key={k.label} to={k.to} className={cx(cell, 'group [&>div:first-child]:transition-colors hover:[&>div:first-child]:text-[#0A0A0A]')}>{body}</Link>
+          : <div key={k.label} className={cell}>{body}</div>;
       })}
     </div>
   );
 }
-const kpiCard = 'min-w-0 rounded-xl border border-[#E5E5E5] bg-white px-6 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 const tone = { green: 'text-[#16A34A]', orange: 'text-[#DC2626]', red: 'text-[#DC2626]', ink: 'text-[#0A0A0A]' } as const;
 type ToneKey = keyof typeof tone;

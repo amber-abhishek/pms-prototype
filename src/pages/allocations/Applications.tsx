@@ -250,7 +250,7 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
     { key: 'emailed', label: 'Emailed', render: (a) => (a.emailed ? <span className="flex items-center gap-1.5"><Check size={14} className="text-[#0B8A4C]" />Yes</span> : <span className="text-gray-400">No</span>) },
   ];
   /* Row number first, counted through the whole list, so page 2 carries on from 26. */
-  const numbered: C<App>[] = [{ key: 'no', label: '#', className: 'w-[56px]', render: (a) => <span className="font-mono text-xs text-[#737373] tabular-nums">{order.indexOf(a) + 1}</span> }, ...cols];
+  const numbered: C<App>[] = [{ key: 'no', label: 'S.No.', className: 'w-[56px]', render: (a) => <span className="font-mono text-xs text-[#737373] tabular-nums">{order.indexOf(a) + 1}</span> }, ...cols];
   /* The foot counts the rows in the list (all filters applied), so it always matches what you can page through. */
   return (
     <div className="flex-1 min-h-0 flex flex-col">

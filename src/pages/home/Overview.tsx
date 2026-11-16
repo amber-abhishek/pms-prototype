@@ -53,7 +53,7 @@ function Today() {
   const open = useRms((st) => st.faults).filter((f) => f.status !== 'Fixed');
   /* Empty-states demo: a workspace with no beds, applications or residents yet, so every number reads zero. */
   const e = useEmpty((s) => s.on);
-  /* The same open tasks My tasks counts: Priya's, not done, not snoozed. */
+  /* The same open tasks My tasks counts: Arjun's, not done, not snoozed. */
   const mine = useHome((s) => s.rows.main).filter((r) => !r.done && !r.snoozed && r.owner === ME);
   const due = (['overdue', 'today', 'week'] as const).map((d) => mine.filter((r) => r.due === d).length);
   const first = mine.find((r) => r.due === 'overdue') ?? mine.find((r) => r.due === 'today');
@@ -63,13 +63,13 @@ function Today() {
       <Header />
       <div className="flex-1 overflow-auto flex flex-col">
         <HomeBand />
-        <div className="p-6 flex flex-col gap-4">
-          <KpiCards items={e ? [{ label: 'Beds let', value: '0' }, { label: 'Applications', value: '0' }, { label: 'Rent collected', value: '£0' }, { label: 'Open repairs', value: '0' }] : [
+        <KpiCards items={e ? [{ label: 'Beds let', value: '0' }, { label: 'Applications', value: '0' }, { label: 'Rent collected', value: '£0' }, { label: 'Open repairs', value: '0' }] : [
             { label: 'Beds let', value: '2,481', delta: '+4.2%', to: '/reports' },
             { label: 'Applications', value: '3,410', delta: '+8.1%', to: '/allocations/applications' },
             { label: 'Rent collected', value: '£3.86m', delta: '−1.3%', to: '/reports/rent' },
             { label: 'Open repairs', value: String(open.length), delta: '−12%', good: true, to: '/residents/maintenance' },
           ]} />
+        <div className="p-6 flex flex-col gap-4">
           <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">
             <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="18 released" kind="line" chartOnly
               points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />
@@ -117,7 +117,7 @@ function FirstDay() {
       <Header />
       <div className="flex-1 overflow-auto px-14 pt-8 pb-8">
         <div className="max-w-[1040px]">
-          <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Priya</h2>
+          <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Arjun</h2>
           <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a cycle exist.</p>
           {/* Five metric tiles waiting for data: grey dash, empty meter where the tile has one, "No data yet". */}
           <div className="grid grid-cols-5 gap-3 mt-5">

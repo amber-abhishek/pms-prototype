@@ -24,7 +24,10 @@ export type Hmo = { id: string; title: string; town: string; type: 'House' | 'Ap
 export type Pbsa = { id: string; ref: string; name: string; region: string; from: number };
 export type HiddenPbsa = { ref: string; reason: string; at: string };
 
-export type Enquiry = { id: string; student: string; email: string; phone: string; property: string; source: 'Landlord' | 'Partner halls'; moveIn: string; received: string };
+export type EnquiryStatus = 'New' | 'Replied' | 'Closed';
+/** `status` and `message` are optional so a session saved before they existed still loads (missing = New). */
+export type Enquiry = { id: string; student: string; email: string; phone: string; property: string; source: 'Landlord' | 'Partner halls'; moveIn: string; received: string; message?: string; status?: EnquiryStatus; history?: { t: string; when: string }[] };
+export const enquiryStatus = (e: Enquiry): EnquiryStatus => e.status ?? 'New';
 
 export type Campus = { id: string; name: string; isDefault?: boolean; ticked: boolean; resolved: string | null; match: 'Exact' | 'Nearest' | 'Manual' | null; km?: number; override: string | null };
 
@@ -126,12 +129,12 @@ function pbsas(): Pbsa[] {
 
 function enquiries(): Enquiry[] {
   return [
-    { id: 'en1', student: 'Aisha Khan', email: 'aisha.khan@durham.ac.uk', phone: '07700 900123', property: '11 Old Elvet', source: 'Landlord', moveIn: '1 Sep 2027', received: '12 min ago' },
-    { id: 'en2', student: 'Tom Fletcher', email: 'tom.fletcher@gmail.com', phone: '07700 900456', property: 'Riverside Quarter', source: 'Partner halls', moveIn: '20 Sep 2027', received: '1 hour ago' },
-    { id: 'en3', student: 'Mei Lin', email: 'mei.lin@outlook.com', phone: '07700 900789', property: '9 Wanless Terrace', source: 'Landlord', moveIn: '1 Jul 2027', received: '3 hours ago' },
-    { id: 'en4', student: 'Oliver Shaw', email: 'olivershaw@icloud.com', phone: '07700 900321', property: 'Claypath Court', source: 'Partner halls', moveIn: '13 Sep 2027', received: 'Yesterday' },
-    { id: 'en5', student: 'Grace Adeyemi', email: 'grace.a@durham.ac.uk', phone: '07700 900654', property: '4 Gilesgate Bank', source: 'Landlord', moveIn: '1 Aug 2027', received: 'Yesterday' },
-    { id: 'en6', student: 'Lucas Moreau', email: 'l.moreau@gmail.com', phone: '07700 900987', property: 'Framwellgate Point', source: 'Partner halls', moveIn: '20 Sep 2027', received: '2 days ago' },
+    { id: 'en1', student: 'Aisha Khan', email: 'aisha.khan@durham.ac.uk', phone: '07700 900123', property: '11 Old Elvet', source: 'Landlord', moveIn: '1 Sep 2027', received: '12 min ago', message: "Hi, is 11 Old Elvet still free for September? I'd be sharing with two friends from my course. Could we view it in the next couple of weeks?", status: 'New' },
+    { id: 'en2', student: 'Tom Fletcher', email: 'tom.fletcher@gmail.com', phone: '07700 900456', property: 'Riverside Quarter', source: 'Partner halls', moveIn: '20 Sep 2027', received: '1 hour ago', message: "Do you have any en-suite rooms left at Riverside Quarter for the 51-week let? I'm also wondering whether bills are included.", status: 'New' },
+    { id: 'en3', student: 'Mei Lin', email: 'mei.lin@outlook.com', phone: '07700 900789', property: '9 Wanless Terrace', source: 'Landlord', moveIn: '1 Jul 2027', received: '3 hours ago', message: "I'm on a summer placement, so I'd like to move in from July. Is a 14-month tenancy possible at 9 Wanless Terrace?", status: 'New' },
+    { id: 'en4', student: 'Oliver Shaw', email: 'olivershaw@icloud.com', phone: '07700 900321', property: 'Claypath Court', source: 'Partner halls', moveIn: '13 Sep 2027', received: 'Yesterday', message: 'Is there a bike store at Claypath Court, and how far is it to the Science Site on foot?', status: 'Replied' },
+    { id: 'en5', student: 'Grace Adeyemi', email: 'grace.a@durham.ac.uk', phone: '07700 900654', property: '4 Gilesgate Bank', source: 'Landlord', moveIn: '1 Aug 2027', received: 'Yesterday', message: 'Could you tell me if the deposit at 4 Gilesgate Bank is protected, and whether a guarantor is needed for international students?', status: 'New' },
+    { id: 'en6', student: 'Lucas Moreau', email: 'l.moreau@gmail.com', phone: '07700 900987', property: 'Framwellgate Point', source: 'Partner halls', moveIn: '20 Sep 2027', received: '2 days ago', message: 'Never mind, I found a place in college. Thanks anyway!', status: 'Closed' },
   ];
 }
 

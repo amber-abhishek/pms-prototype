@@ -27,19 +27,20 @@ function toWaitlist(d: Data, hall: string, room: string, unit: string): Partial<
 export function Bookings() {
   const d = useAlloc();
   const { withUndo } = useAllocActions();
-  const [raw, setTab] = useTab<TabId>('All');
-  const tab: TabId = LEGACY[raw] ?? (TABS.includes(raw) ? raw : 'All');
+  const [raw, setTab] = useTab<TabId>('Awaiting signature');
+  const tab: TabId = LEGACY[raw] ?? (TABS.includes(raw) ? raw : 'Awaiting signature');
   const [open, setOpen] = useOpen();
   const [q, setQ] = useState('');
   const [f, setF] = useState<Filters>({ cycle: ['2027/28'] });
   const [creating, setCreating] = useState(false);
   const [resolving, setResolving] = useState<Conflict | null>(null);
-  const c = bookingCounts(d);
   const match = (b: Booking) => (!q || `${b.name} ${b.ref} ${b.unit}`.toLowerCase().includes(q.toLowerCase())) && inFilter(f.hall, hallFull[b.hall]) && inFilter(f.lease, b.lease);
   const act = d.bookings.filter((b) => !b.cancelled && match(b));
   const sent = act.filter((b) => b.lease === 'Sent').sort((a, b) => (b.waiting ?? 0) - (a.waiting ?? 0));
   const drafts = act.filter((b) => b.lease === 'Draft');
   const cancelled = d.bookings.filter((b) => b.cancelled && match(b));
+  /* Counts are the rows each status shows (after search and filters), so the dropdown and the table always agree. */
+  const c = { all: act.length, sent: sent.length, drafts: drafts.length, conflicts: d.conflicts.length, cancelled: cancelled.length };
   const late = d.bookings.filter((b) => !b.cancelled && b.lease === 'Sent' && (b.waiting ?? 0) > 7);
   const sel = d.bookings.find((b) => b.id === open);
 
@@ -90,7 +91,7 @@ export function Bookings() {
     ],
   };
   const rows = tab === 'All' ? act : tab === 'Awaiting signature' ? sent : tab === 'Lease not sent' ? drafts : tab === 'Cancelled' ? cancelled : [];
-  const none = c.all === 0;
+  const none = bookingCounts(d).all === 0;
 
   return (
     <>

@@ -48,7 +48,7 @@ function Layout({ tab, title, actions, children, wide }: { tab: string; title: s
   );
 }
 
-function Section({ title, sub, children, action, tone }: { title: string; sub?: ReactNode; children?: ReactNode; action?: ReactNode; tone?: 'red' }) {
+export function Section({ title, sub, children, action, tone }: { title: string; sub?: ReactNode; children?: ReactNode; action?: ReactNode; tone?: 'red' }) {
   return (
     /* Connect 2.0 card: r12, 1px #E5E5E5, 0 1 2 at 5%; 44px #FAFAFA header (12/12/12/16) with a 14px medium title. */
     <section data-tone={tone} className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
@@ -62,7 +62,7 @@ function Section({ title, sub, children, action, tone }: { title: string; sub?: 
     </section>
   );
 }
-const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{children}</div>;
+export const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{children}</div>;
 const opts = (xs: string[]) => xs.map((x) => ({ value: x, label: x }));
 /** Inline field error. */
 const Err = ({ children }: { children?: ReactNode }) => (children ? <p role="alert" className="text-xs leading-4 text-[#E0243A] mt-1.5">{children}</p> : null);

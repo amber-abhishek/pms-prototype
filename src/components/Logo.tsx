@@ -1,3 +1,5 @@
+import { useAuth } from '../data/auth';
+
 /** Placeholder org mark (Logoipsum shield, Figma 3884:39807) until each university uploads its own. */
 export function OrgLogo({ size = 24 }: { size?: number }) {
   return (
@@ -7,10 +9,17 @@ export function OrgLogo({ size = 24 }: { size?: number }) {
   );
 }
 
-/** The signed-in person's photo (demo: Priya has one), else initials on a soft ground. */
-export function PersonPhoto({ name, size = 32, square }: { name: string; size?: number; /** r10 tile instead of a circle (the Overview greeting). */ square?: boolean }) {
+/* Profile avatars: two illustrated heads (IconScout, "Asian positive brunette man" 9882467 and "Brunette woman" 9882458),
+   cropped to head and shoulders. Dummy data has no gender field, so a short list of male first
+   names picks the man; everyone else gets the woman. Pass `gender` to override. */
+const MALE = new Set(['james', 'tom', 'thomas', 'david', 'daniel', 'liam', 'oliver', 'harry', 'jack', 'george', 'noah', 'arjun', 'rahul', 'ravi', 'amir', 'omar', 'ben', 'sam', 'alex', 'michael', 'mark', 'john', 'chris', 'matt', 'ryan', 'adam', 'ethan', 'leo', 'max', 'wei', 'kenji', 'abhishek', 'shashi']);
+export const genderOf = (name: string): 'm' | 'f' => (MALE.has(name.trim().split(/\s+/)[0]?.toLowerCase() ?? '') ? 'm' : 'f');
+
+export function PersonPhoto({ name, size = 32, square, gender }: { name: string; size?: number; /** r10 tile instead of a circle (the Overview greeting). */ square?: boolean; gender?: 'm' | 'f' }) {
   const shape = square ? 'rounded-[10px]' : 'rounded-full';
-  if (name === 'Priya Shah') return <img src={`${import.meta.env.BASE_URL}avatars/priya.jpg`} alt="" width={size} height={size} className={shape + ' object-cover shrink-0'} style={{ width: size, height: size }} />;
-  const ini = name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-  return <span className={shape + ' bg-[#C0DBFF] text-[#123768] font-medium flex items-center justify-center shrink-0'} style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}>{ini}</span>;
+  const me = useAuth((s) => s.remembered);
+  const file = (gender ?? genderOf(name)) === 'm' ? 'man' : 'woman';
+  /* The signed-in person's own pick (Profile › change photo) wins over the default. */
+  const src = (me?.name === name && me.photo) || `${import.meta.env.BASE_URL}avatars/${file}.svg`;
+  return <img src={src} alt="" width={size} height={size} className={shape + ' object-cover shrink-0 bg-[#D5E2ED]'} style={{ width: size, height: size }} />;
 }

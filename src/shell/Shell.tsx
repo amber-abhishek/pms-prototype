@@ -2,7 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type D
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
-import { ArrowCounterClockwise, ChevronDown, ChevronRight, ChevronsUpDown, Moon, Tray, Check as CheckIcon, Lock, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
+import { ArrowCounterClockwise, ChevronDown, ChevronRight, ChevronsUpDown, Monitor, Moon, Palette as PaletteIcon, Sun, Tray, UserCircle, Check as CheckIcon, Lock, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
 import { modules, moduleFor, pinnable, rollup, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
@@ -16,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Palette } from './Palette';
 import { useNavOpen } from '../data/navOpen';
 import { Switch } from '../components/shadcn/switch';
-import { useTheme } from '../data/theme';
+import { useTheme, type ThemeMode } from '../data/theme';
 import { useEmpty } from '../data/empty';
 import { NoAccess } from '../pages/Misc';
 import { SHELL_VERSIONS, useShellVersion } from '../data/shellVersion';
@@ -50,7 +50,8 @@ export function Shell() {
     if (st.pending) usePins.setState({ pending: null });
     if (st.via && !st.pins.some((p) => within(p, pathname))) st.setVia(null);
   }, [pathname, search]);
-  const mod = fromPin ? modules[0] : moduleFor(path);
+  /* A page outside every module (Profile) still shows Home's sidebar, but under an id no row matches, so nothing is selected. */
+  const mod = fromPin ? modules[0] : modules.some((m) => m.match(path)) ? moduleFor(path) : { ...modules[0], id: '__none' };
   const visible = modules.filter((m) => m.roles.includes(role));
   const allowed = moduleFor(pathname).roles.includes(role);
   const emptyKey = useEmpty((s) => s.on);
@@ -462,6 +463,12 @@ function PinPicker() {
 /** A Connect profile-menu row: 20px, no padding or hover fill; the text and icon darken when highlighted. */
 const MENU_ROW = 'h-5 p-0 gap-2 rounded-none cursor-pointer text-sm leading-5 text-[#404040] focus:bg-transparent focus:text-[#0A0A0A] [&>svg]:text-[#404040] focus:[&>svg]:text-[#0A0A0A]';
 /** The profile in the sidebar footer (68px, Connect): r10 photo, name, light email, up/down chevrons. Opens the account menu. */
+const THEME_MODES: { id: ThemeMode; label: string; Icon: typeof Sun }[] = [
+  { id: 'light', label: 'Light', Icon: Sun },
+  { id: 'dark', label: 'Dark', Icon: Moon },
+  { id: 'system', label: 'System', Icon: Monitor },
+];
+
 function UserMenu({ collapsed = false, rail }: { collapsed?: boolean; /** v2: just the photo, at the foot of the rail; the menu opens to its right. */ rail?: boolean }) {
   const { role, setRole, reset } = useDb();
   const nav = useNavigate();
@@ -472,7 +479,7 @@ function UserMenu({ collapsed = false, rail }: { collapsed?: boolean; /** v2: ju
   /* Sign out: cover the app ("Signing you out…"), confirm it, then land on the sign-in page, which now says Welcome back. */
   const me = useAuth((s) => s.remembered) ?? { name: 'Priya Shah', email: 'priya.shah@durham.ac.uk' };
   const [leaving, setLeaving] = useState<'pending' | 'done'>();
-  const { theme, setTheme } = useTheme();
+  const { mode, setMode } = useTheme();
   const { on: emptyOn, setOn: setEmpty } = useEmpty();
   const { version, setVersion } = useShellVersion();
   const signOut = () => {
@@ -500,6 +507,11 @@ function UserMenu({ collapsed = false, rail }: { collapsed?: boolean; /** v2: ju
           <span className="min-w-0"><span className="block text-sm leading-5 font-medium text-[#404040] truncate">{me.name}</span><span className="block text-xs leading-4 font-light text-[#404040] truncate">{me.email}</span></span>
         </DropdownMenuLabel>
         <div className="p-4 flex flex-col gap-4">
+          {/* Profile (Connect "Account details" row): opens your profile page. */}
+          <DropdownMenuItem className={MENU_ROW} onSelect={() => nav('/profile')}>
+            <UserCircle size={16} strokeWidth={1.5} />Profile
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="m-0 bg-[#E5E5E5]" />
           <div className="flex flex-col gap-[14px]">
             <DropdownMenuLabel className="p-0 font-mono uppercase text-xs leading-4 font-medium tracking-[0.48px] text-[#737373]">View as (demo)</DropdownMenuLabel>
             {roles.map((r) => (
@@ -524,11 +536,19 @@ function UserMenu({ collapsed = false, rail }: { collapsed?: boolean; /** v2: ju
             </div>
           </div>
           <div className="flex flex-col gap-[14px]">
-            {/* Stays open when toggled, so you see the switch flip and the app change behind it. */}
-            <DropdownMenuItem className={MENU_ROW} onSelect={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }}>
-              <Moon size={16} strokeWidth={1.5} /><span className="flex-1">Dark mode</span>
-              <Switch checked={theme === 'dark'} tabIndex={-1} aria-hidden className="pointer-events-none" />
-            </DropdownMenuItem>
+            {/* Theme: light / dark / system as an icon segmented track (white raised current tab). Stays open, so the app
+                changes behind it. */}
+            <div className="h-5 flex items-center gap-2 text-sm leading-5 text-[#404040]">
+              <PaletteIcon size={16} strokeWidth={1.5} /><span className="flex-1">Theme</span>
+              <div role="group" aria-label="Theme" className="flex gap-0.5 p-0.5 rounded-lg bg-[#F5F5F5]">
+                {THEME_MODES.map(({ id, label, Icon }) => (
+                  <DropdownMenuItem key={id} aria-label={label} title={label} aria-pressed={mode === id} onSelect={(e) => { e.preventDefault(); setMode(id); }}
+                    className={cx('h-6 w-7 p-0 justify-center rounded-md cursor-pointer focus:bg-transparent', mode === id ? 'bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.08)] focus:bg-white' : 'text-[#737373] focus:text-[#0A0A0A]')}>
+                    <Icon size={16} strokeWidth={1.5} />
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </div>
             {/* Demo: every list goes empty so its first-run state shows. Off brings the data back. */}
             <DropdownMenuItem className={MENU_ROW} onSelect={(e) => { e.preventDefault(); setEmpty(!emptyOn); }}>
               <Tray size={16} strokeWidth={1.5} /><span className="flex-1">Empty states</span>

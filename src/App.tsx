@@ -9,6 +9,7 @@ import { OffcampusRoutes } from './pages/Offcampus';
 import { OrganisationRoutes } from './pages/Organisation';
 import { ReportsRoutes, SettingsRoutes } from './pages/Workspace';
 import { NotFound } from './pages/Misc';
+import { Profile } from './pages/Profile';
 import { SiteBuilder } from './pages/site/Builder';
 import { Invite, Login } from './pages/auth/Login';
 
@@ -39,6 +40,7 @@ function AppRoutes() {
           <Route path="reports/*" element={<ReportsRoutes />} />
           <Route path="org/*" element={<OrganisationRoutes />} />
           <Route path="settings/*" element={<SettingsRoutes />} />
+          <Route path="profile" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

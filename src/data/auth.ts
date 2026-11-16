@@ -3,7 +3,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type Remembered = { email: string; name: string; tenantId?: string };
+/** `photo`: an uploaded picture (data URL) or a chosen illustration path; none = the default illustration. */
+export type Remembered = { email: string; name: string; tenantId?: string; photo?: string };
 export type Tenant = { id: string; name: string; host: string };
 
 /** Demo codes: 000000 is a wrong code, 999999 an expired one. Anything else signs you in. */

@@ -41,9 +41,11 @@ export function NoticesList() {
       <RHeader icon={Megaphone} crumbs={[['Residents']]} title="Notices">
         <Button variant="primary" icon={Plus} onClick={() => nav('/residents/notices/new')}>New notice</Button>
       </RHeader>
-      <Toolbar right={<FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: HALLS }]} />}>
-        <Tabs value={tab} onChange={setTab} tabs={(['All', 'Sent', 'Scheduled', 'Drafts'] as Tab[]).map((t) => ({ id: t, label: t, count: c(t) }))} />
-      </Toolbar>
+      {notices.length > 0 && (
+        <Toolbar right={<FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: HALLS }]} />}>
+          <Tabs value={tab} onChange={setTab} tabs={(['All', 'Sent', 'Scheduled', 'Drafts'] as Tab[]).map((t) => ({ id: t, label: t, count: c(t) }))} />
+        </Toolbar>
+      )}
       <Table fill rows={rows} selected={open ?? undefined} group={{ label: 'Date', get: (n) => (n.status === 'Draft' ? 'Drafts' : n.when?.split(',')[0] ?? '') }} onRow={(n) => (n.status === 'Draft' ? nav(`/residents/notices/${n.id}`) : setOpen(n.id))}
         empty={<Empty art="notices" icon={Megaphone} title={notices.length ? `No ${tab.toLowerCase()} notices` : 'No notices yet'} sub="Tell residents about outages, fire drills and events."
           action={<div className="flex gap-2"><Button variant="primary" icon={Plus} onClick={() => nav('/residents/notices/new')}>New notice</Button><Button onClick={() => nav('/residents/notices/new?template=move-in')}>Use a template</Button></div>} />}

@@ -123,16 +123,13 @@ function MyTasks() {
           { id: 'snoozed', label: 'Snoozed', count: snoozedRows.length },
           { id: 'done', label: 'Done', count: (emptyDemo ? 0 : DONE_EARLIER) + doneRows.length },
         ]} />
-        <div className="ml-auto flex items-center gap-2">
+        {rows.length > 0 && <div className="ml-auto flex items-center gap-2">
           <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />
-        </div>
+        </div>}
       </div>
 
       {caughtUp ? (
-        <CaughtUp>
-          <Button icon={CalendarBlank} onClick={() => setShowWeek(true)}>See this week</Button>
-          <Button icon={Check} onClick={() => setTab('done')}>See done</Button>
-        </CaughtUp>
+        <CaughtUp />
       ) : (
         <div data-inset data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">
           <div data-head className="grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] h-[42px] items-center font-mono uppercase text-[13px] leading-5 tracking-[0.02em] font-medium text-[#737373] border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-4">

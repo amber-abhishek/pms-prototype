@@ -70,14 +70,14 @@ export function Enquiries() {
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Enquiries" />
         {/* Search on the left; the status picker and the source tabs at the right edge. */}
-        <div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3 empty:hidden">
+        {list.length > 0 && (<div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3 empty:hidden">
           <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name, contact or property" /></div>
           <div className="ml-auto flex items-center gap-2">
             {!!list.length && <SelectFilter prefix="Status" value={status} onChange={(v) => setStatus(v as StatusView)} width={200}
               options={[{ value: 'New', meta: String(nStatus('New')) }, { value: 'Replied', meta: String(nStatus('Replied')) }, { value: 'Closed', meta: String(nStatus('Closed')) }, { value: 'All', meta: String(bySource.length) }]} />}
             <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: list.length }, { id: 'hmo', label: 'Landlord', count: list.filter((e) => e.source === 'Landlord').length }, { id: 'pbsa', label: 'Partner halls', count: list.filter((e) => e.source === 'Partner halls').length }]} />
           </div>
-        </div>
+        </div>)}
         {!list.length ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
             <EmptyArt art="enquiries" />

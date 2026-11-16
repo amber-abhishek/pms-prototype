@@ -36,9 +36,11 @@ export function Cycles() {
   return (
     <>
       <PageHeader icon={CalendarDots} title="Cycles" crumbs={['Allocations']}>{d.cycles.length > 0 && <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New cycle</Button>}</PageHeader>
-      <Toolbar>
-        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'All', label: 'All', count: d.cycles.length }, { id: 'Live', label: 'Live', count: d.cycles.filter(isLive).length }, { id: 'Closed', label: 'Closed', count: d.cycles.filter((c) => !isLive(c)).length }]} />
-      </Toolbar>
+      {d.cycles.length > 0 && (
+        <Toolbar>
+          <Tabs value={tab} onChange={setTab} tabs={[{ id: 'All', label: 'All', count: d.cycles.length }, { id: 'Live', label: 'Live', count: d.cycles.filter(isLive).length }, { id: 'Closed', label: 'Closed', count: d.cycles.filter((c) => !isLive(c)).length }]} />
+        </Toolbar>
+      )}
       {!d.cycles.length ? (
         <EmptyArea art="cycles" icon={CalendarCheck} title="No cycles yet" sub="A cycle is one academic year of applications, offers and bookings.">
           <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New cycle</Button>

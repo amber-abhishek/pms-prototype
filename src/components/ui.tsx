@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from './shadcn/tooltip';
 import { Children, Fragment, isValidElement, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Illustration, type Illo } from './Illustration';
+import { Illustration, artFor, type Illo } from './Illustration';
 import { GhostZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
 
 /** The breadcrumb's current page: the h1 unless the page shows its own title. */
@@ -588,7 +588,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
   const { items, bodyRef } = useRowMotion(shown);
   /* Stepping with the sheet chevrons can cross a page boundary: follow the selected row to its page. */
   useEffect(() => { if (!paginate || selected == null) return; const i = rows.findIndex((r) => r.id === selected); if (i >= 0) setPage(Math.floor(i / pageSize)); }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!rows.length) return <div className={cx(!card && 'flex-1 p-5')}>{empty ?? <Empty title="Nothing here" sub="Try a different tab or clear the filters." />}</div>;
+  if (!rows.length) return <div className={cx(!card && 'flex-1 min-h-0 p-5')}>{empty ?? <Empty art="nothingToShow" title="Nothing here" sub="Try a different tab or clear the filters." />}</div>;
   const table = (
     /* 2820:111: 36px header, 12px medium #737373, #E5E5E5 rule; 40px rows, 14px, #F5F5F5 rules; 20px outer padding. */
     <UITable className="text-[#0A0A0A]">
@@ -627,10 +627,11 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
 
 /* ---------- Empty state ---------- */
 /** Centred empty state, no card (3103:2): 14px semibold title, 14px #737373 sub up to 440px, actions 16px below. */
-export function Empty({ title, sub, icon: I = MagnifyingGlass, action, art }: { title: string; sub?: string; icon?: Icon; action?: ReactNode; /** A Figma empty-state illustration in place of the icon tile. */ art?: Illo }) {
+export function Empty({ title, sub, action, art }: { title: string; sub?: string; icon?: Icon; action?: ReactNode; /** A Figma empty-state illustration in place of the icon tile. */ art?: Illo }) {
   return (
-    <div className="py-14 flex flex-col items-center text-center">
-      {art ? <Illustration name={art} className="block w-[203px] h-[160px] mb-5" /> : <div className="size-16 rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-4"><I size={28} weight="duotone" className="text-[#3B82F6]" /></div>}
+    /* Centred in whatever space it is given (a table body, a tab, a page), never pinned to the top. */
+    <div className="h-full min-h-[360px] py-14 flex flex-col items-center justify-center text-center">
+      <Illustration name={art ?? artFor(title)} className="block w-[254px] h-[200px] mb-5" />
       <div className="text-sm font-semibold text-[#0A0A0A]">{title}</div>
       {sub && <div className="text-sm leading-5 text-[#737373] mt-1 max-w-[440px]">{sub}</div>}
       {action && <div className="mt-4 flex gap-2">{action}</div>}

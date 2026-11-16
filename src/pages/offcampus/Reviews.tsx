@@ -119,7 +119,7 @@ export function Reviews() {
         </div>
         <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
           {!rows.length ? (
-            (tab === 'review' ? <Empty art="queueClear" title="Nothing to review" sub="New listings from landlords land here for a check." /> : <div className="py-16 text-center text-sm text-gray-500">{`No listings under ${TABS.find((x) => x.id === tab)?.label}.`}</div>)
+            (tab === 'review' ? <Empty art="queueClear" title="Nothing to review" sub="New listings from landlords land here for a check." /> : <Empty art="nothingToShow" title={`No listings under ${TABS.find((x) => x.id === tab)?.label}`} />)
           ) : (
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white z-[1]">

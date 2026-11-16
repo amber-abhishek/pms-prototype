@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Illustration, type Illo } from '../../components/Illustration';
+import { Illustration, artFor, type Illo } from '../../components/Illustration';
 import { ArrowDown, ArrowUp, Check as CheckMark, CheckCircle, Clock, EnvelopeSimple, FileText, Flag, Hourglass, House, MinusCircle, PaperPlaneTilt, PencilSimple, RadioButton, SlidersHorizontal, UserCheck, WarningCircle, XCircle, type Icon } from '../../components/icons';
 import { Avatar, Button, Check, Pill, cx } from '../../components/ui';
 import { Popover, PopoverAnchor, PopoverContent } from '../../components/shadcn/popover';
@@ -87,14 +87,10 @@ export function Radio({ checked, onChange, title, sub, disabled }: { checked: bo
 }
 
 /** Centered empty state in a content area (blue tonal illustration box). */
-export function EmptyArea({ icon: I, title, sub, children, art }: { icon: Icon; title: string; sub?: ReactNode; children?: ReactNode; art?: Illo }) {
+export function EmptyArea({ title, sub, children, art }: { icon: Icon; title: string; sub?: ReactNode; children?: ReactNode; art?: Illo }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
-      {art ? <Illustration name={art} className="block w-[203px] h-[160px] mb-5" /> : <div className="w-[203px] h-[160px] rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-5 relative overflow-hidden">
-        <div className="absolute -right-6 -bottom-8 size-28 rounded-full bg-[#DBEAFE]" />
-        <div className="absolute left-6 top-6 size-10 rounded-xl bg-white/80" />
-        <I size={56} weight="duotone" className="text-[#3B82F6] relative" />
-      </div>}
+      <Illustration name={art ?? artFor(title)} className="block w-[254px] h-[200px] mb-5" />
       <div className="text-base font-semibold">{title}</div>
       {sub && <div className="text-sm text-gray-500 mt-1.5 max-w-md">{sub}</div>}
       {children && <div className="mt-5 flex gap-2">{children}</div>}

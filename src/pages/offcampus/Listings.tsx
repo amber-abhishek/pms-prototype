@@ -63,13 +63,13 @@ function HmoTab() {
 
   return (
     <>
-      <div {...PIN} className="px-6 pt-6 pb-4 flex items-center gap-3 empty:hidden">
+      {hmos.length > 0 && (<div {...PIN} className="px-6 pt-6 pb-4 flex items-center gap-3 empty:hidden">
         {/* Search on the left; the status tabs at the right edge. */}
         <div className="w-[320px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search address or landlord" /></div>
         <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Paused', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} /></div>
-      </div>
+      </div>)}
       <Table fill rows={rows} footer={false}
-        empty={hmos.length ? <div className="py-16 text-center text-sm text-gray-500">{t ? 'No listing matches that search.' : `No ${tab === 'all' ? '' : `${tab} `}Landlord listings.`}</div> : <Empty art="properties" title="No landlord listings yet" sub="Listings show here once landlords are approved and add their houses." />}
+        empty={hmos.length ? (t ? <Empty art="noResults" title="No listing matches that search" /> : <Empty art="nothingToShow" title={`No ${tab} listings`} />) : <Empty art="properties" title="No landlord listings yet" sub="Listings show here once landlords are approved and add their houses." />}
         cols={[
           { key: 'no', label: 'S.No.', className: 'w-14', render: (h) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(h) + 1}</span> },
           /* Same cell as Properties and Listing reviews: 120×64 photo, 16px medium name, 14px grey line under it. */
@@ -126,20 +126,22 @@ function PbsaTab() {
   };
   const unhide = (ref: string) => { set('hidden', (hs) => hs.filter((h) => h.ref !== ref)); toast.success('Listing shown again', { description: `${pbsa.find((p) => p.ref === ref)?.name ?? ref} is back on your site.` }); };
 
+  /* No partner halls in this campus at all: just the empty state, no view tabs or status note. */
+  const nothing = view === 'all' && !!region && !rows.length && !hiddenHere.length;
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className="px-6 pt-6 space-y-3">
+      <div className="px-6 pt-6 space-y-3 empty:hidden">
         {/* One row: the university tabs on the left, All / Hidden on the right edge. */}
         <div className="flex items-center gap-3">
           <Tabs value={campus} onChange={setCampus} tabs={campuses.map((x) => ({ id: x.id, label: x.name, count: !x.ticked ? 0 : view === 'hidden' ? hidden.filter((h) => regionOfRef(h.ref) === regionOf(x)).length : pbsa.filter((p) => p.region === regionOf(x)).length }))} />
-          <div className="ml-auto"><Tabs value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: rows.length || hiddenHere.length ? rows.length : undefined }, { id: 'hidden', label: 'Hidden', count: rows.length || hiddenHere.length ? hiddenHere.length : undefined }]} /></div>
+          {!nothing && <div className="ml-auto"><Tabs value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: rows.length || hiddenHere.length ? rows.length : undefined }, { id: 'hidden', label: 'Hidden', count: rows.length || hiddenHere.length ? hiddenHere.length : undefined }]} /></div>}
         </div>
         {/* The note follows what you're looking at: the portal switch, the campus tab, and how many of its halls are hidden. */}
         {(() => {
           const here = c.ticked && region ? pbsa.filter((p) => p.region === region) : [];
           const nHidden = hiddenHere.length;
           const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
-          if (view === 'hidden') return null; // the Hidden list speaks for itself
+          if (view === 'hidden' || nothing) return null; // the Hidden list and the empty state speak for themselves
           const [ok, text, link] = !portal.showPbsa ? [false, 'Partner halls are not shown on your portal.', 'Turn it on in Off-campus portal']
             : !c.ticked ? [false, `${c.name} isn't on your portal, so its partner halls aren't shown.`, 'Add it in Off-campus portal']
             : !here.length ? [false, `${c.name} has no partner halls yet.`, null]
@@ -156,7 +158,7 @@ function PbsaTab() {
       <div className="mt-3 flex-1 min-h-0 flex flex-col">
         {view === 'hidden' ? (
           <Table fill rows={hiddenHere.map((h) => ({ ...h, id: h.ref }))}
-            empty={<div className="py-16 text-center text-sm text-gray-500">No partner halls in {c.name} are hidden.</div>}
+            empty={<Empty art="getStarted" title={`No partner halls in ${c.name} are hidden`} sub="Every partner hall here shows on your portal." />}
             cols={[
               { key: 'no', label: 'S.No.', className: 'w-14', render: (h) => <span className="font-mono text-xs text-[#737373] tabular-nums">{hiddenHere.findIndex((x) => x.ref === h.ref) + 1}</span> },
               { key: 'r', label: 'Partner hall listing', render: (h) => {
@@ -175,11 +177,15 @@ function PbsaTab() {
               { key: 'x', label: '', className: 'text-right w-28', render: (h) => <Button size="sm" onClick={() => unhide(h.ref)}>Unhide</Button> },
             ]} />
         ) : !region ? (
-          <div className="py-16 text-center text-sm text-gray-500">
-            {c.ticked ? `${c.name} has no partner region yet.` : `${c.name} isn't ticked for this portal.`} <Link to="/offcampus/portal" className="text-primary hover:underline">Choose campuses in Off-campus portal</Link>
+          <div className="flex-1 flex items-center justify-center">
+            <Empty art="notFound" title={c.ticked ? `${c.name} has no partner region yet` : `${c.name} isn’t on your portal`} sub="Choose which campuses your portal covers."
+              action={<Link to="/offcampus/portal"><Button>Open Off-campus portal</Button></Link>} />
           </div>
         ) : !rows.length ? (
-          <div className="py-16 text-center text-sm text-gray-500">No partner halls are listed in {region} yet.</div>
+          <div className="flex-1 flex items-center justify-center">
+            <Empty art="nothingHere" title="No partner halls yet" sub={`Partner halls in ${region} show here once they're listed with Amber.`}
+              action={<Link to="/offcampus/portal"><Button>Open Off-campus portal</Button></Link>} />
+          </div>
         ) : (
           <>
             <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">

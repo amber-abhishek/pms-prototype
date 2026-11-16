@@ -53,7 +53,7 @@ function Today() {
   const open = useRms((st) => st.faults).filter((f) => f.status !== 'Fixed');
   /* Empty-states demo: a workspace with no beds, applications or residents yet, so every number reads zero. */
   const e = useEmpty((s) => s.on);
-  /* The same open tasks My tasks counts: Priya's, not done, not snoozed. */
+  /* The same open tasks My tasks counts: Arjun's, not done, not snoozed. */
   const mine = useHome((s) => s.rows.main).filter((r) => !r.done && !r.snoozed && r.owner === ME);
   const due = (['overdue', 'today', 'week'] as const).map((d) => mine.filter((r) => r.due === d).length);
   const first = mine.find((r) => r.due === 'overdue') ?? mine.find((r) => r.due === 'today');
@@ -117,7 +117,7 @@ function FirstDay() {
       <Header />
       <div className="flex-1 overflow-auto px-14 pt-8 pb-8">
         <div className="max-w-[1040px]">
-          <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Priya</h2>
+          <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Arjun</h2>
           <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a cycle exist.</p>
           {/* Five metric tiles waiting for data: grey dash, empty meter where the tile has one, "No data yet". */}
           <div className="grid grid-cols-5 gap-3 mt-5">

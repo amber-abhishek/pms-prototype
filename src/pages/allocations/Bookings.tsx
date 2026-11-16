@@ -50,11 +50,11 @@ export function Bookings() {
     toast.success(list.length === 1 ? `Reminder sent to ${list[0].name}` : `Reminders sent to ${list.length} residents`, { description: list.length === 1 ? `${list[0].reminders ? list[0].reminders + 1 : 1} reminders so far` : 'Everyone who has waited more than 7 days to sign' });
   };
   const sendLease = (b: Booking) => {
-    d.up((x) => ({ bookings: x.bookings.map((y) => (y.id === b.id ? { ...y, lease: 'Sent' as const, missing: undefined, leaseSent: TODAY, waiting: 0, reminders: 0, history: [{ t: 'Lease sent for signature', when: `${TODAY} 10:44`, sub: 'by Priya Shah' }, ...y.history] } : y)) }));
+    d.up((x) => ({ bookings: x.bookings.map((y) => (y.id === b.id ? { ...y, lease: 'Sent' as const, missing: undefined, leaseSent: TODAY, waiting: 0, reminders: 0, history: [{ t: 'Lease sent for signature', when: `${TODAY} 10:44`, sub: 'by Arjun Mehta' }, ...y.history] } : y)) }));
     toast.success(`Lease sent to ${b.name}`, { description: `${unitOf(b)} · ${firstName(b.name)} signs on the resident portal` });
   };
   const markSigned = (b: Booking) => {
-    d.up((x) => ({ bookings: x.bookings.map((y) => (y.id === b.id ? { ...y, lease: 'Signed' as const, signedOn: TODAY, waiting: undefined, history: [{ t: `Lease signed by ${firstName(b.name)}`, when: `${TODAY} 10:44`, sub: 'recorded by Priya Shah · resident portal invite sent' }, ...y.history] } : y)), cycles: x.cycles.map((cy) => (cy.status === 'open' ? { ...cy, signed: (cy.signed ?? 0) + 1 } : cy)) }));
+    d.up((x) => ({ bookings: x.bookings.map((y) => (y.id === b.id ? { ...y, lease: 'Signed' as const, signedOn: TODAY, waiting: undefined, history: [{ t: `Lease signed by ${firstName(b.name)}`, when: `${TODAY} 10:44`, sub: 'recorded by Arjun Mehta · resident portal invite sent' }, ...y.history] } : y)), cycles: x.cycles.map((cy) => (cy.status === 'open' ? { ...cy, signed: (cy.signed ?? 0) + 1 } : cy)) }));
     toast.success(`${b.name}’s lease is signed`, { description: 'Resident portal invite sent' });
   };
 
@@ -271,7 +271,7 @@ function Resolve({ k, onClose, withUndo }: { k: Conflict; onClose: () => void; w
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => {
         if (busy.current) return; busy.current = true;
         const undo = withUndo();
-        up((x) => ({ conflicts: x.conflicts.filter((y) => y.id !== k.id), bookings: x.bookings.map((y) => (y.name === side.name && !y.cancelled ? { ...y, unit, history: [{ t: `Moved from ${k.unit.split(' · ')[1]} to ${unit}`, when: `${TODAY} 10:44`, sub: 'double booking resolved by Priya Shah' }, ...y.history] } : y)) }));
+        up((x) => ({ conflicts: x.conflicts.filter((y) => y.id !== k.id), bookings: x.bookings.map((y) => (y.name === side.name && !y.cancelled ? { ...y, unit, history: [{ t: `Moved from ${k.unit.split(' · ')[1]} to ${unit}`, when: `${TODAY} 10:44`, sub: 'double booking resolved by Arjun Mehta' }, ...y.history] } : y)) }));
         toast.success(`${side.name} moved to ${hall} · ${unit}`, { description: `${k.unit} has one booking again · ${firstName(side.name)} has been emailed`, action: undo });
         onClose();
       }}>Move {firstName(side.name)}</Button></>}>
@@ -349,7 +349,7 @@ function NewBooking({ onClose, onMade }: { onClose: () => void; onMade: (id: str
     <Dialog open onClose={onClose} title="New booking" width={520} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!ok} onClick={() => {
       if (busy.current || !who) return; busy.current = true;
       const id = `b${Date.now()}`;
-      const b: Booking = { id, ref: `BKG-2027-00${5000 + n}`, name: who.name, hall, room, unit: code, term: '19 Sep 2027 – 9 Sep 2028', lease: 'Draft', deposit, created: TODAY, missing: 'Made by hand · lease not sent', history: [{ t: 'Booking made by hand by Priya Shah', when: `${TODAY} 10:44` }] };
+      const b: Booking = { id, ref: `BKG-2027-00${5000 + n}`, name: who.name, hall, room, unit: code, term: '19 Sep 2027 – 9 Sep 2028', lease: 'Draft', deposit, created: TODAY, missing: 'Made by hand · lease not sent', history: [{ t: 'Booking made by hand by Arjun Mehta', when: `${TODAY} 10:44` }] };
       up((x) => ({ bookings: [b, ...x.bookings] }));
       toast.success(`Draft booking made for ${b.name}`, { description: `${hall} · ${b.unit} · send the lease when you’re ready` });
       onMade(id);

@@ -68,7 +68,7 @@ function NewRequest({ open, onClose, onCreate }: { open: boolean; onClose: () =>
     const r = residents.find((x) => x.name === who);
     if (!r || !detail.trim()) { toast.error('Pick a resident and add the detail'); return; }
     const n = 123 + Math.floor(Math.random() * 800);
-    onCreate({ id: `rqn${n}`, ref: `RQ-${n}`, kind, who: r.name, hall: r.hall, detail: `${r.hall.replace(' College', '')} ${r.room} · ${detail.trim()}`, check: { label: 'Checking', tone: 'grey' }, waiting: 'Just now', waitDays: 0, status: 'Open', sub: `${r.hall} · logged by Priya Shah for ${r.name} today`, checks: [{ label: 'Logged by staff', sub: 'On behalf of the resident', ok: true }], history: [['Logged by Priya Shah', 'Just now']] });
+    onCreate({ id: `rqn${n}`, ref: `RQ-${n}`, kind, who: r.name, hall: r.hall, detail: `${r.hall.replace(' College', '')} ${r.room} · ${detail.trim()}`, check: { label: 'Checking', tone: 'grey' }, waiting: 'Just now', waitDays: 0, status: 'Open', sub: `${r.hall} · logged by Arjun Mehta for ${r.name} today`, checks: [{ label: 'Logged by staff', sub: 'On behalf of the resident', ok: true }], history: [['Logged by Arjun Mehta', 'Just now']] });
     setWho(''); setDetail('');
   });
   return (

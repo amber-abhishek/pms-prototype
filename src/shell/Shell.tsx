@@ -477,7 +477,7 @@ function UserMenu({ collapsed = false, rail }: { collapsed?: boolean; /** v2: ju
     { id: 'offcampus', label: 'Off-campus reviewer', sub: 'Home, Off-campus and Settings only' },
   ], []);
   /* Sign out: cover the app ("Signing you out…"), confirm it, then land on the sign-in page, which now says Welcome back. */
-  const me = useAuth((s) => s.remembered) ?? { name: 'Priya Shah', email: 'priya.shah@durham.ac.uk' };
+  const me = useAuth((s) => s.remembered) ?? { name: 'Arjun Mehta', email: 'arjun.mehta@durham.ac.uk' };
   const [leaving, setLeaving] = useState<'pending' | 'done'>();
   const { mode, setMode } = useTheme();
   const { on: emptyOn, setOn: setEmpty } = useEmpty();

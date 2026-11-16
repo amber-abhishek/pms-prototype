@@ -121,7 +121,7 @@ function LogFault({ open, onClose }: { open: boolean; onClose: () => void }) {
     if (!title.trim() || !place) { toast.error('Add the fault and where it is'); return; }
     const n = 211 + useRms.getState().faults.filter((x) => x.id.startsWith('mn')).length;
     const id = `mn${n}`;
-    patch('faults', (fs) => [{ id, ref: `MT-${n}`, title: title.trim(), icon: 'leak', where: place, priority, category: 'General', slaMins: priority === 'Urgent' ? 1440 : priority === 'High' ? 2880 : 7200, status: 'New', reporter: r?.name ?? 'Priya Shah', reporterRoom: r?.room ?? 'Staff', reported: 'Just now', report: desc.trim() || 'Logged by Priya Shah at the desk.', stage: 1 }, ...fs]);
+    patch('faults', (fs) => [{ id, ref: `MT-${n}`, title: title.trim(), icon: 'leak', where: place, priority, category: 'General', slaMins: priority === 'Urgent' ? 1440 : priority === 'High' ? 2880 : 7200, status: 'New', reporter: r?.name ?? 'Arjun Mehta', reporterRoom: r?.room ?? 'Staff', reported: 'Just now', report: desc.trim() || 'Logged by Arjun Mehta at the desk.', stage: 1 }, ...fs]);
     toast.success(`MT-${n} logged`, { description: `${priority} · deadline clock starts now` });
     setTitle(''); setWho(''); setWhere(''); setDesc('');
     onClose();
@@ -158,7 +158,7 @@ const radiatorSteps = (f: Fault) => {
   const s = f.stage ?? 1;
   return [
     { title: 'Reported by Leo Grant', sub: 'Resident portal · 3 photos', when: 'Mon 08:12' },
-    { title: `Assigned to ${f.assignee ?? 'Dave Hughes'} by Priya Shah`, sub: 'Visit today 14:00–16:00 · Leo told by email', when: 'Mon 09:05' },
+    { title: `Assigned to ${f.assignee ?? 'Dave Hughes'} by Arjun Mehta`, sub: 'Visit today 14:00–16:00 · Leo told by email', when: 'Mon 09:05' },
     { title: 'Dave on site', sub: 'Leak stopped · valve needs replacing', when: 'Mon 14:10' },
     { title: 'Part ordered: TRV valve 15mm', sub: 'From stores · arrives Tuesday morning', when: 'Mon 14:40' },
     s > 4 ? { title: 'Valve replaced · tested for an hour', sub: '£42 parts · 1h labour', when: 'Tue 10:30' } : { title: 'Fit the new valve', sub: 'Booked Tue 09:00', when: 'Tue' },

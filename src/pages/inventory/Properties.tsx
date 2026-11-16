@@ -79,7 +79,7 @@ export function PropertiesPage() {
   };
   const duplicate = (p: Property) => {
     const id = invId('p');
-    useInv.getState().set('properties', (ps) => [...ps, { ...p, id, name: `${p.name} (copy)`, status: 'Draft', units: 0, blocks: [], liveTenancies: 0, counts: { all: 0, active: 0, draft: 0, inactive: 0, archived: 0 }, activity: [{ who: 'Priya Shah', what: `Duplicated from ${p.name}`, when: 'Just now' }], createdBy: 'Priya Shah', created: 'Today' }]);
+    useInv.getState().set('properties', (ps) => [...ps, { ...p, id, name: `${p.name} (copy)`, status: 'Draft', units: 0, blocks: [], liveTenancies: 0, counts: { all: 0, active: 0, draft: 0, inactive: 0, archived: 0 }, activity: [{ who: 'Arjun Mehta', what: `Duplicated from ${p.name}`, when: 'Just now' }], createdBy: 'Arjun Mehta', created: 'Today' }]);
     toast.success(`${p.name} duplicated as a draft`);
   };
 
@@ -193,14 +193,14 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   const upload = () => {
     if (busy.current) return;
     busy.current = true;
-    useInv.getState().set('imports', (l) => [{ id: invId('im'), name: 'st-marys-rooms.csv', kind: 'Spreadsheet', status: 'Running', done: 88, total: 144, by: 'Priya Shah', started: 'Today 11:42', structure, creates: '1 property · 175 entities' }, ...l.filter((x) => x.name !== 'st-marys-rooms.csv')]);
+    useInv.getState().set('imports', (l) => [{ id: invId('im'), name: 'st-marys-rooms.csv', kind: 'Spreadsheet', status: 'Running', done: 88, total: 144, by: 'Arjun Mehta', started: 'Today 11:42', structure, creates: '1 property · 175 entities' }, ...l.filter((x) => x.name !== 'st-marys-rooms.csv')]);
     setStage('queued');
     busy.current = false;
   };
   if (stage === 'queued') {
     return (
       <Modal open={open} onClose={onClose} center icon={Clock} tone="blue" width={520} title="Import queued"
-        sub={<>One import is running ahead of it; yours starts when that one ends. We’ll email <span className="text-ink">priya.shah@durham.ac.uk</span> the outcome.</>}
+        sub={<>One import is running ahead of it; yours starts when that one ends. We’ll email <span className="text-ink">arjun.mehta@durham.ac.uk</span> the outcome.</>}
         footer={<><Button icon={ClockCounterClockwise} onClick={() => { onClose(); nav('/inventory/imports'); }}>View imports</Button><Button variant="primary" onClick={onClose}>Done</Button></>}>
         <div className="mx-auto max-w-[312px] rounded-xl border border-line p-3 flex items-center gap-3">
           <FileCsv size={20} className="text-[#0B8A4C]" />

@@ -102,8 +102,8 @@ export function HomeBand({ actions }: { actions?: ReactNode }) {
   const e = useEmpty((s) => s.on);
   return (
     <>
-      <GreetingBand title="Good morning, Priya" sub={e ? 'Monday 14 September' : 'Monday 14 September · 5 days to move-in weekend'}
-        avatar={<PersonPhoto name="Priya Shah" size={48} square />}
+      <GreetingBand title="Good morning, Arjun" sub={e ? 'Monday 14 September' : 'Monday 14 September · 5 days to move-in weekend'}
+        avatar={<PersonPhoto name="Arjun Mehta" size={48} square />}
         actions={actions ?? <>
           <Button variant="secondary" icon={Wrench} onClick={() => nav('/residents/maintenance?log=1')}>Log a fault</Button>
           <Button variant="secondary" icon={Megaphone} onClick={() => nav('/residents/notices')}>Send a notice</Button>

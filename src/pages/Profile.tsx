@@ -19,7 +19,7 @@ const THEMES: { id: ThemeMode; label: string; Icon: typeof Sun }[] = [
 ];
 
 export function Profile() {
-  const me = useAuth((s) => s.remembered) ?? { name: 'Priya Shah', email: 'priya.shah@durham.ac.uk' };
+  const me = useAuth((s) => s.remembered) ?? { name: 'Arjun Mehta', email: 'arjun.mehta@durham.ac.uk' };
   const role = useDb((s) => s.role);
   const { mode, setMode } = useTheme();
   const saved = { name: me.name, title: 'Head of Residential Services', phone: '+44 191 334 2000' };

@@ -54,8 +54,8 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
   const title = dt.title ?? task.title;
   const sub = dt.sub ?? task.sub ?? (task.from ? (task.from.icon === 'task' ? task.from.label : `Task from ${task.from.label}`) : '');
   const short = dt.short ?? 'Task';
-  const others = ['Priya Shah', 'Tom Baker', 'Aisha Khan'].filter((n) => n !== task.owner);
-  const loads: Record<string, string> = { 'Priya Shah': '9 tasks today', 'Tom Baker': '3 tasks today', 'Aisha Khan': '7 tasks today', 'Grace Evans': '5 tasks today' };
+  const others = ['Arjun Mehta', 'Tom Baker', 'Aisha Khan'].filter((n) => n !== task.owner);
+  const loads: Record<string, string> = { 'Arjun Mehta': '9 tasks today', 'Tom Baker': '3 tasks today', 'Aisha Khan': '7 tasks today', 'Grace Evans': '5 tasks today' };
   const picker = dt.picker
     ? { ...dt.picker, can: dt.picker.can.filter((p) => p.name !== task.owner) }
     : { title: 'Can take this task', can: others.map((name) => ({ name, load: loads[name] })), cant: [{ name: 'James Reed', reason: 'No permission' }] };
@@ -63,7 +63,7 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
   const hall = dt.hall ?? 'this hall';
 
   const close = () => {
-    // E2: the work was done elsewhere, so the task closes itself when Priya closes the sheet.
+    // E2: the work was done elsewhere, so the task closes itself when Arjun closes the sheet.
     if (task.elsewhere && !task.done) {
       const by = task.elsewhere.by;
       change((rows) => rows.map((r) => (r.id === task.id ? { ...r, done: true, doneBy: by } : r)), `Closed · done by ${by} in Requests`);

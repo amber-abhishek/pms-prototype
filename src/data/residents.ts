@@ -129,7 +129,7 @@ export const seedRequests = (): ResRequest[] => {
         { name: 'Josh Patel', agreed: 'Agreed in the portal · 12 Sep', now: ['D.3.02', 'Ensuite single'], after: ['B.1.07', 'Standard single'], rentFrom: 218, rentTo: 206, reason: 'Wants to be near his course mates' },
       ],
       checks: swapChecks(),
-      history: [['Reassigned to Tom Baker by Priya Shah', '14 Sep, 08:58'], ['Josh Patel agreed', '12 Sep'], ['Ella Morgan asked', '11 Sep']],
+      history: [['Reassigned to Tom Baker by Arjun Mehta', '14 Sep, 08:58'], ['Josh Patel agreed', '12 Sep'], ['Ella Morgan asked', '11 Sep']],
     },
     { id: 'rq2', ref: 'RQ-121', kind: 'Leave early', who: 'Sam Whitfield', hall: 'Collingwood', detail: 'Collingwood C.2.11 · from 31 Jan', check: { label: 'Needs a replacement', tone: 'orange' }, waiting: '1 day', waitDays: 1, status: 'Open',
       sub: 'Collingwood · requested by Sam Whitfield on Sun 13 Sep · leave from Sunday 31 January',
@@ -178,7 +178,7 @@ export const seedRequests = (): ResRequest[] => {
     rows.push({
       id: `rqh${i}`, ref: `RQ-${113 - i}`, kind, who, hall: 'Collingwood', detail: `Collingwood ${['A', 'B', 'C', 'D'][i % 4]}.${(i % 3) + 1}.${String((i % 12) + 1).padStart(2, '0')} ${tail}`,
       check: declined ? { label: 'Rules not met', tone: 'red' } : { label: 'All checks passed', tone: 'green' },
-      waiting: `${(i % 4) + 1} days`, waitDays: (i % 4) + 1, status: declined ? 'Declined' : 'Approved', decidedBy: i % 3 ? 'Tom Baker' : 'Priya Shah',
+      waiting: `${(i % 4) + 1} days`, waitDays: (i % 4) + 1, status: declined ? 'Declined' : 'Approved', decidedBy: i % 3 ? 'Tom Baker' : 'Arjun Mehta',
       sub: `Collingwood · requested by ${who} in August`, checks: [{ label: 'Checks', sub: declined ? 'Did not meet the hall rules' : 'All passed', ok: !declined }],
       history: [[declined ? 'Declined' : 'Approved', `${20 + (i % 10)} Aug`], [`${who} asked`, `${18 + (i % 10)} Aug`]],
     });

@@ -187,7 +187,7 @@ export function ResidentDetail() {
           )}
           {tab === 'Activity' && (
             <ul className="space-y-2 max-w-[760px] text-sm">
-              {[...(r.checkedIn ? [[`Checked in by ${r.checkedIn.split(' by ')[1] ?? 'Priya Shah'}`, r.checkedIn.split(' by ')[0]]] : []), ['Deposit ' + (r.deposit === 'Paid' ? 'paid' : 'requested'), '2 Aug'], ['Lease ' + (r.lease === 'Signed' ? 'signed online' : 'sent'), '2 Aug'], ['Offer accepted in Allocations', '28 Jul']].map(([w, t]) => (
+              {[...(r.checkedIn ? [[`Checked in by ${r.checkedIn.split(' by ')[1] ?? 'Arjun Mehta'}`, r.checkedIn.split(' by ')[0]]] : []), ['Deposit ' + (r.deposit === 'Paid' ? 'paid' : 'requested'), '2 Aug'], ['Lease ' + (r.lease === 'Signed' ? 'signed online' : 'sent'), '2 Aug'], ['Offer accepted in Allocations', '28 Jul']].map(([w, t]) => (
                 <li key={w} className="flex items-center gap-3"><span className="size-1.5 rounded-full bg-gray-300" /><span className="flex-1">{w}</span><span className="text-gray-500">{t}</span></li>
               ))}
             </ul>
@@ -230,7 +230,7 @@ function CheckInSheet({ r, onClose }: { r: Resident; onClose: () => void }) {
   const submit = () => once(() => {
     setTried(true);
     if (fobError || meterError) return;
-    const when = isAmira ? 'Sat 19 Sep, 10:42 by Priya Shah' : 'Today, 11:20 by Priya Shah';
+    const when = isAmira ? 'Sat 19 Sep, 10:42 by Arjun Mehta' : 'Today, 11:20 by Arjun Mehta';
     const undo = update('residents', r.id, { status: 'In residence', checkedIn: when, fob: f, checkInNote: `Fob ${f} · room condition recorded with ${photos} photos${welcome ? ' · welcome email sent' : ''}` });
     log(`checked in ${r.name} to ${hallShort(r.hall)} ${r.room}`, 'Residents');
     onClose();
@@ -287,11 +287,11 @@ function DepositDialog({ r, onClose }: { r: Resident; onClose: () => void }) {
     if (choice === 'pay') {
       useRms.getState().update('residents', r.id, { pending: 'payment' });
       toast(`Payment link sent to ${first}’s phone`, { description: 'Keys stay at the desk until it is paid.' });
-      setTimeout(() => finish('payment', { deposit: 'Paid', depositNote: '£250 · card · today', status: 'In residence', checkedIn: 'Today, 11:24 by Priya Shah', checkInNote: 'Deposit paid by link at the desk · keys handed over' }, `${r.name} paid £250 and is checked in to ${r.room}`), 3000);
+      setTimeout(() => finish('payment', { deposit: 'Paid', depositNote: '£250 · card · today', status: 'In residence', checkedIn: 'Today, 11:24 by Arjun Mehta', checkInNote: 'Deposit paid by link at the desk · keys handed over' }, `${r.name} paid £250 and is checked in to ${r.room}`), 3000);
     } else {
       useRms.getState().update('residents', r.id, { pending: 'override' });
       toast(`Asked Aisha Khan to override`, { description: 'Hall managers can check a resident in with the deposit unpaid.' });
-      setTimeout(() => finish('override', { depositNote: '£250 · now arrears', status: 'In residence', checkedIn: 'Today, 11:24 by Priya Shah', checkInNote: 'Checked in by Aisha Khan’s override · the £250 deposit is now arrears' }, `${r.name} checked in · the £250 deposit is now arrears`), 2200);
+      setTimeout(() => finish('override', { depositNote: '£250 · now arrears', status: 'In residence', checkedIn: 'Today, 11:24 by Arjun Mehta', checkInNote: 'Checked in by Aisha Khan’s override · the £250 deposit is now arrears' }, `${r.name} checked in · the £250 deposit is now arrears`), 2200);
     }
   });
   return (

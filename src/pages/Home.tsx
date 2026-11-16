@@ -40,7 +40,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
         cols={[
           { key: 'w', label: 'Activity', render: (a) => (
             <span className="flex items-center gap-2.5 min-w-0">
-              <Avatar name={a.who === 'You' ? 'Priya Shah' : a.who} size={24} />
+              <Avatar name={a.who === 'You' ? 'Arjun Mehta' : a.who} size={24} />
               <span className="truncate"><span className="font-medium">{a.who}</span> <span className="text-gray-600">{a.what}</span></span>
             </span>
           ) },

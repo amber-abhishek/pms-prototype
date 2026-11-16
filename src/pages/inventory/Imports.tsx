@@ -29,13 +29,13 @@ function useImportTicker(jobs: ImportJob[]) {
           const p: Property = {
             id: 'stm', name: 'St Mary’s College', campus: 'Durham City', structure: 'College', tags: [], units: 144, status: 'Draft', address: 'Elvet Hill Road, Durham DH1 3LR', zone: 'Elvet', invNo: 'SMC-001', letting: 'Weekly',
             blocks: [{ name: 'Main House', floors: 4, flats: 4, rooms: 96, roomType: 'Ensuite single', size: 14 }, { name: 'Fenwick Block', floors: 2, flats: 4, rooms: 48, roomType: 'Standard single', size: 12 }],
-            build: null, photos: 0, description: '', amenities: [], wardenPhone: '', createdBy: 'Priya Shah', created: 'Today', activity: [{ who: 'Priya Shah', what: 'Imported from st-marys-rooms.csv', when: 'Just now' }],
+            build: null, photos: 0, description: '', amenities: [], wardenPhone: '', createdBy: 'Arjun Mehta', created: 'Today', activity: [{ who: 'Arjun Mehta', what: 'Imported from st-marys-rooms.csv', when: 'Just now' }],
             roomTypes: [{ name: 'Ensuite single', rooms: 96, rent: null }, { name: 'Standard single', rooms: 48, rent: null }], liveTenancies: 0, fees: 1, tenancies: false,
             counts: { all: 145, active: 0, draft: 145, inactive: 0, archived: 0 },
           };
           useInv.getState().set('properties', (ps) => [...ps, p]);
         }
-        toast.success(`${j.name} imported · ${j.total} rooms`, { description: 'Emailed to Priya Shah' });
+        toast.success(`${j.name} imported · ${j.total} rooms`, { description: 'Emailed to Arjun Mehta' });
       });
     }, 900);
     return () => window.clearInterval(t);

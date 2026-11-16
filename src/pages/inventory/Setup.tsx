@@ -76,7 +76,7 @@ function StructureSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Structure | 
     if (busy.current || !name.trim() || levels.some((l) => !l.name.trim())) return;
     busy.current = true;
     const lv = levels.map(({ name: n, bsu }) => ({ name: n.trim(), bsu }));
-    useInv.getState().set('structures', (l) => (isNew ? [...l, { id: invId('st'), name: name.trim(), levels: lv, properties: 0, updated: 'Priya Shah · Just now' }] : l.map((x) => (x.id === s.id ? { ...x, name: name.trim(), levels: locked ? x.levels.map((o, i) => ({ ...o, name: lv[i]?.name ?? o.name })) : lv, updated: 'Priya Shah · Just now' } : x))));
+    useInv.getState().set('structures', (l) => (isNew ? [...l, { id: invId('st'), name: name.trim(), levels: lv, properties: 0, updated: 'Arjun Mehta · Just now' }] : l.map((x) => (x.id === s.id ? { ...x, name: name.trim(), levels: locked ? x.levels.map((o, i) => ({ ...o, name: lv[i]?.name ?? o.name })) : lv, updated: 'Arjun Mehta · Just now' } : x))));
     onClose();
     toast.success(isNew ? `${name.trim()} layout created` : `${name.trim()} saved`);
   };

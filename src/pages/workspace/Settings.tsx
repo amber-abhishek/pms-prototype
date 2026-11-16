@@ -598,7 +598,7 @@ export function SettingsIntegrations() {
             <Button onClick={() => { const x = open!; set('integrations', (xs) => xs.map((y) => (y.id === x.id ? { ...y, meta: x.id === 'sits' ? 'Synced just now' : y.meta } : y))); setOpen(null); toast.success(`${x.name} synced`); }}>Sync now</Button>
             <Button variant="primary" onClick={() => setOpen(null)}>Done</Button></>}>
         {open?.state === 'available' ? <p className="text-sm text-[#737373]">You’ll sign in to {open.name} and pick what to share. You can disconnect at any time.</p>
-          : open && <DL rows={[['Status', 'Connected'], ['Last activity', open.meta], ['Connected by', 'Priya Shah']]} />}
+          : open && <DL rows={[['Status', 'Connected'], ['Last activity', open.meta], ['Connected by', 'Arjun Mehta']]} />}
       </ODialog>
       <ODialog open={!!off} onClose={() => setOff(null)} title={`Disconnect ${off?.name ?? ''}?`} sub={off ? `What stops: ${off.desc.charAt(0).toLowerCase()}${off.desc.slice(1)}. Reconnecting needs an admin sign-in.` : undefined}
         footer={<><Button onClick={() => setOff(null)}>Cancel</Button><Button variant="danger" onClick={() => off && disconnect(off)}>Disconnect</Button></>} />

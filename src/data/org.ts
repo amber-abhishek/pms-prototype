@@ -49,7 +49,7 @@ const FULL_ROLES: Role[] = [
 const role = (id: string) => FULL_ROLES.find((r) => r.id === id)!;
 
 const FLOW_MEMBERS: Member[] = [
-  { id: 'm1', name: 'Priya Shah', email: 'priya.shah@durham.ac.uk', roleId: 'admin', halls: 'all', lastActive: 'Now', status: 'Active', since: 'Jun 2024' },
+  { id: 'm1', name: 'Arjun Mehta', email: 'arjun.mehta@durham.ac.uk', roleId: 'admin', halls: 'all', lastActive: 'Now', status: 'Active', since: 'Jun 2024' },
   { id: 'm2', name: 'Tom Baker', email: 'tom.baker@durham.ac.uk', roleId: 'rescoord', halls: ['p2'], lastActive: '2h ago', status: 'Active', since: 'Sep 2024' },
   { id: 'm3', name: 'James Reed', email: 'james.reed@durham.ac.uk', roleId: 'finance', halls: 'all', lastActive: 'Yesterday', status: 'Active', since: 'Jan 2025' },
   { id: 'm4', name: 'Dave Hughes', email: 'dave.hughes@durham.ac.uk', roleId: 'maint', halls: ['p1', 'p2'], lastActive: 'Today', status: 'Active', since: 'Mar 2025' },
@@ -61,7 +61,7 @@ const wardenRole: Role = { id: 'warden', name: 'Hall warden', description: 'Live
 const estatesRole: Role = { id: 'estates', name: 'Estates', description: 'Estates team.', scope: 'given', personalData: false, perms: P('maint.view', 'maint.log', 'maint.assign') };
 const EDGE_ROLES: Role[] = [role('admin'), { ...role('hallmgr'), perms: P('res.view', 'res.checkin', 'res.requests', 'res.notices', 'maint.view', 'maint.log', 'maint.assign', 'inv.view', 'alloc.view') }, { ...role('rescoord'), perms: P('res.view', 'res.checkin', 'res.requests') }, wardenRole, { ...role('frontdesk'), perms: P('res.view', 'res.checkin') }, estatesRole];
 const EDGE_MEMBERS: Member[] = [
-  { id: 'm1', name: 'Priya Shah', email: 'priya.shah@durham.ac.uk', roleId: 'admin', halls: 'all', lastActive: 'Now', status: 'Active', since: 'Jun 2024' },
+  { id: 'm1', name: 'Arjun Mehta', email: 'arjun.mehta@durham.ac.uk', roleId: 'admin', halls: 'all', lastActive: 'Now', status: 'Active', since: 'Jun 2024' },
   { id: 'm2', name: 'Tom Baker', email: 'tom.baker@durham.ac.uk', roleId: 'rescoord', halls: ['p2'], lastActive: '2h ago', status: 'Active', since: 'Sep 2024' },
   { id: 'm5', name: 'Aisha Khan', email: 'aisha.khan@durham.ac.uk', roleId: 'hallmgr', halls: ['p5', 'p2'], lastActive: 'Today', status: 'Active', since: 'Aug 2025' },
   { id: 'm3', name: 'James Reed', email: 'james.reed@durham.ac.uk', roleId: 'frontdesk', halls: ['p2'], lastActive: 'Yesterday', status: 'Active', since: 'Jan 2025' },
@@ -84,11 +84,11 @@ const TEAMS: Team[] = [
 ];
 
 const AUDIT: AuditEntry[] = [
-  { id: 'a1', who: 'Priya Shah', what: 'changed Dave Hughes’s halls to Ustinov, Collingwood', when: 'Today, 09:40', area: 'Members' },
-  { id: 'a2', who: 'Priya Shah', what: 'invited Aisha Khan as Front desk at Ustinov', when: '28 Aug 2025', area: 'Members' },
-  { id: 'a3', who: 'Priya Shah', what: 'gave Read only “Inventory: View”', when: '14 Aug 2025', area: 'Roles' },
-  { id: 'a4', who: 'Priya Shah', what: 'added the campus Queen’s Campus', when: '2 Aug 2025', area: 'Campuses' },
-  { id: 'a5', who: 'Priya Shah', what: 'invited James Reed as Finance in all halls', when: '9 Jan 2025', area: 'Members' },
+  { id: 'a1', who: 'Arjun Mehta', what: 'changed Dave Hughes’s halls to Ustinov, Collingwood', when: 'Today, 09:40', area: 'Members' },
+  { id: 'a2', who: 'Arjun Mehta', what: 'invited Aisha Khan as Front desk at Ustinov', when: '28 Aug 2025', area: 'Members' },
+  { id: 'a3', who: 'Arjun Mehta', what: 'gave Read only “Inventory: View”', when: '14 Aug 2025', area: 'Roles' },
+  { id: 'a4', who: 'Arjun Mehta', what: 'added the campus Queen’s Campus', when: '2 Aug 2025', area: 'Campuses' },
+  { id: 'a5', who: 'Arjun Mehta', what: 'invited James Reed as Finance in all halls', when: '9 Jan 2025', area: 'Members' },
 ];
 
 function scenario(s: Scenario) {
@@ -115,7 +115,7 @@ export const useOrg = create<OrgState>()(
       emptyCampuses: () => set({ campuses: [] }),
       set: (k, fn) => set((st) => ({ [k]: fn(st[k]) }) as Partial<OrgState>),
       restore: (snap) => set(snap),
-      audit_: (what, area) => set((st) => ({ audit: [{ id: `a${Date.now()}${Math.random().toString(36).slice(2, 5)}`, who: 'Priya Shah', what, when: 'Just now', area }, ...st.audit] })),
+      audit_: (what, area) => set((st) => ({ audit: [{ id: `a${Date.now()}${Math.random().toString(36).slice(2, 5)}`, who: 'Arjun Mehta', what, when: 'Just now', area }, ...st.audit] })),
     }),
     { name: 'pms-org', storage: createJSONStorage(() => sessionStorage) },
   ),

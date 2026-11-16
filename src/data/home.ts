@@ -6,7 +6,7 @@ import type { Tone } from './seed';
 export type Due = 'overdue' | 'today' | 'week';
 export type FromIcon = 'maintenance' | 'requests' | 'bookings' | 'notices' | 'applications' | 'properties' | 'roles' | 'reports' | 'settings' | 'task';
 export type DueTone = 'red' | 'orange' | 'amber' | 'grey' | 'plain';
-export const ME = 'Priya Shah';
+export const ME = 'Arjun Mehta';
 
 export type Detail = {
   /** Sheet title, when it differs from the row title. */ title?: string;
@@ -32,7 +32,7 @@ export type HTask = {
   dueLabel: string;
   dueTone: DueTone;
   owner: string;
-  /** Set when Priya handed it on, so it stays (greyed) in her list for the session. */ handedFrom?: string;
+  /** Set when Arjun handed it on, so it stays (greyed) in his list for the session. */ handedFrom?: string;
   done: boolean;
   doneBy?: string;
   doneLabel?: string;
@@ -43,7 +43,7 @@ export type HTask = {
   /** The work was finished somewhere else since the list loaded. */ elsewhere?: { by: string; at: string; ago: string };
 };
 
-/* ---------- Main list: Priya's 9 + the team's 14 + done ---------- */
+/* ---------- Main list: Arjun's 9 + the team's 14 + done ---------- */
 const swapDetail: Detail = {
   title: 'Approve room swap', sub: 'Task from Requests · RQ-118', short: 'Room swap', primary: 'open', hall: 'Collingwood',
   pills: [{ label: 'Due today', tone: 'orange', icon: 'calendar' }, { label: 'Both agreed', tone: 'green', icon: 'check' }],
@@ -171,7 +171,7 @@ export const HALLS = [
 
 /* ---------- People ---------- */
 export const PEOPLE: Record<string, { color: string; role: string; pronoun: 'he' | 'she' }> = {
-  'Priya Shah': { color: '#E5530C', role: 'Accommodation manager', pronoun: 'she' },
+  'Arjun Mehta': { color: '#E5530C', role: 'Accommodation manager', pronoun: 'he' },
   'Tom Baker': { color: '#0E7A80', role: 'Hall manager', pronoun: 'he' },
   'Aisha Khan': { color: '#6E3BD8', role: 'Hall manager', pronoun: 'she' },
   'James Reed': { color: '#64748B', role: 'Front desk', pronoun: 'he' },
@@ -181,7 +181,7 @@ export const PEOPLE: Record<string, { color: string; role: string; pronoun: 'he'
 
 /* ---------- "Needs you today" on Overview ---------- */
 export type Need = { id: string; icon: 'alert' | 'swap' | 'lease' | 'inbox' | 'notice' | 'landlord' | 'conflict' | 'import'; title: string; sub: string; badge: { label: string; tone: Tone; icon: 'clock' | 'calendar' | 'timer' | 'trend' | 'pencil' | 'failed' }; to: string; taskId?: string;
-  /** Group in the card */ when: 'today' | 'week'; /** Button shown on hover */ action: string; /** Assigned to Priya, not just her team */ mine: boolean };
+  /** Group in the card */ when: 'today' | 'week'; /** Button shown on hover */ action: string; /** Assigned to Arjun, not just his team */ mine: boolean };
 export const NEEDS: Need[] = [
   { id: 'n1', icon: 'alert', title: 'Leaking radiator, Ustinov C.2.14', sub: 'Urgent · reported 2h ago · no one assigned', badge: { label: 'Overdue', tone: 'red', icon: 'clock' }, to: '/residents/maintenance?open=m1', taskId: 'k1', when: 'today', action: 'Assign', mine: true },
   { id: 'n2', icon: 'swap', title: 'Room swap: Ella Morgan ↔ Josh Patel', sub: 'Collingwood · both residents agreed', badge: { label: 'Due today', tone: 'orange', icon: 'calendar' }, to: '/residents/requests?open=rq1', taskId: 'k2', when: 'today', action: 'Review', mine: true },
@@ -211,5 +211,5 @@ export const useHome = create<State>()(
   ),
 );
 
-/** Priya's open tasks: the My tasks count in the sidebar. */
+/** Arjun's open tasks: the My tasks count in the sidebar. */
 export const myOpenCount = (rows: HTask[]) => rows.filter((r) => !r.done && !r.snoozed && r.owner === ME).length;

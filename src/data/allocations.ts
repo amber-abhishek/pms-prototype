@@ -3,11 +3,11 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 /* Allocations (BMS) data: cycles, applications, offers & waitlist, bookings.
    The designs show big totals (3,410 applications, 2,216 bookings) but only a page of rows.
-   We keep the rows the frames show, plus a fixed `hidden` offset per bucket, so counts stay in step as Priya works. */
+   We keep the rows the frames show, plus a fixed `hidden` offset per bucket, so counts stay in step as Arjun works. */
 
 export const TODAY = '27 Oct';
 export const NOW = '27 Oct 10:42';
-export const ME = 'Priya Shah';
+export const ME = 'Arjun Mehta';
 
 /* ---------------- Halls, rooms, units ---------------- */
 export const HALLS = ['Ustinov', 'Collingwood', 'Hild Bede', 'Josephine Butler', 'Stephenson', 'John Snow', 'Van Mildert'] as const;
@@ -91,7 +91,7 @@ const COMBOS: [string, string][] = [['Ustinov', 'Standard single'], ['Collingwoo
 
 function seedApps(): App[] {
   const design: Spec[] = [
-    { name: 'Amira Rahman', ref: '11873', hall: 'Ustinov', room: 'Accessible ensuite', tag: 'Requirements', waiting: 9, submitted: '18 Oct', email: 'amira.r@durham.ac.uk', fee: 'International', course: 'BSc Biosciences', reqs: ['Step-free access', 'Medication fridge'], toCheck: ['Medication fridge'], prefs: [['Ustinov', 'Accessible ensuite'], ['Collingwood', 'Accessible ensuite'], ['Hild Bede', 'Ensuite single']], opened: '27 Oct, Priya' },
+    { name: 'Amira Rahman', ref: '11873', hall: 'Ustinov', room: 'Accessible ensuite', tag: 'Requirements', waiting: 9, submitted: '18 Oct', email: 'amira.r@durham.ac.uk', fee: 'International', course: 'BSc Biosciences', reqs: ['Step-free access', 'Medication fridge'], toCheck: ['Medication fridge'], prefs: [['Ustinov', 'Accessible ensuite'], ['Collingwood', 'Accessible ensuite'], ['Hild Bede', 'Ensuite single']], opened: '27 Oct, Arjun' },
     { name: 'Leo Brennan', ref: '11901', hall: 'Collingwood', room: 'Studio', tag: 'No study offer', waiting: 8, submitted: '19 Oct', email: 'leo.brennan@outlook.com', fee: 'Home', course: '—', arrival: '20 Sep 2027', prefs: [['Collingwood', 'Studio'], ['Josephine Butler', 'Studio'], ['Ustinov', 'Ensuite single']] },
     { name: 'Mei Lin', ref: '11954', hall: 'Hild Bede', room: 'Standard single', tag: 'Manual review', waiting: 7, submitted: '20 Oct', fee: 'International', course: 'BSc Natural Sciences', toCheck: ['Medication fridge'], reqs: ['Medication fridge'] },
     { name: 'Daniel Osei', ref: '12010', hall: 'Josephine Butler', room: 'Ensuite', waiting: 6, submitted: '21 Oct', fee: 'Home', course: 'BA Economics' },
@@ -376,7 +376,7 @@ function bk(id: string, n: number, name: string, hall: string, room: string, uni
 function seedBookings(): Booking[] {
   return [
     bk('b1', 4812, 'Amira Rahman', 'Ustinov', 'Accessible ensuite', 'G.04.B', 'Signed', '28 Oct', { signedOn: '30 Oct', history: [
-      { t: 'Allocated and offered by Priya Shah', when: '27 Oct 10:42', sub: 'override: summer let overlap — “Jae Park leaves on 18 Sep · agreed with the Ustinov office”' },
+      { t: 'Allocated and offered by Arjun Mehta', when: '27 Oct 10:42', sub: 'override: summer let overlap — “Jae Park leaves on 18 Sep · agreed with the Ustinov office”' },
       { t: 'Offer email sent to Amira', when: '27 Oct 10:42', sub: 'expires 1 Nov' },
       { t: 'Offer accepted · deposit paid £250', when: '28 Oct 19:05' },
       { t: 'Lease sent for signature', when: '28 Oct 19:05', sub: 'automatic' },

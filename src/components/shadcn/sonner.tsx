@@ -27,7 +27,8 @@ export function Toaster(props: ToasterProps) {
         close: <X size={14} />,
       }}
       /* --width is the widest a toast can get; each toast fits its text and hugs the right edge, so a normal message is one line. */
-      style={{ '--width': '560px' } as React.CSSProperties}
+      /* pointer-events: an open sheet or dialog turns clicks off on <body>; toasts stay clickable above it (Undo). */
+      style={{ '--width': '560px', pointerEvents: 'auto' } as React.CSSProperties}
       toastOptions={{
         unstyled: true,
         classNames: {

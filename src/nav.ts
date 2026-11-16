@@ -34,7 +34,7 @@ export function useNavCounts() {
     requests: requests.filter((r) => r.status === 'Open').length,
     landlords: oc.landlords.filter((l) => l.status === 'Submitted').length,
     reviews: oc.reviews.filter((r) => r.status === 'Under review').length,
-    enquiries: oc.enquiries.length,
+    enquiries: oc.enquiries.filter((e) => (e.status ?? 'New') === 'New').length,
     campuses: org.campuses.length,
     members: org.members.length,
     schedules,

@@ -69,7 +69,8 @@ export function ShellV2({ visible, active, panelOpen, onToggle, userMenu, childr
 
 function RailItem({ m, on, counts }: { m: Module; on: boolean; counts: NavCounts }) {
   const I = m.icon;
-  /* Work waiting inside the module (or on its single page), named in the tooltip; an alert adds a red dot on the tile. */
+  /* Work waiting inside the module (or on its single page), named in the tooltip. A dot on the tile marks it: red when
+     something is overdue (an alert), blue when there is just work to pick up. Home never gets one: its count is your own tasks. */
   const sum = isSingle(m) ? { n: m.sections[0]?.items[0]?.count?.(counts) ?? 0, alert: false } : rollup(m, counts);
   return (
     <Tooltip>
@@ -78,7 +79,7 @@ function RailItem({ m, on, counts }: { m: Module; on: boolean; counts: NavCounts
           className={cx('relative size-9 shrink-0 flex items-center justify-center rounded-lg border transition-[transform,color,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.96]', FOCUS,
             on ? RAISED : 'border-transparent text-[#3F404D] hover:text-[#0A0A0A] hover:scale-[1.06]')}>
           <I size={18} strokeWidth={1.5} absoluteStrokeWidth />
-          {sum.alert && !on && <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-[#DC2626]" />}
+          {sum.n > 0 && !on && m.id !== 'home' && <span className={cx('absolute right-1.5 top-1.5 size-1.5 rounded-full', sum.alert ? 'bg-[#DC2626]' : 'bg-[#2563EB]')} />}
           {m.locked && <span className="absolute right-0.5 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
         </NavLink>
       </TooltipTrigger>

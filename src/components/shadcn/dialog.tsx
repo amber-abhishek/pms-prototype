@@ -16,6 +16,12 @@ const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
 
+/** Toasts sit outside every modal. Clicking one (Undo, ✕) isn't "outside": the sheet or dialog stays open. */
+export const keepOpenOnToast = <E extends { target: EventTarget | null; preventDefault: () => void }>(own?: (e: E) => void) => (e: E) => {
+  if ((e.target as Element | null)?.closest?.('[data-sonner-toaster]')) { e.preventDefault(); return; }
+  own?.(e);
+};
+
 const DialogOverlay = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Overlay>, React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay> & { instant?: boolean }>(
   ({ className, instant, ...props }, ref) => (
     <DialogPrimitive.Overlay
@@ -41,6 +47,7 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.C
           className,
         )}
         {...props}
+        onInteractOutside={keepOpenOnToast(props.onInteractOutside)}
       >
         {children}
       </DialogPrimitive.Content>

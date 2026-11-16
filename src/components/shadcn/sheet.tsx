@@ -3,6 +3,7 @@ import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { GhostZone } from '../headerCtx'
+import { keepOpenOnToast } from './dialog';
 
 /* shadcn Sheet (Radix Dialog) in the Amber Connect drawer look: 16px inset, r20,
    20px header (18px medium title, 30px bordered chevrons and close), 20px body padding, 64px footer, #E5E5E5 rules, and the same #0A0A0A 40% scrim as modals (Figma "Dim"), no blur.
@@ -46,6 +47,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         {...props}
         /* When stepping, don't jump focus into the new record's first field: ↑/↓ keep stepping. */
         onOpenAutoFocus={stepped ? (e) => e.preventDefault() : props.onOpenAutoFocus}
+        onInteractOutside={keepOpenOnToast(props.onInteractOutside)}
       >
         {children}
       </SheetPrimitive.Content>

@@ -1,6 +1,7 @@
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Tone } from './seed';
+import { renameFrom } from './rename';
 
 /* ------------------------------------------------------------------ */
 /* Residents (RMS): residents, requests, notices and maintenance faults */
@@ -311,6 +312,6 @@ export const useRms: UseBoundStore<StoreApi<RmsState>> = create<RmsState>()(
         return revertOnly(key, prev as Rec[], get()[key] as Rec[]);
       },
     }),
-    { name: 'pms-residents', version: 1, storage: createJSONStorage(() => sessionStorage), partialize: (s) => ({ residents: s.residents, requests: s.requests, notices: s.notices, faults: s.faults }) },
+    { name: 'pms-residents', version: 2, migrate: renameFrom(1) as never, storage: createJSONStorage(() => sessionStorage), partialize: (s) => ({ residents: s.residents, requests: s.requests, notices: s.notices, faults: s.faults }) },
   ),
 );

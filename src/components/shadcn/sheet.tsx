@@ -29,18 +29,48 @@ const SheetOverlay = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Ove
 );
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
+/** Most pages mount a record's sheet only while the record is open ({sel && <BookingSheet/>}), so closing unmounts it
+ *  before Radix can play the exit. On such an unmount, a copy of the panel and its scrim stays behind just long enough
+ *  to slide out and fade, then is removed. Stepping to another record (which remounts) and a normal close skip it. */
+function leaveGhost(panel: HTMLElement, scrim: HTMLElement | null) {
+  for (const el of [scrim, panel]) {
+    if (!el) continue;
+    const c = el.cloneNode(true) as HTMLElement;
+    c.removeAttribute('id');
+    c.setAttribute('aria-hidden', 'true');
+    c.style.pointerEvents = 'none';
+    c.dataset.state = 'closed';
+    document.body.appendChild(c);
+    const done = () => c.remove();
+    c.addEventListener('animationend', done, { once: true });
+    setTimeout(done, 400);
+  }
+}
+
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>>(
   ({ className, children, ...props }, ref) => {
     const stepped = useStepped();
+    const panel = React.useRef<HTMLDivElement | null>(null);
+    const scrim = React.useRef<HTMLDivElement | null>(null);
+    const setRef = (el: HTMLDivElement | null) => {
+      panel.current = el;
+      if (typeof ref === 'function') ref(el); else if (ref) ref.current = el;
+    };
+    React.useLayoutEffect(() => () => {
+      const el = panel.current;
+      if (!el || el.dataset.state !== 'open' || Date.now() - sheetStep.at < 500) return;
+      leaveGhost(el, scrim.current);
+    }, []);
     return (
     <GhostZone.Provider value={false}><SheetPortal>
-      <SheetOverlay className={stepped ? 'data-[state=open]:!animate-none' : undefined} />
+      <SheetOverlay ref={scrim} className={stepped ? 'data-[state=open]:!animate-none' : undefined} />
       <SheetPrimitive.Content
-        ref={ref}
+        ref={setRef}
         className={cn(
           /* Amber Connect drawer: floats 16px in, r20, no border, the layered 4% shadow stack. */
           'fixed right-4 top-4 bottom-4 z-50 flex max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] bg-background shadow-sheet outline-none',
-          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-right-4 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right-4 data-[state=closed]:fade-out-0 data-[state=open]:duration-200 data-[state=closed]:duration-150 ease-drawer',
+          /* Slides in from fully off the right edge, no fade, as Connect's side panels (measured ~300ms, gentle start, long settle). */
+          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-right-full data-[state=closed]:slide-out-to-right-full data-[state=open]:duration-300 data-[state=closed]:duration-200 ease-panel data-[state=closed]:ease-[cubic-bezier(0.4,0,1,1)] motion-reduce:data-[state=open]:slide-in-from-right-0 motion-reduce:data-[state=closed]:slide-out-to-right-0',
           stepped && 'data-[state=open]:!animate-none',
           className,
         )}

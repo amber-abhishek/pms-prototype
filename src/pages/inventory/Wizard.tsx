@@ -144,7 +144,7 @@ export function AddPropertyWizard() {
               return (
                 <li key={s.title} className={cx('flex items-center gap-3 min-w-0', i < STEPS.length - 1 && 'flex-1')}>
                   <button type="button" disabled={i > step} onClick={() => setStep(i)} className="flex items-center gap-2.5 shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default">
-                    <span className={cx('size-8 rounded-lg flex items-center justify-center', done ? 'bg-[#EBEBEB] text-[#0A0A0A]' : cur ? 'bg-[#0A0A0A] text-white shadow-[0_0_0_4px_rgba(10,10,10,0.08)]' : 'bg-white border border-[#E5E5E5] text-[#A3A3A3]')}>
+                    <span className={cx('size-8 rounded-lg flex items-center justify-center', done ? 'bg-[#EBEBEB] text-[#0A0A0A]' : cur ? 'bg-[#0A0A0A] text-white shadow-[0_0_0_4px_rgba(10,10,10,0.08)] dark:bg-[#E3E6EC] dark:text-[#111318] dark:shadow-[0_0_0_4px_rgba(227,230,236,0.12)]' : 'bg-white border border-[#E5E5E5] text-[#A3A3A3]')}>
                       <I size={16} strokeWidth={1.5} />
                     </span>
                     <span className="flex flex-col gap-px text-left">
@@ -152,7 +152,7 @@ export function AddPropertyWizard() {
                       <span className={cx('text-sm leading-[18px] whitespace-nowrap', done || cur ? 'font-medium text-[#0A0A0A]' : 'text-[#737373]')}>{s.title}</span>
                     </span>
                   </button>
-                  {i < STEPS.length - 1 && <span aria-hidden className="flex-1 min-w-4 h-0.5 rounded-[1px]" style={{ background: done ? '#0A0A0A' : '#E5E5E5' }} /* solid, no gradient (2026-11-12) */ />}
+                  {i < STEPS.length - 1 && <span aria-hidden className={cx('flex-1 min-w-4 h-0.5 rounded-[1px]', done ? 'bg-[#0A0A0A] dark:bg-[#C9CDD6]' : 'bg-[#E5E5E5]')} /* solid, no gradient (2026-11-12); classes, not inline, so dark mode remaps them */ />}
                 </li>
               );
             })}

@@ -12,6 +12,7 @@ import { NotFound } from './pages/Misc';
 import { Profile } from './pages/Profile';
 import { SiteBuilder } from './pages/site/Builder';
 import { Invite, Login } from './pages/auth/Login';
+import { TooltipProvider } from './components/shadcn/tooltip';
 
 /** Each module owns its own sub-routes, so a module can add detail pages and wizards without touching this file. */
 /* A data router (not <HashRouter>) so Settings can hold navigation with useBlocker while a draft is unsaved. */
@@ -22,7 +23,8 @@ export function App() {
 
 function AppRoutes() {
   return (
-    <>
+    /* One provider for the whole app: page content (number-band meters) has tooltips too, not just the sidebars. */
+    <TooltipProvider delayDuration={300}>
       <Routes>
         <Route path="login" element={<Login />} />
         <Route path="invite" element={<Invite />} />
@@ -45,6 +47,6 @@ function AppRoutes() {
         </Route>
       </Routes>
       <Toaster />
-    </>
+    </TooltipProvider>
   );
 }

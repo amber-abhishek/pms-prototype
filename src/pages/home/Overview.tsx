@@ -64,10 +64,13 @@ function Today() {
       <div className="flex-1 overflow-auto flex flex-col">
         <HomeBand />
         <KpiCards items={e ? [{ label: 'Beds let', value: '0' }, { label: 'Applications', value: '0' }, { label: 'Rent collected', value: '£0' }, { label: 'Open repairs', value: '0' }] : [
-            { label: 'Beds let', value: '2,481', delta: '+4.2%', to: '/reports' },
-            { label: 'Applications', value: '3,410', delta: '+8.1%', to: '/allocations/applications' },
-            { label: 'Rent collected', value: '£3.86m', delta: '−1.3%', to: '/reports/rent' },
-            { label: 'Open repairs', value: String(open.length), delta: '−12%', good: true, to: '/residents/maintenance' },
+            /* Each bar is a real figure: progress to a target, or what the number is made of. */
+            { label: 'Beds let', value: '2,481', delta: '+4.2%', to: '/reports', meter: { kind: 'progress', value: 2481, max: 2893, target: 90, tip: '86% · target 90%' } },
+            { label: 'Applications', value: '3,410', delta: '+8.1%', to: '/allocations/applications', meter: { kind: 'split', parts: [
+              { label: 'Leased', value: 1968, color: '#16A34A' }, { label: 'In progress', value: 1283, color: '#93C5FD' }, { label: 'To review', value: 128, color: '#F59E0B' }, { label: 'Waiting 5+ days', value: 31, color: '#DC2626' }] } },
+            { label: 'Rent collected', value: '£3.86m', delta: '−1.3%', to: '/reports/rent', meter: { kind: 'progress', value: 3.86, max: 4.1, target: 98, tip: '94% · target 98%' } },
+            { label: 'Open repairs', value: String(open.length), delta: '−12%', good: true, to: '/residents/maintenance', meter: { kind: 'split', parts: [
+              { label: 'Urgent', value: open.filter((f) => f.priority === 'Urgent').length, color: '#DC2626' }, { label: 'High', value: open.filter((f) => f.priority === 'High').length, color: '#F59E0B' }, { label: 'Normal', value: open.filter((f) => f.priority === 'Normal').length, color: '#D4D4D4' }] } },
           ]} />
         <div className="p-6 flex flex-col gap-4">
           <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">

@@ -37,7 +37,10 @@ export default {
       height: { data: 'var(--density-data)', input: 'var(--density-input)', compact: 'var(--control-compact)' },
       /* Motion curves. `ease-snappy` (strong ease-out) for things entering or responding; `ease-drawer` (iOS-like)
          for side sheets. tailwindcss-animate reads these too, so `ease-*` works on animate-in/out as well. */
-      transitionTimingFunction: { snappy: 'cubic-bezier(0.23, 1, 0.32, 1)', drawer: 'cubic-bezier(0.32, 0.72, 0, 1)' },
+      transitionTimingFunction: { snappy: 'cubic-bezier(0.23, 1, 0.32, 1)', drawer: 'cubic-bezier(0.32, 0.72, 0, 1)', panel: 'cubic-bezier(0.4, 0, 0.1, 1)' },
+      /* Meters (number bands) grow in from the left once, on load. */
+      keyframes: { meter: { from: { 'clip-path': 'inset(0 100% 0 0)' }, to: { 'clip-path': 'inset(0 0 0 0)' } } },
+      animation: { meter: 'meter 700ms cubic-bezier(0.23, 1, 0.32, 1) both' },
       boxShadow: {
         card: '0 1px 2px rgba(17,24,39,0.04)',
         tile: '0 1px 1px rgba(17,24,39,0.04)',

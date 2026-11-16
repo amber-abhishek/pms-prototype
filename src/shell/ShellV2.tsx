@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../com
    with a hairline edge and blue icon/label, labels are #3F404D, lines are #E5E5E5. */
 
 /** Selected rail tile and panel row: white, 1px #E5E5E5, a 0 1 2 drop at 6%, blue icon and label. */
-const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(10,13,20,0.06)] text-[#2563EB]';
+const RAISED = 'bg-white border-[#E5E5E5] shadow-[0_1px_3px_rgba(10,13,20,0.10),0_2px_6px_-2px_rgba(10,13,20,0.08)] text-[#2563EB]';
 const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /** A module with one page has no panel: the rail icon is the page. */
@@ -137,7 +137,7 @@ function Panel({ mod, counts, collapsed: target, onToggle }: { mod: Module; coun
 /** Every module row target, so a row without ?tab can tell when a sibling row owns the current tab. */
 const ALL_TO = modules.flatMap((m) => m.sections.flatMap((s) => s.items.map((i) => i.to)));
 
-/** A page row (Figma "Nav · Properties"): 32px, 8px sides, 8px gap, r8, 16px icon, 14px medium label, 12px count. */
+/** A page row (Figma "Nav · Properties"): 36px (32px when collapsed), 10px sides, 8px gap, r8, 16px icon, 14px medium label, 12px count. */
 function PageRow({ it, count, locked, collapsed }: { it: NavItem; count?: number; locked?: boolean; collapsed: boolean }) {
   const { pathname: route, search } = useLocation();
   const href = useNavHref(route, search);
@@ -145,8 +145,8 @@ function PageRow({ it, count, locked, collapsed }: { it: NavItem; count?: number
   const on = !disabled && isCurrent(it.to, href, ALL_TO);
   const I = it.icon;
   const has = count !== undefined && count > 0;
-  const cls = cx('h-8 shrink-0 flex items-center gap-2 rounded-lg border text-sm leading-5 font-medium transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]', FOCUS,
-    collapsed ? 'relative w-8 justify-center' : 'px-2',
+  const cls = cx('shrink-0 flex items-center gap-2 rounded-lg border text-sm leading-5 font-medium transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]', FOCUS,
+    collapsed ? 'relative size-8 justify-center' : 'h-9 px-2.5',
     on ? RAISED : 'border-transparent text-[#3F404D]',
     disabled ? 'opacity-60 cursor-default' : cx('active:scale-[0.98]', !on && (collapsed ? 'hover:scale-[1.06]' : 'hover:translate-x-0.5')));
   const go = () => usePins.getState().go(it.to, null);

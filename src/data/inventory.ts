@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Tone } from './seed';
+import { renameMe } from './rename';
 
 /* ---------------- Types ---------------- */
 export type PStatus = 'Active' | 'Inactive' | 'Draft' | 'Closed to allocations' | 'Archived';
@@ -134,7 +135,7 @@ export const useInv = create<InvState>()(
       patchProp: (id, fn) => set((st) => ({ properties: st.properties.map((p) => (p.id === id ? { ...p, ...fn(p) } : p)) })),
       editUnit: (id, e) => set((st) => ({ unitEdits: { ...st.unitEdits, [id]: { ...st.unitEdits[id], ...e } } })),
     }),
-    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage) },
+    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
   ),
 );
 

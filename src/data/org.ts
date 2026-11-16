@@ -4,6 +4,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { revertList } from './revert';
+import { renameMe } from './rename';
 
 export type Hall = { id: string; short: string; name: string; rooms: number };
 /** Halls (properties) people can be given access to. Ids match the shared seed's properties. */
@@ -117,7 +118,7 @@ export const useOrg = create<OrgState>()(
       restore: (snap) => set(snap),
       audit_: (what, area) => set((st) => ({ audit: [{ id: `a${Date.now()}${Math.random().toString(36).slice(2, 5)}`, who: 'Arjun Mehta', what, when: 'Just now', area }, ...st.audit] })),
     }),
-    { name: 'pms-org', storage: createJSONStorage(() => sessionStorage) },
+    { name: 'pms-org', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
   ),
 );
 

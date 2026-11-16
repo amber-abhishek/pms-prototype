@@ -1,4 +1,5 @@
-import { Children, Fragment, isValidElement, useContext, useEffect, useState, type ReactNode } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from './shadcn/tooltip';
+import { Children, Fragment, isValidElement, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Illustration, type Illo } from './Illustration';
 import { GhostZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
 
@@ -271,25 +272,86 @@ export function Stat({ label, value, sub, tone, icon: I }: { label: string; valu
   );
 }
 
-/** Number strip (Connect "Total Amount Pending" row): cells split by dashed rules; 14px grey label, 28px mono figure,
- *  and a trend line (▲/▼ in green or red when the sub starts with + or −, else grey). No colour bar. */
-export type StatItem = { label: string; value: ReactNode; sub?: ReactNode; color?: string; good?: boolean };
-export function StatStrip({ items, className }: { items: StatItem[]; className?: string }) {
+/** A number band's indicator: `progress` fills a grey track toward `max`, coloured by how it stands against `target`
+ *  (met: green, within 5 points: amber, further: red; no target: blue), a thin line across the bar at the target; `split` shows what
+ *  the number is made of as segments in their own colours. Hover shows the figures. Grows in once on load. */
+export type MeterSpec =
+  | { kind: 'progress'; value: number; max: number; target?: number; color?: string; tip: string }
+  | { kind: 'split'; parts: { label: string; value: number; color: string }[]; tip?: string };
+const nf = (n: number) => n.toLocaleString('en-GB');
+export function Meter({ m }: { m: MeterSpec }) {
+  const grow = 'animate-meter motion-reduce:animate-none';
+  let bar: ReactNode, tip: string, body: ReactNode = null;
+  if (m.kind === 'progress') {
+    const pct = Math.max(0, Math.min(100, (m.value / m.max) * 100));
+    const color = m.color ?? (m.target == null ? '#2563EB' : pct >= m.target ? '#16A34A' : pct >= m.target - 5 ? '#F59E0B' : '#DC2626');
+    tip = m.tip;
+    bar = (
+      <div className="relative h-1 rounded-full bg-[#F0F0F0]">
+        <div className={cx('h-full rounded-full', grow)} style={{ width: `${pct}%`, background: color }} />
+        {/* Target: a thin 12px line across the bar (Figma 3994:17196). */}
+        {m.target != null && <span aria-hidden className="absolute -top-1 h-3 w-0.5 rounded-full bg-[#0A0A0A]/50 dark:bg-white/50" style={{ left: `calc(${m.target}% - 1px)` }} />}
+      </div>
+    );
+  } else {
+    const parts = m.parts.filter((p) => p.value > 0);
+    tip = m.tip ?? parts.map((p) => `${p.label} ${nf(p.value)}`).join(' · ');
+    /* A short list, not one long line: a dot, the label and the count per part; past four, the rest fold into "+N more". */
+    const shown = parts.slice(0, 4), more = parts.length - shown.length;
+    body = m.tip ? null : (
+      <div className="flex flex-col gap-1 py-0.5">
+        {shown.map((p) => (
+          <div key={p.label} className="flex items-center gap-2 text-xs leading-4">
+            <span aria-hidden className="size-2 rounded-full shrink-0" style={{ background: p.color }} />
+            <span className="flex-1 min-w-0 truncate">{p.label}</span>
+            <span className="tabular-nums pl-3">{nf(p.value)}</span>
+          </div>
+        ))}
+        {more > 0 && <div className="text-xs leading-4 text-white/60 pl-4">+{more} more</div>}
+      </div>
+    );
+    bar = (
+      <div className={cx('h-1 flex gap-0.5', grow)}>
+        {parts.map((p) => <div key={p.label} className="h-full rounded-full min-w-1" style={{ flexGrow: p.value, flexBasis: 0, background: p.color }} />)}
+      </div>
+    );
+  }
   return (
-    /* One card per number (2026-11-13), 16px apart, rather than one strip split by dashed rules. */
-    <div className={cx('grid gap-4', className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
-      {items.map((it) => {
+    <Tooltip>
+      <TooltipTrigger asChild><div className="py-2 -my-2" aria-label={tip}>{bar}</div></TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={6} className={body ? 'min-w-[160px] max-w-[220px] px-2.5 py-2' : undefined}>{body ?? tip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Number band, the same as the Overview's (KpiCards): one strip split by dashed rules, a 14px grey label, a 32px mono
+ *  figure, a filled caret with the change in green or red (when the sub starts with + or −, else a grey line), and a
+ *  `meter` along the foot where the number has one (a stat without one leaves the row empty). `bleed` runs it edge to
+ *  edge across a page's side padding. */
+export type StatItem = { label: string; value: ReactNode; sub?: ReactNode; color?: string; good?: boolean; meter?: MeterSpec };
+export function StatStrip({ items, className, bleed }: { items: StatItem[]; className?: string; bleed?: boolean }) {
+  const anyMeter = items.some((it) => it.meter);
+  return (
+    <div className={cx('grid border-y border-[#E5E5E5] py-5', bleed ? '-mx-[var(--tx,16px)] px-[var(--tx,16px)]' : '', className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+      {items.map((it, i) => {
         const s = typeof it.sub === 'string' ? it.sub : null;
         const dir = s && /^[+▲]/.test(s) ? 'up' : s && /^[−▼-]/.test(s) ? 'down' : null;
-        const tc = (it.good ?? dir === 'up') ? '#16A34A' : '#DC2626';
+        const good = it.good ?? dir === 'up';
         const [num, ...rest] = dir && s ? s.replace(/^[+−▲▼-]\s*/, '').split(' ') : [];
         return (
-          <div key={it.label} className="min-w-0 p-5 flex flex-col rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div key={it.label} className={cx('min-w-0 flex flex-col', i > 0 && 'pl-6 border-l border-dashed border-[#E5E5E5]', i < items.length - 1 && 'pr-6')}>
             <div className="text-sm leading-5 text-[#737373] truncate">{it.label}</div>
-            <div className="mt-1 font-mono text-[28px] leading-9 font-semibold tracking-tight tabular-nums text-[#0A0A0A] truncate" style={it.color ? { color: it.color } : undefined}>{it.value}</div>
-            <div className="mt-2 h-5 text-sm leading-5 text-[#737373] truncate">
-              {dir ? <><span aria-hidden className="text-[10px] mr-1.5" style={{ color: tc }}>{dir === 'up' ? '▲' : '▼'}</span><span className="font-medium" style={{ color: tc }}>{num}</span> {rest.join(' ')}</> : it.sub}
+            <div className="mt-1 font-mono text-[32px] leading-10 font-semibold tracking-[-0.02em] tabular-nums text-[#0A0A0A] truncate">{it.value}</div>
+            <div className="mt-4 h-5 flex items-center gap-1 text-sm leading-5 text-[#404040] whitespace-nowrap min-w-0">
+              {dir ? <>
+                <span className={cx('flex items-center gap-1 font-semibold tabular-nums', good ? 'text-[#16A34A]' : 'text-[#DC2626]')}>
+                  <svg width="8" height="6" viewBox="0 0 8 6" aria-hidden className={dir === 'up' ? '' : 'rotate-180'}><path d="M4 0 8 6H0z" fill="currentColor" /></svg>
+                  {num}
+                </span>
+                <span className="truncate">{rest.join(' ')}</span>
+              </> : <span className="truncate text-[#737373]">{it.sub}</span>}
             </div>
+            {anyMeter && <div className="mt-auto pt-5 h-[24px]">{it.meter && <Meter m={it.meter} />}</div>}
           </div>
         );
       })}
@@ -717,6 +779,10 @@ function shieldClicks(ms = 350) {
 }
 export function Sheet({ open, onClose, title, sub, children, footer, width = 520, nav }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav }) {
   useEffect(() => { if (!open) return; return () => shieldClicks(); }, [open]);
+  /* While it slides out, show what it last showed: pages clear the record on close, which would empty the panel mid-exit. */
+  const last = useRef({ title, sub, children, footer, nav });
+  if (open) last.current = { title, sub, children, footer, nav };
+  if (!open) ({ title, sub, children, footer, nav } = last.current);
   return (
     <UISheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent style={{ width }} {...noDesc(sub)}>

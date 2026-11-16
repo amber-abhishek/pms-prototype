@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ArrowDownRight, ArrowUpRight, Building, ChartColumnIcon, ChartLine, TableIcon, type Icon } from './icons';
-import { Card, cx, Pill, TitleH1 } from './ui';
+import { Card, cx, Meter, Pill, TitleH1, type MeterSpec } from './ui';
 
 /* Overview kit in the Amber Connect language (Figma 3884:39270):
    - a white greeting band (2026-11-16; was #F5F5F5) (48px r10 photo, 18px semibold title, 16px #737373 line, actions on the right),
@@ -95,10 +95,9 @@ export function Strip({ title, sub, right }: { title: string; sub?: ReactNode; r
 const stripNote = 'text-sm leading-5 text-[#737373]';
 
 /** Connect number band (Amber Connect bookings): one edge-to-edge strip, columns split by dashed rules. Each column is a
- *  14px grey label, a 32px mono figure, a filled caret with the change in green or red plus a grey "vs" line, and a 4px
- *  bar along the foot in the column's colour (violet and cyan alternate). */
-export type Kpi = { label: string; value: string; delta?: string; good?: boolean; vs?: string; to?: string };
-const KPI_BARS = ['bg-[#7C3AED]', 'bg-[#5BCFE3]'];
+ *  14px grey label, a 32px mono figure, a filled caret with the change in green or red plus a grey "vs" line, and a
+ *  `meter` along the foot: progress to a target or a breakdown (see Meter). */
+export type Kpi = { label: string; value: string; delta?: string; good?: boolean; vs?: string; to?: string; meter?: MeterSpec };
 export function KpiCards({ items }: { items: Kpi[] }) {
   return (
     <div className="shrink-0 mt-6 grid border-y border-[#E5E5E5] px-6 py-5" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
@@ -118,7 +117,7 @@ export function KpiCards({ items }: { items: Kpi[] }) {
                 {k.vs ?? 'vs last 30 days'}
               </>}
             </div>
-            <div className={cx('mt-5 h-1 rounded-full', KPI_BARS[i % KPI_BARS.length])} />
+            <div className="mt-5 h-1">{k.meter && <Meter m={k.meter} />}</div>
           </>
         );
         const cell = cx('min-w-0 block outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md',

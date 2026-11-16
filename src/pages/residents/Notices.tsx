@@ -4,7 +4,9 @@ import { ChatText, Clock, DeviceMobile, Envelope, Megaphone, Moon, PaperPlaneTil
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { GROUPS, HALLS, MOVE_IN_BODY, audienceCount, useRms, type Channels, type Notice } from '../../data/residents';
-import { Button, Card, Check as CheckBox, DL, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, Switch, Table, Tabs, Textarea, Toolbar, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Button, Check as CheckBox, IconTile, DL, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, Switch, Table, Tabs, Textarea, Toolbar, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Dialog as UIDialog, DialogContent, DialogTitle } from '../../components/shadcn/dialog';
+import { ACard } from '../inventory/common';
 import { Modal, RHeader, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 
@@ -61,9 +63,10 @@ export function NoticesList() {
 export function NoticePage() {
   const { id } = useParams();
   const n = useRms((s) => s.notices.find((x) => x.id === id));
-  if (id === 'new') return <Compose key="new" />;
+  /* Writing a notice is a centred dialog over the list, not a page of its own. */
+  if (id === 'new') return <><NoticesList /><Compose key="new" /></>;
   if (!n) return <Navigate to="/residents/notices" replace />;
-  return n.status === 'Draft' ? <Compose key={n.id} draft={n} /> : <Navigate to={`/residents/notices?open=${n.id}`} replace />;
+  return n.status === 'Draft' ? <><NoticesList /><Compose key={n.id} draft={n} /></> : <Navigate to={`/residents/notices?open=${n.id}`} replace />;
 }
 
 /* ---------------- Compose: 3015, 3016, 3210, 3211 ---------------- */
@@ -122,15 +125,19 @@ function Compose({ draft }: { draft?: Notice }) {
     nav(opts.sendNow ? '/residents/notices?tab=Sent' : '/residents/notices?tab=Scheduled');
   });
 
+  const close = () => nav('/residents/notices');
   const shown = preview(body).split('\u0001');
   return (
     <>
-      <RHeader icon={Megaphone} crumbs={[['Residents', '/residents'], ['Notices', '/residents/notices']]} title={draft ? 'Edit notice' : 'New notice'}>
-        <Button onClick={saveDraft}>Save draft</Button>
-        <Button variant="primary" icon={Clock} onClick={() => valid() && setScheduling(true)}>Schedule</Button>
-      </RHeader>
+      {/* The Add property modal's frame: 56px header, the form on the left, a ruled preview pane on the right, 64px footer. */}
+      <UIDialog open onOpenChange={(o) => { if (!o && !scheduling) close(); }}>
+        <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[960px] h-[min(760px,calc(100vh-32px))] max-h-none">
+          <div className="h-14 shrink-0 border-b border-[#E5E5E5] pl-6 pr-4 flex items-center gap-3">
+            <DialogTitle className="flex-1 text-base leading-5 font-medium text-[#0A0A0A]">{draft ? 'Edit notice' : 'New notice'}</DialogTitle>
+            <button type="button" aria-label="Close" onClick={close} className="size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring"><X size={16} /></button>
+          </div>
       <div className="flex-1 min-h-0 flex">
-        <div className="flex-1 overflow-auto p-6 space-y-5 min-w-0">
+        <div className="flex-1 min-w-0 overflow-auto px-10 py-6 space-y-5">
           <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Water off in Block D tomorrow 09:00–11:00" /></Field>
           <div>
             <div className="text-sm font-medium text-gray-700 mb-1.5">Who gets it</div>
@@ -153,14 +160,15 @@ function Compose({ draft }: { draft?: Notice }) {
               )}
               {!conds.length && <div className="text-sm text-gray-500 px-1">Everyone in every hall</div>}
             </div>
-            <p className="text-xs text-gray-500 mt-2"><b className="text-ink font-semibold">{count.toLocaleString('en-GB')} residents</b> match today; anyone added before sending gets it too</p>
+            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1.5"><Pill tone="blue">{count.toLocaleString('en-GB')} residents</Pill> match today; anyone added before sending gets it too</p>
           </div>
           <div>
             <div className="text-sm font-medium text-gray-700 mb-1.5">Send by</div>
             <div className="grid grid-cols-3 gap-2">
-              {([['email', 'Email', Envelope], ['portal', 'Resident portal', DeviceMobile], ['sms', 'SMS', ChatText]] as const).map(([k, l, I]) => (
-                <div key={k} className="h-10 rounded-xl border border-line px-3 flex items-center gap-2.5 text-sm">
-                  <I size={16} className="text-gray-500" /><span className="flex-1">{l}</span>
+              {/* Each channel has its own tone, so the three read apart at a glance. */}
+              {([['email', 'Email', Envelope, 'blue'], ['portal', 'Portal', DeviceMobile, 'purple'], ['sms', 'SMS', ChatText, 'green']] as const).map(([k, l, I, tone]) => (
+                <div key={k} className="h-11 rounded-xl border border-line pl-2 pr-3 flex items-center gap-2.5 text-sm">
+                  <IconTile icon={I} tone={tone} size={28} /><span className="flex-1 font-medium">{l}</span>
                   <Switch label={l} checked={channels[k]} onChange={(v) => { setChannels({ ...channels, [k]: v }); if (k === 'sms' && v) toast('SMS is for urgent notices', { description: 'It costs 4p a message.' }); }} />
                 </div>
               ))}
@@ -168,23 +176,32 @@ function Compose({ draft }: { draft?: Notice }) {
           </div>
           <div>
             <div className="flex items-center mb-1.5"><span className="text-sm font-medium text-gray-700">Message</span>
-              <span className="ml-auto flex items-center gap-1 text-xs text-gray-500">Insert {['{first name}', '{arrival slot}', '{room}'].map((t) => <button key={t} type="button" onClick={() => insert(t)} className="h-6 px-1.5 rounded-md border border-line bg-white hover:bg-gray-50 text-ink">{t}</button>)}</span>
+              <span className="ml-auto flex items-center gap-1 text-xs text-gray-500">Insert {['{first name}', '{arrival slot}', '{room}'].map((t) => <button key={t} type="button" onClick={() => insert(t)} className="h-6 px-1.5 rounded-md font-mono text-xs bg-[#2563EB1A] text-[#1D4ED8] hover:bg-[#2563EB29]">{t}</button>)}</span>
             </div>
             <textarea ref={bodyRef} rows={8} value={body} onChange={(e) => setBody(e.target.value)} className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-sm leading-relaxed outline-none focus:border-primary focus:ring-2 focus:ring-primary/25 placeholder:text-gray-400" placeholder="Write to residents. Use {first name} to greet each one." />
           </div>
         </div>
-        <aside className="w-[400px] shrink-0 border-l border-line bg-[#FAFAFA] p-5 overflow-auto">
-          <div className="flex items-center mb-3"><span className="text-sm text-gray-500">Preview as Amira Rahman</span>
+        <aside className="w-[380px] shrink-0 border-l border-[#E5E5E5] bg-[#FAFAFA] overflow-auto p-6 flex flex-col gap-4">
+          <div className="flex items-center"><span className="text-sm text-[#737373] whitespace-nowrap">As Amira Rahman</span>
             <div className="ml-auto"><Tabs value={view} onChange={setView} tabs={[{ id: 'Email', label: 'Email' }, { id: 'Portal', label: 'Portal' }]} /></div></div>
-          <Card className="p-4">
+          <ACard title="Preview"><div className="p-4">
             <div className="flex items-center gap-2 text-sm font-medium"><span className="size-5 rounded-md bg-[#4F46E5] text-white text-[11px] font-semibold flex items-center justify-center">D</span>Durham Residences{view === 'Portal' && <span className="ml-auto text-xs text-gray-400 font-normal">Pinned</span>}</div>
             <div className="text-sm font-semibold mt-3">{title || 'Untitled notice'}</div>
             <div className="text-sm text-gray-700 mt-2.5 whitespace-pre-wrap leading-relaxed">
               {body ? shown.map((s, i) => (i % 2 ? <b key={i} className="font-semibold">{s}</b> : <Fragment key={i}>{s}</Fragment>)) : <span className="text-gray-400">Your message shows here, with merge fields filled in.</span>}
             </div>
-          </Card>
+          </div></ACard>
         </aside>
       </div>
+          <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center gap-2">
+            <Button variant="ghost" onClick={close}>Cancel</Button>
+            <div className="ml-auto flex items-center gap-2">
+              <Button icon={null} onClick={saveDraft}>Save draft</Button>
+              <Button variant="primary" icon={null} onClick={() => valid() && setScheduling(true)}>Schedule</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </UIDialog>
       <ScheduleDialog open={scheduling} onClose={() => setScheduling(false)} count={count} hall={hall} channels={channels} onSchedule={schedule} />
     </>
   );

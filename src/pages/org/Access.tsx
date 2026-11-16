@@ -4,7 +4,7 @@ import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Buildings, ClockCounterClockwise, EnvelopeSimple, Info, PaperPlaneTilt, Plus, Shield, ShieldCheck, User, UserPlus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Field, FilterButton, inFilter, type Filters, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { AreaPill, Avatar, Button, Field, FilterButton, inFilter, type Filters, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useTab } from '../hooks';
 import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, snapOrg, undoSince, useOrg, type Member, type Role, type Scenario } from '../../data/org';
@@ -135,7 +135,7 @@ export function AccessPage() {
         { key: 'w', label: 'When', className: 'w-44', render: (a) => <span className="text-sm text-[#737373]">{a.when}</span> },
         { key: 'p', label: 'Who', className: 'w-48', render: (a) => <span className="flex items-center gap-2 text-sm"><Avatar name={a.who} size={20} />{a.who}</span> },
         { key: 'x', label: 'Change', render: (a) => <span className="text-sm">{a.what}</span> },
-        { key: 'a', label: 'Area', className: 'w-32', render: (a) => <Pill>{a.area}</Pill> },
+        { key: 'a', label: 'Area', className: 'w-32', render: (a) => <AreaPill area={a.area} /> },
       ]} rows={audit} summary={<span className="flex items-center gap-1.5"><ClockCounterClockwise size={13} />Every change to members and roles is kept for 7 years</span>} />}
 
       <InviteDialog open={invite.open} initialRole={invite.roleId} onClose={() => setInvite({ open: false })}

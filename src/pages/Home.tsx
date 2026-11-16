@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ClockCounterClockwise, type Icon } from '../components/icons';
 import { useDb } from '../data/store';
-import { Avatar, Empty, PageHeader, Pill, SearchInput, Table, Tabs, Toolbar } from '../components/ui';
+import { AreaPill, Avatar, Empty, PageHeader, SearchInput, Table, Tabs, Toolbar } from '../components/ui';
 import { TasksPage } from './home/Tasks';
 
 export { Overview } from './home/Overview';
@@ -44,7 +44,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
               <span className="truncate"><span className="font-medium">{a.who}</span> <span className="text-gray-600">{a.what}</span></span>
             </span>
           ) },
-          { key: 'a', label: 'Area', className: 'w-[160px]', render: (a) => <Pill>{a.area}</Pill> },
+          { key: 'a', label: 'Area', className: 'w-[160px]', render: (a) => <AreaPill area={a.area} /> },
           { key: 't', label: 'Time', className: 'w-[120px]', render: (a) => <span className="text-gray-500 tabular-nums">{timeOf(a.when)}</span> },
         ]} />
     </>

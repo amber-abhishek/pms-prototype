@@ -7,7 +7,7 @@ import {
   ShareNetwork, Info, UsersThree, Warning, Wrench, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, avatarFx, Button, IconTile, type Tone, Note, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, SheetSection, StatStrip, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, avatarFx, Button, IconTile, type Tone, Note, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, SheetSection, StatStrip, listNav, type SheetNav, type MeterSpec } from '../../components/ui';
 import { useTab } from '../hooks';
 import { useDb } from '../../data/store';
 import { useAlloc, appCounts, offerCounts } from '../../data/allocations';
@@ -260,6 +260,13 @@ const MONEY: Record<string, { rent: number; type: string }> = {
 const WEEKS_LEFT = 42;
 const gbp = (n: number) => `£${Math.round(n).toLocaleString('en-GB')}`;
 const gbpM = (n: number) => `£${(n / 1e6).toFixed(2)}m`;
+/** Occupancy target, as on the Overview's pre-let card. */
+const OCC_TARGET = 98;
+/** A breakdown meter by hall, biggest share first, each hall a step lighter along `ramp`. */
+const byHall = (rows: HallRow[], v: (r: HallRow) => number, ramp: string[]): MeterSpec => ({
+  kind: 'split',
+  parts: [...rows].sort((a, b) => v(b) - v(a)).map((r, i) => ({ label: r.hall, value: v(r), color: ramp[Math.min(i, ramp.length - 1)] })),
+});
 const atRisk = (r: HallRow) => r.vac * MONEY[r.id].rent * WEEKS_LEFT;
 const rentRoll = (r: HallRow) => (r.res + r.arr) * MONEY[r.id].rent * 44;
 
@@ -314,11 +321,16 @@ export function OccupancyReport() {
         {archived && <span className="text-xs text-[#737373] whitespace-nowrap">Archived · final week only</span>}
       </Toolbar>
       <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
-        <StatStrip items={[
-          { label: 'Occupancy', value: `${occ}%`, sub: archived ? `Final week of ${year}` : `${diff >= 0 ? '+' : '−'}${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'pt' : 'pts'} vs 2025/26` },
-          { label: 'Rent roll', value: gbpM(t.roll), sub: `${fmt(t.res + t.arr)} beds let · ${year}` },
-          { label: archived ? 'Void beds at year end' : 'Void beds today', value: fmt(t.vac), color: '#F97316', sub: archived ? 'the year has ended' : `${gbp(t.risk)} rent at risk` },
-          { label: 'Held units', value: fmt(t.blk), sub: 'excluded from occupancy' },
+        <StatStrip bleed items={[
+          { label: 'Occupancy', value: `${occ}%`, sub: archived ? `Final week of ${year}` : `${diff >= 0 ? '+' : '−'}${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'pt' : 'pts'} vs 2025/26`,
+            meter: { kind: 'progress', value: t.res + t.arr, max: t.beds, target: OCC_TARGET, tip: `${occ}% · target ${OCC_TARGET}%` } },
+          /* The same blues as the chart below: in residence, then arriving. */
+          { label: 'Rent roll', value: gbpM(t.roll), sub: `${fmt(t.res + t.arr)} beds let · ${year}`,
+            meter: { kind: 'split', parts: [{ label: 'In residence', value: t.res, color: '#2563EB' }, { label: 'Arriving', value: t.arr, color: '#93C5FD' }] } },
+          /* Split by hall, largest first, so the biggest gap reads first. */
+          { label: archived ? 'Void beds at year end' : 'Void beds today', value: fmt(t.vac), sub: archived ? 'the year has ended' : `${gbp(t.risk)} rent at risk`,
+            meter: byHall(rows, (r) => r.vac, ['#C2410C', '#EA580C', '#F97316', '#FB923C', '#FDBA74']) },
+          { label: 'Held units', value: fmt(t.blk), sub: 'excluded from occupancy', meter: byHall(rows, (r) => r.blk, ['#404040', '#737373', '#A3A3A3', '#C4C4C4', '#E0E0E0']) },
           { label: 'Avg days void', value: archived ? '—' : '11.6', sub: archived ? 'kept for the current year only' : 'from release to re-let' },
         ]} />
         <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">
@@ -507,7 +519,7 @@ export function ApplicationsReport() {
       </Toolbar>
       <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
         {/* Each stage keeps its chart colour on the bar. £182 a week is the seed average rent (Collingwood's Standard single). */}
-        <StatStrip items={[...stages.map(([l, n, c]) => ({ label: l, value: fmt(n), color: c })), { label: 'Rent booked', value: gbpM(f.accepted * 182 * 44), sub: 'accepted × 44 weeks' }]} />
+        <StatStrip bleed items={[...stages.map(([l, n, c]) => ({ label: l, value: fmt(n), meter: { kind: 'progress' as const, value: n, max: f.applied, color: c, tip: `${Math.round((n / f.applied) * 100)}% of applied` } })), { label: 'Rent booked', value: gbpM(f.accepted * 182 * 44), sub: 'accepted × 44 weeks' }]} />
         <div className="rounded-xl border border-line bg-white p-5">
           <h2 className="text-sm font-semibold mb-4">From application to booking · {cycle} cycle</h2>
           <div className="space-y-3">
@@ -644,7 +656,7 @@ export function SimpleReport({ id: idProp }: { id?: string } = {}) {
       </RHeader>
       <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
       <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
-        <StatStrip items={r.tiles.map(([l, v, c, sub]) => ({ label: l, value: v, color: c, sub }))} />
+        <StatStrip bleed items={r.tiles.map(([l, v, c, sub]) => ({ label: l, value: v, color: c, sub }))} />
         <div className="rounded-xl border border-line bg-white overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="text-xs text-[#737373] border-b border-line">{r.cols.map((c, i) => <th key={c} className={cx('font-medium h-9 px-3 text-left', i === 0 && 'pl-5', RATE_COLS.has(c) && 'w-[200px]', i === r.cols.length - 1 && 'pr-5')}>{c}</th>)}</tr></thead>

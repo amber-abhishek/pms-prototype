@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { renameFrom } from './rename';
 
 /* Allocations (BMS) data: cycles, applications, offers & waitlist, bookings.
    The designs show big totals (3,410 applications, 2,216 bookings) but only a page of rows.
@@ -453,7 +454,7 @@ export const useAlloc = create<State>()(
       snap: () => pick(get()),
       restore: (d) => set(d),
     }),
-    { name: 'pms-allocations', storage: createJSONStorage(() => sessionStorage), version: 7 },
+    { name: 'pms-allocations', storage: createJSONStorage(() => sessionStorage), version: 8, migrate: renameFrom(7) as never },
   ),
 );
 

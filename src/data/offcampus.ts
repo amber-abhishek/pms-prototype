@@ -1,6 +1,7 @@
 // Off-campus (Workspace › Portals) demo data and store. Matches the Figma "Workspace — flows" frames 2829–2835.
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { renameMe } from './rename';
 
 /* ---------- Types ---------- */
 export type LandlordStatus = 'Submitted' | 'Awaiting info' | 'Approved' | 'Rejected' | 'Suspended';
@@ -168,7 +169,7 @@ export const useOc = create<State>()(
       set: (key, fn) => set((st) => ({ [key]: fn(st[key]) }) as Partial<State>),
       setPortal: (p) => set((st) => ({ portal: { ...st.portal, ...p } })),
     }),
-    { name: 'pms-offcampus', storage: createJSONStorage(() => sessionStorage) },
+    { name: 'pms-offcampus', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
   ),
 );
 

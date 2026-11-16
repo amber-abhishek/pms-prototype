@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { revertList } from './revert';
+import { renameMe } from './rename';
 
 export type ReportDef = { id: string; name: string; area: 'Inventory' | 'Allocations' | 'Finance' | 'Maintenance' | 'Residents'; desc: string; to: string };
 export const REPORTS: ReportDef[] = [
@@ -82,7 +83,7 @@ export const useWorkspace = create<WsState>()(
       set: (k, v) => set((st) => ({ [k]: typeof v === 'function' ? (v as (c: unknown) => unknown)(st[k]) : v }) as Partial<WsState>),
       restore: (p) => set(p),
     }),
-    { name: 'pms-workspace', storage: createJSONStorage(() => sessionStorage) },
+    { name: 'pms-workspace', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
   ),
 );
 export const wid = (p: string) => `${p}${Math.random().toString(36).slice(2, 8)}`;

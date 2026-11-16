@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Tone } from './seed';
+import { renameMe } from './rename';
 
 /* ---------- Types ---------- */
 export type Due = 'overdue' | 'today' | 'week';
@@ -207,7 +208,7 @@ export const useHome = create<State>()(
       rows: seedRows(),
       patch: (scope, fn) => set((s) => ({ rows: { ...s.rows, [scope]: fn(s.rows[scope]) } })),
     }),
-    { name: 'pms-home', storage: createJSONStorage(() => sessionStorage) },
+    { name: 'pms-home', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
   ),
 );
 

@@ -131,7 +131,7 @@ export function OccupancyPage() {
       </div>
 
       <div data-fill className="flex-1 overflow-auto">
-        <div className="px-[var(--tx,16px)]"><StatStrip bleed items={stats} /></div>
+        <div className="px-[var(--tx,16px)]"><StatStrip bleed compact items={stats} /></div>
 
         <div className="px-[var(--tx,16px)] pt-5 flex items-center">
           <div className="text-sm leading-5 font-medium text-[#0A0A0A]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>

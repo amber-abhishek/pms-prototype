@@ -1,15 +1,13 @@
 import { useState, type ChangeEvent } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Buildings, Camera, CheckCircle, Circle, Clock, DeviceMobile, DotsThree, Envelope, FileText, Info, Key, Lightning, ListChecks, ShieldCheck, SignIn, Users, WarningCircle } from '../../components/icons';
+import { Camera, CheckCircle, Circle, DeviceMobile, Envelope, FileText, Key, Lightning, ListChecks, ShieldCheck, SignIn, Users } from '../../components/icons';
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { hallShort, useRms, type Resident } from '../../data/residents';
-import { Avatar, Button, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, SelectFilter, SheetNavButtons, Table, Textarea, Toolbar, gbp, listNav, SheetHero, SheetSection } from '../../components/ui';
-import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
+import { Avatar, Button, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, SelectFilter, Table, Textarea, Toolbar, gbp, listNav, SheetHero, SheetSection, DL, Sheet as RecordSheet } from '../../components/ui';
 import { LineTabs } from '../inventory/common';
-import { KV, Modal, Panel, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
+import { Modal, Photo, RHeader, RadioCard, SideSheet, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
-import { kindIcon } from './Requests';
 
 const statusOf = (r: Resident) => (r.status === 'In residence' && r.arrivingThisWeek && r.checkedIn ? 'Checked in' : r.status);
 export function ResStatusPill({ r }: { r: Resident }) {
@@ -78,16 +76,15 @@ export function ResidentsList() {
 }
 
 /* ---------------- Resident detail: 3005, 3006, 3007 ---------------- */
-type DTab = 'Overview' | 'Tenancy' | 'Payments' | 'Requests' | 'Maintenance' | 'Documents' | 'Activity';
 export function ResidentDetail() {
   const { id } = useParams();
   const nav = useNavigate();
   const { residents, requests, faults } = useRms();
   const r = residents.find((x) => x.id === id);
   const stepper = listNav(shownResidents.ids.length ? shownResidents.ids : residents.map((x) => x.id), (x) => x === id, (x) => nav(`/residents/${x}`));
-  const [tab, setTab] = useState<DTab>('Overview');
   const [msg, setMsg] = useState(false);
   const checkIn = useCheckIn();
+  const [sTab, setSTab] = useState<'Overview' | 'Tenancy' | 'Requests' | 'Documents' | 'Activity'>('Overview');
   if (!r) return <Navigate to="/residents" replace />;
   const first = r.name.split(' ')[0];
   const reqs = requests.filter((q) => q.who.includes(r.name));
@@ -100,109 +97,84 @@ export function ResidentDetail() {
     { t: 'ID checked', s: 'Passport or BRP, seen at the desk on arrival', ok: !arriving },
   ];
   const done = items.filter((i) => i.ok).length;
-  /* A centred modal over the Residents list (like a property), not a page of its own. */
+  const msgUi = (
+    <Modal open={msg} onClose={() => setMsg(false)} title={`Message ${r.name}`} sub={`${r.email} · and the resident portal`}
+      footer={<><Button onClick={() => setMsg(false)}>Cancel</Button><Button variant="primary" icon={Envelope} onClick={() => { setMsg(false); toast.success(`Message sent to ${first}`); }}>Send</Button></>}>
+      <Textarea rows={4} placeholder={`Write to ${first}…`} />
+    </Modal>
+  );
+  /* The resident opens as a right-hand side sheet over the list: hero, underline tabs, titled sections. */
   return (
     <>
-      <UIDialog open onOpenChange={(o) => { if (!o) nav('/residents'); }}>
-      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:28px] [--cx:20px]">
-      <DialogHeader className="py-3">
-        <SheetNavButtons nav={stepper} />
-        <DialogTitle>Resident</DialogTitle>
-        <Button icon={Envelope} onClick={() => setMsg(true)}>Message</Button>
-        {arriving ? <Button variant="primary" icon={r.pending ? Clock : SignIn} disabled={!!r.pending} onClick={() => checkIn.start(r)}>{r.pending === 'payment' ? 'Waiting for payment' : r.pending ? 'Waiting for sign-off' : 'Check in'}</Button>
-          : <Button icon={DotsThree} onClick={() => toast('More actions', { description: 'Move room, start move-out, or add a note.' })}>More</Button>}
-        <DialogCloseButton />
-      </DialogHeader>
-      <div className="flex-1 min-h-0 overflow-auto">
-        {/* Same hero as the property modal: 64px avatar, 20px name with its tags, 14px grey meta; no rule before the tabs. */}
-        <div className="px-7 pt-6 pb-5 flex items-center gap-4">
-          <Avatar name={r.name} size={64} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h2 className="text-xl leading-7 font-medium tracking-[-0.2px] text-[#0A0A0A]">{r.name}</h2>
-              {arriving ? <Pill tone="blue" outline icon={Buildings}>Arriving {r.arrives}</Pill> : <ResStatusPill r={r} />}
-              {r.plan && <Pill tone="purple" outline>Accessibility plan</Pill>}
-              <Pill tone="blue" outline>{r.year}</Pill>
-            </div>
-            <p className="mt-1 text-sm leading-5 text-[#737373]">{r.hall} · {r.room} {r.roomType} · tenancy 19 Sep 2026 – 18 Jun 2027 · {gbp(r.rent)} / wk</p>
-          </div>
+      <RecordSheet open onClose={() => nav('/residents')} title="Resident" width={640} nav={stepper}
+        footer={<>
+          {!arriving && <Button variant="ghost" icon={null} className="mr-auto" onClick={() => toast('More actions', { description: 'Move room, start move-out, or add a note.' })}>More</Button>}
+          <Button icon={null} onClick={() => setMsg(true)}>Message</Button>
+          {arriving && <Button variant="primary" icon={null} disabled={!!r.pending} onClick={() => checkIn.start(r)}>{r.pending === 'payment' ? 'Waiting for payment' : r.pending ? 'Waiting for sign-off' : 'Check in'}</Button>}
+        </>}>
+        <SheetHero name={r.name} meta={`${r.hall} · ${r.room} ${r.roomType}`}>
+          {arriving ? <Pill tone="blue">Arriving {r.arrives}</Pill> : <ResStatusPill r={r} />}
+          {r.plan && <Pill tone="purple">Accessibility plan</Pill>}
+          <Pill tone="blue">{r.year}</Pill>
+        </SheetHero>
+        {/* Underline tabs under the hero: each tab holds its own short set of sections, no long scroll. */}
+        <div className="-mx-5">
+          <LineTabs value={sTab} onChange={setSTab} className="px-2.5" tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Requests', label: `Requests · ${reqs.length + mts.length}` }, { id: 'Documents', label: 'Documents · 4' }, { id: 'Activity', label: 'Activity' }]} />
         </div>
-        {/* Same underline tabs as the property modal. */}
-        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Payments', label: 'Payments' }, { id: 'Requests', label: `Requests · ${reqs.length}` }, { id: 'Maintenance', label: `Maintenance · ${mts.length}` }, { id: 'Documents', label: 'Documents · 4' }, { id: 'Activity', label: 'Activity' }]} />
-        <div className={['Payments', 'Requests', 'Maintenance', 'Documents'].includes(tab) ? '' : 'p-7 pt-5'}>
-          {tab === 'Overview' && (
-            <div className="grid grid-cols-[1fr_340px] gap-5 items-start">
-              <div className="space-y-5 min-w-0">
-                <Panel title="Before keys" right={`${done} of ${items.length} done`}>
-                  <div>
-                    {items.map((i) => (
-                      <div key={i.t} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
-                        {i.ok ? <CheckCircle size={20} weight="fill" className="text-[#16A34A] shrink-0" /> : <Circle size={20} className="text-gray-300 shrink-0" />}
-                        <div className="flex-1"><div className="text-sm">{i.t}</div><div className="text-xs text-gray-500">{i.s}</div></div>
-                        {!i.ok && (i.t === 'ID checked' ? <Pill tone="amber" icon={Clock}>At the desk</Pill> : i.t === 'Deposit paid' && r.pending ? <Pill tone="amber" icon={Clock}>{r.pending === 'payment' ? 'Link sent' : 'Override asked'}</Pill> : <Pill tone="red" icon={WarningCircle}>Outstanding</Pill>)}
-                      </div>
-                    ))}
-                  </div>
-                </Panel>
-                {arriving ? <Note tone="blue" icon={Info} title="Keys are released at check-in">Check-in confirms the last item, records the keys and starts {r.plan ? 'her' : 'the'} tenancy in the PMS.</Note>
-                  : r.checkedIn ? <Note tone="green" icon={CheckCircle} title={`Checked in ${r.checkedIn}`}>{r.checkInNote ?? 'Keys handed over · room condition recorded'}</Note> : null}
-              </div>
-              <Panel title="Details">
-                <KV rows={[['Resident ID', <span className="font-mono text-xs">{r.studentId}</span>], ['Email', r.email], ['Phone', r.phone], ['Course', r.course], ['Emergency contact', r.emergency], ['Application', r.application]]} />
-              </Panel>
-            </div>
-          )}
-          {tab === 'Tenancy' && <Panel title="Tenancy" className="max-w-[640px]"><KV rows={[['Room', `${r.hall} · ${r.room} ${r.roomType}`], ['Dates', '19 Sep 2026 – 18 Jun 2027 · 39 weeks'], ['Rent', `${gbp(r.rent)} / wk · ${gbp(r.rent * 39)} a year`], ['Lease', r.lease === 'Signed' ? (r.leaseNote ?? 'Signed') : 'Not signed yet'], ['Status', <ResStatusPill r={r} />]]} /></Panel>}
-          {tab === 'Payments' && (
-            <Table fill paginate={false} footer={false} rows={[
-              { id: 'dep', item: 'Deposit', due: '2 Aug', amount: 250, status: r.deposit === 'Paid' ? 'Paid' : 'Not paid' },
-              { id: 't1', item: 'Rent · term 1', due: '19 Sep', amount: r.rent * 12, status: 'Due' },
-              { id: 't2', item: 'Rent · term 2', due: '9 Jan', amount: r.rent * 13, status: 'Upcoming' },
-              { id: 't3', item: 'Rent · term 3', due: '24 Apr', amount: r.rent * 14, status: 'Upcoming' },
-            ]} cols={[
-              { key: 'i', label: 'Item', render: (x) => x.item },
-              { key: 'd', label: 'Due', render: (x) => <span className="text-gray-500">{x.due}</span> },
-              { key: 'a', label: 'Amount', render: (x) => <span className="tabular-nums">{gbp(x.amount)}</span> },
-              { key: 's', label: 'Status', render: (x) => <Pill tone={x.status === 'Paid' ? 'green' : x.status === 'Not paid' ? 'red' : x.status === 'Due' ? 'amber' : 'grey'}>{x.status}</Pill> },
-            ]} />
-          )}
-          {tab === 'Requests' && (reqs.length ? (
-            <Table fill paginate={false} footer={false} rows={reqs} onRow={(q) => nav(`/residents/requests?open=${q.id}`)} cols={[
-              { key: 'r', label: 'Ref', className: 'w-28', render: (q) => <span className="font-mono text-xs text-gray-500">{q.ref}</span> },
-              { key: 'k', label: 'Type', render: (q) => { const I = kindIcon[q.kind]; return <span className="flex items-center gap-2"><I size={16} className="text-gray-500" />{q.kind}</span>; } },
-              { key: 'd', label: 'Detail', render: (q) => <span className="text-gray-500 truncate block">{q.detail}</span> },
-              { key: 's', label: 'Status', render: (q) => <Pill tone={q.status === 'Approved' ? 'green' : q.status === 'Declined' ? 'red' : 'amber'}>{q.status}</Pill> },
-            ]} />
-          ) : <Empty art="requests" icon={ListChecks} title="No requests" sub={`Requests ${first} makes in the portal show here.`} />)}
-          {tab === 'Maintenance' && (mts.length ? (
-            <Table fill paginate={false} footer={false} rows={mts} onRow={(m) => nav(`/residents/maintenance?job=${m.id}`)} cols={[
-              { key: 'r', label: 'Ref', className: 'w-28', render: (m) => <span className="font-mono text-xs text-gray-500">{m.ref}</span> },
-              { key: 't', label: 'Fault', render: (m) => m.title },
-              { key: 's', label: 'Status', render: (m) => <Pill tone={m.status === 'Fixed' ? 'green' : 'amber'}>{m.status === 'New' ? 'Open' : m.status}</Pill> },
-            ]} />
-          ) : <Empty art="faults" icon={ListChecks} title="No faults reported" sub={`Faults ${first} reports in the portal show here.`} />)}
-          {tab === 'Documents' && (
-            <Table fill paginate={false} footer={false} rows={['Lease · signed 2 Aug', 'Deposit receipt', r.plan ? 'Accessibility plan' : 'Guarantor form', 'Offer letter · 2026/27'].map((d) => ({ id: d, d }))} cols={[
-              { key: 'd', label: 'Document', render: (x) => <span className="flex items-center gap-2"><FileText size={16} className="text-gray-500" />{x.d}</span> },
-              { key: 'v', label: '', className: 'text-right w-32', render: (x) => <Button size="sm" variant="ghost" icon={null} onClick={() => toast(`Opening ${x.d}`)}>View</Button> },
-            ]} />
-          )}
-          {tab === 'Activity' && (
-            <ul className="space-y-2 max-w-[760px] text-sm">
-              {[...(r.checkedIn ? [[`Checked in by ${r.checkedIn.split(' by ')[1] ?? 'Arjun Mehta'}`, r.checkedIn.split(' by ')[0]]] : []), ['Deposit ' + (r.deposit === 'Paid' ? 'paid' : 'requested'), '2 Aug'], ['Lease ' + (r.lease === 'Signed' ? 'signed online' : 'sent'), '2 Aug'], ['Offer accepted in Allocations', '28 Jul']].map(([w, t]) => (
-                <li key={w} className="flex items-center gap-3"><span className="size-1.5 rounded-full bg-gray-300" /><span className="flex-1">{w}</span><span className="text-gray-500">{t}</span></li>
-              ))}
-            </ul>
-          )}
+        <div className="-mx-5 px-5 pt-5">
+          {sTab === 'Overview' && <>
+            {arriving && (
+              <SheetSection title={`Before keys · ${done} of ${items.length}`}>
+                <div className="-my-2.5">
+                  {items.map((i) => (
+                    <div key={i.t} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
+                      {i.ok ? <CheckCircle size={20} weight="fill" className="text-[#16A34A] shrink-0" /> : <Circle size={20} className="text-gray-300 shrink-0" />}
+                      <div className="flex-1 min-w-0"><div className="text-sm">{i.t}</div><div className="text-xs text-gray-500 truncate">{i.s}</div></div>
+                      {!i.ok && (i.t === 'ID checked' ? <Pill tone="amber">At the desk</Pill> : <Pill tone="red">Outstanding</Pill>)}
+                    </div>
+                  ))}
+                </div>
+              </SheetSection>
+            )}
+            {!arriving && r.checkedIn && <SheetSection title="Check-in"><Note tone="green" title={`Checked in ${r.checkedIn}`}>{r.checkInNote ?? 'Keys handed over · room condition recorded'}</Note></SheetSection>}
+            <SheetSection title="Details" rows={[['Resident ID', r.studentId], ['Email', r.email], ['Phone', r.phone], ['Course', r.course], ['Emergency contact', r.emergency], ['Application', r.application]]} />
+          </>}
+          {sTab === 'Tenancy' && <>
+            <SheetSection title="Tenancy" rows={[['Dates', '19 Sep 2026 – 18 Jun 2027'], ['Rent', `${gbp(r.rent)} / wk`], ['Lease', r.lease === 'Signed' ? (r.leaseNote ?? 'Signed') : 'Not signed yet']]} />
+            <SheetSection title="Payments">
+              <DL rows={[['Deposit', r.deposit === 'Paid' ? `${gbp(250)} · paid` : `${gbp(250)} · not paid`], ['Rent · term 1', `${gbp(r.rent * 12)} · 19 Sep`], ['Rent · term 2', `${gbp(r.rent * 13)} · 9 Jan`], ['Rent · term 3', `${gbp(r.rent * 14)} · 24 Apr`]]} />
+            </SheetSection>
+          </>}
+          {sTab === 'Requests' && (reqs.length + mts.length === 0
+            ? <Empty art="requests" title="Nothing raised yet" sub={`Requests and faults ${first} reports in the portal show here.`} />
+            : <>
+            <SheetSection title={`Requests · ${reqs.length}`}>
+              {reqs.length ? <div className="-my-2.5">{reqs.map((q) => <button key={q.id} type="button" onClick={() => nav(`/residents/requests?open=${q.id}`)} className="w-full flex items-center gap-3 py-2.5 border-b border-line last:border-0 text-left text-sm"><span className="font-mono text-xs text-gray-500 w-20 shrink-0">{q.ref}</span><span className="flex-1 truncate">{q.kind}</span><Pill tone={q.status === 'Approved' ? 'green' : q.status === 'Declined' ? 'red' : 'amber'}>{q.status}</Pill></button>)}</div>
+                : <Empty art="requests" title="No requests" sub={`Requests ${first} makes in the portal show here.`} />}
+            </SheetSection>
+            <SheetSection title={`Maintenance · ${mts.length}`}>
+              {mts.length ? <div className="-my-2.5">{mts.map((m) => <button key={m.id} type="button" onClick={() => nav(`/residents/maintenance?job=${m.id}`)} className="w-full flex items-center gap-3 py-2.5 border-b border-line last:border-0 text-left text-sm"><span className="font-mono text-xs text-gray-500 w-20 shrink-0">{m.ref}</span><span className="flex-1 truncate">{m.title}</span><Pill tone={m.status === 'Fixed' ? 'green' : 'amber'}>{m.status === 'New' ? 'Open' : m.status}</Pill></button>)}</div>
+                : <Empty art="faults" title="No faults reported" sub={`Faults ${first} reports in the portal show here.`} />}
+            </SheetSection>
+          </>)}
+          {sTab === 'Documents' && <>
+            <SheetSection title="Files">
+              <div className="-my-2.5">{['Lease · signed 2 Aug', 'Deposit receipt', r.plan ? 'Accessibility plan' : 'Guarantor form', 'Offer letter · 2026/27'].map((d) => <button key={d} type="button" onClick={() => toast(`Opening ${d}`)} className="w-full flex items-center gap-2 py-2.5 border-b border-line last:border-0 text-left text-sm hover:text-primary"><FileText size={16} className="text-gray-500" />{d}</button>)}</div>
+            </SheetSection>
+          </>}
+          {sTab === 'Activity' && <>
+            <SheetSection title="Timeline">
+              <ul className="space-y-2 text-sm">
+                {[...(r.checkedIn ? [[`Checked in by ${r.checkedIn.split(' by ')[1] ?? 'Arjun Mehta'}`, r.checkedIn.split(' by ')[0]]] : []), ['Deposit ' + (r.deposit === 'Paid' ? 'paid' : 'requested'), '2 Aug'], ['Lease ' + (r.lease === 'Signed' ? 'signed online' : 'sent'), '2 Aug'], ['Offer accepted in Allocations', '28 Jul']].map(([w, t]) => (
+                  <li key={w} className="flex items-center gap-3"><span className="size-1.5 rounded-full bg-gray-300" /><span className="flex-1">{w}</span><span className="text-gray-500">{t}</span></li>
+                ))}
+              </ul>
+            </SheetSection>
+          </>}
         </div>
-      </div>
-      </DialogContent>
-      </UIDialog>
+      </RecordSheet>
       {checkIn.ui}
-      <Modal open={msg} onClose={() => setMsg(false)} title={`Message ${r.name}`} sub={`${r.email} · and the resident portal`}
-        footer={<><Button onClick={() => setMsg(false)}>Cancel</Button><Button variant="primary" icon={Envelope} onClick={() => { setMsg(false); toast.success(`Message sent to ${first}`); }}>Send</Button></>}>
-        <Textarea rows={4} placeholder={`Write to ${first}…`} />
-      </Modal>
+      {msgUi}
     </>
   );
 }

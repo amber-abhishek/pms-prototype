@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ArrowDownRight, ArrowUpRight, Building, ChartColumnIcon, ChartLine, TableIcon, type Icon } from './icons';
 import { Card, cx, Meter, Pill, TitleH1, type MeterSpec } from './ui';
+import { Tooltip, TooltipContent, TooltipTrigger } from './shadcn/tooltip';
 
 /* Overview kit in the Amber Connect language (Figma 3884:39270):
    - a white greeting band (2026-11-16; was #F5F5F5) (48px r10 photo, 18px semibold title, 16px #737373 line, actions on the right),
@@ -311,11 +312,11 @@ export const CardButton = ({ onClick, children }: { onClick: () => void; childre
  *  line (12px #737373 label over a 14px medium value) with one small outline action. */
 export function SummaryCard({ title, tag, children, foot, footValue, footTone = 'ink', action }: { title: string; tag?: ReactNode; children: ReactNode; foot: string; footValue: string; footTone?: ToneKey; action: ReactNode }) {
   return (
-    <Card className="overflow-hidden h-[259px] flex flex-col min-w-0">
+    <Card className="overflow-hidden h-[216px] flex flex-col min-w-0">
       <Strip title={title} right={tag} />
-      <div className="flex-1 min-h-0 p-5 flex flex-col">
+      <div className="flex-1 min-h-0 px-5 py-4 flex flex-col">
         <div className="flex-1 min-h-0">{children}</div>
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#E5E5E5]">
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#E5E5E5]">
           <div className="min-w-0"><div className="text-xs leading-4 text-[#737373]">{foot}</div><div className={cx('text-sm leading-5 font-medium truncate', tone[footTone])}>{footValue}</div></div>
           <div className="shrink-0">{action}</div>
         </div>
@@ -333,15 +334,67 @@ export function Stats({ items }: { items: [string, string, ToneKey?][] }) {
   );
 }
 
+/** Donut beside its legend (Applications, Rent on Overview): a 96px ring, 12px thick, 2px surface gaps between
+ *  segments, the headline in the hole; each legend row is dot · label · value. Hovering a segment or its row
+ *  lights that part and dims the rest. Every part shows at least a sliver so a small count stays visible. */
+export type DonutPart = { label: string; value: number; display?: string; color: string; tone?: ToneKey };
+export function DonutStats({ center, centerLabel, parts }: { center: string; centerLabel: string; parts: DonutPart[] }) {
+  const [hot, setHot] = useState<number | null>(null);
+  const R = 42, C = 2 * Math.PI * R, GAP = 2;
+  const total = parts.reduce((a, x) => a + x.value, 0);
+  const raw = parts.map((x) => (total ? Math.max(x.value ? 0.025 : 0, x.value / total) : 0));
+  const sum = raw.reduce((a, x) => a + x, 0) || 1;
+  let off = 0;
+  const arcs = raw.map((f) => { const len = (f / sum) * C; const a = { len, off }; off += len; return a; });
+  return (
+    <div className="flex items-center gap-6 select-none cursor-default">
+      <div className="relative size-[84px] shrink-0">
+        <svg viewBox="0 0 100 100" className="size-[84px] -rotate-90" role="img" aria-label={`${center} ${centerLabel}: ${parts.map((x) => `${x.display ?? x.value} ${x.label}`).join(', ')}`}>
+          <circle cx="50" cy="50" r={R} fill="none" strokeWidth="12" className="stroke-[#F0F0F0]" />
+          {total > 0 && arcs.map((a, i) => parts[i].value > 0 && (
+            <circle key={parts[i].label} cx="50" cy="50" r={R} fill="none" strokeWidth={hot === i ? 14 : 12} stroke={parts[i].color}
+              strokeDasharray={`${Math.max(0.5, a.len - GAP)} ${C}`} strokeDashoffset={-a.off}
+              className="transition-[opacity,stroke-width] duration-150 cursor-default" style={{ opacity: hot == null || hot === i ? 1 : 0.3 }}
+              onMouseEnter={() => setHot(i)} onMouseLeave={() => setHot(null)}>
+              <title>{`${parts[i].label}: ${parts[i].display ?? parts[i].value.toLocaleString('en-GB')}`}</title>
+            </circle>
+          ))}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="font-mono text-base leading-5 font-semibold tabular-nums text-ink">{center}</span>
+          <span className="text-[11px] leading-4 text-[#737373]">{centerLabel}</span>
+        </div>
+      </div>
+      <ul className="flex-1 min-w-0 flex flex-col gap-2">
+        {parts.map((x, i) => (
+          <li key={x.label} onMouseEnter={() => setHot(i)} onMouseLeave={() => setHot(null)}
+            className={cx('flex items-center gap-2 text-sm leading-5 select-none cursor-default transition-opacity duration-150', hot != null && hot !== i && 'opacity-40')}>
+            <span aria-hidden className="size-2 rounded-full shrink-0" style={{ background: x.color }} />
+            <span className="flex-1 min-w-0 truncate text-[#737373]">{x.label}</span>
+            <span className={cx('font-mono font-semibold tabular-nums', tone[x.tone ?? 'ink'])}>{x.display ?? x.value.toLocaleString('en-GB')}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** Big number over a segmented meter (6px, 2px gaps, r3) and its legend as tags (Needs your action, Arrivals). */
 export function Split({ value, parts }: { value: string; parts: [string, number, 'red' | 'amber' | 'grey' | 'green' | 'blue'][] }) {
   const total = parts.reduce((a, [, n]) => a + n, 0);
   const fill = { blue: '#2563EB', red: '#DC2626', amber: '#D97706', grey: '#D4D4D4', green: '#16A34A' } as const;
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="font-mono text-2xl leading-8 font-semibold tracking-[-0.72px] tabular-nums text-[#0A0A0A]">{value}</div>
-      <div className="flex gap-0.5 h-1.5">{total > 0 ? parts.map(([l, n, t]) => n > 0 && <span key={l} className="rounded-[3px]" style={{ flex: n / total, background: fill[t] }} />) : <span className="flex-1 rounded-[3px] bg-[#F5F5F5]" />}</div>
-      <div className="flex flex-wrap gap-1.5">{parts.map(([l, , t]) => <Pill key={l} tone={t}>{l}</Pill>)}</div>
+      {/* Each segment names itself on hover; the hit area is taller than the 6px bar so it's easy to reach. */}
+      <div className="flex gap-0.5">{total > 0 ? parts.map(([l, n, t]) => n > 0 && (
+        <Tooltip key={l} delayDuration={0}>
+          <TooltipTrigger asChild>
+            <span aria-label={l} className="py-2 -my-2 cursor-default group" style={{ flex: n / total }}><span className="block h-1.5 rounded-[3px] transition-opacity group-hover:opacity-80" style={{ background: fill[t] }} /></span>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={4}>{l}</TooltipContent>
+        </Tooltip>
+      )) : <span className="flex-1 h-1.5 rounded-[3px] bg-[#F5F5F5]" />}</div>
     </div>
   );
 }

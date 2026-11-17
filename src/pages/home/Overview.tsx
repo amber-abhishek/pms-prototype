@@ -7,7 +7,7 @@ import { useInv } from '../../data/inventory';
 import { useOrg } from '../../data/org';
 import { useAlloc } from '../../data/allocations';
 import { Button, ButtonGroup, Card, PageHeader, Pill, cx } from '../../components/ui';
-import { KpiCards, RankCard, Split, Stats, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
+import { DonutStats, KpiCards, RankCard, Split, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
 import { HomeBand, MenuButton } from './parts';
 import { useEmpty } from '../../data/empty';
 import { PersonPhoto } from '../../components/Logo';
@@ -73,7 +73,7 @@ function Today() {
             { label: 'Open repairs', value: String(open.length), delta: '−12%', good: true, to: '/residents/maintenance', meter: { kind: 'split', parts: [
               { label: 'Urgent', value: open.filter((f) => f.priority === 'Urgent').length, color: '#DC2626' }, { label: 'High', value: open.filter((f) => f.priority === 'High').length, color: '#F59E0B' }, { label: 'Normal', value: open.filter((f) => f.priority === 'Normal').length, color: '#D4D4D4' }] } },
           ]} />
-        <div className="p-6 flex flex-col gap-4">
+        <div className="px-6 py-5 flex flex-col gap-4">
           <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">
             <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="18 released" kind="line" chartOnly
               points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />
@@ -81,14 +81,23 @@ function Today() {
               rows={e ? [] : PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/inventory/properties?open=${h.id}` }))} />
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <SummaryCard title="Needs your action" tag={P(due[0], 'overdue')} foot={first?.due === 'overdue' ? 'Overdue' : 'Due first'} footValue={first ? first.title : 'Nothing due today'} footTone={first?.due === 'overdue' ? 'red' : 'ink'} action={<ViewLink to="/tasks" label="Open tasks" />}>
+            <SummaryCard title="Needs your action" foot={first?.due === 'overdue' ? 'Overdue' : 'Due first'} footValue={first ? first.title : 'Nothing due today'} footTone={first?.due === 'overdue' ? 'red' : 'ink'} action={<ViewLink to="/tasks" label="Open tasks" />}>
               <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} overdue`, due[0], 'red'], [`${due[1]} due today`, due[1], 'amber'], [`${due[2]} this week`, due[2], 'grey']]} />
+              {due[0] > 0 && <div className="mt-3">{P(due[0], 'overdue')}</div>}
             </SummaryCard>
             <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
-              <Stats items={e ? [['To review', '0'], ['Waiting 5d+', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5d+', '31', 'red'], ['Landlord', '4']]} />
+              <DonutStats center={e ? '0' : '163'} centerLabel="open" parts={[
+                { label: 'To review', value: e ? 0 : 128, color: '#2563EB' },
+                { label: 'Waiting 5d+', value: e ? 0 : 31, color: '#DC2626', tone: e ? 'ink' : 'red' },
+                { label: 'With landlord', value: e ? 0 : 4, color: '#8B5CF6' },
+              ]} />
             </SummaryCard>
             <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
-              <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'red'], ['Paid', '1,204']]} />
+              <DonutStats center={e ? '0%' : '85%'} centerLabel="paid" parts={[
+                { label: 'Paid', value: e ? 0 : 1204, color: '#16A34A' },
+                { label: 'Due this week', value: e ? 0 : 186, display: e ? '£0' : '£182k', color: '#2563EB' },
+                { label: 'Overdue', value: e ? 0 : 23, color: '#DC2626', tone: e ? 'ink' : 'red' },
+              ]} />
             </SummaryCard>
           </div>
         </div>

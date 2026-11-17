@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Buildings, CalendarRange, CircleDashed, Grid3x3, Hourglass, House, Prohibit, SignIn, Stack, type Icon } from '../../components/icons';
-import { Button, MultiFilter, PageHeader, SelectFilter, cx, type Tone } from '../../components/ui';
+import { Buildings, CalendarRange, Grid3x3, Stack } from '../../components/icons';
+import { Button, MultiFilter, PageHeader, SelectFilter, StatStrip, cx, type StatItem, type Tone } from '../../components/ui';
 import { useEmpty } from '../../data/empty';
 import { HALL_OCC } from '../../data/occupancy';
 import { EmptyArea } from '../allocations/common';
 import { useNavigate } from 'react-router-dom';
 import { DownloadSimple } from '../../components/icons';
+import { Seg } from './common';
+import { OccupancyTimeline, TIMELINE_EXTRA } from './OccupancyTimeline';
 
 /* Occupancy, floor plan (frame 3355:105349): hall tabs with bed counts, five stat tiles, then one
    block's floors as rows of room tiles coloured by status. */
@@ -57,13 +59,16 @@ function roomsFor(h: Hall, block: string): Room[] {
   }));
 }
 
-const ST: Record<St, { label: string; icon: Icon; tile: string; code: string; who: string; swatch: string; tone: Tone }> = {
-  in: { label: 'In residence', icon: House, tile: 'bg-[#E8F7EE] border-transparent', code: 'text-[#087A43]', who: 'text-[#404040]', swatch: 'bg-[#E8F7EE] border-[#087A43]', tone: 'green' },
-  arriving: { label: 'Arriving', icon: SignIn, tile: 'bg-[#EFF6FF] border-transparent', code: 'text-[#1F45E0]', who: 'text-[#404040]', swatch: 'bg-[#EFF6FF] border-[#1F45E0]', tone: 'blue' },
-  held: { label: 'Held for offer', icon: Hourglass, tile: 'bg-[#FFF6E0] border-transparent', code: 'text-[#9A5B00]', who: 'text-[#404040]', swatch: 'bg-[#FFF6E0] border-[#9A5B00]', tone: 'amber' },
-  vacant: { label: 'Vacant', icon: CircleDashed, tile: 'bg-white border-line', code: 'text-[#737373]', who: 'text-[#737373]', swatch: 'bg-white border-gray-400', tone: 'grey' },
-  blocked: { label: 'Blocked', icon: Prohibit, tile: 'bg-[#F5F5F5] border-transparent', code: 'text-[#525252]', who: 'text-[#404040]', swatch: 'bg-[#F5F5F5] border-gray-500', tone: 'grey' },
+/* Connect language (2026-11-17): tiles filled with a light status tint, a soft tone edge and a tone dot, mono room code;
+   no icons. Vacant is white with a dashed grey edge; blocked sits on light grey. */
+const ST: Record<St, { label: string; dot: string; tile: string; tone: Tone }> = {
+  in: { label: 'In residence', dot: '#16A34A', tile: 'border-[#16A34A]/20 bg-[#F0FDF4]', tone: 'green' },
+  arriving: { label: 'Arriving', dot: '#2563EB', tile: 'border-[#2563EB]/20 bg-[#EFF6FF]', tone: 'blue' },
+  held: { label: 'Held for offer', dot: '#F59E0B', tile: 'border-[#F59E0B]/30 bg-[#FFFBEB]', tone: 'amber' },
+  vacant: { label: 'Vacant', dot: 'transparent', tile: 'border-dashed border-[#D4D4D4] bg-white', tone: 'grey' },
+  blocked: { label: 'Blocked', dot: '#A3A3A3', tile: 'border-[#E5E5E5] bg-[#F5F5F5]', tone: 'grey' },
 };
+const Dot = ({ st }: { st: St }) => <span aria-hidden className={cx('inline-block size-2 rounded-full shrink-0', st === 'vacant' && 'ring-1 ring-inset ring-[#A3A3A3]')} style={{ background: ST[st].dot }} />;
 const ORDER: St[] = ['in', 'arriving', 'held', 'vacant', 'blocked'];
 
 function summary(rooms: Room[]) {
@@ -78,15 +83,23 @@ export function OccupancyPage() {
   /* Block is a picker (the plan shows one block at a time), not a filter; Status is the one filter and starts empty. */
   const [blockSel, setBlock] = useState('Block G');
   const [statusF, setStatusF] = useState<string[]>([]);
+  const [view, setView] = useState<'Grid' | 'Timeline'>('Timeline');
   const block = h.blocks.includes(blockSel) ? blockSel : h.blocks[0];
   const rooms = useMemo(() => roomsFor(h, block).filter((x) => !statusF.length || statusF.includes(ST[x.st].label)), [h, block, statusF]);
   const empty = useEmpty((s) => s.on);
   const nav = useNavigate();
   const pickHall = (id: string) => { const nh = HALLS.find((x) => x.id === id)!; setHid(id); setBlock(nh.blocks[0]); };
 
-  const tiles: [string, number, string][] = [
-    ['Beds', h.beds, 'text-[#0A0A0A]'], ['In residence', h.inRes, 'text-[#087A43]'], ['Arriving this week', h.arriving, 'text-[#1F45E0]'],
-    ['Vacant', h.vacant, 'text-[#E5530C]'], ['Blocked', h.blocked, 'text-[#0A0A0A]'],
+  /* The Overview / Reports number band: each figure with a thin meter in its status colour, out of the hall's beds. */
+  const share = (n: number) => `${Math.round((n / h.beds) * 100)}% of beds`;
+  const held = Math.max(0, h.beds - h.inRes - h.arriving - h.vacant - h.blocked);
+  const stats: StatItem[] = [
+    { label: 'Beds', value: h.beds.toLocaleString('en-GB'), sub: `${h.blocks.length} ${h.blocks.length === 1 ? 'block' : 'blocks'}`,
+      meter: { kind: 'split', parts: [{ label: 'In residence', value: h.inRes, color: '#16A34A' }, { label: 'Arriving', value: h.arriving, color: '#2563EB' }, { label: 'Held', value: held, color: '#F59E0B' }, { label: 'Vacant', value: h.vacant, color: '#F97316' }, { label: 'Blocked', value: h.blocked, color: '#A3A3A3' }] } },
+    { label: 'In residence', value: h.inRes.toLocaleString('en-GB'), sub: share(h.inRes), meter: { kind: 'progress', value: h.inRes, max: h.beds, color: '#16A34A', tip: share(h.inRes) } },
+    { label: 'Arriving this week', value: h.arriving.toLocaleString('en-GB'), sub: share(h.arriving), meter: { kind: 'progress', value: h.arriving, max: h.beds, color: '#2563EB', tip: share(h.arriving) } },
+    { label: 'Vacant', value: h.vacant.toLocaleString('en-GB'), sub: share(h.vacant), meter: { kind: 'progress', value: h.vacant, max: h.beds, color: '#F97316', tip: share(h.vacant) } },
+    { label: 'Blocked', value: h.blocked.toLocaleString('en-GB'), sub: share(h.blocked), meter: { kind: 'progress', value: h.blocked, max: h.beds, color: '#A3A3A3', tip: share(h.blocked) } },
   ];
 
   /* Empty-states demo: no halls yet, so no plan to show. */
@@ -112,40 +125,41 @@ export function OccupancyPage() {
           options={HALLS.map((x) => ({ value: x.id, label: x.name, meta: x.beds }))} />
         {h.blocks.length > 1 && <SelectFilter icon={Stack} width={180} value={block} onChange={setBlock} options={h.blocks.map((b) => ({ value: b }))} />}
         <div className="ml-auto flex items-center gap-3">
+          <Seg value={view} onChange={setView} options={['Timeline', 'Grid']} className="w-[180px]" />
           <MultiFilter label="Status" width={220} value={statusF} onChange={setStatusF} options={ORDER.map((st) => ({ value: ST[st].label, tone: ST[st].tone }))} />
         </div>
       </div>
 
       <div data-fill className="flex-1 overflow-auto">
-        <div className="px-[var(--tx,16px)] pt-4 grid grid-cols-5 gap-3">
-          {tiles.map(([label, v, c]) => (
-            <div key={label} className="rounded-xl border border-line bg-white px-3.5 py-2.5 flex flex-col gap-0.5">
-              <div className="text-xs leading-4 font-medium text-[#737373]">{label}</div>
-              <div className={cx('text-xl leading-7 font-semibold tabular-nums', c)}>{v.toLocaleString('en-GB')}</div>
-            </div>
-          ))}
-        </div>
+        <div className="px-[var(--tx,16px)]"><StatStrip bleed items={stats} /></div>
 
-        <div className="px-[var(--tx,16px)] pt-3.5 flex items-center">
-          <div className="text-sm leading-5 font-semibold text-[#0A0A0A]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>
+        <div className="px-[var(--tx,16px)] pt-5 flex items-center">
+          <div className="text-sm leading-5 font-medium text-[#0A0A0A]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>
           <div className="ml-auto flex items-center gap-4">
-            {ORDER.map((s) => { const I = ST[s].icon; return <span key={s} className="flex items-center gap-1.5 text-xs leading-4 text-[#737373]"><I size={14} className={ST[s].code} />{ST[s].label}</span>; })}
+            {ORDER.map((st) => <span key={st} className="flex items-center gap-1.5 text-xs leading-4 text-[#737373]"><Dot st={st} />{st === 'arriving' && view === 'Timeline' ? 'Booked' : ST[st].label}</span>)}
+            {view === 'Timeline' && <span className="flex items-center gap-1.5 text-xs leading-4 text-[#737373]"><span aria-hidden className="inline-block size-2 rounded-full" style={{ background: TIMELINE_EXTRA.dot }} />{TIMELINE_EXTRA.label}</span>}
+            {view === 'Timeline' && year === '2026/27' && <span className="flex items-center gap-1.5 text-xs leading-4 text-[#737373]"><span aria-hidden className="inline-block w-px h-3 bg-[#2563EB]" />Today</span>}
           </div>
         </div>
 
+          {view === 'Timeline' ? (
+            <div className="px-[var(--tx,16px)] py-3 pb-6">
+              <OccupancyTimeline rooms={rooms} floors={FLOORS.map(([f]) => f)} year={year} hall={h.name} />
+            </div>
+          ) : (
           <div className="px-[var(--tx,16px)] py-3 flex flex-col gap-4">
             {FLOORS.map(([floor]) => {
               const fr = rooms.filter((x) => x.floor === floor);
               if (!fr.length) return null;
               return (
                 <section key={floor} className="flex flex-col gap-2">
-                  <div className="flex items-baseline gap-2"><h3 className="text-sm leading-5 font-semibold text-[#0A0A0A]">{floor}</h3><span className="text-xs leading-4 text-[#737373]">{summary(fr)}</span></div>
+                  <div className="flex items-baseline gap-2"><h3 className="font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#0A0A0A]">{floor}</h3><span className="text-xs leading-4 text-[#737373]">{summary(fr)}</span></div>
                   <div className="grid grid-cols-10 gap-2">
                     {fr.map((x) => (
                       <button key={x.code} type="button" aria-label={`${x.code} · ${ST[x.st].label}${x.who ? ` · ${x.who}` : ''}`} onClick={() => toast(`${h.name} · ${x.code}`, { description: x.who ? `${ST[x.st].label} · ${x.who}` : ST[x.st].label })}
-                        className={cx('h-14 rounded-lg border px-2 py-1.5 flex flex-col gap-0.5 text-left text-xs leading-4 hover:ring-2 hover:ring-primary/20 transition-shadow', ST[x.st].tile)}>
-                        <span className={cx('font-semibold flex items-center gap-1', ST[x.st].code)}>{(() => { const I = ST[x.st].icon; return <I size={12} className="shrink-0" />; })()}{x.code}</span>
-                        <span className={cx('truncate', ST[x.st].who)}>{x.who ?? (x.st === 'held' ? 'Held' : ST[x.st].label)}</span>
+                        className={cx('h-14 rounded-lg border px-2.5 py-2 flex flex-col justify-between text-left hover:border-[#A3A3A3] hover:shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-[border-color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring', ST[x.st].tile)}>
+                        <span className="flex items-center gap-1.5"><span className={cx('font-mono text-xs leading-4 font-medium uppercase', x.st === 'vacant' ? 'text-[#737373]' : 'text-[#0A0A0A]')}>{x.code}</span><span className="ml-auto flex"><Dot st={x.st} /></span></span>
+                        <span className={cx('truncate text-xs leading-4', x.who ? 'text-[#404040]' : 'text-[#A3A3A3]')}>{x.who ?? (x.st === 'held' ? 'Held' : ST[x.st].label)}</span>
                       </button>
                     ))}
                   </div>
@@ -153,6 +167,7 @@ export function OccupancyPage() {
               );
             })}
           </div>
+          )}
       </div>
     </>
   );

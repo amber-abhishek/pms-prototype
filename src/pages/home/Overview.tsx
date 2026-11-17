@@ -85,7 +85,7 @@ function Today() {
               <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} overdue`, due[0], 'red'], [`${due[1]} due today`, due[1], 'amber'], [`${due[2]} this week`, due[2], 'grey']]} />
             </SummaryCard>
             <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
-              <Stats items={e ? [['To review', '0'], ['Waiting 5+ days', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5+ days', '31', 'red'], ['Landlord', '4']]} />
+              <Stats items={e ? [['To review', '0'], ['Waiting 5d+', '0'], ['Landlord', '0']] : [['To review', '128'], ['Waiting 5d+', '31', 'red'], ['Landlord', '4']]} />
             </SummaryCard>
             <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
               <Stats items={e ? [['Due this week', '£0'], ['Overdue', '0'], ['Paid', '0']] : [['Due this week', '£182k'], ['Overdue', '23', 'red'], ['Paid', '1,204']]} />

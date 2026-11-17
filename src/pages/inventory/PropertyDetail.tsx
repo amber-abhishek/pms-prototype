@@ -40,6 +40,8 @@ export function PropertyDetail() {
   const [importOpen, setImportOpen] = useState(false);
   const [archiveAsk, setArchiveAsk] = useState(false);
   const fees = useInv((s) => s.fees);
+  const unitEdits = useInv((s) => s.unitEdits);
+  const asModal = new URLSearchParams(loc.search).get('view') === 'modal';
 
   // Rooms build in the background after Create property; tick the progress until done.
   const building = !!p?.build && p.build.done < p.build.total;
@@ -98,6 +100,177 @@ export function PropertyDetail() {
   ];
   const doneCount = setupRows.filter((r) => r.ok).length;
 
+  const extras = (
+    <>
+      <Modal open={archiveAsk} onClose={() => setArchiveAsk(false)} icon={Archive} width={440} title={`Archive ${p.name}?`}
+        sub={p.liveTenancies > 0 ? `${p.liveTenancies} tenancies are live, so it can’t be archived yet. Close it to allocations first, from the Properties list.` : 'It leaves Inventory and can’t be booked. You can undo straight after.'}
+        footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations…</Button></>
+          : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
+      {/* E2: not ready to go active */}
+      <Modal open={checks} onClose={() => setChecks(false)} icon={WarningCircle} tone="amber" title={`${short} can’t go active yet`} sub="Do everything below first." width={520}
+        footer={<><Button onClick={() => setChecks(false)}>Later</Button>{(() => { const f = problems.find((x) => !x.ok); return f ? <Button variant="primary" onClick={() => { setChecks(false); setTab(f.tab); }}>Fix the {f.title.toLowerCase()}</Button> : null; })()}</>}>
+        <div className="rounded-xl border border-line divide-y divide-line">
+          {problems.map((x) => (
+            <div key={x.title} className="h-11 px-3.5 flex items-center gap-2.5 text-sm">
+              {x.ok ? <CheckCircle size={17} weight="fill" className="text-[#16A34A]" /> : <WarningCircle size={17} weight="fill" className="text-[#E0243A]" />}
+              <span className="font-medium flex-1">{x.title}</span><span className={x.ok ? 'text-[#737373]' : 'text-[#E0243A]'}>{x.ok ? x.okText : x.fail}</span>
+            </div>
+          ))}
+        </div>
+      </Modal>
+      <WardenPhoneDialog p={p} open={phoneOpen} onClose={() => setPhoneOpen(false)} onDone={() => { setPhoneOpen(false); goActive(); }} />
+      <LettingDialog p={p} open={lettingOpen} onClose={() => setLettingOpen(false)} />
+      <EditSheet p={p} which={editOpen} onClose={() => setEditOpen(null)} />
+      <ChangeRentSheet p={p} rt={rentFor} onClose={() => setRentFor(null)} />
+      <ImportRoomsSheet p={p} open={importOpen} onClose={() => setImportOpen(false)} />
+    </>
+  );
+  const moreMenu = (
+    <Menu width={200} align="left" trigger={(o) => <Button variant="ghost" icon={null} onClick={o}>More</Button>} items={[
+      { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
+      { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
+      { label: 'Tenancy pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
+      'sep',
+      { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
+    ]} />
+  );
+  /* Default: a 640px right-hand side sheet over the Properties list (like a resident). ?view=modal keeps the centred modal. */
+  if (!asModal) return (
+    <>
+      <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={640} nav={stepper}
+        footer={<>
+          <div className="mr-auto">{moreMenu}</div>
+          <Button icon={null} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>
+          {p.status === 'Draft' && <Button variant="primary" icon={null} onClick={activate}>Make active…</Button>}
+        </>}>
+        <div className="pb-5 flex items-center gap-3">
+          {photoOf(p.id)
+            ? <img src={photoOf(p.id)} alt="" className="size-12 shrink-0 rounded-lg border border-line object-cover bg-[#F5F5F5]" />
+            : <div className="size-12 shrink-0 rounded-lg bg-[#F5F5F5] border border-line flex items-center justify-center"><Image size={20} className="text-[#94A3B8]" /></div>}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2"><span className="text-xl leading-7 font-medium text-ink truncate">{p.name}</span><PropStatus s={p.status} /></div>
+            <div className="text-sm leading-5 text-gray-500 truncate">{p.campus} campus · {p.address || 'No address'}</div>
+          </div>
+        </div>
+        {/* Tags sit in the hero, visible on every tab, with Add tag at the end of the row. */}
+        <div className="-mt-1 pb-5 flex flex-wrap gap-1.5 items-center">
+          {p.tags.map((t) => <Tags key={t.label} tags={[t]} />)}
+          <span className={p.tags.length ? 'ml-2' : 'ml-1.5'}><Menu align="left" width={180} trigger={(o) => <EditLink onClick={o}>{p.tags.length ? 'Add tag' : 'Add a tag'}</EditLink>}
+            items={TAG_CHOICES.filter((t) => !p.tags.some((x) => x.label === t.label)).map((t) => ({ label: t.label, icon: TagIcon, onClick: () => { patchProp(p.id, (x) => ({ tags: [...x.tags, t] })); toast.success(`Tagged ${t.label}`); } }))} /></span>
+        </div>
+        <div className="-mx-5">
+          <LineTabs className="px-2.5" value={tab} onChange={setTab} tabs={[
+            { id: 'overview', label: 'Overview' }, { id: 'units', label: `Units · ${p.units}` }, { id: 'tenancies', label: 'Tenancies' }, { id: 'photos', label: 'Photos' }, { id: 'activity', label: 'Activity' },
+          ]} />
+        </div>
+        {tab === 'overview' && (
+          <div className="-mx-5 px-5 pt-5">
+            {building && (
+              <div className="mb-5">
+                <div className="flex items-center gap-3">
+                  <CircleNotch size={18} className="text-primary animate-spin" />
+                  <div className="flex-1 text-sm font-medium">Creating {p.build!.total} rooms and their tenancies</div>
+                  <span className="text-sm tabular-nums">{p.build!.done} / {p.build!.total}</span>
+                </div>
+                <Progress value={(p.build!.done / p.build!.total) * 100} className="mt-3" />
+              </div>
+            )}
+            {p.pendingRows ? <div className="mb-5"><Note tone="amber" icon={Warning} title={`${p.pendingRows} rows still to add`}>Fix them and import again from the Units tab.</Note></div> : null}
+            <SheetSection title={`Set-up · ${doneCount} of 5`}>
+              <div className="-my-2.5">
+                {setupRows.map((r) => (
+                  <div key={r.k} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
+                    {r.ok ? <span className="size-5 rounded-full bg-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" className="text-white" /></span> : <span className="size-5 rounded-full border border-dashed border-gray-400 shrink-0" />}
+                    <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{r.k}</span><span className="block text-xs leading-4 text-[#737373] truncate">{r.v}</span></span>
+                    <EditLink onClick={r.go} />
+                  </div>
+                ))}
+              </div>
+            </SheetSection>
+            <SheetSection title="Details" rows={[
+              ['Letting period', <span className="inline-flex items-center gap-2">{p.letting}<EditLink onClick={() => setLettingOpen(true)}>Change</EditLink></span>],
+              ['Layout', `${p.structure} · ${p.structure === 'College' ? 5 : 2} levels`],
+              ['Inventory no.', p.invNo || '—'],
+              ['Zone', p.zone || '—'],
+              ['Units', String(p.units)],
+              ['Created', `${p.createdBy} · ${p.created}`],
+            ]} />
+          </div>
+        )}
+        {tab === 'units' && (
+          <div className="-mx-5 px-5 pt-5">
+            {p.blocks.length ? <>
+              <SheetSection title={`Blocks · ${p.blocks.length}`}>
+                <div className="-my-2.5">
+                  {p.blocks.map((b) => {
+                    const t = templates.find((x) => x.name === b.roomType);
+                    return (
+                      <div key={b.name} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
+                        <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{b.name}</span><span className="block text-xs leading-4 text-[#737373] truncate">{p.structure === 'House' ? '' : `${b.floors} floors · `}{b.rooms} rooms · {b.roomType}</span></span>
+                        <span className="text-sm text-[#737373] tabular-nums">{p.tenancies === false ? 'No tenancy' : t ? `${money(t.rent)} / ${per(p)} · ${t.weeks} wk` : '—'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </SheetSection>
+              <SheetSection title="Rooms">
+                <div className="-my-2.5">
+                  {allUnits(p, unitEdits).slice(0, 12).map((u) => (
+                    <button key={u.id} type="button" onClick={() => nav(`/inventory/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)} className="w-full flex items-center gap-3 py-2.5 border-b border-line last:border-0 text-left text-sm hover:bg-[#FAFAFA]">
+                      <span className="font-mono text-xs w-16 shrink-0">{u.code}</span><span className="flex-1 truncate text-[#737373]">{u.block} · {u.type}</span><PropStatus s={u.status} />
+                    </button>
+                  ))}
+                </div>
+                {p.units > 12 && <button type="button" className="mt-4 text-sm text-primary" onClick={() => nav(`/inventory/units?p=${p.id}`)}>See all {p.units} in Inventory</button>}
+              </SheetSection>
+            </> : <div className="-mx-5 -mt-5"><UnitsTab p={p} onImport={() => setImportOpen(true)} /></div>}
+          </div>
+        )}
+        {tab === 'tenancies' && (
+          <div className="-mx-5 px-5 pt-5">
+            {p.tenancies === false && <div className="mb-5"><Note tone="amber" icon={WarningCircle} title="These rooms have no tenancy yet">Apply a template to each room type first.</Note></div>}
+            <SheetSection title="Room types">
+              <div className="-my-2.5">
+                {p.roomTypes.map((r) => (
+                  <div key={r.name} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
+                    <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{r.name}</span><span className="block text-xs leading-4 text-[#737373] truncate">{r.rooms} rooms · {r.rent == null ? <span className="text-[#E0243A]">No rent</span> : `${money(r.rent)} / ${per(p)}`}{r.next ? ` → ${money(r.next.rent)} from ${r.next.from}` : ''}</span></span>
+                    <Button size="sm" icon={null} onClick={() => setRentFor(r)}>Change rent</Button>
+                  </div>
+                ))}
+                {!p.roomTypes.length && <p className="py-2.5 text-sm text-[#737373]">No room types yet</p>}
+              </div>
+            </SheetSection>
+            <SheetSection title={`Templates · ${templates.length}`}>
+              {templates.length ? <div className="-my-2.5">
+                {templates.map((t) => (
+                  <div key={t.id} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
+                    <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{t.name}</span><span className="block text-xs leading-4 text-[#737373] truncate">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.linked} linked</span></span>
+                    <PropStatus s={t.status} />
+                  </div>
+                ))}
+              </div> : <p className="text-sm text-[#737373]">No templates for {short} yet.</p>}
+              <button type="button" onClick={() => nav('/inventory/rent-fees')} className="mt-4 text-sm text-primary">Tenancy pricing</button>
+            </SheetSection>
+          </div>
+        )}
+        {tab === 'photos' && <div className="-mx-5 -mb-5"><PhotosTab p={p} narrow /></div>}
+        {tab === 'activity' && (
+          <div className="-mx-5 px-5 pt-5">
+            <SheetSection title="Timeline">
+              <div className="-my-2.5">
+                {p.activity.map((a, i) => (
+                  <div key={i} className="py-2.5 flex items-center gap-3 border-b border-line last:border-0">
+                    <Avatar name={a.who} size={24} /><span className="text-sm flex-1 min-w-0"><span className="text-ink">{a.who}</span> <span className="text-[#737373]">{a.what.charAt(0).toLowerCase() + a.what.slice(1)}</span></span><span className="text-sm text-[#737373] shrink-0">{a.when}</span>
+                  </div>
+                ))}
+              </div>
+            </SheetSection>
+          </div>
+        )}
+      </Sheet>
+      {extras}
+    </>
+  );
   return (
     <>
       {/* A centred modal over the Properties list, like Add property: the Connect header band (record type, actions, ✕), then the property. */}
@@ -118,10 +291,6 @@ export function PropertyDetail() {
         <DialogCloseButton />
       </DialogHeader>
 
-      <Modal open={archiveAsk} onClose={() => setArchiveAsk(false)} icon={Archive} width={440} title={`Archive ${p.name}?`}
-        sub={p.liveTenancies > 0 ? `${p.liveTenancies} tenancies are live, so it can’t be archived yet. Close it to allocations first, from the Properties list.` : 'It leaves Inventory and can’t be booked. You can undo straight after.'}
-        footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations…</Button></>
-          : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
       <div className="flex-1 min-h-0 overflow-auto flex flex-col">
         {/* 2822:71: 64px grey photo tile, 20px semibold title, 14px #737373 meta with 14px grey-400 icons and · separators. */}
         <div className="px-6 pt-6 pb-5 flex items-center gap-4">
@@ -257,23 +426,7 @@ export function PropertyDetail() {
       </DialogContent>
       </UIDialog>
 
-      {/* E2: not ready to go active */}
-      <Modal open={checks} onClose={() => setChecks(false)} icon={WarningCircle} tone="amber" title={`${short} can’t go active yet`} sub="Do everything below first." width={520}
-        footer={<><Button onClick={() => setChecks(false)}>Later</Button>{(() => { const f = problems.find((x) => !x.ok); return f ? <Button variant="primary" onClick={() => { setChecks(false); setTab(f.tab); }}>Fix the {f.title.toLowerCase()}</Button> : null; })()}</>}>
-        <div className="rounded-xl border border-line divide-y divide-line">
-          {problems.map((x) => (
-            <div key={x.title} className="h-11 px-3.5 flex items-center gap-2.5 text-sm">
-              {x.ok ? <CheckCircle size={17} weight="fill" className="text-[#16A34A]" /> : <WarningCircle size={17} weight="fill" className="text-[#E0243A]" />}
-              <span className="font-medium flex-1">{x.title}</span><span className={x.ok ? 'text-[#737373]' : 'text-[#E0243A]'}>{x.ok ? x.okText : x.fail}</span>
-            </div>
-          ))}
-        </div>
-      </Modal>
-      <WardenPhoneDialog p={p} open={phoneOpen} onClose={() => setPhoneOpen(false)} onDone={() => { setPhoneOpen(false); goActive(); }} />
-      <LettingDialog p={p} open={lettingOpen} onClose={() => setLettingOpen(false)} />
-      <EditSheet p={p} which={editOpen} onClose={() => setEditOpen(null)} />
-      <ChangeRentSheet p={p} rt={rentFor} onClose={() => setRentFor(null)} />
-      <ImportRoomsSheet p={p} open={importOpen} onClose={() => setImportOpen(false)} />
+      {extras}
     </>
   );
 }
@@ -396,7 +549,7 @@ function ImportRoomsSheet({ p, open, onClose }: { p: Property; open: boolean; on
 }
 
 /* ---------------- F3: photos and description ---------------- */
-function PhotosTab({ p }: { p: Property }) {
+function PhotosTab({ p, narrow }: { p: Property; narrow?: boolean }) {
   const patchProp = useInv((s) => s.patchProp);
   const [photos, setPhotos] = useState(p.photos);
   const [desc, setDesc] = useState(p.description);
@@ -412,7 +565,7 @@ function PhotosTab({ p }: { p: Property }) {
   };
   return (
     <div className="flex flex-col flex-1">
-      <div className="p-6 grid grid-cols-[1fr_340px] gap-5 items-start flex-1">
+      <div className={cx('grid gap-5 items-start flex-1', narrow ? 'p-5' : 'p-6 grid-cols-[1fr_340px]')}>
         <div className="space-y-5 min-w-0">
           <Card>
             <div className="h-14 px-4 flex items-center gap-3 border-b border-[#F5F5F5]"><div className="min-w-0"><div className="text-sm leading-5 font-semibold">Photos</div><div className="mt-1 text-xs leading-4 text-[#737373] truncate">{photos ? `${photos} · the first is the cover` : 'None yet'}</div></div><Button size="sm" icon={UploadSimple} className="ml-auto" onClick={() => setPhotos(photos ? photos + 1 : 7)}>Add photos</Button></div>

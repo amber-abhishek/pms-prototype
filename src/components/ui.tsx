@@ -329,10 +329,11 @@ export function Meter({ m }: { m: MeterSpec }) {
  *  `meter` along the foot where the number has one (a stat without one leaves the row empty). `bleed` runs it edge to
  *  edge across a page's side padding. */
 export type StatItem = { label: string; value: ReactNode; sub?: ReactNode; color?: string; good?: boolean; meter?: MeterSpec };
-export function StatStrip({ items, className, bleed }: { items: StatItem[]; className?: string; bleed?: boolean }) {
+/** `compact`: 24px numbers and tighter gaps, for a page where the strip sits above a big view (Occupancy). */
+export function StatStrip({ items, className, bleed, compact }: { items: StatItem[]; className?: string; bleed?: boolean; compact?: boolean }) {
   const anyMeter = items.some((it) => it.meter);
   return (
-    <div className={cx('grid border-y border-[#E5E5E5] py-5', bleed ? '-mx-[var(--tx,16px)] px-[var(--tx,16px)]' : '', className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+    <div className={cx('grid border-y border-[#E5E5E5]', compact ? 'py-4' : 'py-5', bleed ? '-mx-[var(--tx,16px)] px-[var(--tx,16px)]' : '', className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
       {items.map((it, i) => {
         const s = typeof it.sub === 'string' ? it.sub : null;
         const dir = s && /^[+▲]/.test(s) ? 'up' : s && /^[−▼-]/.test(s) ? 'down' : null;
@@ -341,8 +342,8 @@ export function StatStrip({ items, className, bleed }: { items: StatItem[]; clas
         return (
           <div key={it.label} className={cx('min-w-0 flex flex-col', i > 0 && 'pl-6 border-l border-dashed border-[#E5E5E5]', i < items.length - 1 && 'pr-6')}>
             <div className="text-sm leading-5 text-[#737373] truncate">{it.label}</div>
-            <div className="mt-1 font-mono text-[32px] leading-10 font-semibold tracking-[-0.02em] tabular-nums text-[#0A0A0A] truncate">{it.value}</div>
-            <div className="mt-4 h-5 flex items-center gap-1 text-sm leading-5 text-[#404040] whitespace-nowrap min-w-0">
+            <div className={cx('mt-1 font-mono font-semibold tracking-[-0.02em] tabular-nums text-[#0A0A0A] truncate', compact ? 'text-2xl leading-8' : 'text-[32px] leading-10')}>{it.value}</div>
+            <div className={cx(compact ? 'mt-1' : 'mt-4', 'h-5 flex items-center gap-1 text-sm leading-5 text-[#404040] whitespace-nowrap min-w-0')}>
               {dir ? <>
                 <span className={cx('flex items-center gap-1 font-semibold tabular-nums', good ? 'text-[#16A34A]' : 'text-[#DC2626]')}>
                   <svg width="8" height="6" viewBox="0 0 8 6" aria-hidden className={dir === 'up' ? '' : 'rotate-180'}><path d="M4 0 8 6H0z" fill="currentColor" /></svg>
@@ -351,7 +352,7 @@ export function StatStrip({ items, className, bleed }: { items: StatItem[]; clas
                 <span className="truncate">{rest.join(' ')}</span>
               </> : <span className="truncate text-[#737373]">{it.sub}</span>}
             </div>
-            {anyMeter && <div className="mt-auto pt-5 h-[24px]">{it.meter && <Meter m={it.meter} />}</div>}
+            {anyMeter && <div className={cx('mt-auto', compact ? 'pt-3 h-[16px]' : 'pt-5 h-[24px]')}>{it.meter && <Meter m={it.meter} />}</div>}
           </div>
         );
       })}

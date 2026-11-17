@@ -201,10 +201,12 @@ function BookingSheet({ b, onClose, onSend, onRemind, onSigned, withUndo , nav }
             ))}
           </ol>
           {(b.signedOn || (b.leaseSent && b.lease === 'Sent')) && (
-            <dl className="mt-4 grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
-              {b.signedOn && <><dt className="text-gray-500">Signed</dt><dd className="text-ink">{b.signedOn}</dd></>}
-              {b.leaseSent && b.lease === 'Sent' && <><dt className="text-gray-500">Lease sent</dt><dd className="text-ink">{b.leaseSent} · {b.reminders ?? 0} reminders</dd></>}
-            </dl>
+            <div className="mt-5">
+              <DL rows={[
+                ...(b.signedOn ? [['Signed', b.signedOn] as [string, string]] : []),
+                ...(b.leaseSent && b.lease === 'Sent' ? [['Lease sent', `${b.leaseSent} · ${b.reminders ?? 0} reminders`] as [string, string]] : []),
+              ]} />
+            </div>
           )}
         </SheetSection>
       )}

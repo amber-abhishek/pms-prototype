@@ -179,7 +179,9 @@ export function OccupancyTimeline({ rooms, floors, year, hall }: { rooms: TlRoom
                   <span className="font-mono text-[11px] leading-4 text-[#737373] tabular-nums">{fr.length}</span>
                 </button>
                 <div className="relative flex items-center gap-4 px-3 text-xs leading-4 text-[#737373]">
-                  <span>{n('in')} in residence</span><span>{n('arriving')} arriving</span>{n('held') > 0 && <span>{n('held')} held</span>}<span>{n('vacant')} vacant</span>{n('blocked') > 0 && <span>{n('blocked')} blocked</span>}
+                  {([['in', 'in residence', FILL.in], ['arriving', 'arriving', FILL.booked], ['held', 'held', FILL.held], ['vacant', 'vacant', ''], ['blocked', 'blocked', FILL.blocked]] as [TlStatus, string, string][])
+                    .filter(([k]) => n(k) > 0 || k === 'in' || k === 'arriving' || k === 'vacant')
+                    .map(([k, label, c]) => <span key={k} className="flex items-center gap-1.5"><span aria-hidden className={cx('size-1.5 rounded-full', !c && 'border border-[#A3A3A3]')} style={c ? { background: c } : undefined} />{n(k)} {label}</span>)}
                 </div>
               </div>
               {!closed && <div className="relative">

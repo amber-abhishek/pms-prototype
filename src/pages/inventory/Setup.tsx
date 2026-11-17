@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Empty } from '../../components/ui';
+import { Avatar, Empty } from '../../components/ui';
 import { photoOf } from './photos';
 import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
@@ -33,7 +33,7 @@ export function StructuresPage() {
               { key: 'n', label: 'Layout', render: (s) => <span className="font-semibold">{s.name}</span> },
               { key: 'l', label: 'Levels', render: (s) => <Levels s={s} /> },
               { key: 'p', label: 'Properties', render: (s) => <span className={cx('inline-flex items-center gap-1.5 tabular-nums', !s.properties && 'text-gray-400')}>{s.properties}{s.properties > 0 && <Lock size={13} className="text-[#A3A3A3]" aria-label="In use: levels are fixed" />}</span> },
-              { key: 'u', label: 'Updated', render: (s) => <span className="text-[#737373]">{s.updated}</span> },
+              { key: 'u', label: 'Updated', render: (s) => { const [who, when] = s.updated.split(' · '); return <span className="inline-flex items-center gap-2 min-w-0"><Avatar name={who} size={24} /><span className="text-[#0A0A0A] truncate">{who}</span>{when && <span className="text-[#737373] whitespace-nowrap">· {when}</span>}</span>; } },
             ]} />
       <StructureSheet s={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
     </>

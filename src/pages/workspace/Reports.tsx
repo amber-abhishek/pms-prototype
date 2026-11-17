@@ -17,7 +17,8 @@ import { useRms, type Fault } from '../../data/residents';
 import { REPORTS, badgeLabel, scheduleUndo, useWorkspace, whenLabel, wid, type Recipient, type ReportDef, type Schedule } from '../../data/workspace';
 import { EmptyState, Header, IconSelect, RowMenu } from '../org/parts';
 import { useEmpty } from '../../data/empty';
-import { Empty } from '../../components/ui';
+import { Card, Empty } from '../../components/ui';
+import { Strip } from '../../components/overview';
 import { Dialog, DialogCloseButton, DialogContent, DialogTitle } from '../../components/shadcn/dialog';
 
 /** Empty-states demo: a report with nothing to count yet. */
@@ -334,53 +335,58 @@ export function OccupancyReport() {
           { label: 'Avg days void', value: archived ? '—' : '11.6', sub: archived ? 'kept for the current year only' : 'from release to re-let' },
         ]} />
         <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">
-        <div className="rounded-xl border border-line bg-white p-4 min-w-0">
-          <div className="flex items-center"><h2 className="text-sm font-semibold">{view === 'By week' ? 'Beds filled by week' : 'Beds filled by hall'}</h2>
-            <span className="ml-auto flex items-center gap-4 text-xs text-[#737373]"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#2563EB]" />In residence</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#93C5FD]" />Arriving</span></span></div>
-          <div className="mt-4 h-[180px] border-b border-line flex items-end justify-around px-6">
+        {/* Connect cards (2026-11-17): r16, a #FAFAFA mono strip, 20px body, as on the Overview. */}
+        <Card className="overflow-hidden min-w-0">
+          <Strip title={view === 'By week' ? 'Beds filled by week' : 'Beds filled by hall'}
+            right={<span className="flex items-center gap-4 text-xs text-[#737373]"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#2563EB]" />In residence</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#93C5FD]" />Arriving</span></span>} />
+          <div className="p-5">
+          <div className="h-[180px] border-b border-line flex items-end justify-around px-6">
             {bars.map((b) => (
               <div key={b.label} className="flex flex-col items-center w-11">
-                <span className="text-xs font-medium mb-1.5">{b.pct}%</span>
+                <span className="font-mono text-xs font-medium tabular-nums mb-1.5">{b.pct}%</span>
                 <div className="w-11 rounded-t-md bg-[#93C5FD]" style={{ height: b.arr }} />
                 <div className="w-11 bg-[#2563EB]" style={{ height: b.res }} />
               </div>
             ))}
           </div>
-          <div className="flex justify-around px-6 mt-2">{bars.map((b) => <span key={b.label} className="w-11 text-center text-xs text-[#737373] whitespace-nowrap">{b.label}</span>)}</div>
-        </div>
-        <div className="rounded-xl border border-line bg-white overflow-hidden flex flex-col">
-          <div className="h-12 px-4 flex items-center border-b border-line"><h2 className="text-sm font-semibold">Voids by property</h2>{!archived && <span className="ml-auto text-xs text-[#737373]">{WEEKS_LEFT} weeks left on the tenancy</span>}</div>
+          <div className="flex justify-around px-6 mt-2">{bars.map((b) => <span key={b.label} className="w-11 text-center font-mono uppercase text-[11px] leading-4 text-[#737373] whitespace-nowrap">{b.label}</span>)}</div>
+          </div>
+        </Card>
+        <Card className="overflow-hidden flex flex-col">
+          <Strip title="Voids by property" right={!archived && <span className="font-mono text-xs uppercase tracking-[0.48px] text-[#737373]">{WEEKS_LEFT} weeks left</span>} />
           <table className="w-full text-sm">
-            <thead><tr className="text-xs text-[#737373] border-b border-line bg-[#FAFAFA]">
-              <th className="text-left font-medium h-9 pl-4">Property</th><th className="text-left font-medium px-3">Void beds</th><th className="text-left font-medium px-3">Most void type</th><th className="text-left font-medium px-3 pr-4">{archived ? 'Rent lost' : 'Rent at risk'}</th>
+            <thead><tr className="font-mono uppercase tracking-[0.48px] text-xs font-medium text-[#737373] border-b border-line bg-white [&>th]:bg-white">
+              <th className="text-left font-medium h-9 pl-5">Property</th><th className="text-left font-medium px-3">Void beds</th><th className="text-left font-medium px-3">Most void type</th><th className="text-left font-medium px-3 pr-5">{archived ? 'Rent lost' : 'Rent at risk'}</th>
             </tr></thead>
             <tbody>{voids.map((r) => (
               <tr key={r.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => openHall(r.id)}>
-                <td className="h-10 pl-4 font-medium">{r.hall}</td>
+                <td className="h-10 pl-5 font-medium">{r.hall}</td>
                 <td className="px-3 tabular-nums">{r.vac}</td>
                 <td className="px-3 text-[#737373]">{MONEY[r.id].type}</td>
-                <td className="px-3 pr-4 font-semibold tabular-nums">{gbp(atRisk(r))}</td>
+                <td className="px-3 pr-5 font-semibold tabular-nums">{gbp(atRisk(r))}</td>
               </tr>
             ))}</tbody>
           </table>
+        </Card>
         </div>
-        </div>
-        <div className="rounded-xl border border-line bg-white overflow-hidden">
+        <Card className="overflow-hidden">
+          <Strip title="Halls" right={<span className="font-mono text-xs uppercase tracking-[0.48px] text-[#737373]">{rows.length} {rows.length === 1 ? 'hall' : 'halls'}</span>} />
           <table className="w-full text-sm">
-            <thead><tr className="text-xs font-medium text-[#737373] border-b border-line">
-              <th className="text-left font-medium h-9 pl-5">Hall</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked', 'Rent roll', 'Rent at risk'].map((h) => <th key={h} className="text-left font-medium px-3">{h}</th>)}<th className="text-left font-medium px-3 pr-5 w-[220px]">Filled</th>
+            <thead><tr className="font-mono uppercase tracking-[0.48px] text-xs font-medium text-[#737373] border-b border-line bg-white [&>th]:bg-white">
+              <th className="text-left font-medium h-9 pl-5">Hall</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked', 'Rent roll', 'Rent at risk'].map((h) => <th key={h} className="text-left font-medium px-3">{h}</th>)}<th className="text-left font-medium px-3 pr-5">Filled</th>
             </tr></thead>
-            <tbody>{rows.map((r) => { const p = pct(r); return (
+            {/* Filled is a plain percentage; only the hall with the most rent at risk is red. */}
+            <tbody>{rows.map((r) => { const p = pct(r); const worst = Math.max(...rows.map(atRisk)); return (
               <tr key={r.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => openHall(r.id)}>
-                <td className="h-10 pl-5 font-medium">{r.hall}</td>
-                {[r.beds, r.res, r.arr, r.vac, r.blk].map((v, i) => <td key={i} className="px-3 tabular-nums">{fmt(v)}</td>)}
-                <td className="px-3 tabular-nums">{gbpM(rentRoll(r))}</td>
-                <td className="px-3 tabular-nums text-[#B91C1C]">{gbp(atRisk(r))}</td>
-                <td className="px-3 pr-5"><span className="flex items-center gap-2"><span className="w-[107px] h-1.5 rounded-full bg-[#F5F5F5] overflow-hidden"><span className="block h-full rounded-full bg-[#0B8A4C]" style={{ width: `${p}%` }} /></span><span className="text-xs text-[#737373]">{p}%</span></span></td>
+                <td className="h-11 pl-5 font-medium">{r.hall}</td>
+                {[r.beds, r.res, r.arr, r.vac, r.blk].map((v, i) => <td key={i} className={cx('px-3 font-mono tabular-nums', v === 0 && 'text-[#A3A3A3]')}>{fmt(v)}</td>)}
+                <td className="px-3 font-mono tabular-nums">{gbpM(rentRoll(r))}</td>
+                <td className={cx('px-3 font-mono tabular-nums', atRisk(r) === worst && rows.length > 1 ? 'text-[#B91C1C] font-medium' : 'text-[#0A0A0A]')}>{gbp(atRisk(r))}</td>
+                <td className="px-3 pr-5 font-mono tabular-nums">{p}%</td>
               </tr>
             ); })}</tbody>
           </table>
-        </div>
+        </Card>
       </div>
       {sheet && <ScheduleSheet id={viewId} hall={hall} by={view} existing={mine} onClose={() => setSheet(false)} />}
     </>

@@ -44,7 +44,7 @@ export function RequestsList() {
       {f.hall?.length === 1 && rows.length > 0 && <div className="shrink-0 -mt-1 pb-4 px-[calc(var(--gx,16px)+var(--cx,12px))] text-xs leading-4 text-[#737373]">Showing {f.hall[0]}, the halls you look after</div>}
       <Table rows={rows} onRow={(r) => setOpen(r.id)} selected={open ?? undefined} sort={{ key: 'wt', dir: oldest ? 'desc' : 'asc', onToggle: () => setOldest((o) => !o) }}
         empty={<Empty art="requests" icon={ArrowsLeftRight} title={tab === 'Open' ? 'No open requests' : `No ${tab === 'Waiting' ? 'requests waiting on a resident' : tab.toLowerCase() + ' requests'}`}
-          sub="Room swaps, guests and early arrivals residents ask for."
+          sub="Room swaps, guests and early arrivals show here."
           action={tab !== 'Approved' && <Button icon={Check} onClick={() => setTab('Approved')}>See approved</Button>} />}
         cols={[
           { key: 'ref', label: 'Ref', className: 'w-[90px]', render: (r) => <span className="font-mono text-xs text-gray-500">{r.ref}</span> },

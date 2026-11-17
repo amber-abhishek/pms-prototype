@@ -96,7 +96,7 @@ export function Profile() {
               <div role="group" aria-label="Theme" className="flex gap-0.5 p-[3px] rounded-lg bg-[#F5F5F5]">
                 {THEMES.map(({ id, label, Icon }) => (
                   <button key={id} type="button" aria-pressed={mode === id} onClick={() => setMode(id)}
-                    className={cx('h-6 px-2.5 rounded-md flex items-center gap-1.5 text-sm leading-5 outline-none focus-visible:ring-2 focus-visible:ring-ring', mode === id ? 'bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-[#737373] hover:text-[#0A0A0A]')}>
+                    className={cx('h-6 px-2.5 rounded-[5px] flex items-center gap-1.5 text-sm leading-5 outline-none focus-visible:ring-2 focus-visible:ring-ring', mode === id ? 'bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-[#737373] hover:text-[#0A0A0A]')}>
                     <Icon size={16} strokeWidth={1.5} />{label}
                   </button>
                 ))}

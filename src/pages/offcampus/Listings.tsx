@@ -69,7 +69,7 @@ function HmoTab() {
         <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Paused', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} /></div>
       </div>)}
       <Table fill rows={rows} footer={false}
-        empty={hmos.length ? (t ? <Empty art="noResults" title="No listing matches that search" /> : <Empty art="nothingToShow" title={`No ${tab} listings`} />) : <Empty art="properties" title="No landlord listings yet" sub="Listings show here once landlords are approved and add their houses." />}
+        empty={hmos.length ? (t ? <Empty art="noResults" title="No listing matches that search" /> : <Empty art="nothingToShow" title={`No ${tab} listings`} />) : <Empty art="properties" title="No landlord listings yet" sub="Approved landlords’ houses show here." />}
         cols={[
           { key: 'no', label: 'S.No.', className: 'w-14', render: (h) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(h) + 1}</span> },
           /* Same cell as Properties and Listing reviews: 120×64 photo, 16px medium name, 14px grey line under it. */
@@ -158,7 +158,7 @@ function PbsaTab() {
       <div className="mt-3 flex-1 min-h-0 flex flex-col">
         {view === 'hidden' ? (
           <Table fill rows={hiddenHere.map((h) => ({ ...h, id: h.ref }))}
-            empty={<Empty art="getStarted" title={`No partner halls in ${c.name} are hidden`} sub="Every partner hall here shows on your portal." />}
+            empty={<Empty art="getStarted" title="No hidden partner halls" sub="All partner halls show on your portal." />}
             cols={[
               { key: 'no', label: 'S.No.', className: 'w-14', render: (h) => <span className="font-mono text-xs text-[#737373] tabular-nums">{hiddenHere.findIndex((x) => x.ref === h.ref) + 1}</span> },
               { key: 'r', label: 'Partner hall listing', render: (h) => {
@@ -183,7 +183,7 @@ function PbsaTab() {
           </div>
         ) : !rows.length ? (
           <div className="flex-1 flex items-center justify-center">
-            <Empty art="nothingHere" title="No partner halls yet" sub={`Partner halls in ${region} show here once they're listed with Amber.`}
+            <Empty art="nothingHere" title="No partner halls yet" sub={`Halls listed with Amber in ${region} show here.`}
               action={<Link to="/offcampus/portal"><Button>Open Off-campus portal</Button></Link>} />
           </div>
         ) : (

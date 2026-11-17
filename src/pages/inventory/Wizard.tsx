@@ -292,7 +292,7 @@ export function AddPropertyWizard() {
                   <div className="rounded-xl border border-[#E5E5E5] px-4 py-3 flex items-center gap-3">
                     <span className="size-7 rounded-md flex items-center justify-center shrink-0 bg-[#D97706]/10 text-[#9A5B00]"><Receipt size={16} strokeWidth={1.5} /></span>
                     <div className="flex-1 min-w-0"><div className="text-sm font-medium text-[#0A0A0A]">Organisation-wide fees apply</div><div className="text-xs text-[#737373]">Contents insurance · £45 per tenancy</div></div>
-                    <button type="button" onClick={() => nav('/inventory/rent-fees?tab=fees')} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Rent and fees</button>
+                    <button type="button" onClick={() => nav('/inventory/rent-fees?tab=fees')} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Tenancy pricing</button>
                   </div>
                 </div>
               )}

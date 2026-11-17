@@ -130,7 +130,7 @@ export function CustomFieldsPage() {
               /* Numbered in list order, so a search renumbers what's left. */
               { key: 'no', label: 'S.No.', className: 'w-14', render: (f) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(f) + 1}</span> },
               { key: 'n', label: 'Field', render: (f) => <span><span className="block font-medium text-[#0A0A0A] leading-[18px]">{f.name}</span><span className="block text-xs leading-4 text-[#2563EB] font-mono">{f.key}</span></span> },
-              { key: 't', label: 'Type', render: (f) => <span className="text-[#737373]">{f.type}</span> },
+              { key: 't', label: 'Answer type', render: (f) => <span className="text-[#737373]">{f.type.replace(/^(Pick one · \d+)$/, '$1 options')}</span> },
               { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <Pill key={a} tone={lookOf(a.split(' › ').pop() ?? '')[1]}>{a}</Pill>)}</span> },
             ]} />
       <FieldSheet f={open} no={open && open !== 'new' ? rows.findIndex((x) => x.id === open.id) + 1 : 0} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
@@ -160,7 +160,8 @@ function FieldSheet({ f, no, onClose , nav }: { nav?: SheetNav; f: CField | 'new
   const save = () => {
     if (busy.current || !name.trim() || nameErr) return;
     busy.current = true;
-    const t = type === 'Pick one' ? 'Pick one · 3' : type;
+    /* A pick-one field shows how many choices it has; an existing one keeps its count. */
+    const t = type !== 'Pick one' ? type : !isNew && f.type.startsWith('Pick one') ? f.type : 'Pick one · 3 options';
     useInv.getState().set('fields', (l) => (isNew ? [...l, { id: invId('cf'), name: name.trim(), key, type: t, attached }] : l.map((x) => (x.id === f.id ? { ...x, name: name.trim(), type: t, attached } : x))));
     onClose();
     toast.success(isNew ? `${name.trim()} field created` : `${name.trim()} saved`);
@@ -175,7 +176,7 @@ function FieldSheet({ f, no, onClose , nav }: { nav?: SheetNav; f: CField | 'new
         <SheetSection title="Field">
         <div className="space-y-4">
         <Field label="Name" hint={key ? `Key: ${isNew ? key : f.key}` : undefined}><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Warden phone" /><FieldErr>{nameErr}</FieldErr></Field>
-        <Field label="Type"><Picker value={type} onChange={setType} options={TYPES.map((t) => ({ id: t, label: t }))} /></Field>
+        <Field label="Answer type"><Picker value={type} onChange={setType} options={TYPES.map((t) => ({ id: t, label: t }))} /></Field>
         </div>
         </SheetSection>
         <SheetSection title="Attached to">
@@ -266,8 +267,10 @@ export function TagsPage() {
             cols={[
               { key: 'no', label: 'S.No.', className: 'w-14', render: (t) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(t) + 1}</span> },
               { key: 'n', label: 'Tag', render: (t) => <Pill tone={t.tone} outline>{t.label}</Pill> },
-              { key: 'u', label: 'Used on', render: (t) => { const u = used(t); return <span className="text-[#737373]">{u.length ? `${u.length} ${u.length === 1 ? 'property' : 'properties'}` : 'Not used yet'}</span>; } },
-              { key: 'p', label: 'Properties', render: (t) => <span className="text-[#737373] truncate block max-w-[420px]">{used(t).map((p) => p.name).join(', ') || '—'}</span> },
+              /* One column: the property names say the count too. Past three, the rest fold into "+N" (title has them all). */
+              { key: 'u', label: 'Used on', render: (t) => { const u = used(t).map((p) => p.name); return u.length
+                ? <span className="text-[#737373] truncate block" title={u.join(', ')}>{u.slice(0, 3).join(', ')}{u.length > 3 && <span className="tabular-nums text-[#A3A3A3]"> +{u.length - 3}</span>}</span>
+                : <span className="text-gray-400">Not used yet</span>; } },
             ]} />
       <TagSheet t={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} usedOn={open && open !== 'new' ? used(open) : []} onClose={() => setOpen(null)} />
     </>

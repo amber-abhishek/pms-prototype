@@ -173,7 +173,7 @@ export function ResidentDetail() {
               { key: 'd', label: 'Detail', render: (q) => <span className="text-gray-500 truncate block">{q.detail}</span> },
               { key: 's', label: 'Status', render: (q) => <Pill tone={q.status === 'Approved' ? 'green' : q.status === 'Declined' ? 'red' : 'amber'}>{q.status}</Pill> },
             ]} />
-          ) : <Empty art="requests" icon={ListChecks} title="No requests" sub={`Room swaps, guests and early arrivals ${first} asks for in the portal show here.`} />)}
+          ) : <Empty art="requests" icon={ListChecks} title="No requests" sub={`Requests ${first} makes in the portal show here.`} />)}
           {tab === 'Maintenance' && (mts.length ? (
             <Table fill paginate={false} footer={false} rows={mts} onRow={(m) => nav(`/residents/maintenance?job=${m.id}`)} cols={[
               { key: 'r', label: 'Ref', className: 'w-28', render: (m) => <span className="font-mono text-xs text-gray-500">{m.ref}</span> },

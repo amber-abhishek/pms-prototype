@@ -93,7 +93,7 @@ export function OccupancyPage() {
   if (empty) return (
     <>
       <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Inventory']} />
-      <EmptyArea art="noData" icon={Grid3x3} title="No rooms to show yet" sub="Add a property and its rooms, and who lives where shows here.">
+      <EmptyArea art="noData" icon={Grid3x3} title="No rooms to show yet" sub="Add properties and rooms to see who lives where.">
         <Button variant="primary" onClick={() => nav('/inventory/properties')}>Add a property</Button>
       </EmptyArea>
     </>

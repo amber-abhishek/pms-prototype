@@ -64,7 +64,7 @@ export function EmptyState({ title, sub, children, art }: { icon: Icon; title: s
   return (
     <div className="flex flex-col items-center text-center py-16 px-6">
       <Illustration name={art ?? artFor(title)} className="block w-[254px] h-[200px] mb-5" />
-      <div className="text-sm font-semibold">{title}</div>
+      <div className="text-base leading-6 font-medium">{title}</div>
       <p className="text-sm text-[#737373] mt-1.5 max-w-[420px] leading-5">{sub}</p>
       {children && <div className="mt-4 flex items-center gap-2">{children}</div>}
     </div>

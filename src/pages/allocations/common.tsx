@@ -91,7 +91,7 @@ export function EmptyArea({ title, sub, children, art }: { icon: Icon; title: st
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
       <Illustration name={art ?? artFor(title)} className="block w-[254px] h-[200px] mb-5" />
-      <div className="text-base font-semibold">{title}</div>
+      <div className="text-base leading-6 font-medium">{title}</div>
       {sub && <div className="text-sm text-gray-500 mt-1.5 max-w-md">{sub}</div>}
       {children && <div className="mt-5 flex gap-2">{children}</div>}
     </div>

@@ -22,7 +22,7 @@ import { Dialog, DialogCloseButton, DialogContent, DialogTitle } from '../../com
 
 /** Empty-states demo: a report with nothing to count yet. */
 function NoReportData({ icon, title }: { icon: Icon; title: string }) {
-  return <><RHeader icon={icon} title={title} /><div className="flex-1 flex items-center justify-center"><Empty icon={icon} title="No data yet" sub="Numbers show here once there are halls, applications and residents." /></div></>;
+  return <><RHeader icon={icon} title={title} /><div className="flex-1 flex items-center justify-center"><Empty icon={icon} title="No data yet" sub="Numbers appear once halls and residents are added." /></div></>;
 }
 
 const AREA_ICON: Record<string, Icon> = { occupancy: Bed, applications: FunnelIcon, rent: CurrencyGbp, sla: Wrench, requests: ChatCircleText, notices: Megaphone };
@@ -330,7 +330,7 @@ export function OccupancyReport() {
           /* Split by hall, largest first, so the biggest gap reads first. */
           { label: archived ? 'Void beds at year end' : 'Void beds today', value: fmt(t.vac), sub: archived ? 'the year has ended' : `${gbp(t.risk)} rent at risk`,
             meter: byHall(rows, (r) => r.vac, ['#C2410C', '#EA580C', '#F97316', '#FB923C', '#FDBA74']) },
-          { label: 'Held units', value: fmt(t.blk), sub: 'excluded from occupancy', meter: byHall(rows, (r) => r.blk, ['#404040', '#737373', '#A3A3A3', '#C4C4C4', '#E0E0E0']) },
+          { label: 'Held units', value: fmt(t.blk), sub: 'excluded from occupancy', meter: byHall(rows, (r) => r.blk, ['#6D28D9', '#7C3AED', '#8B5CF6', '#A78BFA', '#C4B5FD']) },
           { label: 'Avg days void', value: archived ? '—' : '11.6', sub: archived ? 'kept for the current year only' : 'from release to re-let' },
         ]} />
         <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">

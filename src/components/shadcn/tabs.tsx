@@ -12,7 +12,8 @@ const Tabs = TabsPrimitive.Root
 /* 3755:15922: white, 1px #E5E5E5, two soft drops. */
 /* Amber Connect segmented control: white r7, one soft drop, no edge. */
 /* Connect segmented control (Settings sub-tabs): #F5F5F5 track, 4px inset and gap, r10; the selected segment is white r10 with a 0 1px 3px drop. */
-/* Connect 2.0 "Advance Tabs" (3095:16041): the selected tab is white r10 with 0 1 2 -1 and 0 1 3 0 drops at 10%. */
+/* Connect 2.0 "Advance Tabs" (3095:16041): the selected tab is white with 0 1 2 -1 and 0 1 3 0 drops at 10%.
+   Its radius is r6, concentric with the r10 track: outer radius minus the 4px inset (2026-11-17). */
 const PILL = "bg-background shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)]"
 /** `slide`: true = the raised pill slides; "underline" = a 2px blue bar slides along the bottom; false = no slider. */
 type Slide = boolean | "underline"
@@ -63,7 +64,7 @@ const TabsList = React.forwardRef<
       {slide && pill && (
         <span
           aria-hidden
-          className={cn("pointer-events-none absolute left-0 top-0", slide === "underline" ? "z-[1] bg-[#2563EB]" : cn("rounded-[10px]", PILL))}
+          className={cn("pointer-events-none absolute left-0 top-0", slide === "underline" ? "z-[1] bg-[#2563EB]" : cn("rounded-md", PILL))}
           style={{
             width: pill.w,
             height: slide === "underline" ? 2 : pill.h,
@@ -89,7 +90,7 @@ const TabsTrigger = React.forwardRef<
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        /* 24px tabs, 6px radius (track radius minus the 4px inset), 14px medium; the selected one is raised white (the sliding pill, or its own fill) */ "relative group inline-flex h-7 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] px-3 py-1 font-mono uppercase text-sm leading-5 font-medium text-[#0A0A0A] transition-colors duration-150 outline-none [html[data-kbd]_&:focus-visible]:ring-2 [html[data-kbd]_&:focus-visible]:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-[#0A0A0A]",
+        /* 24px tabs, 6px radius (track radius minus the 4px inset), 14px medium; the selected one is raised white (the sliding pill, or its own fill) */ "relative group inline-flex h-7 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 font-mono uppercase text-sm leading-5 font-medium text-[#0A0A0A] transition-colors duration-150 outline-none [html[data-kbd]_&:focus-visible]:ring-2 [html[data-kbd]_&:focus-visible]:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-[#0A0A0A]",
         !slide && "data-[state=active]:bg-background data-[state=active]:shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)]",
         className
       )}

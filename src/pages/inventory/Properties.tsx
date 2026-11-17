@@ -125,8 +125,8 @@ export function PropertiesPage() {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="max-w-md text-center">
             <EmptyArt />
-            <div className="font-semibold mt-5">No properties yet</div>
-            <p className="text-sm text-[#737373] mt-1">Build one from a layout, or import its rooms from a spreadsheet.</p>
+            <div className="text-base leading-6 font-medium mt-5">No properties yet</div>
+            <p className="text-sm text-[#737373] mt-1">Build one from a layout or import a spreadsheet.</p>
             <div className="flex justify-center gap-2 mt-4">
               <Button variant="primary" icon={Plus} onClick={() => nav('/inventory/properties/new')}>Add a property</Button>
               <Button icon={UploadSimple} onClick={() => setImport(true)}>Import from a spreadsheet</Button>

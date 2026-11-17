@@ -83,7 +83,7 @@ export const modules: Module[] = [
         { label: 'Property layouts', to: '/inventory/structures', icon: Stack },
         { label: 'Custom fields', to: '/inventory/custom-fields', icon: TextCursorInput },
         { label: 'Tags', to: '/inventory/tags', icon: Tag },
-        { label: 'Rent and fees', to: '/inventory/rent-fees', icon: Wallet },
+        { label: 'Tenancy pricing', to: '/inventory/rent-fees', icon: Wallet },
         { label: 'Imports', to: '/inventory/imports', icon: FileArrowUp },
       ] },
     ],

@@ -632,7 +632,7 @@ export function Empty({ title, sub, action, art }: { title: string; sub?: string
     /* Centred in whatever space it is given (a table body, a tab, a page), never pinned to the top. */
     <div className="h-full min-h-[360px] py-14 flex flex-col items-center justify-center text-center">
       <Illustration name={art ?? artFor(title)} className="block w-[254px] h-[200px] mb-5" />
-      <div className="text-sm font-semibold text-[#0A0A0A]">{title}</div>
+      <div className="text-base leading-6 font-medium text-[#0A0A0A]">{title}</div>
       {sub && <div className="text-sm leading-5 text-[#737373] mt-1 max-w-[440px]">{sub}</div>}
       {action && <div className="mt-4 flex gap-2">{action}</div>}
     </div>

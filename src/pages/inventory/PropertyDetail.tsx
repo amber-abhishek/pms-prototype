@@ -127,7 +127,7 @@ export function PropertyDetail() {
   );
   const moreMenu = (
     <Menu width={200} align="left" trigger={(o) => <Button variant="ghost" icon={null} onClick={o}>More</Button>} items={[
-      { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
+      ...(p.status === 'Draft' ? [{ label: 'Open in Inventory', icon: ListDashes, onClick: () => nav(`/inventory/units?p=${p.id}`) }] : []),
       { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
       { label: 'Tenancy pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
       'sep',
@@ -137,11 +137,14 @@ export function PropertyDetail() {
   /* Default: a 640px right-hand side sheet over the Properties list (like a resident). ?view=modal keeps the centred modal. */
   if (!asModal) return (
     <>
-      <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={640} nav={stepper}
+      <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={576} nav={stepper}
         footer={<>
           <div className="mr-auto">{moreMenu}</div>
-          <Button icon={null} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>
-          {p.status === 'Draft' && <Button variant="primary" icon={null} onClick={activate}>Make active…</Button>}
+          <Button icon={PencilSimple} onClick={() => setEditOpen('basics')}>Edit</Button>
+          {/* Two buttons at most on the right: a draft's main action replaces Open in Inventory (which moves to More). */}
+          {p.status === 'Draft'
+            ? <Button variant="primary" icon={CheckCircle} onClick={activate}>Make active…</Button>
+            : <Button icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>}
         </>}>
         <div className="pb-5 flex items-center gap-3">
           {photoOf(p.id)
@@ -512,7 +515,7 @@ function ImportRoomsSheet({ p, open, onClose }: { p: Property; open: boolean; on
     toast.success(`141 rooms built in ${short} · all Draft`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ blocks: p.blocks, units: p.units, tenancies: p.tenancies, pendingRows: p.pendingRows, counts: p.counts, roomTypes: p.roomTypes })) } });
   };
   return (
-    <Sheet open={open} onClose={onClose} width={640} title={`Import ${short} rooms`} sub="One row per room · st-marys-rooms.csv"
+    <Sheet open={open} onClose={onClose} width={576} title={`Import ${short} rooms`} sub="One row per room · st-marys-rooms.csv"
       footer={stage === 'pick' ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => setStage('check')}>Check the file</Button></> : <><Button onClick={() => setStage('pick')}>Choose another file</Button><Button variant="primary" onClick={run}>Import 141 rooms</Button></>}>
       {stage === 'pick' ? (
         <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
@@ -712,7 +715,7 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
       { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ roomTypes: old })) } });
   };
   return (
-    <Sheet open onClose={onClose} title={`Change rent · ${rt.name}`} sub={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`} width={480}
+    <Sheet open onClose={onClose} width={576} title={`Change rent · ${rt.name}`} sub={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!rentErr || !!fromErr} onClick={save}>{apply === 'new' ? `Save ${money(+rent || 0)} for new tenancies` : `Save ${money(+rent || 0)} for all`}</Button></>}>
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="New rent">
@@ -750,7 +753,7 @@ function EditSheet({ p, which, onClose }: { p: Property; which: null | 'basics' 
     toast.success(which === 'address' ? `${name.trim()} address saved` : `${name.trim()} details saved`);
   };
   return (
-    <Sheet open={!!which} onClose={onClose} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!nameErr} onClick={save}>Save</Button></>}>
+    <Sheet open={!!which} onClose={onClose} width={576} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!nameErr} onClick={save}>Save</Button></>}>
       {which === 'basics' ? (
         <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
           <SheetSection title="Details">

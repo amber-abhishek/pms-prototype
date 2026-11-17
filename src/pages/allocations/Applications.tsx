@@ -9,7 +9,7 @@ import { useOpen, useTab } from '../hooks';
 import { DisplayButton, EmptyArea, Foot, Grid, Ini, Person, Pop, St, type C } from './common';
 import { AppDetail, statusLabel, type Pref } from './AppDetail';
 import { AllocateSheet, AutoAllocateDialog, RejectDialog } from './AppSheets';
-import { applyFilters, describe, fieldsFor, FilterPanel, type Filters } from './filters';
+import { applyFilters, fieldsFor, FilterPanel, type Filters } from './filters';
 
 type TabId = 'To review' | 'Flagged' | 'Allocated' | 'Rejected' | 'All';
 const LEGACY: Record<string, TabId> = { 'Manual review': 'Flagged', New: 'To review', 'In review': 'To review', Offered: 'Allocated', Accepted: 'Allocated', Waitlisted: 'All', Declined: 'Rejected' };
@@ -77,13 +77,13 @@ export function Applications() {
         </Toolbar>
       )}
       {notOpenYet ? (
-        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={`Applications for ${cycleSel!.name} open on ${cycleSel!.opens}. They arrive here once the application form is published on the on-campus portal.`}>
+        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={`Applications open on ${cycleSel!.opens}.`}>
           <Button variant="primary" onClick={() => toast('The form builder opens on the on-campus portal', { description: `Application form ${cycleSel!.name} · Draft` })}>Open the form</Button>
           <Button onClick={() => { void navigator.clipboard?.writeText('https://accommodation.durham.ac.uk/apply'); toast.success('Portal link copied'); }}>Copy portal link</Button>
         </EmptyArea>
       ) : !d.apps.length ? (
         /* First login: nothing has come in yet, whatever the tab. The next step is a cycle to apply to. */
-        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={d.cycles.length ? 'Applications arrive here once residents apply through the on-campus portal.' : 'Open a cycle, and applications arrive here once residents apply through the on-campus portal.'}>
+        <EmptyArea art="applications" icon={Tray} title="No applications yet" sub={d.cycles.length ? 'Applications show here once residents apply.' : 'Open a cycle to start taking applications.'}>
           {d.cycles.length
             ? <Button onClick={() => { void navigator.clipboard?.writeText('https://accommodation.durham.ac.uk/apply'); toast.success('Portal link copied'); }}>Copy portal link</Button>
             : <Button variant="primary" onClick={() => nav('/allocations/cycles?new=1')}>Open a cycle</Button>}
@@ -186,8 +186,8 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
       {sel ? (
         <AppDetail key={sel.id} a={sel} onAllocate={(p) => setAllocating({ a: sel, p })} onReject={() => setRejecting(sel)} onAfter={() => after(sel)} />
       ) : (
-        <EmptyArea icon={FunnelX} title={tab === 'To review' ? 'No applications match these filters' : 'No applications match'}
-          sub={lastField ? `${describe(lastField, fs.vals[last])} leaves nothing. Without it, ${without} application${without === 1 ? '' : 's'} match${without === 1 ? 'es' : ''}.` : 'Try another search.'}>
+        <EmptyArea icon={FunnelX} title="No applications match"
+          sub={lastField ? `Without ${lastField.label.toLowerCase()}, ${without} match.` : 'Try another search.'}>
           {lastField && <Button variant="primary" onClick={() => { const vals = { ...fs.vals }; delete vals[last]; setFs({ vals, order: fs.order.filter((o) => o !== last) }); }}>Remove {lastField.label}</Button>}
           <Button onClick={() => setFs(defaults)}>Clear all filters</Button>
         </EmptyArea>
@@ -257,7 +257,7 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex-1 overflow-auto">
-        {order.length ? <Grid cols={numbered} fill={cols.length >= 6} rows={shown} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} sort={tab === 'All' ? { key: 'sub', dir: newest ? 'desc' : 'asc', onToggle: () => setNewest((v) => !v) } : undefined} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()} for these filters`} sub="Clear a filter to see more." />}
+        {order.length ? <Grid cols={numbered} fill={cols.length >= 6} rows={shown} onRow={(a) => setOpen(a.id)} selected={open} hidden={hiddenCols[tab]} sort={tab === 'All' ? { key: 'sub', dir: newest ? 'desc' : 'asc', onToggle: () => setNewest((v) => !v) } : undefined} /> : <EmptyArea icon={Tray} title={`Nothing in ${tab.toLowerCase()}`} sub="Clear a filter to see more." />}
       </div>
       {/* The footer every table page has: the count on the left, the numbered pager on the right. */}
       <Foot right={pages > 1 && <Pager pages={pages} page={page} onPage={setPage} />}>{pages > 1 && `Showing ${shown.length} of ${fmtN(order.length)} entries`}</Foot>

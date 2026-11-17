@@ -3,7 +3,7 @@ import { Empty } from '../../components/ui';
 import { toast } from 'sonner';
 import { Bed, Buildings, CalendarBlank, CurrencyGbp, DoorOpen, Globe, Info, Key, Money, PencilSimple, Plus, Receipt, Shield, ShieldCheck, Shower, Sun, Tag as TagIcon, Warning, type Icon } from '../../components/icons';
 import type { Tone } from '../../data/seed';
-import { Button, Field, IconTile, Input, PageHeader, Sheet, SheetSection, Switch, Table, Tabs, cx, listNav, type SheetNav, Toolbar } from '../../components/ui';
+import { Button, Confirm, Field, IconTile, Input, PageHeader, Sheet, SheetSection, Switch, Table, Tabs, cx, listNav, type SheetNav, Toolbar } from '../../components/ui';
 import { invId, money, useInv, type Fee, type FeeType, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { FieldErr, Modal, MoneyInput, Picker, PropStatus, RadioCard, Seg, isMoney, moneyErr, rangeErr } from './common';
@@ -27,13 +27,15 @@ export function RentFeesPage() {
   const [adding, setAdding] = useState(false);
   const [typesOpen, setTypesOpen] = useState(false);
   const [fresh, setFresh] = useState<string | null>(null);
+  const [feeId, setFeeId] = useState<string | null>(null);
+  const fee = fees.find((f) => f.id === feeId) ?? null;
   const p = props.find((x) => x.id === pid);
   const tpls = allTpl.filter((t) => t.propertyId === pid);
   const pname = (id: string | null) => (id ? props.find((x) => x.id === id)?.name ?? '—' : 'Organisation-wide');
 
   return (
     <>
-      <PageHeader icon={CurrencyGbp} title="Rent and fees" crumbs={['Inventory']}>
+      <PageHeader icon={CurrencyGbp} title="Tenancy pricing" crumbs={['Inventory']}>
         {tab === 'templates' ? <Button variant="primary" icon={Plus} onClick={() => newTemplate()}>New template</Button> : (
           <><Button icon={TagIcon} onClick={() => setTypesOpen(true)}>Fee types</Button><Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add fee</Button></>
         )}
@@ -54,9 +56,9 @@ export function RentFeesPage() {
             { key: 'k', label: 'Linked tenancies', render: (t) => <span className="block tabular-nums"><span className="block leading-5">{t.linked}</span>{t.own ? <span className="block text-xs leading-4 text-[#737373]">{t.own} on own terms</span> : null}</span> },
             { key: 's', label: 'Status', render: (t) => <PropStatus s={t.status} /> },
           ]}
-          empty={!p ? <Empty title="No properties yet" sub="Tenancy templates belong to a property. Add one first." /> : <div className="p-10 text-center text-sm text-[#737373]">No templates for {p?.name}. <button type="button" className="text-primary" onClick={() => newTemplate()}>Make one</button></div>} />
+          empty={!p ? <Empty title="No properties yet" sub="Add a property first to create templates." /> : <div className="p-10 text-center text-sm text-[#737373]">No templates for {p?.name}. <button type="button" className="text-primary" onClick={() => newTemplate()}>Make one</button></div>} />
       ) : (
-        <Table rows={fees} selected={fresh ?? undefined}
+        <Table rows={fees} onRow={(f) => setFeeId(f.id)} selected={feeId ?? fresh ?? undefined}
           cols={[
             { key: 'f', label: 'Fee', render: (f) => { const n = feeTypes.find((t) => t.id === f.typeId)?.name; const [I, tone] = feeIcon(n); return <span className="flex items-center gap-2.5"><IconTile icon={I} tone={tone} /><span className="font-medium">{n}</span></span>; } },
             { key: 'c', label: 'Calculation', render: (f) => <span className="text-[#737373]">{feeTypes.find((t) => t.id === f.typeId)?.calc}</span> },
@@ -69,6 +71,7 @@ export function RentFeesPage() {
       )}
       <TemplateSheet key={editing?.id} t={editing} isNew={!!editing && !allTpl.some((x) => x.id === editing.id)} siblings={tpls} nav={listNav(tpls, (x) => x.id === editing?.id, (x) => setEditing(x))} onClose={() => setEditing(null)} />
       <AddFeeDialog open={adding} onClose={() => setAdding(false)} onAdded={(id) => { setFresh(id); window.setTimeout(() => setFresh(null), 4000); }} />
+      <FeeSheet key={fee?.id} f={fee} nav={listNav(fees, (x) => x.id === feeId, (x) => setFeeId(x.id))} onClose={() => setFeeId(null)} />
       <FeeTypesSheet open={typesOpen} onClose={() => setTypesOpen(false)} types={feeTypes} />
     </>
   );
@@ -148,6 +151,63 @@ function DateBox({ value, onChange }: { value: string; onChange: (v: string) => 
   return <label className="h-8 flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 text-sm"><CalendarBlank size={14} className="text-gray-400" /><input value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 min-w-0 outline-none" /></label>;
 }
 
+/* A fee's stored amount is display text ("£45", "5% of rent", "£10 each"); these two convert both ways. */
+const feeAmount = (calc: FeeType['calc'], n: string) => (calc === 'Percentage' ? `${n}% of rent` : calc === 'Per unit' ? `£${n} each` : `£${n}`);
+const feeNumber = (amount: string) => amount.match(/[\d.]+/)?.[0] ?? '';
+
+/* ---------------- Edit or remove an existing fee ---------------- */
+function FeeSheet({ f, nav, onClose }: { f: Fee | null; nav?: SheetNav; onClose: () => void }) {
+  const feeTypes = useInv((s) => s.feeTypes);
+  const allProps = useInv((s) => s.properties);
+  const props = useMemo(() => allProps.filter((p) => p.status !== 'Archived'), [allProps]);
+  const [scope, setScope] = useState<'org' | 'one'>(f?.appliesTo ? 'one' : 'org');
+  const [pid, setPid] = useState(f?.appliesTo ?? props[0]?.id ?? '');
+  const [on, setOn] = useState<Fee['chargedOn']>(f?.chargedOn ?? 'Each tenancy');
+  const [amount, setAmount] = useState(f ? feeNumber(f.amount) : '');
+  const [removing, setRemoving] = useState(false);
+  const busy = useRef(false);
+  const type = feeTypes.find((t) => t.id === f?.typeId);
+  if (!f || !type) return null;
+  const amountErr = type.calc === 'Percentage' ? (!isMoney(amount) || +amount <= 0 || +amount > 100 ? 'Enter a percentage between 0 and 100.' : '') : moneyErr(amount, 'an amount');
+  const save = () => {
+    if (busy.current || amountErr) return;
+    busy.current = true;
+    const next: Fee = { ...f, amount: feeAmount(type.calc, amount), appliesTo: scope === 'org' ? null : pid, chargedOn: on };
+    useInv.getState().set('fees', (l) => l.map((x) => (x.id === f.id ? next : x)));
+    onClose();
+    toast.success(`${type.name} saved`);
+  };
+  const remove = () => {
+    useInv.getState().set('fees', (l) => l.filter((x) => x.id !== f.id));
+    setRemoving(false);
+    onClose();
+    toast.success(`${type.name} removed`);
+  };
+  return (
+    <>
+      <Sheet open onClose={onClose} nav={nav} width={500} title={`Edit ${type.name}`} sub={`${type.calc} · ${type.mandatory ? 'mandatory' : 'optional'} · ${type.refundable ? 'refundable' : 'not refundable'}`}
+        footer={<><Button variant="danger-ghost" className="mr-auto" onClick={() => setRemoving(true)}>Remove</Button><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!amountErr} onClick={save}>Save</Button></>}>
+        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          <SheetSection title="Applies to">
+            <div className="grid grid-cols-2 gap-2">
+              <RadioCard checked={scope === 'org'} onClick={() => setScope('org')} title="Organisation-wide" sub="Every property" />
+              <RadioCard checked={scope === 'one'} onClick={() => setScope('one')} title="One property" sub="Pick it below" />
+            </div>
+            {scope === 'one' && <Picker className="mt-2" value={pid} onChange={setPid} icon={Buildings} options={props.map((p) => ({ id: p.id, label: p.name }))} />}
+          </SheetSection>
+          <SheetSection title="Charge">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Charged on"><Picker value={on} onChange={setOn} options={[{ id: 'Each tenancy', label: 'Each tenancy' }, { id: 'Each room', label: 'Each room' }, { id: 'The property', label: 'The property' }]} /></Field>
+              <Field label="Amount">{type.calc === 'Percentage' ? <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Amount" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 outline-none" /><span className="text-[#737373]">% of rent</span></label> : <MoneyInput value={amount} onChange={setAmount} suffix={type.calc === 'Per unit' ? 'each' : undefined} />}<FieldErr>{amountErr}</FieldErr></Field>
+            </div>
+          </SheetSection>
+        </div>
+      </Sheet>
+      <Confirm open={removing} onClose={() => setRemoving(false)} danger title={`Remove ${type.name}?`} sub="New tenancies won't be charged it." confirm="Remove" onConfirm={remove} />
+    </>
+  );
+}
+
 /* ---------------- F8: add a fee (with a new fee type) ---------------- */
 function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () => void; onAdded: (id: string) => void }) {
   const feeTypes = useInv((s) => s.feeTypes);
@@ -178,7 +238,7 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
     if (busy.current || !type || amountErr) return;
     busy.current = true;
     const id = invId('fe');
-    const amt = type.calc === 'Percentage' ? `${amount}% of rent` : type.calc === 'Per unit' ? `£${amount} each` : `£${amount}`;
+    const amt = feeAmount(type.calc, amount);
     useInv.getState().set('fees', (l) => [...l, { id, typeId: type.id, amount: amt, appliesTo: scope === 'org' ? null : pid, chargedOn: on }]);
     onClose();
     onAdded(id);

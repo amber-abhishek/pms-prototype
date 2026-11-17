@@ -172,7 +172,7 @@ function NoLandlords() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
       <EmptyArt art="landlords" />
-      <div className="font-semibold mt-5">No landlord applications yet</div>
+      <div className="text-base leading-6 font-medium mt-5">No landlord applications yet</div>
       <p className="text-sm text-gray-500 mt-1 max-w-[430px]">Landlords apply through your sign-up link.</p>
       <div className="mt-4 flex gap-2">
         <Button variant="primary" icon={LinkSimple} onClick={copy}>Copy sign-up link</Button>

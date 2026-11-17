@@ -81,9 +81,9 @@ export function Enquiries() {
         {!list.length ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
             <EmptyArt art="enquiries" />
-            <div className="font-semibold mt-5">No enquiries yet</div>
+            <div className="text-base leading-6 font-medium mt-5">No enquiries yet</div>
             <p className="text-sm text-gray-500 mt-1 max-w-[430px]">
-              {live ? 'Residents’ questions from the site arrive here. Nobody has enquired yet.' : 'Residents’ questions from the site arrive here once it’s published. The site is still a draft.'}
+              {live ? 'Residents’ questions from the site land here.' : 'Questions arrive once the site is published.'}
             </p>
             <div className="mt-4"><Button icon={ArrowSquareOut} onClick={() => nav('/offcampus/portal/site')}>{live ? 'Open the site' : 'Open the draft site'}</Button></div>
           </div>

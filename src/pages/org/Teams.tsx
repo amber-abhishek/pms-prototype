@@ -22,7 +22,7 @@ export function TeamsPage() {
         <Button variant="primary" icon={Plus} onClick={() => setEdit('new')}>New team</Button>
       </Header>
       <PageHeading />
-      <Table rows={rows} empty={<Empty art="team" title="No teams yet" sub="Group the people who work together, like a hall’s front desk." />} onRow={(t) => setEdit(t)} selected={edit && edit !== 'new' ? edit.id : undefined} cols={[
+      <Table rows={rows} empty={<Empty art="team" title="No teams yet" sub="Group people who work together, like a front desk." />} onRow={(t) => setEdit(t)} selected={edit && edit !== 'new' ? edit.id : undefined} cols={[
         { key: 'n', label: 'Team', className: 'w-[30%]', render: (t) => <div className="leading-tight"><div className="text-sm font-medium">{t.name}</div><div className="text-xs text-[#737373]">{t.purpose}</div></div> },
         { key: 'l', label: 'Lead', render: (t) => t.leadId && members.some((m) => m.id === t.leadId) ? <span className="flex items-center gap-2 text-sm"><Avatar name={name(t.leadId)} size={20} />{name(t.leadId)}</span> : <span className="text-sm text-[#C2410C]">No lead</span> },
         { key: 'm', label: 'Members', render: (t) => (

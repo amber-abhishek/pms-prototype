@@ -58,8 +58,11 @@ export function Bookings() {
     toast.success(`${b.name}’s lease is signed`, { description: 'Resident portal invite sent' });
   };
 
+  /* Row number, as on Custom fields and Tags: position in the current list, so it survives paging. */
+  const no: C<Booking> = { key: 'no', label: 'S.No.', className: 'w-14', render: (b) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(b) + 1}</span> };
   const cols: Record<'All' | 'Awaiting signature' | 'Lease not sent' | 'Cancelled', C<Booking>[]> = {
     All: [
+      no,
       { key: 'n', label: 'Resident', render: (b) => <Person name={b.name} /> },
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 't', label: 'Term', render: (b) => <span className="text-gray-500">{b.term}</span> },
@@ -68,6 +71,7 @@ export function Bookings() {
       { key: 'c', label: 'Created', render: (b) => <span className="text-gray-500">{b.created}</span> },
     ],
     'Awaiting signature': [
+      no,
       { key: 'n', label: 'Resident', render: (b) => <Person name={b.name} /> },
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 's', label: 'Lease sent', render: (b) => <span className="text-gray-500">{b.leaseSent}</span> },
@@ -76,6 +80,7 @@ export function Bookings() {
       { key: 'a', label: '', className: 'text-right', render: (b) => <Button size="sm" icon={Bell} onClick={(e) => { e.stopPropagation(); remind([b]); }}>Send reminder</Button> },
     ],
     'Lease not sent': [
+      no,
       { key: 'n', label: 'Resident', render: (b) => <Person name={b.name} /> },
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 'm', label: 'What’s missing', render: (b) => <span className="inline-flex items-center gap-1.5 text-ink"><CircleDashed size={14} className="text-gray-400" />{b.missing ?? '—'}</span> },
@@ -83,6 +88,7 @@ export function Bookings() {
       { key: 'a', label: '', className: 'text-right w-48', render: (b) => b.missing?.startsWith('Made by hand') ? <Button size="sm" variant="ghost" icon={PaperPlaneTilt} onClick={(e) => { e.stopPropagation(); sendLease(b); }}>Send lease</Button> : <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setOpen(b.id); }}>Open</Button> },
     ],
     Cancelled: [
+      no,
       { key: 'n', label: 'Resident', render: (b) => <Person name={b.name} /> },
       { key: 'u', label: 'Unit', render: unitOf },
       { key: 'c', label: 'Cancelled', render: (b) => <span className="text-gray-500">{b.cancelled?.on}</span> },
@@ -116,7 +122,7 @@ export function Bookings() {
         </EmptyArea>
       ) : tab === 'Conflicts' ? (
         d.conflicts.length === 0 ? (
-          <EmptyArea art="conflicts" icon={Check} title="No conflicts" sub="Overlapping bookings show up here before anything is charged." />
+          <EmptyArea art="conflicts" icon={Check} title="No conflicts" sub="Double bookings show here before anyone is charged." />
         ) : (
           <div className="flex-1 overflow-auto p-5 space-y-4">
             <div className="rounded-lg border border-[#E0243A]/30 bg-white px-3.5 py-2.5 flex gap-2.5">

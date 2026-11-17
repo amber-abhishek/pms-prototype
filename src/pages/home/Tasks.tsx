@@ -144,7 +144,7 @@ function MyTasks() {
           ) : ordered.length === 0 ? (
             Object.values(f).some(Boolean) ? <Empty title="No tasks match these filters" sub="Try another filter or clear them." />
               : tab === 'team' ? <Empty art="caughtUp" icon={CheckCircle} title="No open team tasks" sub="Everyone’s list is clear." />
-              : <Empty art="caughtUp" icon={CheckCircle} title="Nothing due this week" sub="New tasks arrive from Applications, Requests, Maintenance and Bookings." />
+              : <Empty art="caughtUp" icon={CheckCircle} title="Nothing due this week" sub="New tasks from across the workspace land here." />
           ) : ordered.map(({ g, list }) => (
             <div key={g}>
               {/* Group rows are white so they don't read as a second table header. */}
@@ -291,7 +291,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
             <span className="col-span-2 !pl-[var(--cx,12px)]">Task</span><span><SortHead desc={desc} onToggle={() => setDesc((d) => !d)}>{tab === 'done' ? 'Done' : 'Due'}</SortHead></span><span>Owner</span>
           </div>
           {shown.length === 0 && (tab === 'done'
-            ? <Empty art="caughtUp" icon={CheckCircle} title="Nothing done in this list yet" sub="Tasks you tick off show up here." />
+            ? <Empty art="caughtUp" icon={CheckCircle} title="Nothing done yet" sub="Tasks you tick off show up here." />
             : <Empty title="Nothing in this list" sub="Try another tab or clear the filters." />)}
           {moving.map(({ row: r, motion }) => (
             <div key={r.id} {...rowAttrs(r.id, motion)} role="button" tabIndex={0} onClick={() => setOpen(r.id)} onKeyDown={(e) => { if (e.key === 'Enter') setOpen(r.id); }}

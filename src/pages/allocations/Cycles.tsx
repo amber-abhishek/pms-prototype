@@ -42,7 +42,7 @@ export function Cycles() {
         </Toolbar>
       )}
       {!d.cycles.length ? (
-        <EmptyArea art="cycles" icon={CalendarCheck} title="No cycles yet" sub="A cycle is one academic year of applications, offers and bookings.">
+        <EmptyArea art="cycles" icon={CalendarCheck} title="No cycles yet" sub="A cycle is one academic year of allocations.">
           <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New cycle</Button>
         </EmptyArea>
       ) : tab === 'All' ? (
@@ -60,7 +60,7 @@ export function Cycles() {
       ) : tab === 'Live' ? (
         <div className="flex-1 overflow-auto px-[var(--tx,16px)] pt-2 pb-5 space-y-4">
           {live.map((c) => <LiveCard key={c.id} c={c} onEdit={() => setEditing(c)} onClose={() => setClosing(c)} onOpenApps={() => { filterToCycle(c.name); nav('/allocations/applications?tab=To%20review'); }} />)}
-          {!live.length && <EmptyArea art="cycles" icon={CalendarCheck} title="No live cycle" sub="Make a cycle for the next academic year to open applications."><Button icon={Plus} onClick={() => setCreating(true)}>New cycle</Button></EmptyArea>}
+          {!live.length && <EmptyArea art="cycles" icon={CalendarCheck} title="No live cycle" sub="Create next year’s cycle to open applications."><Button icon={Plus} onClick={() => setCreating(true)}>New cycle</Button></EmptyArea>}
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">

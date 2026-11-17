@@ -109,7 +109,7 @@ export function PropertyDetail() {
         <Menu width={200} trigger={(o) => <button type="button" onClick={o} aria-label="More" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><DotsThree size={16} /></button>} items={[
           { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
           { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
-          { label: 'Rent and fees', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
+          { label: 'Tenancy pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
           'sep',
           { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
         ]} />
@@ -231,7 +231,7 @@ export function PropertyDetail() {
               </table>
             </Card>
             <Card className="overflow-hidden">
-              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Rent and fees</button></div>
+              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Tenancy pricing</button></div>
               {templates.length ? templates.map((t) => (
                 <div key={t.id} className="h-12 px-4 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0 text-sm">
                   <span className="text-sm font-medium w-44">{t.name}</span><span className="text-[#737373] flex-1">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.billing}</span>
@@ -296,7 +296,7 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
       <div className="py-16 flex justify-center">
         <div className="max-w-md text-center">
           <EmptyArt kind="clipboard" />
-          <div className="font-semibold mt-5">No rooms in {short} yet</div>
+          <div className="text-base leading-6 font-medium mt-5">No rooms in {short} yet</div>
           <p className="text-sm text-[#737373] mt-1">Build them block by block, or import a spreadsheet.</p>
           <div className="flex justify-center gap-2 mt-4">
             <Button variant="primary" icon={Plus} onClick={build}>Build rooms</Button>

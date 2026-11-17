@@ -38,7 +38,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
         </Toolbar>
       )}
       <Table rows={rows} summary="Last 30 days" group={{ label: 'Date', get: (a) => dayOf(a.when) }}
-        empty={activity.length ? <Empty art="noResults" icon={icon} title="No activity" sub="Nothing matches. Try another area or clear the search." /> : <Empty art="noData" icon={icon} title="No activity yet" sub="What you and your team change shows here." />}
+        empty={activity.length ? <Empty art="noResults" icon={icon} title="No activity" sub="Try another area or clear the search." /> : <Empty art="noData" icon={icon} title="No activity yet" sub="What you and your team change shows here." />}
         cols={[
           { key: 'w', label: 'Activity', render: (a) => (
             <span className="flex items-center gap-2.5 min-w-0">

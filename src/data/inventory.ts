@@ -109,9 +109,9 @@ export function makeInventorySeed() {
   ];
   const fields: Field[] = [
     { id: 'cf1', name: 'Accessible room', key: 'accessible_room', type: 'Yes / no', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'] },
-    { id: 'cf2', name: 'Ensuite type', key: 'ensuite_type', type: 'Pick one · 3', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'] },
+    { id: 'cf2', name: 'Ensuite type', key: 'ensuite_type', type: 'Pick one · 3 options', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'] },
     { id: 'cf3', name: 'Floor area (m²)', key: 'floor_area_m2', type: 'Number', attached: ['Studio block › Studio'] },
-    { id: 'cf4', name: 'Bed size', key: 'bed_size', type: 'Pick one · 3', attached: ['Halls with flats › Room', 'Studio block › Studio'] },
+    { id: 'cf4', name: 'Bed size', key: 'bed_size', type: 'Pick one · 3 options', attached: ['Halls with flats › Room', 'Studio block › Studio'] },
     { id: 'cf5', name: 'Kitchen shared with', key: 'kitchen_shared_with', type: 'Number', attached: ['Halls with flats › Flat'] },
     { id: 'cf6', name: 'Lift access', key: 'lift_access', type: 'Yes / no', attached: ['Halls with flats › Building', 'Halls, rooms only › Building'] },
   ];

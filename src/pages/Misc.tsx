@@ -24,7 +24,7 @@ export function Locked() {
 export function NoAccess() {
   return (
     <Page className="flex items-center justify-center">
-      <Empty icon={Lock} title="You don't have access to this module" sub="Your role doesn't include it. Switch to Super admin from the user menu to see it." action={<Link to="/"><Button>Back to Overview</Button></Link>} />
+      <Empty icon={Lock} title="No access to this module" sub="Switch to Super admin in the user menu." action={<Link to="/"><Button>Back to Overview</Button></Link>} />
     </Page>
   );
 }
@@ -32,7 +32,7 @@ export function NoAccess() {
 export function NotFound() {
   return (
     <Page className="flex items-center justify-center">
-      <Empty art="notFound" title="Page not found" sub="That link doesn't go anywhere in this prototype." action={<Link to="/"><Button>Back to Overview</Button></Link>} />
+      <Empty art="notFound" title="Page not found" sub="This link doesn't go anywhere." action={<Link to="/"><Button>Back to Overview</Button></Link>} />
     </Page>
   );
 }

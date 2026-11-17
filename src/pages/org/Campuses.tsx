@@ -1,14 +1,15 @@
 // Organisation › Campuses. Figma: empty state 3095:2; add campus = Journeys Flow 1 · 04–05 (2819:544, 2819:820).
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ImageSquare, MagnifyingGlass, MapPin, Plus } from '../../components/icons';
+import { BookOpen, Globe, ImageSquare, MagnifyingGlass, MapPin, Plus } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Input, Pill, Status, Table, TitleH1, cx } from '../../components/ui';
+import { Button, Dropdown, IconTile, Input, Pill, Status, Table } from '../../components/ui';
 import { useDb } from '../../data/store';
 import { oid, useOrg, type Campus } from '../../data/org';
-import { EmptyState, Header, IconSelect, ODialog } from './parts';
+import { EmptyState, Header, ODialog } from './parts';
 
 const ICON = MapPin;
+const STATUS_DOT: Record<Campus['status'], string> = { Active: '#0B8A4C', Draft: '#D97706', Inactive: '#A3A3A3' };
 /** Address search results the prototype "finds". */
 const PLACES: Omit<Campus, 'id' | 'name' | 'status'>[] = [
   { address: 'Stockton Road, Durham DH1 3LE, UK', city: 'Durham', region: 'England', postcode: 'DH1 3LE', country: 'United Kingdom', amberRegion: 'North East England' },
@@ -35,13 +36,17 @@ export function CampusesPage() {
   const { campuses, emptyCampuses } = useOrg();
   const properties = useDb((s) => s.properties);
   const nav = useNavigate();
+  /* /org/campuses/new and /org/campuses/:id open the campus in a centred modal over the list (2026-11-17). */
+  const { id } = useParams();
   const [sp, setSp] = useSearchParams();
   const [how, setHow] = useState(false);
   useEffect(() => {
     if (sp.get('demo') === 'empty') { emptyCampuses(); setSp((p) => { const n = new URLSearchParams(p); n.delete('demo'); return n; }, { replace: true }); }
   }, [sp, setSp, emptyCampuses]);
   const rows = campuses;
-  const props = (id: string) => properties.filter((p) => p.campusId === id);
+  const props = (cid: string) => properties.filter((p) => p.campusId === cid);
+  const close = () => nav('/org/campuses');
+  const editing = id && id !== 'new' ? campuses.find((c) => c.id === id) : undefined;
 
   return (
     <>
@@ -57,43 +62,37 @@ export function CampusesPage() {
           </EmptyState>
         </div>
       ) : (
-        <>
-          <Table rows={rows} onRow={(c) => nav(`/org/campuses/${c.id}`)} cols={[
-            { key: 'n', label: 'Campus', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#737373]">{c.address || 'No address yet'}</div></div> },
-            { key: 's', label: 'Status', className: 'w-[12%]', render: (c) => <Status s={c.status} /> },
-            { key: 'c', label: 'City', className: 'w-[14%]', render: (c) => <span className="text-sm whitespace-nowrap">{c.city || '—'}</span> },
-            { key: 'r', label: 'Partner region', className: 'w-[14%]', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
-            { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()} className="relative inline-flex after:absolute after:inset-x-0 after:-inset-y-px after:content-['']"><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-[#737373]">None yet</span>; } },
-          ]} />
-        </>
+        <Table rows={rows} onRow={(c) => nav(`/org/campuses/${c.id}`)} selected={editing?.id} cols={[
+          { key: 'n', label: 'Campus', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#737373]">{c.address || 'No address yet'}</div></div> },
+          { key: 's', label: 'Status', className: 'w-[12%]', render: (c) => <Status s={c.status} /> },
+          { key: 'c', label: 'City', className: 'w-[14%]', render: (c) => <span className="text-sm whitespace-nowrap">{c.city || '—'}</span> },
+          { key: 'r', label: 'Partner region', className: 'w-[14%]', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
+          { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()} className="relative inline-flex after:absolute after:inset-x-0 after:-inset-y-px after:content-['']"><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-[#737373]">None yet</span>; } },
+        ]} />
       )}
+      {id === 'new' && <CampusDialog key="new" onClose={close} />}
+      {editing && <CampusDialog key={editing.id} existing={editing} onClose={close} />}
+      {id && id !== 'new' && !editing && <NotFoundToast onDone={close} />}
       <HowItWorks open={how} onClose={() => setHow(false)} />
     </>
   );
 }
 
-function Section({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
-  return (
-    <section className="rounded-xl border border-line bg-white p-6">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {sub && <p className="text-sm text-[#737373] mt-1">{sub}</p>}
-      <div className="mt-4">{children}</div>
-    </section>
-  );
+/** A stale /org/campuses/:id link: say so once and drop back to the list. */
+function NotFoundToast({ onDone }: { onDone: () => void }) {
+  useEffect(() => { toast.error('That campus doesn’t exist'); onDone(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }
 
-export function CampusForm() {
-  const { id } = useParams();
-  const nav = useNavigate();
-  const { campuses, set, audit_ } = useOrg();
-  const existing = id ? campuses.find((c) => c.id === id) : undefined;
+/** Add or edit a campus in a centred modal (was its own page). */
+function CampusDialog({ existing, onClose }: { existing?: Campus; onClose: () => void }) {
+  const { set, audit_ } = useOrg();
   const [name, setName] = useState(existing?.name ?? '');
   const [status, setStatus] = useState<Campus['status']>(existing?.status ?? 'Draft');
   const [place, setPlace] = useState<Omit<Campus, 'id' | 'name' | 'status'> | null>(existing?.address ? existing : null);
   const [q, setQ] = useState(existing?.address ?? '');
   const [focus, setFocus] = useState(false);
   const busy = useRef(false);
-  if (id && !existing) return <><Header icon={ICON} crumbs={[{ label: 'Organisation' }, { label: 'Campuses', to: '/org/campuses' }]} title="Not found" /><div className="p-6 text-sm text-[#737373]">This campus doesn’t exist.</div></>;
 
   const matches = q.trim().length >= 2 && (!place || place.address !== q) ? PLACES.filter((p) => p.address.toLowerCase().includes(q.trim().toLowerCase()) || q.toLowerCase().split(/\s+/).every((w) => p.address.toLowerCase().includes(w))) : [];
   const save = () => {
@@ -107,53 +106,68 @@ export function CampusForm() {
     const rec: Campus = { id: existing?.id ?? oid('c'), name: n, status, ...(place ?? { address: '', city: '', region: '', postcode: '', country: '', amberRegion: '' }) };
     set('campuses', (cs) => (existing ? cs.map((c) => (c.id === existing.id ? rec : c)) : [...cs, rec]));
     audit_(existing ? `edited the campus ${n}` : `added the campus ${n}`, 'Campuses');
-    toast.success(existing ? `${n} saved` : `${n} added`, { description: status === 'Active' ? 'It shows on the resident site.' : status === 'Draft' ? 'It’s a draft: make it Active to show it on the resident site.' : 'It’s off the resident site.' });
-    nav('/org/campuses');
+    toast.success(existing ? `${n} saved` : `${n} added`, { description: status === 'Active' ? 'It shows on the resident site.' : status === 'Draft' ? 'Make it Active to show it on the resident site.' : 'It’s off the resident site.' });
+    onClose();
   };
 
   return (
-    <>
-      <Header icon={ICON} crumbs={[{ label: 'Organisation' }, { label: 'Campuses', to: '/org/campuses' }]} title={existing ? existing.name : 'Add campus'} />
-      <div className="flex-1 overflow-auto px-6 py-5">
-        <Link to="/org/campuses" className="relative inline-flex items-center gap-1.5 text-sm text-[#737373] hover:text-ink after:absolute after:inset-x-0 after:-inset-y-0.5 after:content-['']"><ArrowLeft size={13} />All campuses</Link>
-        <div className="flex items-start gap-4 mt-4 mb-4">
-          <div className="flex-1"><TitleH1 className="text-xl font-medium tracking-tight">{existing ? 'Edit campus' : 'Add campus'}</TitleH1></div>
-          <Button variant="primary" onClick={save}>{existing ? 'Save campus' : 'Add campus'}</Button>
+    <ODialog open onClose={onClose} width={560} title={existing ? `Edit ${existing.name}` : 'Add campus'}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{existing ? 'Save campus' : 'Add campus'}</Button></>}>
+      <div className="space-y-6">
+        {/* Name and status on one row; the status rule sits right under it. */}
+        <div>
+          <div className="grid grid-cols-[1fr_168px] gap-3">
+            <div><span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Name</span><Input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Durham City" /></div>
+            <div><span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Status</span>
+              <Dropdown ariaLabel="Status" className="h-8 w-full border-gray-300" value={status} onChange={(v) => setStatus(v as Campus['status'])}
+                options={(['Draft', 'Active', 'Inactive'] as const).map((x) => ({ value: x, label: <span className="inline-flex items-center gap-2"><span className="size-2 rounded-full" style={{ background: STATUS_DOT[x] }} />{x}</span> }))} /></div>
+          </div>
+          <p className="mt-1.5 text-xs text-[#737373]">Only active campuses show on the resident site.</p>
         </div>
-        <div className="max-w-[768px] space-y-6 pb-10">
-          <Section title="Campus">
-            <label className="block"><span className="block text-sm font-medium text-gray-700 mb-1.5">Name</span><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Durham City" /></label>
-            <div className="mt-4"><span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
-              <IconSelect ariaLabel="Status" className="w-48" value={status} onChange={(v) => setStatus(v as Campus['status'])} options={['Draft', 'Active', 'Inactive'].map((s) => ({ value: s, label: s }))} /></div>
-            <p className="text-sm text-[#737373] mt-4 leading-5">Only active campuses show on the resident site. Active needs an address.</p>
-          </Section>
-          <Section title="Address" sub="Sets the partner region for partner hall listings.">
-            <span className="block text-sm font-medium text-gray-700 mb-1.5">Address</span>
-            <div className="relative">
-              <label className="relative flex items-center">
-                <MagnifyingGlass size={14} className="absolute left-2.5 text-[#737373]" />
-                <Input value={q} onFocus={() => setFocus(true)} onBlur={() => window.setTimeout(() => setFocus(false), 150)} onChange={(e) => { setQ(e.target.value); setPlace(null); }} placeholder="Search for the campus address" className="pl-8" />
-              </label>
-              {focus && matches.length > 0 && (
-                <div className="absolute left-0 right-0 top-10 z-20 rounded-xl border border-line bg-white shadow-pop p-1">
-                  {matches.map((p) => (
-                    <button key={p.address} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPlace(p); setQ(p.address); setFocus(false); }} className="w-full text-left px-2.5 h-9 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm"><MapPin size={14} className="text-gray-400" />{p.address}</button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-4 gap-4 mt-4">
-              {([['City', place?.city], ['Region', place?.region], ['Postcode', place?.postcode], ['Country', place?.country]] as const).map(([k, v]) => (
-                <div key={k}><div className="text-sm text-[#737373]">{k}</div><div className={cx('text-sm mt-1', !v && 'text-[#737373]')}>{v || '—'}</div></div>
+
+        <div>
+          <span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Address</span>
+          <label className="relative flex items-center">
+            <MagnifyingGlass size={14} className="absolute left-2.5 text-[#737373]" />
+            <Input aria-label="Address" value={q} onFocus={() => setFocus(true)} onBlur={() => window.setTimeout(() => setFocus(false), 150)} onChange={(e) => { setQ(e.target.value); setPlace(null); }} placeholder="Search for the campus address" className="pl-8" />
+          </label>
+          {/* Results sit in the flow, not floating, so the modal body never clips them. */}
+          {focus && matches.length > 0 && (
+            <div className="mt-1 rounded-xl border border-line bg-white shadow-pop p-1">
+              {matches.map((p) => (
+                <button key={p.address} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPlace(p); setQ(p.address); setFocus(false); }} className="w-full text-left px-2.5 h-9 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm"><MapPin size={14} className="text-gray-400" />{p.address}</button>
               ))}
             </div>
-            {place && <p className="text-xs text-[#737373] mt-4">Partner region: <span className="text-ink font-medium">{place.amberRegion}</span></p>}
-          </Section>
-          <Section title="Images" sub="Optional.">
-            <button type="button" onClick={() => toast('Image upload is off in the prototype')} className="h-24 w-full rounded-lg border border-dashed border-gray-300 text-sm text-[#737373] flex flex-col items-center justify-center gap-1 hover:bg-gray-50"><ImageSquare size={20} />Drop images or click to upload</button>
-          </Section>
+          )}
+          {/* The picked place as a tinted card: where it is, then the partner region it maps to. */}
+          {place ? (
+            <div className="mt-3 rounded-xl border border-[#E5E5E5] bg-white p-3.5">
+              <div className="flex items-center gap-2.5">
+                <IconTile icon={MapPin} tone="blue" />
+                <div className="min-w-0 flex-1"><div className="text-sm font-medium truncate">{place.city}, {place.region}</div><div className="text-xs text-[#737373]">{place.country}</div></div>
+                <Pill tone="grey">{place.postcode}</Pill>
+              </div>
+              <div className="mt-3 pt-3 border-t border-[#F0F0F0] flex items-center gap-2 text-sm">
+                <Globe size={16} className="text-[#2563EB] shrink-0" />
+                <span className="text-[#737373]">Partner region</span>
+                <span className="ml-auto"><Pill tone="blue">{place.amberRegion}</Pill></span>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-xl border border-dashed border-gray-300 px-3.5 py-3 flex items-center gap-2.5 text-sm text-[#737373]">
+              <IconTile icon={MapPin} tone="grey" />Pick an address to set the city and partner region.
+            </div>
+          )}
+        </div>
+
+        <div>
+          <span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Images <span className="font-normal text-[#737373]">· optional</span></span>
+          <button type="button" onClick={() => toast('Image upload is off in the prototype')} className="h-24 w-full rounded-xl border border-dashed border-[#A78BFA]/60 bg-[#F5F3FF]/50 text-sm text-[#737373] flex flex-col items-center justify-center gap-2 hover:bg-[#F5F3FF] transition-colors">
+            <IconTile icon={ImageSquare} tone="purple" />
+            <span><span className="text-[#6D28D9] font-medium">Click to upload</span> or drop images</span>
+          </button>
         </div>
       </div>
-    </>
+    </ODialog>
   );
 }

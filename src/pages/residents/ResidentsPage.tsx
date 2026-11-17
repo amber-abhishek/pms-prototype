@@ -106,7 +106,7 @@ export function ResidentDetail() {
   /* The resident opens as a right-hand side sheet over the list: hero, underline tabs, titled sections. */
   return (
     <>
-      <RecordSheet open onClose={() => nav('/residents')} title="Resident" width={576} nav={stepper}
+      <RecordSheet open onClose={() => nav('/residents')} title="Resident" width={640} nav={stepper}
         footer={<>
           {!arriving && <Button variant="ghost" icon={null} className="mr-auto" onClick={() => toast('More actions', { description: 'Move room, start move-out, or add a note.' })}>More</Button>}
           <Button icon={null} onClick={() => setMsg(true)}>Message</Button>
@@ -119,7 +119,7 @@ export function ResidentDetail() {
         </SheetHero>
         {/* Underline tabs under the hero: each tab holds its own short set of sections, no long scroll. */}
         <div className="-mx-5">
-          <LineTabs value={sTab} onChange={setSTab} className="px-2.5 gap-1.5" tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Requests', label: `Requests · ${reqs.length + mts.length}` }, { id: 'Documents', label: 'Documents · 4' }, { id: 'Activity', label: 'Activity' }]} />
+          <LineTabs value={sTab} onChange={setSTab} className="px-2.5" tabs={[{ id: 'Overview', label: 'Overview' }, { id: 'Tenancy', label: 'Tenancy' }, { id: 'Requests', label: `Requests · ${reqs.length + mts.length}` }, { id: 'Documents', label: 'Documents · 4' }, { id: 'Activity', label: 'Activity' }]} />
         </div>
         <div className="-mx-5 px-5 pt-5">
           {sTab === 'Overview' && <>

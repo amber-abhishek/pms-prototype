@@ -137,7 +137,7 @@ export function PropertyDetail() {
   /* Default: a 640px right-hand side sheet over the Properties list (like a resident). ?view=modal keeps the centred modal. */
   if (!asModal) return (
     <>
-      <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={576} nav={stepper}
+      <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={640} nav={stepper}
         footer={<>
           <div className="mr-auto">{moreMenu}</div>
           <Button icon={null} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>

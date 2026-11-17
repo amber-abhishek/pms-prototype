@@ -211,7 +211,7 @@ function CheckInSheet({ r, onClose }: { r: Resident; onClose: () => void }) {
     undoToast(isAmira ? 'Amira Rahman checked in · Ustinov is 62% in residence' : `${r.name} checked in to ${r.room}`, undo);
   });
   return (
-    <SideSheet open onClose={onClose} icon={SignIn} tone="green" title="Check in"
+    <SideSheet open onClose={onClose} width={640} icon={SignIn} tone="green" title="Check in"
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={SignIn} onClick={submit}>Check in</Button></>}>
       <SheetHero name={r.name} meta={`${r.room} · ${r.hall}`}>
         <Pill tone="amber" icon={ListChecks}>{(r.lease === 'Signed' ? 1 : 0) + (r.deposit === 'Paid' ? 1 : 0) + (r.plan ? 1 : 0)} of {total} done</Pill>

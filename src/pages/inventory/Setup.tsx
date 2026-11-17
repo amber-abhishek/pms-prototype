@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Empty } from '../../components/ui';
+import { photoOf } from './photos';
 import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
 import { Bed, Buildings, CaretRight, Door, DoorOpen, House, Lock, Plus, Stack, Tag, Textbox, Trash, TreeStructure, type Icon } from '../../components/icons';
@@ -339,8 +340,11 @@ function TagSheet({ t, usedOn, onClose , nav }: { nav?: SheetNav;  t: TagDef | '
             {usedOn.length ? (
               <div className="flex flex-col gap-2">{/* Inputs only: no box or row rules around them. */}
                 {usedOn.map((p) => (
-                  <div key={p.id} className="h-10 px-3 flex items-center gap-2.5 text-sm">
-                    <Buildings size={16} className="text-gray-400 shrink-0" />
+                  <div key={p.id} className="h-10 flex items-center gap-2.5 text-sm">
+                    {/* The hall's photo as a small thumbnail; the building icon only when it has none. */}
+                    {photoOf(p.id)
+                      ? <img src={photoOf(p.id)} alt="" className="size-7 rounded-md object-cover shrink-0 ring-1 ring-inset ring-black/5" />
+                      : <span className="size-7 rounded-md bg-[#F5F5F5] grid place-items-center shrink-0"><Buildings size={16} className="text-gray-400" /></span>}
                     <span className="flex-1 truncate text-[#0A0A0A]">{p.name}</span>
                     <span className="text-xs text-[#737373]">{p.campus}</span>
                   </div>

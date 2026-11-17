@@ -127,7 +127,7 @@ export function PropertyDetail() {
   );
   const moreMenu = (
     <Menu width={200} align="left" trigger={(o) => <Button variant="ghost" icon={null} onClick={o}>More</Button>} items={[
-      { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
+      ...(p.status === 'Draft' ? [{ label: 'Open in Inventory', icon: ListDashes, onClick: () => nav(`/inventory/units?p=${p.id}`) }] : []),
       { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
       { label: 'Tenancy pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
       'sep',
@@ -140,8 +140,11 @@ export function PropertyDetail() {
       <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={576} nav={stepper}
         footer={<>
           <div className="mr-auto">{moreMenu}</div>
-          <Button icon={null} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>
-          {p.status === 'Draft' && <Button variant="primary" icon={null} onClick={activate}>Make active…</Button>}
+          <Button icon={null} onClick={() => setEditOpen('basics')}>Edit</Button>
+          {/* Two buttons at most on the right: a draft's main action replaces Open in Inventory (which moves to More). */}
+          {p.status === 'Draft'
+            ? <Button variant="primary" icon={null} onClick={activate}>Make active…</Button>
+            : <Button icon={null} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>}
         </>}>
         <div className="pb-5 flex items-center gap-3">
           {photoOf(p.id)

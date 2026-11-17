@@ -6,8 +6,8 @@ import { Card, cx, Meter, Pill, TitleH1, type MeterSpec } from './ui';
 /* Overview kit in the Amber Connect language (Figma 3884:39270):
    - a white greeting band (2026-11-16; was #F5F5F5) (48px r10 photo, 18px semibold title, 16px #737373 line, actions on the right),
    - optional 200×40 folder tabs on the same band,
-   - a white content area, 24px padding, cards 16px apart. Every card is r16 with a 33px #FAFAFA mono strip
-     (Geist Mono Medium 12 uppercase, #171717) and a 20px body. */
+   - a white content area, 24px padding, cards 16px apart. Every card is r16 with a 36px #FAFAFA mono strip
+     (Geist Mono Medium 12 uppercase, #171717) and a 20px body; card figures are Geist Mono like the number band. */
 
 export function OverviewPage({ title, sub, actions, avatar, tabs, children }: {
   title: string; sub: ReactNode; actions?: ReactNode; avatar?: ReactNode; tabs?: ReactNode; children?: ReactNode;
@@ -82,17 +82,15 @@ export function FolderTabs({ tabs }: { tabs: { to: string; label: string; count?
 /** Card header (Connect insights overview): 16px medium title with an optional 14px grey line under it, and a note,
  *  range or tag on the right. No band and no rule: the card body follows straight on. */
 export function Strip({ title, sub, right }: { title: string; sub?: ReactNode; right?: ReactNode }) {
+  /* Connect card strip (2026-11-17): 36px #FAFAFA band, Geist Mono Medium 12 uppercase #171717, 1px rule under it. */
   return (
-    <div className="shrink-0 px-6 pt-5 flex items-start gap-3">
-      <div className="flex-1 min-w-0">
-        <h3 className="text-base leading-6 font-medium text-[#0A0A0A] truncate">{title}</h3>
-        {sub && <p className="text-sm leading-5 text-[#737373] truncate">{sub}</p>}
-      </div>
-      {right && <div className="shrink-0 min-h-6 flex items-center gap-2">{right}</div>}
+    <div className="shrink-0 h-9 px-5 flex items-center gap-3 bg-[#FAFAFA] border-b border-[#E5E5E5]">
+      <h3 className="flex-1 min-w-0 truncate font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#171717]">{title}{sub && <span className="ml-2 normal-case tracking-normal font-sans font-normal text-[#737373]">{sub}</span>}</h3>
+      {right && <div className="shrink-0 flex items-center gap-2">{right}</div>}
     </div>
   );
 }
-const stripNote = 'text-sm leading-5 text-[#737373]';
+const stripNote = 'font-mono text-xs leading-4 uppercase tracking-[0.48px] text-[#737373]';
 
 /** Connect number band (Amber Connect bookings): one edge-to-edge strip, columns split by dashed rules. Each column is a
  *  14px grey label, a 32px mono figure, a filled caret with the change in green or red plus a grey "vs" line, and a
@@ -176,14 +174,14 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
   const hx = hover === null ? 0 : kind === 'bar' ? ((hover + 0.5) / n) * 100 : x(hover);
   const last = points[n - 1];
   return (
-    <Card className="rounded-xl flex flex-col min-w-0 h-[349px]">
+    <Card className="overflow-hidden flex flex-col min-w-0 h-[349px]">
       <Strip title={title} right={<div className="flex items-center gap-3">
         {!chartOnly && <ViewSwitch value={view} onChange={setView} chart={kind === 'line' ? ChartLine : ChartColumnIcon} />}
       </div>} />
-      <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col gap-4">
+      <div className="flex-1 min-h-0 p-5 flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <span className="flex items-baseline gap-2">
-            <span className="text-[32px] leading-10 font-semibold tracking-[-0.48px] tabular-nums text-[#0A0A0A]">{value}</span>
+            <span className="font-mono text-[32px] leading-10 font-semibold tracking-[-0.96px] tabular-nums text-[#0A0A0A]">{value}</span>
             <span className="text-sm text-[#737373]">{of}</span>
           </span>
           <Pill tone="blue">{badge}</Pill>
@@ -257,9 +255,9 @@ export type RankRow = { id: string; name: string; value: string; pct: number; wa
 /** Ranked list beside the chart (Figma "Pre-let by property"): grey building, name, 72×4 meter, mono percentage. */
 export function RankCard({ title, note, rows, more, moreLabel, moreTo, empty }: { title: string; note: string; rows: RankRow[]; more: number; moreLabel: string; moreTo: string; /** Shown when there are no rows. */ empty?: ReactNode }) {
   return (
-    <Card className="rounded-xl flex flex-col min-w-0 h-[349px]">
+    <Card className="overflow-hidden flex flex-col min-w-0 h-[349px]">
       <Strip title={title} right={<span className={stripNote}>{note}</span>} />
-      {!rows.length && empty ? <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3 text-sm text-[#737373]">{empty}</div> : <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col">
+      {!rows.length && empty ? <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3 text-sm text-[#737373]">{empty}</div> : <div className="flex-1 min-h-0 p-5 flex flex-col">
         <div className="flex flex-col gap-1">
           {rows.map((r) => (
             <Link key={r.id} to={r.to} className="h-[30px] -mx-2 px-2 rounded-lg flex items-center gap-2.5 text-sm hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA]">
@@ -283,14 +281,14 @@ const FUNNEL_FILL = ['#DCE6FF', '#C7D6FE', '#A9C1FC', '#5B8DFF', '#2B5CFF'];
 /** Five steps, conversion from the step before, bars deepen towards the lease. */
 export function FunnelCard({ steps, caption, summary, to }: { steps: [string, number][]; caption: string; summary: string; to: string }) {
   return (
-    <Card className="rounded-xl flex flex-col">
+    <Card className="overflow-hidden flex flex-col">
       <Strip title="Allocation funnel" />
-      <div className="px-6 pb-6 pt-4">
+      <div className="p-5">
         <div className="grid grid-cols-5 gap-3">
           {steps.map(([label, n], i) => (
             <Link key={label} to={to} className="min-w-0 group">
               <div className="text-sm text-[#737373] truncate group-hover:text-ink">{label}{i > 0 && steps[i - 1][1] > 0 && ` · ${Math.round((n / steps[i - 1][1]) * 100)}%`}</div>
-              <div className="text-2xl leading-8 font-semibold tracking-[-0.36px] tabular-nums text-ink">{n.toLocaleString('en-GB')}</div>
+              <div className="font-mono text-2xl leading-8 font-semibold tracking-[-0.72px] tabular-nums text-ink">{n.toLocaleString('en-GB')}</div>
               <div className="mt-3 h-12 flex items-end"><div className="w-full rounded-md group-hover:opacity-85" style={{ height: `${steps[0][1] ? Math.round(40 + (n / steps[0][1]) * 60) : 6}%`, background: steps[0][1] ? FUNNEL_FILL[i] : '#F0F0F0' }} data-funnel={i} /></div>
             </Link>
           ))}
@@ -313,9 +311,9 @@ export const CardButton = ({ onClick, children }: { onClick: () => void; childre
  *  line (12px #737373 label over a 14px medium value) with one small outline action. */
 export function SummaryCard({ title, tag, children, foot, footValue, footTone = 'ink', action }: { title: string; tag?: ReactNode; children: ReactNode; foot: string; footValue: string; footTone?: ToneKey; action: ReactNode }) {
   return (
-    <Card className="rounded-xl h-[259px] flex flex-col min-w-0">
+    <Card className="overflow-hidden h-[259px] flex flex-col min-w-0">
       <Strip title={title} right={tag} />
-      <div className="flex-1 min-h-0 px-6 pb-6 pt-4 flex flex-col">
+      <div className="flex-1 min-h-0 p-5 flex flex-col">
         <div className="flex-1 min-h-0">{children}</div>
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#E5E5E5]">
           <div className="min-w-0"><div className="text-xs leading-4 text-[#737373]">{foot}</div><div className={cx('text-sm leading-5 font-medium truncate', tone[footTone])}>{footValue}</div></div>
@@ -330,7 +328,7 @@ export function SummaryCard({ title, tag, children, foot, footValue, footTone = 
 export function Stats({ items }: { items: [string, string, ToneKey?][] }) {
   return (
     <div className="grid grid-cols-3 gap-4">
-      {items.map(([l, v, t]) => <div key={l} className="min-w-0 flex flex-col gap-1"><div className="text-sm leading-5 text-[#737373] truncate">{l}</div><div className={cx('text-2xl leading-8 font-semibold tracking-[-0.36px] tabular-nums', tone[t ?? 'ink'])}>{v}</div></div>)}
+      {items.map(([l, v, t]) => <div key={l} className="min-w-0 flex flex-col gap-1"><div className="text-sm leading-5 text-[#737373] truncate">{l}</div><div className={cx('font-mono text-2xl leading-8 font-semibold tracking-[-0.72px] tabular-nums', tone[t ?? 'ink'])}>{v}</div></div>)}
     </div>
   );
 }
@@ -341,7 +339,7 @@ export function Split({ value, parts }: { value: string; parts: [string, number,
   const fill = { blue: '#2563EB', red: '#DC2626', amber: '#D97706', grey: '#D4D4D4', green: '#16A34A' } as const;
   return (
     <div className="flex flex-col gap-4">
-      <div className="text-2xl leading-8 font-semibold tracking-[-0.36px] tabular-nums text-[#0A0A0A]">{value}</div>
+      <div className="font-mono text-2xl leading-8 font-semibold tracking-[-0.72px] tabular-nums text-[#0A0A0A]">{value}</div>
       <div className="flex gap-0.5 h-1.5">{total > 0 ? parts.map(([l, n, t]) => n > 0 && <span key={l} className="rounded-[3px]" style={{ flex: n / total, background: fill[t] }} />) : <span className="flex-1 rounded-[3px] bg-[#F5F5F5]" />}</div>
       <div className="flex flex-wrap gap-1.5">{parts.map(([l, , t]) => <Pill key={l} tone={t}>{l}</Pill>)}</div>
     </div>

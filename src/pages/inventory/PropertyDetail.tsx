@@ -712,7 +712,7 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
       { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ roomTypes: old })) } });
   };
   return (
-    <Sheet open onClose={onClose} title={`Change rent · ${rt.name}`} sub={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`} width={480}
+    <Sheet open onClose={onClose} width={640} title={`Change rent · ${rt.name}`} sub={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!rentErr || !!fromErr} onClick={save}>{apply === 'new' ? `Save ${money(+rent || 0)} for new tenancies` : `Save ${money(+rent || 0)} for all`}</Button></>}>
       <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
         <SheetSection title="New rent">
@@ -750,7 +750,7 @@ function EditSheet({ p, which, onClose }: { p: Property; which: null | 'basics' 
     toast.success(which === 'address' ? `${name.trim()} address saved` : `${name.trim()} details saved`);
   };
   return (
-    <Sheet open={!!which} onClose={onClose} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!nameErr} onClick={save}>Save</Button></>}>
+    <Sheet open={!!which} onClose={onClose} width={640} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!nameErr} onClick={save}>Save</Button></>}>
       {which === 'basics' ? (
         <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
           <SheetSection title="Details">

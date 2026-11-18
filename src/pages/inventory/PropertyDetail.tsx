@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   ArrowsLeftRight, Bed, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
-  DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, Info, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, Tag as TagIcon, UploadSimple, Warning, WarningCircle,
+  Bike, Car, DotsThree, DownloadSimple, Dumbbell, Library, Sofa, Utensils, WashingMachine, FileCsv, Image, ImageSquare, Info, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, Tag as TagIcon, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
 import { Avatar, Button, Card, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetSection } from '../../components/ui';
 import { allUnits, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag } from '../../data/inventory';
@@ -17,6 +17,7 @@ import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, Dia
 
 type TabId = 'overview' | 'units' | 'tenancies' | 'photos' | 'activity';
 const AMENITIES = ['Laundry', 'Bike store', 'Gym', 'Library', 'Common room', 'Parking', 'Catered option'];
+const AMENITY_ICON: Record<string, typeof Bike> = { Laundry: WashingMachine, 'Bike store': Bike, Gym: Dumbbell, Library, 'Common room': Sofa, Parking: Car, 'Catered option': Utensils };
 const TAG_CHOICES: Tag[] = [{ label: 'Catered', tone: 'orange' }, { label: 'Self-catered', tone: 'green' }, { label: 'Undergraduate', tone: 'blue' }, { label: 'Postgraduate', tone: 'blue' }, { label: 'Hill colleges', tone: 'purple' }, { label: 'Accessible', tone: 'purple' }, { label: 'Riverside', tone: 'green' }];
 const shortName = (p: Property) => p.name.replace(/ College$/, '');
 
@@ -601,13 +602,14 @@ function PhotosTab({ p, narrow }: { p: Property; narrow?: boolean }) {
           <div className="flex flex-wrap gap-2">
             {AMENITIES.map((a) => {
               const on = am.includes(a);
-              return <button key={a} type="button" onClick={() => setAm(on ? am.filter((x) => x !== a) : [...am, a])} className={cx('h-7 px-2.5 rounded-full border text-sm flex items-center gap-1', on ? 'border-primary bg-[#EAF2FF] text-[#1D4ED8]' : 'border-line hover:bg-gray-50')}>{on && <CheckCircle size={13} weight="fill" />}{a}</button>;
+              const Ico = AMENITY_ICON[a];
+              return <button key={a} type="button" aria-pressed={on} onClick={() => setAm(on ? am.filter((x) => x !== a) : [...am, a])} className={cx('h-7 px-2.5 rounded-full border text-sm flex items-center gap-1.5', on ? 'border-primary bg-[#EAF2FF] text-[#1D4ED8]' : 'border-line hover:bg-gray-50')}>{Ico && <Ico size={14} className={on ? undefined : 'text-[#737373]'} />}{a}</button>;
             })}
           </div>
         </Card>
       </div>
       {dirty && (
-        <div className="sticky bottom-0 h-14 shrink-0 border-t border-line bg-white px-6 flex items-center gap-2 animate-[rise_.2s_cubic-bezier(0.23,1,0.32,1)]">
+        <div className={cx('sticky h-14 shrink-0 border-t border-line bg-white px-6 flex items-center gap-2 animate-[rise_.2s_cubic-bezier(0.23,1,0.32,1)]', narrow ? '-bottom-5' : 'bottom-0')}>
           <WarningCircle size={16} className="text-[#F59E0B]" /><span className="text-sm">Unsaved changes</span>
           <div className="ml-auto flex gap-2"><Button onClick={() => { setPhotos(p.photos); setDesc(p.description); setAm(p.amenities); }}>Discard</Button><Button variant="primary" onClick={save}>Save</Button></div>
         </div>

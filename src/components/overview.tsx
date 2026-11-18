@@ -264,7 +264,6 @@ export function RankCard({ title, note, rows, more, moreLabel, moreTo, empty }: 
             <Link key={r.id} to={r.to} className="h-[30px] -mx-2 px-2 rounded-lg flex items-center gap-2.5 text-sm hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA]">
               <Building size={16} strokeWidth={1.5} className="shrink-0 text-[#737373]" />
               <span className="flex-1 min-w-0 truncate text-[#0A0A0A]">{r.name}</span>
-              <span className="w-[72px] h-1 rounded-sm bg-[#F5F5F5] overflow-hidden"><span className="block h-full rounded-sm" style={{ width: `${r.pct}%`, background: r.warn ? '#D97706' : '#2563EB' }} /></span>
               <span className={cx('w-9 text-right font-mono text-sm font-medium tabular-nums', r.warn ? 'text-[#D97706]' : 'text-[#0A0A0A]')}>{r.value}</span>
             </Link>
           ))}

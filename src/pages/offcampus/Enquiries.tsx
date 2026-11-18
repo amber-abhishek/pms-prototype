@@ -22,8 +22,8 @@ export function Enquiries() {
   const empty = sp.get('demo') === 'empty';
   const list = empty ? [] : all;
   const [tab, setTab] = useTab<TabId>('all');
-  /* Status opens on New: the enquiries nobody has answered yet. */
-  const [status, setStatus] = useState<StatusView>('New');
+  /* Status opens on All (2026-11-18). */
+  const [status, setStatus] = useState<StatusView>('All');
   const [open, setOpen] = useOpen();
   const [replying, setReplying] = useState<Enquiry | null>(null);
   const busy = useRef(false);
@@ -74,7 +74,7 @@ export function Enquiries() {
           <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name, contact or property" /></div>
           <div className="ml-auto flex items-center gap-2">
             {!!list.length && <SelectFilter prefix="Status" value={status} onChange={(v) => setStatus(v as StatusView)} width={200}
-              options={[{ value: 'New', meta: String(nStatus('New')) }, { value: 'Replied', meta: String(nStatus('Replied')) }, { value: 'Closed', meta: String(nStatus('Closed')) }, { value: 'All', meta: String(bySource.length) }]} />}
+              options={[{ value: 'All', meta: String(bySource.length) }, { value: 'New', meta: String(nStatus('New')) }, { value: 'Replied', meta: String(nStatus('Replied')) }, { value: 'Closed', meta: String(nStatus('Closed')) }]} />}
             <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: list.length }, { id: 'hmo', label: 'Landlord', count: list.filter((e) => e.source === 'Landlord').length }, { id: 'pbsa', label: 'Partner halls', count: list.filter((e) => e.source === 'Partner halls').length }]} />
           </div>
         </div>)}

@@ -14,10 +14,10 @@ type WBlock = { key: string; name: string; floors: number; flats: number; rpf: n
 type Terms = { weeks: string; rent: string; deposit: string };
 const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
 const DEF_TERMS: Record<string, Terms> = { 'Ensuite single': { weeks: '51', rent: '212', deposit: '250' }, 'Standard single': { weeks: '44', rent: '168', deposit: '250' }, Studio: { weeks: '51', rent: '246', deposit: '300' } };
-/* Figma 3884:40957–42635. Steps stay grey and black (2026-11-13): the colour lives in the step content, not the stepper. */
-const STEPS: { title: string; icon: Icon }[] = [
-  { title: 'Basics', icon: Buildings }, { title: 'Location', icon: MapPin }, { title: 'Units', icon: Bed },
-  { title: 'Rent & terms', icon: Receipt }, { title: 'Review', icon: ClipboardCheck },
+/* Figma 3884:40957–42635. One colour per step (back on 2026-11-18). */
+const STEPS: { title: string; tone: string; icon: Icon }[] = [
+  { title: 'Basics', tone: '#2563EB', icon: Buildings }, { title: 'Location', tone: '#DB2777', icon: MapPin }, { title: 'Units', tone: '#7C3AED', icon: Bed },
+  { title: 'Rent & terms', tone: '#D97706', icon: Receipt }, { title: 'Review', tone: '#16A34A', icon: ClipboardCheck },
 ];
 /* One colour per level, from the tag-pill tones (2026-11-13): the layout cards, the previews, the Units tree and its
    counts all use it, so a level reads the same everywhere in the flow. */
@@ -136,7 +136,7 @@ export function AddPropertyWizard() {
             <button type="button" aria-label="Close" onClick={leave} className="size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring"><X size={16} strokeWidth={1.5} /></button>
           </div>
 
-          {/* Stepper: 68px #FAFAFA band. Done = grey tile + check, current = black tile with a soft 4px glow, next = white outline. */}
+          {/* Stepper: 68px #FAFAFA band. Done = 12% tint + check, current = solid tile with a 4px glow, next = white outline. */}
           <ol className="h-[68px] shrink-0 bg-[#FAFAFA] border-b border-[#E5E5E5] px-6 flex items-center gap-3">
             {STEPS.map((s, i) => {
               const done = i < step, cur = i === step;
@@ -144,15 +144,16 @@ export function AddPropertyWizard() {
               return (
                 <li key={s.title} className={cx('flex items-center gap-3 min-w-0', i < STEPS.length - 1 && 'flex-1')}>
                   <button type="button" disabled={i > step} onClick={() => setStep(i)} className="flex items-center gap-2.5 shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default">
-                    <span className={cx('size-8 rounded-lg flex items-center justify-center', done ? 'bg-[#EBEBEB] text-[#0A0A0A]' : cur ? 'bg-[#0A0A0A] text-white shadow-[0_0_0_4px_rgba(10,10,10,0.08)] dark:bg-[#E3E6EC] dark:text-[#111318] dark:shadow-[0_0_0_4px_rgba(227,230,236,0.12)]' : 'bg-white border border-[#E5E5E5] text-[#A3A3A3]')}>
+                    <span className={cx('size-8 rounded-lg flex items-center justify-center', !done && !cur && 'bg-white border border-[#E5E5E5] text-[#A3A3A3]')}
+                      style={done ? { background: `${s.tone}1F`, color: s.tone } : cur ? { background: s.tone, color: '#fff', boxShadow: `0 0 0 4px ${s.tone}2E` } : undefined}>
                       <I size={16} strokeWidth={1.5} />
                     </span>
                     <span className="flex flex-col gap-px text-left">
-                      <span className={cx('font-mono uppercase text-[11px] leading-[14px] font-medium tracking-[0.44px]', done || cur ? 'text-[#737373]' : 'text-[#A3A3A3]')}>Step 0{i + 1}</span>
+                      <span className="font-mono uppercase text-[11px] leading-[14px] font-medium tracking-[0.44px]" style={{ color: done || cur ? s.tone : '#A3A3A3' }}>Step 0{i + 1}</span>
                       <span className={cx('text-sm leading-[18px] whitespace-nowrap', done || cur ? 'font-medium text-[#0A0A0A]' : 'text-[#737373]')}>{s.title}</span>
                     </span>
                   </button>
-                  {i < STEPS.length - 1 && <span aria-hidden className={cx('flex-1 min-w-4 h-0.5 rounded-[1px]', done ? 'bg-[#0A0A0A] dark:bg-[#C9CDD6]' : 'bg-[#E5E5E5]')} /* solid, no gradient (2026-11-12); classes, not inline, so dark mode remaps them */ />}
+                  {i < STEPS.length - 1 && <span aria-hidden className={cx('flex-1 min-w-4 h-0.5 rounded-[1px]', !done && 'bg-[#E5E5E5]')} style={done ? { background: s.tone } : undefined} /* solid, no gradient (2026-11-12) */ />}
                 </li>
               );
             })}

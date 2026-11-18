@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown } from '../../components/icons';
+import { ChevronDown, CurrencyGbp, FileText, Hash, Ticket, User, Wrench, type Icon } from '../../components/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/shadcn/tooltip';
 import { Avatar, Button, Pill, cx, type Tone } from '../../components/ui';
@@ -60,6 +60,10 @@ function barsFor(room: TlRoom, y: number): Bar[] {
    from → to band with a progress line to today; then label/value rows (label ink, value grey right); footer action. */
 const STAY: Record<Kind, [string, string]> = { in: ['Move in', 'Move out'], booked: ['Move in', 'Move out'], summer: ['Move in', 'Move out'], held: ['Held from', 'Offer expires'], blocked: ['Blocked from', 'Back in use'] };
 const FILL: Record<Kind, string> = { in: '#16A34A', booked: '#2563EB', summer: '#8B5CF6', held: '#F59E0B', blocked: '#A3A3A3' };
+/* The card wears its bar's colour (2026-11-18): a toned row icons only; the header strip and stay band stay neutral. */
+const TINT: Record<Kind, string> = { in: '#F0FDF4', booked: '#EFF6FF', summer: '#F5F3FF', held: '#FFFBEB', blocked: '#F5F5F5' };
+const DEEP: Record<Kind, string> = { in: '#166534', booked: '#1E40AF', summer: '#5B21B6', held: '#92400E', blocked: '#525252' };
+const ROW_ICON: Record<string, Icon> = { Rent: CurrencyGbp, Contract: FileText, Reason: Wrench, Job: Hash, Offer: Ticket, Applicant: User };
 
 function BarCard({ bar, room, hall }: { bar: Bar; room: TlRoom; hall: string }) {
   const nav = useNavigate();
@@ -109,7 +113,7 @@ function BarCard({ bar, room, hall }: { bar: Bar; room: TlRoom; hall: string }) 
       </div>
 
       <dl className="px-4 py-4 flex flex-col gap-3 text-sm leading-5">
-        {rows.map(([k, v]) => <div key={k} className="flex items-center justify-between gap-4"><dt className="text-[#0A0A0A]">{k}</dt><dd className="min-w-0 truncate text-right font-medium text-[#737373]">{v}</dd></div>)}
+        {rows.map(([k, v]) => { const RI = ROW_ICON[k]; return <div key={k} className="flex items-center justify-between gap-4"><dt className="flex items-center gap-2 text-[#0A0A0A]">{RI && <span className="size-6 rounded-md flex items-center justify-center" style={{ background: TINT[bar.kind], color: FILL[bar.kind] === '#A3A3A3' ? DEEP[bar.kind] : FILL[bar.kind] }}><RI size={14} strokeWidth={1.75} /></span>}{k}</dt><dd className="min-w-0 truncate text-right font-medium text-[#0A0A0A]">{v}</dd></div>; })}
       </dl>
 
       <div className="h-14 px-4 flex items-center justify-end border-t border-[#E5E5E5]">

@@ -289,21 +289,28 @@ function NoticeSheet({ n, onClose , nav: sheetNav }: { nav?: SheetNav;  n: Notic
           <>
             <SheetSection title="Delivery">
               <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-                {([['Delivered', n.count.toLocaleString('en-GB'), '100%'], ['Opened', opened.toLocaleString('en-GB'), `${n.opened ?? 0}%`], [n.id === 'n1' ? 'Bedding packs ordered' : 'Clicked a link', clicks, 'from the link'], ['Bounced', 0, '']] as const).map(([l, v, sub]) => (
-                  <div key={l}><div className="text-sm text-[#737373]">{l}</div><div className="flex items-baseline gap-2 mt-1"><span className="text-xl font-semibold tracking-tight">{v}</span>{sub && <span className="text-xs text-[#737373]">{sub}</span>}</div></div>
-                ))}
+                {/* Each figure wears a tone (2026-11-18): the number in the deep tone, the share on a 10% ground. */}
+                {([['Delivered', n.count.toLocaleString('en-GB'), '100%', '#16A34A', '#166534'], ['Opened', opened.toLocaleString('en-GB'), `${n.opened ?? 0}%`, '#2563EB', '#1E40AF'], [n.id === 'n1' ? 'Bedding packs ordered' : 'Clicked a link', clicks, n.count ? `${Math.round((clicks / n.count) * 100)}%` : '', '#7C3AED', '#5B21B6'], ['Bounced', 0, '', '#DC2626', '#991B1B']] as const).map(([l, v, sub, tone, deep]) => {
+                  const none = v === 0;
+                  return (
+                    <div key={l}>
+                      <div className="text-sm text-[#737373]">{l}</div>
+                      <div className="flex items-baseline gap-2 mt-1"><span className="text-xl font-semibold tracking-tight tabular-nums" style={{ color: none ? '#A3A3A3' : deep }}>{v}</span>{sub && <span className="px-1.5 rounded-md font-mono text-xs leading-5 font-medium" style={{ color: deep, background: `${tone}1A` }}>{sub}</span>}</div>
+                    </div>
+                  );
+                })}
               </div>
             </SheetSection>
             <SheetSection title="Not opened">
-              {unopened > 0 && <div className="mb-2 flex items-center justify-between"><span className="text-sm text-ink">{unopened.toLocaleString('en-GB')} residents</span><Button size="sm" icon={ChatText} onClick={() => setRemind(true)}>Remind by SMS</Button></div>}
+              {unopened > 0 && <div className="mb-2 flex items-center justify-between"><span className="text-sm text-ink"><span className="font-semibold text-[#B45309] tabular-nums">{unopened.toLocaleString('en-GB')}</span> residents</span><Button size="sm" icon={ChatText} onClick={() => setRemind(true)}>Remind by SMS</Button></div>}
               {unopened > 0 ? (
                 <div className="divide-y divide-[#F5F5F5]">
                   {notOpened.map(([nm, rm, ar]) => (
                     <div key={nm} className="h-10 flex items-center gap-3 text-sm">
                       <span className="flex-1 min-w-0 truncate text-[#0A0A0A]">{nm}</span>
-                      <span className="w-16 text-[#737373]">{rm}</span>
+                      <span className="w-16 font-mono text-xs text-[#737373]">{rm}</span>
                       <span className="w-20 text-[#737373]">{ar}</span>
-                      <Envelope size={14} className="text-[#737373]" aria-label="Delivered, not opened" />
+                      <span className="size-6 rounded-md bg-[#F59E0B]/10 text-[#B45309] flex items-center justify-center"><Envelope size={14} aria-label="Delivered, not opened" /></span>
                     </div>
                   ))}
                   {unopened > notOpened.length && <div className="h-10 flex items-center text-sm text-[#737373]">and {(unopened - notOpened.length).toLocaleString('en-GB')} more</div>}

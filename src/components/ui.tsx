@@ -478,7 +478,7 @@ export function SelectFilter({ label, icon: I, value, options, onChange, width =
 }) {
   const [open, setOpen] = useState(false);
   const sel = options.find((o) => o.value === value);
-  const on = (!!label || !!prefix) && !!sel;
+  const on = (!!label || !!prefix) && !!sel && sel.value !== 'All'; /* 'All' is the default, not an applied filter */
   const row = (v: string, body: ReactNode, chosen: boolean) => (
     <button key={v || '_all'} type="button" role="menuitemradio" aria-checked={chosen} onClick={() => { onChange(v); setOpen(false); }}
       className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F5F5] focus-visible:bg-[#F5F5F5] outline-none transition-colors">

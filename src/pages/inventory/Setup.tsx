@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Avatar, Empty } from '../../components/ui';
 import { photoOf } from './photos';
 import { flushSync } from 'react-dom';
@@ -29,7 +29,7 @@ export function StructuresPage() {
       </PageHeader>
       <PageHeading />
       {/* The levels rule sits above the list as a plain line (no box), so it reads as page context, not an alert. */}
-      <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] pt-6 pb-5">
+      <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] py-4">
         <Note plain tone="blue" title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
       </div>
       <Table rows={rows} empty={<Empty title="No layouts match" sub="Try a layout or level name." />} onRow={setOpen} selected={open?.id}
@@ -327,13 +327,15 @@ export function CustomFieldsPage() {
 }
 
 /* Custom field panel, record-panel language (2026-11-19): control bar "CUSTOM FIELD · 2 OF 8" with Delete, a hero, and
-   read-only sections. Details and Attached to each have an Edit link that opens the centred field dialog; creating a
-   field uses the same dialog. */
+   read-only sections. Details' Edit turns that one section into inputs in place (no modal, 2026-11-19); Attached to
+   saves on each switch. Creating a field still uses the centred dialog. */
 function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | null; onClose: () => void }) {
   const structures = useInv((s) => s.structures);
   const [editing, setEditing] = useState(false);
   const [asking, setAsking] = useState(false);
   const [required, setRequired] = useState(false);
+  const fid = f && f !== 'new' ? f.id : '';
+  useEffect(() => { setEditing(false); }, [fid]);
   if (!f) return null;
   if (f === 'new') return <FieldDialog f={null} open onClose={onClose} />;
   const type = f.type.replace(/^(Pick one · \d+)$/, '$1 options');
@@ -344,13 +346,13 @@ function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | n
         sub={f.attached.length ? `It’s on ${f.attached.join(', ')}. Every value already entered for it is deleted too.` : 'It isn’t attached to anything yet.'}
         footer={<><Button onClick={() => setAsking(false)}>Keep</Button><Button variant="danger" icon={null} onClick={del}>Delete field</Button></>}>{null}</Modal>
       <SheetHero icon={Textbox} tone="grey" name={f.name} meta={`${type} · on ${f.attached.length} ${f.attached.length === 1 ? 'level' : 'levels'}`} />
-      <SheetSection title="Details" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}
-        rows={[['Name', f.name], ['Answer type', type]]} />
+      {editing ? <FieldDetailsEdit key={f.id} f={f} onDone={() => setEditing(false)} />
+        : <SheetSection title="Details" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}
+          rows={[['Name', f.name], ['Answer type', type]]} />}
       <SheetSection title="Attached to"><AttachPicker f={f} structures={structures} /></SheetSection>
       <SheetSection title="Rules">
         <SheetRow title="Required" sub={requiredCopy(f)} end={<Switch checked={required} onChange={(b) => { setRequired(b); toast.success(`${f.name} is ${b ? 'required' : 'optional'}`); }} label="Required" />} />
       </SheetSection>
-      <FieldDialog f={f} open={editing} onClose={() => setEditing(false)} />
     </Sheet>
   );
 }
@@ -371,6 +373,9 @@ function AttachPicker({ f, structures }: { f: CField; structures: Structure[] })
     toast.success(on(st.name, lv) ? `${f.name} removed from ${lv.toLowerCase()}s in ${st.name}` : `${f.name} added to ${lv.toLowerCase()}s in ${st.name}`);
   };
   const levels = st.levels.filter((l) => l.name !== 'Tenancy');
+  /* The right pane reserves room for the longest layout's levels, so switching layouts never changes the card's height. */
+  const most = Math.max(...structures.map((x) => x.levels.filter((l) => l.name !== 'Tenancy').length));
+  const paneMin = 32 + 32 + most * 38 + (most - 1) * 12;
   const MULT = [1, 5, 16, 140];
   const count = (i: number) => (st.properties ? Math.round(st.properties * MULT[Math.min(i, MULT.length - 1)] * (i === levels.length - 1 && i < 3 ? 6 : 1)) : 0);
   return (
@@ -394,7 +399,7 @@ function AttachPicker({ f, structures }: { f: CField; structures: Structure[] })
             );
           })}
         </div>
-        <div className="p-4">
+        <div className="p-4" style={{ minHeight: paneMin }}>
           <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-3">{st.name}</div>
           <ol className="relative flex flex-col gap-3">
             <span aria-hidden className="absolute left-[15px] top-4 bottom-4 w-px bg-[#E5E5E5]" />
@@ -424,6 +429,39 @@ function requiredCopy(f: CField) {
 }
 
 /** Create or edit a field in a centred dialog: name, answer type, and the layout × level grid. */
+/* Details in edit mode: the same card and the same 32px label/value rows, each value swapped for a compact input in
+   place, so nothing moves when Edit is clicked. Cancel is grey, Save stays the blue link. */
+const inlineInput = 'w-full h-7 -my-1 -ml-2 px-2 rounded-md border border-[#E5E5E5] bg-white text-sm leading-5 text-[#0A0A0A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15';
+function FieldDetailsEdit({ f, onDone }: { f: CField; onDone: () => void }) {
+  const fields = useInv((s) => s.fields);
+  const [name, setName] = useState(f.name);
+  const [type, setType] = useState(f.type.split(' · ')[0]);
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { nameRef.current?.select(); }, []);
+  const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const nameErr = !name.trim() ? 'Give the field a name.' : !key ? 'Use letters or numbers in the name.' : fields.some((x) => x.id !== f.id && (x.name.trim().toLowerCase() === name.trim().toLowerCase() || x.key === key)) ? `A field called ${name.trim()} already exists.` : '';
+  const save = () => {
+    if (nameErr) { toast.error(nameErr); return; }
+    const t = type !== 'Pick one' ? type : f.type.startsWith('Pick one') ? f.type : 'Pick one · 3 options';
+    useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, name: name.trim(), key, type: t } : x)));
+    onDone();
+    toast.success(`${name.trim()} saved`);
+  };
+  const keys = (e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') { e.stopPropagation(); onDone(); } };
+  return (
+    <SheetSection title="Details" action={<>
+      <button type="button" onClick={onDone} className="-my-1 -mx-1.5 h-6 px-1.5 rounded-md text-sm font-medium text-[#525252] hover:bg-[#F0F0F0]">Cancel</button>
+      <EditLink onClick={save}>Save</EditLink>
+    </>}
+      rows={[
+        ['Name', <span className="block -my-1 -ml-2"><input ref={nameRef} aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={keys} aria-invalid={!!nameErr} className={cx(inlineInput, 'my-0 ml-0', nameErr && 'border-[#DC2626]')} /></span>],
+        ['Answer type', <span className="block -my-1 -ml-2">
+          <Picker value={type} onChange={setType} options={TYPES.map((t) => ({ id: t, label: t }))} className="!h-7 !rounded-md !border-[#E5E5E5] !px-2 text-[#0A0A0A] data-[state=open]:!border-[#2563EB]" />
+        </span>],
+      ]} />
+  );
+}
+
 function FieldDialog({ f, open, onClose }: { f: CField | null; open: boolean; onClose: () => void }) {
   const structures = useInv((s) => s.structures);
   const fields = useInv((s) => s.fields);

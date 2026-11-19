@@ -13,7 +13,7 @@ import { PHOTO } from '../inventory/photos';
 export function Title({ title, sub, children }: { title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
   return (
     /* No visible page heading (as Amber Connect): the title is screen-reader only, its actions keep a toolbar row. */
-    children ? <div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-4"><TitleH1 className="sr-only">{title}</TitleH1>{sub && <span className="sr-only">{sub}</span>}<div className="ml-auto flex items-center gap-2">{children}</div></div>
+    children ? <div {...PIN} className="px-[var(--tx,16px)] py-4 flex items-center gap-4"><TitleH1 className="sr-only">{title}</TitleH1>{sub && <span className="sr-only">{sub}</span>}<div className="ml-auto flex items-center gap-2">{children}</div></div>
       : <TitleH1 className="sr-only">{title}</TitleH1>
   );
 }

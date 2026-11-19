@@ -118,7 +118,7 @@ export function Reviews({ bare }: { bare?: boolean } = {}) {
       {!bare && <PageHeader icon={FileMagnifyingGlass} crumbs={['Off-campus']} title="Listing reviews" />}
       <div className="flex-1 min-h-0 flex flex-col relative">
         {!bare && <Title title="Listing reviews" />}
-        <div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3">
+        <div {...PIN} className="px-[var(--tx,16px)] py-4 flex items-center gap-3">
           {/* Every off-campus list: search on the left, status tabs at the right edge. */}
           <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search landlord or property" /></div>
           <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: queue.filter((r) => !x.status || r.status === x.status).length }))} /></div>

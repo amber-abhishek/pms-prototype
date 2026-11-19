@@ -162,7 +162,7 @@ function ScheduledList({ onFix, selected }: { onFix: (s: Schedule, edit?: boolea
     <div className="flex-1 min-h-0 flex flex-col">
       {/* As Property layouts' rule (2026-11-13): a plain line above the list, no box, the fix on the right. */}
       {bounced.length > 0 && (
-        <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] pt-6 pb-5 flex flex-col gap-4">
+        <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] py-4 flex flex-col gap-4">
           {bounced.map((s) => (
             <div key={s.id} className="flex items-center gap-3">
               <Note plain tone="red" icon={Warning} title={`${s.sendsTo} bounced on ${s.bounced ?? 'Mon 08:00'}`}>The mailbox no longer exists.</Note>

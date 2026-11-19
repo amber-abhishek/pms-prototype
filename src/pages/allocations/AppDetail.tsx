@@ -1,13 +1,12 @@
 import { FooterZone } from '../../components/headerCtx';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, FirstAid, Warning, Wheelchair, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
 import { Avatar, Button, Dialog, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
 import { available, firstName, hallFull, roomTerms, unitsFor, useAlloc, type App, type Req } from '../../data/allocations';
-import type { Tag as InvTag } from '../../data/inventory';
 import { St } from './common';
-import { LineTabs, TagPicker, addTagChip } from '../inventory/common';
+import { LineTabs } from '../inventory/common';
 import { useAllocActions } from './actions';
 
 export const statusLabel: Record<App['status'], string> = { review: 'In review', manual: 'Flagged', allocated: 'Allocated', rejected: 'Rejected', waitlist: 'Waitlist', declined: 'Declined' };
@@ -26,7 +25,7 @@ export const ordinal = (n: number) => ord[n - 1] ?? `${n}th`;
 
 const DETAIL_TABS = ['Overview', 'Documents', 'Messages', 'Activity'] as const;
 type DetailTab = typeof DETAIL_TABS[number];
-/** The application (Figma "Side panel · Application" 4073:17179): hero with a tag row, Overview / Documents / Messages /
+/** The application (Figma "Side panel · Application" 4073:17179): hero with a status row, Overview / Documents / Messages /
  *  Activity tabs, and the action bar. Used as the split-view detail and inside the Application sheet. */
 export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllocate: (p: Pref) => void; onReject: () => void; onAfter: () => void }) {
   const d = useAlloc();
@@ -35,9 +34,6 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
   const best = bestPref(ps);
   const canAct = a.status === 'review' || a.status === 'manual';
   const [tab, setTab] = useState<DetailTab>('Overview');
-  /* Tags added here live for the session only (prototype): the workspace tag list, picked per application. */
-  const [tags, setTags] = useState<InvTag[]>([]);
-  useEffect(() => { setTags([]); }, [a.id]);
   const allocateBest = () => (best ? onAllocate(best) : toast.error(`No free unit in any of ${firstName(a.name)}’s choices`, { description: 'Pick a unit from another hall, or add them to the waitlist.' }));
   /* Five tabs instead of one long scroll: the hero stays put, the tab's content scrolls under it. */
   return (
@@ -46,8 +42,6 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
         <SheetHero name={a.name} meta={`${a.year} · Applied ${a.submitted}`}
           tags={<>
             <St s={statusLabel[a.status]} />{a.tag && <Pill tone="amber">{a.tag}</Pill>}
-            {tags.map((t) => <Pill key={t.label} tone={t.tone}>{t.label}</Pill>)}
-            <TagPicker have={tags} onPick={(t) => { setTags((l) => [...l, t]); toast.success(`Tagged ${t.label}`); }} onRemove={(t) => setTags((l) => l.filter((x) => x.label !== t.label))} trigger={addTagChip()} />
           </>}
           facts={[['1st choice', a.prefs[0]?.[0] ?? a.hall], ['Room type', a.prefs[0]?.[1] ?? a.room], canAct ? ['Waiting', `${a.waiting} ${a.waiting === 1 ? 'day' : 'days'}`, a.waiting >= 5 ? 'amber' : undefined] : ['Fee', a.fee]]} />
       </div>

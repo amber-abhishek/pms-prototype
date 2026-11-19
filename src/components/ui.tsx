@@ -192,7 +192,8 @@ export function ButtonGroup({ children }: { children: ReactNode }) {
 }
 /** The row under the page header: tabs on the left, search/filter/display on the right.
  *  24px below the header line, no bottom rule; sides follow the table gutter (--gx: 120px under 6 columns, 16px for 6+). */
-export const toolbarCls = 'shrink-0 px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-2';
+/* Toolbar rows above a list: 16px above and below the controls on every screen (2026-11-19). */
+export const toolbarCls = 'shrink-0 px-[var(--tx,16px)] py-4 flex items-center gap-2';
 /** A page toolbar (filters, search, view switch) pins under the breadcrumb header while the page scrolls, and the
  *  column header pins under it (styles.css). Its height varies (wrapping, !py-3), so it publishes it on <main> as
  *  --tb-h for the column header's offset. Spread on the toolbar row: <div {...PIN} className=…>. One toolbar per page. */

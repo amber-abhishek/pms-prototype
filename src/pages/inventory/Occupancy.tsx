@@ -119,14 +119,14 @@ export function OccupancyPage() {
       </PageHeader>
 
       {/* Connect toolbar (as Properties, 3884:39809): one 68px row, 16/24 padding, every control 34px.
-          Hall and block pick what the plan shows on the left; the Status filter sits on the right. */}
+          Hall and block pick what the plan shows on the left; the Status filter and the view toggle sit on the right, toggle last. */}
       <div className="shrink-0 px-6 py-4 flex items-center gap-3">
         <SelectFilter icon={Buildings} width={260} value={h.id} onChange={pickHall} suffix={<span className="text-[#737373] font-mono tabular-nums">{h.beds}</span>}
           options={HALLS.map((x) => ({ value: x.id, label: x.name, meta: x.beds }))} />
         {h.blocks.length > 1 && <SelectFilter icon={Stack} width={180} value={block} onChange={setBlock} options={h.blocks.map((b) => ({ value: b }))} />}
         <div className="ml-auto flex items-center gap-3">
-          <Seg value={view} onChange={setView} options={['Timeline', 'Grid']} className="w-[180px]" />
           <MultiFilter label="Status" width={220} value={statusF} onChange={setStatusF} options={ORDER.map((st) => ({ value: ST[st].label, tone: ST[st].tone }))} />
+          <Seg value={view} onChange={setView} options={['Timeline', 'Grid']} className="w-[180px]" />
         </div>
       </div>
 

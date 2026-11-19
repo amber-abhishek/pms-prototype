@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlarmClock, AlarmClockOff, ArrowSquareOut, ArrowUpRight, ArrowsLeftRight, CalendarBlank, Check, CheckCircle, Info, PlusCircle, Shield, ShieldWarning, User } from '../../components/icons';
+import { AlarmClock, CheckCircle, Info, ShieldWarning, ListChecks } from '../../components/icons';
 import { toast } from 'sonner';
 import { create } from 'zustand';
-import { Button, Note, Pill, Sheet, SheetHero, SheetSection, Textarea, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Note, Pill, Sheet, SheetHero, SheetRow, SheetSection, Textarea, cx, type Fact, type SheetNav } from '../../components/ui';
+import { EditLink, LineTabs, PanelModal } from '../inventory/common';
 import { HALLS, ME, PEOPLE, useHome, type HTask, type Scope } from '../../data/home';
 import { Box, Picker, Who } from './parts';
 import { SnoozeMenu, useSnooze } from './Snooze';
@@ -44,9 +45,12 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
   const change = useChange(scope);
   const { wake } = useSnooze(scope);
   const [mode, setMode] = useState<Mode>('detail');
+  const [tab, setTab] = useState<'overview' | 'activity'>('overview');
   const [halls, setHalls] = useState<string[]>(['Van Mildert College', 'Collingwood College', 'Josephine Butler College']);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
   const busy = useRef(false);
-  useEffect(() => { setMode('detail'); busy.current = false; }, [task?.id]);
+  useEffect(() => { setMode('detail'); setTab('overview'); setEditingNote(false); busy.current = false; }, [task?.id]);
   if (!task) return null;
 
   const dt = task.detail ?? {};
@@ -102,44 +106,10 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
   if (task.elsewhere) {
     return (
       <Sheet open onClose={close} width={520} title="Task" nav={sheetNav}
-        footer={<>
-          <Button icon={ArrowSquareOut} onClick={() => { close(); nav(task.to ?? '/residents/requests'); }}>Open the request</Button>
-          <Button variant="primary" onClick={close}>Close</Button>
-        </>}>
-        <SheetHero avatar={false} name={title} meta={sub} />
-        <div className="pb-5"><Note tone="blue" icon={CheckCircle} title="Already done in Requests">{task.elsewhere.by.split(' ')[0]} approved this swap {task.elsewhere.ago}, so the task closed itself.</Note></div>
+        footer={<Button variant="primary" icon={null} onClick={() => { close(); nav(task.to ?? '/residents/requests'); }}>Open the request</Button>}>
+        <SheetHero icon={ListChecks} name={title} meta={sub} />
+        <div className="mb-3"><Note tone="green" icon={CheckCircle} title="Already done in Requests">{task.elsewhere.by.split(' ')[0]} approved this swap {task.elsewhere.ago}.</Note></div>
         <SheetSection title="Details" rows={factRows(dt.facts ?? [])} />
-      </Sheet>
-    );
-  }
-
-  /* ---- E1 step 3: give Aisha the hall ---- */
-  if (mode === 'halls') {
-    const jb = halls.includes('Josephine Butler College');
-    return (
-      <Sheet open onClose={() => setMode('pick')} width={520}
-        title="Aisha Khan’s halls" sub="Hall manager"
-        footer={<>
-          <Button onClick={() => setMode('pick')}>Cancel</Button>
-          <Button variant="primary" icon={Check} onClick={saveHalls}>{jb ? 'Save and hand over the task' : 'Save'}</Button>
-        </>}>
-        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
-        <SheetSection title="Halls">
-        <div className="rounded-xl border border-line divide-y divide-line">
-          {HALLS.map((h) => {
-            const on = halls.includes(h.name);
-            const added = on && h.name === 'Josephine Butler College';
-            return (
-              <label key={h.name} className="flex items-center gap-3 px-3 h-11 cursor-pointer hover:bg-gray-50">
-                <Box checked={on} label={h.name} onChange={(v) => setHalls((cur) => (v ? [...cur, h.name] : cur.filter((x) => x !== h.name)))} />
-                <span><span className="block text-sm text-ink">{h.name}</span><span className="block text-xs text-gray-500">{h.rooms} rooms{added && ' · added'}</span></span>
-              </label>
-            );
-          })}
-        </div>
-        </SheetSection>
-        </div>
-        {jb && <div className="mt-4"><Note tone="blue" icon={Info} title="Aisha will see Josephine Butler in Residents, Requests and Maintenance">She gets an email saying so.</Note></div>}
       </Sheet>
     );
   }
@@ -151,72 +121,101 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
     ...(!main ? [['Owner', <><Who name={task.owner} size={18} grad />{task.owner}</>] as [string, React.ReactNode]] : []),
   ];
   const ownerRow: [string, React.ReactNode] = ['Owner', <><Who name={task.owner} size={18} grad />{task.owner}</>];
+  /* Key facts (Figma Task · Overview): where, when it's due (toned like its pill), who owns it. */
+  const heroFacts: Fact[] = [
+    ['Where', dt.hall ?? task.sub ?? '—'],
+    ['Due', task.done ? 'Done' : task.dueLabel, task.done ? 'green' : task.dueTone === 'red' || task.dueTone === 'amber' ? task.dueTone : undefined],
+    ['Owner', task.owner],
+  ];
+  const activity = [...(dt.activity ?? [{ icon: 'plus' as const, text: `Task created${task.from ? ` from ${task.from.label}` : ''}` }])].reverse();
 
-  const footer = mode === 'pick' && nobody ? (
+  /* Two choices on the right (hand it on, or the task's own action); snoozing is a quiet extra on the left. */
+  const footer = (
     <>
-      <Button onClick={() => setMode('detail')}>Keep it</Button>
-      <Button variant="primary" icon={Shield} onClick={() => setMode('halls')}>Open Roles and access</Button>
-    </>
-  ) : (
-    <>
-      {main && !task.done && task.owner === ME && mode === 'detail' && (task.snoozed
-        ? <Button className="mr-auto" icon={AlarmClockOff} onClick={() => { wake(task); onClose(); }}>Unsnooze</Button>
-        : <SnoozeMenu t={task} scope={scope} align="start" onDone={onClose}><Button className="mr-auto" icon={AlarmClock}>Snooze</Button></SnoozeMenu>)}
-      {!task.done && <Button icon={main ? User : ArrowsLeftRight} onClick={() => setMode(mode === 'pick' ? 'detail' : 'pick')}>Reassign</Button>}
+      {main && !task.done && task.owner === ME && (task.snoozed
+        ? <Button className="mr-auto" variant="ghost" icon={null} onClick={() => { wake(task); onClose(); }}>Unsnooze</Button>
+        : <SnoozeMenu t={task} scope={scope} align="start" onDone={onClose}><Button className="mr-auto" variant="ghost" icon={null}>Snooze</Button></SnoozeMenu>)}
+      {!task.done && <Button icon={null} onClick={() => setMode('pick')}>Hand it to…</Button>}
       {dt.primary === 'approve' && !task.done
-        ? <Button variant="primary" icon={Check} onClick={() => finish('Swap approved · both residents told')}>Approve</Button>
+        ? <Button variant="primary" icon={null} onClick={() => finish('Swap approved · both residents told')}>Approve</Button>
         : task.to
-          ? <Button variant="primary" icon={ArrowUpRight} onClick={() => { onClose(); nav(task.to!); }}>{task.openLabel ?? 'Open'}</Button>
-          : !task.done && <Button variant="primary" icon={Check} onClick={() => finish('Marked as done')}>Mark done</Button>}
+          ? <Button variant="primary" icon={null} onClick={() => { onClose(); nav(task.to!); }}>{task.openLabel ?? 'Open'}</Button>
+          : !task.done && <Button variant="primary" icon={null} onClick={() => finish('Marked as done')}>Mark done</Button>}
     </>
   );
+  const jb = halls.includes('Josephine Butler College');
+  const saveNote = () => {
+    const v = noteDraft.trim();
+    if (v !== (dt.teamNote ?? '')) { patch(scope, (rows) => rows.map((r) => (r.id === task.id ? { ...r, detail: { ...dt, teamNote: v } } : r))); toast.success('Note saved'); }
+    setEditingNote(false);
+  };
 
   return (
     <Sheet open onClose={onClose} width={520} title="Task" nav={sheetNav} footer={footer}>
-      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
-      {!(mode === 'pick' && nobody) && (
-        <>
-          <SheetHero avatar={false} name={title} meta={sub}>
-            {task.done ? <Pill tone="green" icon={CheckCircle}>Done{task.doneBy && task.doneBy !== ME ? ` by ${task.doneBy}` : ''}</Pill>
-              : pills.length > 0 && pills.map((p) => <Pill key={p.label} tone={p.tone} icon={p.icon === 'check' ? Check : CalendarBlank}>{p.label}</Pill>)}
-          </SheetHero>
-          {task.snoozed && !task.done && <div className="pb-5"><Note tone="blue" icon={AlarmClock} title={`Snoozed until ${task.snoozed.label}`}>Hidden from Mine until then.</Note></div>}
-          {main && mode === 'detail' && dt.decide && task.to && (
-            <button type="button" onClick={() => { onClose(); nav(task.to!); }} className="block w-full mb-5 text-left rounded-xl hover:ring-2 hover:ring-primary/15">
-              <Note tone="blue" icon={Info} title={dt.decide.title}>{dt.decide.sub}</Note>
-            </button>
-          )}
-          <SheetSection title="Details" rows={factRows(main && mode === 'detail' ? [...facts, ownerRow] : facts)} />
-        </>
+      <SheetHero icon={ListChecks} name={title} meta={sub} facts={heroFacts}>
+        {task.done ? <Pill tone="green">Done{task.doneBy && task.doneBy !== ME ? ` by ${task.doneBy}` : ''}</Pill>
+          : pills.length > 0 && pills.map((p) => <Pill key={p.label} tone={p.tone}>{p.label}</Pill>)}
+      </SheetHero>
+      <div className="-mx-5 mb-5">
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity' }]} />
+      </div>
+      {tab === 'overview' ? <>
+        {task.snoozed && !task.done && <div className="mb-3"><Note tone="grey" icon={AlarmClock} title={`Snoozed until ${task.snoozed.label}`}>Hidden from Mine until then.</Note></div>}
+        {main && dt.decide && task.to && (
+          <button type="button" onClick={() => { onClose(); nav(task.to!); }} className="block w-full mb-3 text-left rounded-lg hover:ring-2 hover:ring-black/5">
+            <Note tone="grey" icon={Info} title={dt.decide.title}>{dt.decide.sub}</Note>
+          </button>
+        )}
+        <SheetSection title="Details" rows={factRows([...(main ? [...facts, ownerRow] : facts), ...(task.from ? [['Raised by', task.from.label] as [string, React.ReactNode]] : [])])} />
+        {/* The one editable thing on a task: Edit turns this section into a box, Done saves it. */}
+        {main && (
+          <SheetSection title="Note for the team" action={editingNote ? <EditLink onClick={saveNote}>Done</EditLink> : <EditLink onClick={() => { setNoteDraft(dt.teamNote ?? ''); setEditingNote(true); }}>Edit</EditLink>}>
+            {editingNote
+              ? <Textarea aria-label="Note for the team" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} placeholder="Add context for whoever picks this up" className="text-sm leading-5 min-h-[72px]" />
+              : <p className={cx('text-sm leading-5 whitespace-pre-wrap', dt.teamNote ? 'text-[#0A0A0A]' : 'text-[#737373]')}>{dt.teamNote || 'No note yet'}</p>}
+          </SheetSection>
+        )}
+      </> : (
+        /* Activity (Figma 4076:17302): newest first; "text · when" splits into the row and its time. */
+        <SheetSection title="Activity">
+          {activity.map((a) => {
+            const cut = a.text.lastIndexOf(' · ');
+            const [text, when] = cut > 0 ? [a.text.slice(0, cut), a.text.slice(cut + 3)] : [a.text, ''];
+            return <SheetRow key={a.text} lead={<Avatar name={a.icon === 'plus' ? 'System' : task.owner} size={24} />} title={text} sub={when || undefined} />;
+          })}
+        </SheetSection>
       )}
 
-      {mode === 'pick' ? (
-        <SheetSection title="Hand it to">
-          <Picker title={picker.title} can={picker.can} cant={picker.cant} onPick={handTo} />
-          {nobody && (
-            <div className="mt-4">
-              <Note tone="amber" icon={ShieldWarning} title={`Only you can approve swaps at ${hall}`}>Give someone the hall in Roles and access, or keep the task.</Note>
-            </div>
-          )}
+      {/* Handing it on is an action over the record: a centred modal, the panel stays read-only (2026-11-19). */}
+      <PanelModal open={mode === 'pick'} onClose={() => setMode('detail')} eyebrow="Hand over task" title={title} meta={sub || undefined} width={520}
+        right={nobody ? <>
+          <Button onClick={() => setMode('detail')}>Keep it</Button>
+          <Button variant="primary" icon={null} onClick={() => setMode('halls')}>Open Roles and access</Button>
+        </> : <Button onClick={() => setMode('detail')}>Cancel</Button>}>
+        <Picker title={picker.title} can={picker.can} cant={picker.cant} onPick={handTo} />
+        {nobody && <div className="mt-3"><Note tone="amber" icon={ShieldWarning} title={`Only you can approve swaps at ${hall}`}>Give someone the hall, or keep the task.</Note></div>}
+      </PanelModal>
+
+      {/* E1 step 3: give Aisha the hall. */}
+      <PanelModal open={mode === 'halls'} onClose={() => setMode('pick')} eyebrow="Edit halls" title="Aisha Khan’s halls" meta="Hall manager" width={520}
+        right={<>
+          <Button onClick={() => setMode('pick')}>Cancel</Button>
+          <Button variant="primary" icon={null} onClick={saveHalls}>{jb ? 'Save and hand over' : 'Save'}</Button>
+        </>}>
+        <SheetSection title={`Halls · ${halls.length} of ${HALLS.length}`}>
+          {HALLS.map((h) => {
+            const on = halls.includes(h.name);
+            const added = on && h.name === 'Josephine Butler College';
+            return (
+              <label key={h.name} className="py-2.5 flex items-center gap-3 border-t border-[#EBEBEB] first:border-t-0 first:pt-0 last:pb-0 cursor-pointer">
+                <Box checked={on} label={h.name} onChange={(v) => setHalls((cur) => (v ? [...cur, h.name] : cur.filter((x) => x !== h.name)))} />
+                <span className="min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{h.name}</span><span className="block text-[13px] leading-5 text-[#737373]">{h.rooms} rooms{added && ' · added'}</span></span>
+              </label>
+            );
+          })}
         </SheetSection>
-      ) : main && (
-        <>
-          <SheetSection title="Note for the team">
-            <Textarea aria-label="Note for the team" defaultValue={dt.teamNote ?? ''} placeholder="Add context for whoever picks this up" className="text-sm leading-5 min-h-[72px]"
-              onBlur={(e) => { const v = e.target.value; if (v !== (dt.teamNote ?? '')) { patch(scope, (rows) => rows.map((r) => (r.id === task.id ? { ...r, detail: { ...dt, teamNote: v } } : r))); toast.success('Note saved'); } }} />
-          </SheetSection>
-          {dt.activity && (
-            <SheetSection title="Activity">
-              <ul className="space-y-2">
-                {dt.activity.map((a) => (
-                  <li key={a.text} className="flex items-center gap-2 text-xs text-gray-500">{a.icon === 'plus' ? <PlusCircle size={12} className="text-gray-400" /> : <User size={12} className="text-gray-400" />}{a.text}</li>
-                ))}
-              </ul>
-            </SheetSection>
-          )}
-        </>
-      )}
-      </div>
+        {jb && <p className="mt-3 text-sm leading-5 text-[#737373]">Aisha gets an email and sees Josephine Butler in Residents, Requests and Maintenance.</p>}
+      </PanelModal>
     </Sheet>
   );
 }

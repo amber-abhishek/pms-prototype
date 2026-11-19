@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/cn';
-import { GhostZone } from '../headerCtx'
+import { FooterZone, GhostZone } from '../headerCtx'
 
 /* shadcn Dialog (Radix) in the Amber Connect modal look (127.0.0.1:5180, "Add Member" / "Commission Table"):
    - scrim: #0A0A0A at 40% with a 2px blur;
@@ -36,7 +36,7 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 /** `instant`: no open/close animation, for dialogs opened from the keyboard many times a day (the ⌘K search). */
 const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { instant?: boolean }>(
   ({ className, children, instant, ...props }, ref) => (
-    <GhostZone.Provider value={false}><DialogPortal>
+    <GhostZone.Provider value={false}><FooterZone.Provider value={false}><DialogPortal>
       <DialogOverlay instant={instant} />
       <DialogPrimitive.Content
         ref={ref}
@@ -51,35 +51,35 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.C
       >
         {children}
       </DialogPrimitive.Content>
-    </DialogPortal></GhostZone.Provider>
+    </DialogPortal></FooterZone.Provider></GhostZone.Provider>
   ),
 );
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 /** Connect 2.0 modal header (3134:66031): white, 16px padding, #EBEBEB rule; whatever it holds on the left, the close button on the right. */
 const DialogHeader = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <header className={cn('shrink-0 p-4 flex items-center gap-3.5 bg-white border-b border-[#EBEBEB]', className)} {...props}>{children}</header>
+  <header className={cn('shrink-0 h-[61px] pl-6 pr-5 flex items-center gap-3 bg-white border-b border-[#E5E5E5]', className)} {...props}>{children}</header>
 );
 DialogHeader.displayName = 'DialogHeader';
 
 /** Connect's close button: 28px, white, 1px #E5E5E5, r8, xs shadow, 16px ✕. */
 const DialogCloseButton = ({ className }: { className?: string }) => (
-  <DialogPrimitive.Close className={cn('size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring', className)}>
+  <DialogPrimitive.Close className={cn('size-7 shrink-0 rounded-lg text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring', className)}>
     <X size={16} strokeWidth={1.5} />
     <span className="sr-only">Close</span>
   </DialogPrimitive.Close>
 );
 
-const DialogBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div className={cn('flex-1 min-h-0 overflow-auto p-5', className)} {...props} />;
+const DialogBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div className={cn('flex-1 min-h-0 overflow-auto px-6 py-5', className)} {...props} />;
 DialogBody.displayName = 'DialogBody';
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <footer className={cn('shrink-0 px-5 py-4 flex items-center gap-3 bg-white border-t border-[#EBEBEB] [&>button]:shrink-0 [&>button:last-child]:flex-1', className)} {...props} />
+  <FooterZone.Provider value><footer className={cn('shrink-0 h-16 px-6 flex items-center justify-end gap-2 bg-white border-t border-[#E5E5E5] [&>button]:shrink-0', className)} {...props} /></FooterZone.Provider>
 );
 DialogFooter.displayName = 'DialogFooter';
 
 const DialogTitle = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Title>, React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>>(
-  ({ className, ...props }, ref) => <DialogPrimitive.Title ref={ref} className={cn('flex-1 min-w-0 text-sm leading-5 font-medium text-[#0A0A0A]', className)} {...props} />,
+  ({ className, ...props }, ref) => <DialogPrimitive.Title ref={ref} className={cn('flex-1 min-w-0 text-base leading-5 font-medium text-[#0A0A0A]', className)} {...props} />,
 );
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 

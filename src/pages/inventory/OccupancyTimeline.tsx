@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, CurrencyGbp, FileText, Hash, Ticket, User, Wrench, type Icon } from '../../components/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/shadcn/tooltip';
-import { Avatar, Button, Pill, cx, type Tone } from '../../components/ui';
+import { PersonName, Avatar, Button, Pill, cx, type Tone } from '../../components/ui';
 import { useRms } from '../../data/residents';
 
 /* Occupancy as a Gantt (exploration, 2026-11-17): rooms down the side, grouped by floor; the academic year across the
@@ -79,10 +79,10 @@ function BarCard({ bar, room, hall }: { bar: Bar; room: TlRoom; hall: string }) 
   const done = Math.round((TODAY.getTime() - bar.from.getTime()) / wk);
   const pct = Math.max(0, Math.min(100, ((TODAY.getTime() - bar.from.getTime()) / (bar.to.getTime() - bar.from.getTime())) * 100));
   const progress = TODAY < bar.from ? `Starts in ${Math.max(1, -done)} ${-done === 1 ? 'week' : 'weeks'}` : TODAY > bar.to ? 'Ended' : `Week ${Math.max(1, done)} of ${total}`;
-  const rows: [string, string][] = bar.kind === 'blocked'
+  const rows: [string, ReactNode][] = bar.kind === 'blocked'
     ? [['Reason', job?.title ?? 'Damp repair, bathroom'], ['Job', job?.ref ?? `MT-${1200 + (h % 90)}`]]
     : bar.kind === 'held'
-      ? [['Offer', `OF-${3400 + (h % 200)}`], ['Applicant', NAMES[h % NAMES.length]]]
+      ? [['Offer', `OF-${3400 + (h % 200)}`], ['Applicant', <PersonName name={NAMES[h % NAMES.length]} />]]
       : [['Rent', `£${165 + (h % 6) * 10} / week`], ['Contract', bar.kind === 'summer' ? 'Summer licence' : `${hall.split(' ')[0]} AY 26/27`]];
   const [fromL, toL] = STAY[bar.kind];
   const action = bar.kind === 'blocked' ? ['Open job', job ? `/residents/maintenance?job=${job.id}` : '/residents/maintenance'] : bar.kind === 'held' ? ['Open offer', '/allocations/offers'] : bar.kind === 'in' ? ['Open resident', '/residents'] : ['Open booking', '/allocations/bookings'];

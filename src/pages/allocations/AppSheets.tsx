@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { CalendarX, Check, MagicWand, WarningCircle, XCircle } from '../../components/icons';
-import { Button, Input, Note, Pill, Sheet, SheetSection, Switch, Tabs, cx } from '../../components/ui';
+import { CalendarX, MagicWand, WarningCircle, XCircle } from '../../components/icons';
+import { Button, Field, Input, Note, Pill, SheetRow, SheetSection, Switch, Tabs, cx } from '../../components/ui';
 import { available, firstName, hallFull, unitsFor, useAlloc, type App } from '../../data/allocations';
 import { Modal, Radio } from './common';
+import { PanelModal } from '../inventory/common';
 import { useAllocActions } from './actions';
 import { ordinal, type Pref } from './AppDetail';
 
@@ -34,52 +35,45 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
     act.allocate(a, pref.hall, pref.room, u.code, { days: +days[0], email, override: u.overlap ? reason.trim() : undefined });
     onDone();
   };
+  /* Allocating is an action, not the record: a centred modal over the list (2026-11-19), never a side sheet. */
   return (
-    <Sheet open onClose={onClose} width={520}
-      title="Allocate"
-      footer={units.length ? <>
+    <PanelModal open onClose={onClose} eyebrow="Allocate" title={a.name} meta={`${ordinal(pref.rank)} preference · ${hallFull[pref.hall]} · ${pref.room} · ${pref.weeks} weeks`} width={560}
+      right={units.length ? <>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="primary" icon={Check} disabled={!u || needReason} onClick={submit}>{taken ? `Allocate ${sel}` : email ? 'Allocate & send offer' : 'Allocate'}</Button>
+        <Button variant="primary" icon={null} disabled={!u || needReason} onClick={submit}>{taken ? `Allocate ${sel}` : email ? 'Allocate & send offer' : 'Allocate'}</Button>
       </> : <>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="primary" onClick={() => { act.waitlist(a, pref.hall, pref.room); onDone(); }}>Add to waitlist</Button>
+        <Button variant="primary" icon={null} onClick={() => { act.waitlist(a, pref.hall, pref.room); onDone(); }}>Add to waitlist</Button>
       </>}>
       {!units.length ? (
         <Note tone="amber" icon={WarningCircle} title={`${hallFull[pref.hall]} has no free ${pref.room.toLowerCase()}`}>
-          Every matching unit is allocated or held. Add {firstName(a.name)} to the waitlist for this room type and they get the next one that frees up, or close this and pick another hall.
+          Add {firstName(a.name)} to the waitlist, or pick another hall.
         </Note>
       ) : (
-        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
-          <SheetSection title="Preference" rows={[['Applicant', a.name], ['Choice', `${ordinal(pref.rank)} preference`], ['Hall', hallFull[pref.hall]], ['Room type', `${pref.room} · ${pref.weeks} weeks`]]} />
-          {takenUnit?.takenBy && (<div className="mb-5">
+        <>
+          {takenUnit?.takenBy && (<div className="mb-3">
             <Note tone="red" icon={XCircle} title={`${pref.hall} ${takenUnit.code} is taken`}>
-              {takenUnit.takenBy.who} allocated it to {takenUnit.takenBy.to} 4 minutes ago. Pick another room for {firstName(a.name)}.
+              {takenUnit.takenBy.who} allocated it to {takenUnit.takenBy.to} 4 minutes ago.
             </Note>
           </div>)}
           <SheetSection title={`Unit · ${units.length} match`}>
-          <div className="space-y-2.5" role="radiogroup" aria-label="Unit">
+          <div role="radiogroup" aria-label="Unit">
             {units.map((x) => {
               const on = x.code === sel;
               const gone = x.code === taken;
               return (
-                <div key={x.code} className={cx('rounded-xl border p-3', on ? 'border-primary bg-[#EFF6FF]' : 'border-line hover:bg-[#FAFAFA]', gone && 'opacity-60')}>
+                <div key={x.code} className={cx('py-2.5 border-t border-[#EBEBEB] first:border-t-0 first:pt-0 last:pb-0', gone && 'opacity-60')}>
                   <label className={cx('flex items-start gap-3', gone ? 'cursor-not-allowed' : 'cursor-pointer')}>
-                    <input type="radio" name="unit" checked={on} disabled={gone} onChange={() => setSel(x.code)} className="mt-1 size-4 accent-[#2563EB]" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2"><span className="text-sm font-semibold">{x.code}</span><span className="text-xs text-gray-500">{x.where}</span><span className="ml-auto text-xs text-gray-500">{gone ? <Pill tone="red">Taken</Pill> : `Match ${x.match}%`}</span></div>
-                      <div className="flex flex-wrap gap-1.5 mt-2">{x.tags.map((t) => <Pill key={t.label} tone={t.tone} outline>{t.label}</Pill>)}</div>
+                    <input type="radio" name="unit" checked={on} disabled={gone} onChange={() => setSel(x.code)} className="mt-0.5 size-4 accent-[#2563EB]" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2"><span className="text-sm leading-5 text-[#0A0A0A]">{x.code}</span><span className="text-[13px] text-[#737373] truncate">{x.where}</span><span className="ml-auto shrink-0 text-[13px] text-[#737373]">{gone ? <Pill tone="red">Taken</Pill> : `Match ${x.match}%`}</span></div>
+                      {x.tags.length > 0 && <div className="flex flex-wrap gap-1.5 mt-1.5">{x.tags.map((t) => <Pill key={t.label} tone={t.tone}>{t.label}</Pill>)}</div>}
                     </div>
                   </label>
                   {on && x.overlap && (
-                    <div className="mt-3 space-y-3">
-                      <div className="rounded-lg border border-[#C47A00]/35 bg-white p-3 flex gap-2.5">
-                        <CalendarX size={16} className="text-[#C47A00] shrink-0 mt-0.5" />
-                        <div><div className="text-sm font-medium text-[#9A5B00]">{x.overlap.title}</div><div className="text-xs text-gray-500 mt-0.5">{x.overlap.body}</div></div>
-                      </div>
-                      <label className="block">
-                        <span className="block text-sm font-medium mb-1.5">Reason for the override</span>
-                        <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Jae Park leaves on 18 Sep · agreed with the Ustinov office" />
-                      </label>
+                    <div className="mt-3 ml-7 space-y-3">
+                      <Note tone="amber" icon={CalendarX} title={x.overlap.title}>{x.overlap.body}</Note>
+                      <Field label="Reason for the override"><Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Jae Park leaves on 18 Sep · agreed with the Ustinov office" /></Field>
                     </div>
                   )}
                 </div>
@@ -88,18 +82,12 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
           </div>
           </SheetSection>
           <SheetSection title="Offer">
-          <div className="flex items-center justify-between">
-            <div><div className="text-sm font-medium">Email the offer to {firstName(a.name)}</div><div className="text-xs text-gray-500">Template: Offer · {a.reqs.includes('Step-free access') ? 'accessible room' : 'standard'}</div></div>
-            <Switch checked={email} onChange={setEmail} label="Email the offer" />
-          </div>
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm font-medium">Offer expires in</span>
-            <Tabs value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} />
-          </div>
+            <SheetRow title={`Email the offer to ${firstName(a.name)}`} sub={`Template: Offer · ${a.reqs.includes('Step-free access') ? 'accessible room' : 'standard'}`} end={<Switch checked={email} onChange={setEmail} label="Email the offer" />} />
+            <SheetRow title="Offer expires in" end={<Tabs value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} />} />
           </SheetSection>
-        </div>
+        </>
       )}
-    </Sheet>
+    </PanelModal>
   );
 }
 
@@ -120,8 +108,8 @@ export function RejectDialog({ a, onClose, onDone }: { a: App; onClose: () => vo
   const fn = firstName(a.name);
   const ok = reason && (reason !== 'Other' || note.trim());
   return (
-    <Modal open onClose={onClose} icon={XCircle} title={`Reject ${a.name}’s application`} sub={`Pick the reason. ${fn} sees it in the email and on the portal, and it’s counted in the cycle report.`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" disabled={!ok} onClick={() => {
+    <Modal open onClose={onClose} icon={XCircle} title={`Reject ${a.name}’s application`} sub={`${fn} sees the reason in the email and on the portal.`}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" icon={null} disabled={!ok} onClick={() => {
         if (busy.current) return; busy.current = true;
         act.reject(a, reason === 'Other' ? `Other · ${note.trim()}` : reason, email); onDone();
       }}>Reject application</Button></>}>
@@ -156,7 +144,7 @@ export function AutoAllocateDialog({ open, onClose }: { open: boolean; onClose: 
   const none = queue.length - flagged.length - free.length;
   return (
     <Modal open onClose={onClose} tone="blue" icon={MagicWand} title="Auto-allocate 2027/28" width={520}
-      sub="Offers each application its best free unit. Anything flagged waits for a person."
+      sub="Flagged applications wait for a person."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={MagicWand} disabled={!free.length} onClick={() => {
         if (busy.current) return; busy.current = true;
         act.autoAllocate(+days[0], email); onClose();

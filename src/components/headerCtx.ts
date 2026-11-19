@@ -16,6 +16,9 @@ export function useHeadingTaken() {
  *  menu opened from the header or a row keeps its real buttons.
  *  'multi' (2026-11-09): a header with two or more actions keeps the one marked `primary` as the page's main action. */
 export const GhostZone = createContext<boolean | 'multi'>(false);
+/** True inside a modal's or side panel's footer bar: every button there carries an icon (2026-11-19), including
+ *  Cancel / Keep (✕) and buttons that opt out elsewhere with `icon={null}`. Overlay contents reset it. */
+export const FooterZone = createContext(false);
 
 /** Count the header's actions (fragments flattened) to pick the zone. */
 const count = (c: ReactNode): number => Children.toArray(c).reduce<number>((n, ch) => n + (isValidElement(ch) && ch.type === Fragment ? count((ch.props as { children?: ReactNode }).children) : 1), 0);

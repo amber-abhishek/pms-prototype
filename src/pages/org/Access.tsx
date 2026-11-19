@@ -2,9 +2,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Buildings, ClockCounterClockwise, EnvelopeSimple, Info, PaperPlaneTilt, Plus, Shield, ShieldCheck, User, UserPlus, Warning } from '../../components/icons';
+import { Buildings, ClockCounterClockwise, EnvelopeSimple, Info, Plus, Shield, ShieldCheck, User, UserMinus, UserPlus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { AreaPill, Avatar, Button, Field, FilterButton, inFilter, type Filters, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { AreaPill, Avatar, Button, Field, FilterButton, inFilter, type Filters, Input, Pill, Sheet, Table, Tabs, Toolbar, cx, type Col, SheetHero, SheetRow, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { EditLink, LineTabs, PanelModal } from '../inventory/common';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useTab } from '../hooks';
 import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, snapOrg, undoSince, useOrg, type Member, type Role, type Scenario } from '../../data/org';
@@ -140,7 +141,7 @@ export function AccessPage() {
 
       <InviteDialog open={invite.open} initialRole={invite.roleId} onClose={() => setInvite({ open: false })}
         onExisting={(m, roleId, hall) => { setInvite({ open: false }); setAccess({ m, addHall: hall === 'all' ? undefined : hall, roleId }); }} />
-      {access && <AccessSheet key={access.m.id} m={access.m} nav={listNav(shown, (x) => x.id === access.m.id, (x) => setAccess({ m: x }))} addHall={access.addHall} onClose={() => setAccess(null)} />}
+      {access && <AccessSheet key={access.m.id} m={access.m} nav={listNav(shown, (x) => x.id === access.m.id, (x) => setAccess({ m: x }))} addHall={access.addHall} onClose={() => setAccess(null)} onRemove={() => { const x = access.m; setAccess(null); setRemoving(x); }} />}
       <RemoveDialog m={removing} onClose={() => setRemoving(null)} />
       <DeleteRoleDialog r={deleting} onClose={() => setDeleting(null)} />
     </>
@@ -187,46 +188,97 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
   };
 
   return (
-    <ODialog open={open} onClose={onClose} title="Invite a member" sub="They get an email and sign in with their Durham account."
-      footer={<><Button onClick={onClose}>Cancel</Button>
-        {existing ? <Button variant="primary" icon={ShieldCheck} onClick={() => onExisting(existing, role.id, hall)}>Change {first}’s access</Button>
-          : <Button variant="primary" icon={PaperPlaneTilt} onClick={send}>Send invite</Button>}</>}>
-      <div className="space-y-4">
+    <PanelModal open={open} onClose={onClose} eyebrow="New member" title="Invite a member" width={560}
+      right={<><Button onClick={onClose}>Cancel</Button>
+        {existing ? <Button variant="primary" icon={null} onClick={() => onExisting(existing, role.id, hall)}>Change {first}’s access</Button>
+          : <Button variant="primary" icon={null} onClick={send}>Send invite</Button>}</>}>
+      <SheetSection title="Member">
         <Field label="Email">
           <label className="relative flex items-center">
             <EnvelopeSimple size={14} className="absolute left-2.5 text-[#737373]" />
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@durham.ac.uk" className="pl-8" onKeyDown={(e) => e.key === 'Enter' && !existing && send()} />
           </label>
         </Field>
-        {existing && <Alert tone="amber" icon={Info} title={<>{existing.name} is already a member: {exRole?.name} {existing.halls === 'all' ? 'in all halls' : `at ${hallsLabel(existing.halls).replace(/, ([^,]*)$/, ' and $1')}`}.</>}>Change their access instead; they keep one account.</Alert>}
+        {existing && <div className="mt-3"><Alert tone="amber" icon={Info} title={<>{existing.name} is already a member: {exRole?.name} {existing.halls === 'all' ? 'in all halls' : `at ${hallsLabel(existing.halls).replace(/, ([^,]*)$/, ' and $1')}`}.</>}>Change their access instead; they keep one account.</Alert></div>}
+      </SheetSection>
+      <SheetSection title="Access">
         <div className="grid grid-cols-2 gap-3">
-          <div><div className="text-sm font-medium text-gray-700 mb-1.5">Role</div>
+          <div><div className="text-sm font-medium text-[#0A0A0A] mb-1.5">Role</div>
             <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} /></div>
-          <div><div className="text-sm font-medium text-gray-700 mb-1.5">Halls</div>
+          <div><div className="text-sm font-medium text-[#0A0A0A] mb-1.5">Halls</div>
             {role?.scope === 'all' ? <div className="h-8 px-2.5 rounded-lg border border-line bg-gray-50 text-sm text-[#737373] flex items-center gap-2"><Buildings size={14} />All halls</div>
               : <IconSelect ariaLabel="Halls" icon={Buildings} value={hall} onChange={setHall} options={[...HALLS.map((h) => ({ value: h.id, label: h.name })), { value: 'all', label: 'All halls' }]} />}</div>
         </div>
-        {role && !existing && (
-          <div className="rounded-lg border border-line p-3 flex gap-2.5">
-            <Info size={16} className="text-primary shrink-0 mt-0.5" />
-            <div><div className="text-sm font-medium text-primary">{role.createdByYou ? 'New role: ' : ''}{role.name}</div><div className="text-xs text-[#737373] mt-0.5">{roleSummary(role, halls)}</div></div>
-          </div>
-        )}
-      </div>
-    </ODialog>
+        {role && !existing && <p className="mt-3 text-sm leading-5 text-[#737373]">{role.createdByYou ? 'New role: ' : ''}{role.name} · {roleSummary(role, halls)}</p>}
+      </SheetSection>
+    </PanelModal>
   );
 }
 
-/* ---------- Member access sheet (E1 · 03) ---------- */
-function AccessSheet({ m, addHall, onClose , nav }: { nav?: SheetNav;  m: Member; addHall?: string; onClose: () => void }) {
-  const { roles, set, audit_ } = useOrg();
-  const [roleId, setRoleId] = useState(m.roleId);
+/* ---------- Member access sheet (E1 · 03; Figma "Side panel · Access member" 4073:17188) ----------
+   Read-only record: Overview (Role, Halls with access level) and Activity. Edit on Role or Halls opens the centred
+   Edit access modal; opening from an invite that adds a hall opens it straight away. Remove access is in the control bar. */
+const MEMBER_TONE = { Active: 'green', Invited: 'amber', 'Invite expired': 'orange' } as const;
+function AccessSheet({ m: m0, addHall, onClose, onRemove, nav }: { nav?: SheetNav; m: Member; addHall?: string; onClose: () => void; onRemove: () => void }) {
+  const { roles, members, audit } = useOrg();
+  /* The live record, so a save shows straight away in the panel. */
+  const m = members.find((x) => x.id === m0.id) ?? m0;
+  const [editing, setEditing] = useState(!!addHall);
+  const [tab, setTab] = useState<'overview' | 'activity'>('overview');
+  const curRole = roles.find((r) => r.id === m.roleId);
+  const first = m.name.split(' ')[0];
   const orig = m.halls === 'all' ? HALLS.map((h) => h.id) : m.halls;
-  const [halls, setHalls] = useState<string[]>(() => (addHall && !orig.includes(addHall) ? [...orig, addHall] : orig));
+  const myHalls = curRole?.scope === 'all' || m.halls === 'all' ? HALLS : HALLS.filter((h) => orig.includes(h.id));
+  /* Prototype: access level per hall is dummy, stable by member and hall. */
+  const level = (hid: string) => (curRole?.id === 'admin' || ([...(m.id + hid)].reduce((n, c) => n + c.charCodeAt(0), 0) % 3) ? 'Full access' : 'View only');
+  const mine = audit.filter((a) => a.who === m.name || a.what.includes(m.name)).slice(0, 6);
+  const activity = mine.length ? mine : [
+    { id: 'd1', who: m.name, what: `sent a notice to ${myHalls[0]?.name ?? 'all halls'}`, when: 'Today' },
+    { id: 'd2', who: m.name, what: 'approved a room swap', when: 'Yesterday' },
+    { id: 'd3', who: 'Arjun Mehta', what: `gave ${first} access to ${myHalls[myHalls.length - 1]?.name ?? 'all halls'}`, when: m.since },
+  ];
+  return (
+    <Sheet open onClose={onClose} nav={nav} title="Member" onDelete={{ label: 'Remove access', icon: UserMinus, onClick: onRemove }}>
+      <SheetHero name={m.name} meta={<><a href={`mailto:${m.email}`} className="text-primary hover:underline">{m.email}</a> · {m.status === 'Active' ? `member since ${m.since}` : m.status.toLowerCase()}</>}
+        facts={[['Role', curRole?.name ?? '—'], ['Halls', curRole?.scope === 'all' || m.halls === 'all' ? 'All' : String(orig.length)], ['Last seen', m.status === 'Active' ? m.lastActive : '—']]}>
+        <Pill tone={MEMBER_TONE[m.status]}>{m.status}</Pill>
+      </SheetHero>
+      <div className="-mx-5 mb-5"><LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity' }]} /></div>
+      {tab === 'overview' && <>
+        <SheetSection title="Role" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
+          <SheetRow title={curRole?.name ?? 'No role'} sub={curRole ? roleCan(curRole) : undefined} />
+        </SheetSection>
+        <SheetSection title={`Halls · ${myHalls.length}`} action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
+          {myHalls.map((h) => <SheetRow key={h.id} title={h.name} sub={`${h.rooms} rooms`} end={<span className="text-sm text-[#737373] shrink-0">{level(h.id)}</span>} />)}
+        </SheetSection>
+      </>}
+      {tab === 'activity' && (
+        <SheetSection title="Activity">
+          {activity.map((a) => <SheetRow key={a.id} lead={<Avatar name={a.who} size={24} />} title={`${a.who} ${a.what}`} sub={a.when} />)}
+        </SheetSection>
+      )}
+      <EditAccessDialog m={m} addHall={addHall} open={editing} onClose={() => setEditing(false)} />
+    </Sheet>
+  );
+}
+
+/** Edit a member's role and halls in a centred modal over the read-only panel. */
+function EditAccessDialog({ m, addHall, open, onClose }: { m: Member; addHall?: string; open: boolean; onClose: () => void }) {
+  const { roles, set, audit_ } = useOrg();
+  const orig = m.halls === 'all' ? HALLS.map((h) => h.id) : m.halls;
+  const initHalls = () => (addHall && !orig.includes(addHall) ? [...orig, addHall] : orig);
+  const [roleId, setRoleId] = useState(m.roleId);
+  const [halls, setHalls] = useState<string[]>(initHalls);
+  const busy = useRef(false);
+  useEffect(() => { if (open) { busy.current = false; setRoleId(m.roleId); setHalls(initHalls()); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const role = roles.find((r) => r.id === roleId);
   const allScope = role?.scope === 'all';
+  const first = m.name.split(' ')[0];
+  const ordered = [...HALLS].sort((a, b) => Number(orig.includes(b.id)) - Number(orig.includes(a.id)));
   const save = () => {
+    if (busy.current) return;
     if (!allScope && !halls.length) { toast.error('Pick at least one hall'); return; }
+    busy.current = true;
     const before = snap();
     const nh: Member['halls'] = allScope || halls.length === HALLS.length ? 'all' : HALLS.map((h) => h.id).filter((id) => halls.includes(id));
     set('members', (ms) => ms.map((x) => (x.id === m.id ? { ...x, roleId, halls: nh } : x)));
@@ -234,33 +286,29 @@ function AccessSheet({ m, addHall, onClose , nav }: { nav?: SheetNav;  m: Member
     if (roleId !== m.roleId) audit_(`changed ${m.name}’s role to ${role?.name}`, 'Members');
     if (added.length || halls.length !== orig.length) audit_(`changed ${m.name}’s halls to ${hallsLabel(nh)}`, 'Members');
     onClose();
-    if (added.length && roleId === m.roleId) undoable(`${m.name} can now work at ${added.map((h) => hallById(h)?.name).join(' and ')}`, before, { description: `We’ve emailed ${m.name.split(' ')[0]}.` });
+    if (added.length && roleId === m.roleId) undoable(`${m.name} can now work at ${added.map((h) => hallById(h)?.name).join(' and ')}`, before, { description: `We’ve emailed ${first}.` });
     else undoable(`${m.name}’s access saved`, before);
   };
-  const ordered = [...HALLS].sort((a, b) => Number(orig.includes(b.id)) - Number(orig.includes(a.id)));
   return (
-    <Sheet open onClose={onClose} nav={nav} width={480} title="Access"
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
-      <SheetHero name={m.name} meta={`${m.email} · ${m.status === 'Active' ? `member since ${m.since}` : m.status.toLowerCase()}`} />
+    <PanelModal open={open} onClose={onClose} eyebrow="Edit access" title={m.name} meta={`Applies straight away; ${first} gets an email.`} width={560}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>Save</Button></>}>
       <SheetSection title="Role">
         <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} />
         {role && <p className="text-xs text-[#737373] mt-1.5">{roleCan(role)}</p>}
       </SheetSection>
-      <SheetSection title="Halls">
+      <SheetSection title={allScope ? 'Halls' : `Halls · ${halls.length}`}>
         {allScope ? <p className="text-sm text-[#737373]">{role?.name} covers every hall.</p> : (
-          <div className="divide-y divide-[#F5F5F5]">
+          <div className="divide-y divide-[#EBEBEB] -my-1">
             {ordered.map((h) => { const on = halls.includes(h.id); const isNew = on && !orig.includes(h.id); return (
               <label key={h.id} className="flex items-center gap-3 h-12 cursor-pointer">
                 <Checkbox checked={on} onCheckedChange={(v) => setHalls((v === true) ? [...halls, h.id] : halls.filter((x) => x !== h.id))} />
-                <Buildings size={15} className="text-gray-400" />
-                <span className="flex-1"><span className="block text-sm font-medium">{h.name}</span><span className={cx('block text-xs', isNew ? 'text-[#0B8A4C]' : 'text-[#737373]')}>{h.rooms} rooms{isNew ? ' · added' : ''}</span></span>
+                <span className="flex-1"><span className="block text-sm text-[#0A0A0A]">{h.name}</span><span className="block text-[13px] leading-5 text-[#737373]">{h.rooms} rooms{isNew ? ' · added' : ''}</span></span>
               </label>
             ); })}
           </div>
         )}
-        <p className="text-xs text-[#737373] mt-3">Applies straight away; {m.name.split(' ')[0]} gets an email.</p>
       </SheetSection>
-    </Sheet>
+    </PanelModal>
   );
 }
 

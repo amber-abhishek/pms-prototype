@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, CircleCheck, History, Inbox, Wrench, UserCheck, Building, Grid3x3, ChartColumn, Network, TextCursorInput, Wallet,
-  FileText, Send, CalendarCheck, Users, ArrowsLeftRight, Megaphone, ClipboardCheck, House, Hotel, MessageSquare, Settings,
+  FileText, Send, CalendarCheck, Users, ArrowsLeftRight, Megaphone, House, Hotel, MessageSquare, Settings,
   Globe, Monitor, Landmark, MapPin, Shield, Mail, Bell, Plug, Palette, Tag,
   Warehouse, Gauge, Library, CalendarClock, Repeat, BedDouble, BookUser, ScrollText, Settings2, AppWindow, ChartLine, FileArrowUp,
   GraduationCap, SlidersHorizontal, CreditCard, Stack, ShareNetwork, type Icon,
@@ -109,12 +109,12 @@ export const modules: Module[] = [
     ] }],
   },
   {
-    id: 'offcampus', label: 'Off-campus', icon: Globe, home: '/offcampus/landlords', group: 'modules', roles: ['admin', 'offcampus'], subtitle: 'durham-homes.ac.uk',
+    id: 'offcampus', label: 'Off-campus', icon: Globe, home: '/offcampus/approvals', group: 'modules', roles: ['admin', 'offcampus'], subtitle: 'durham-homes.ac.uk',
     match: starts('/offcampus'),
     sections: [
-      { label: 'Approval', items: [
-        { label: 'Landlord applications', to: '/offcampus/landlords', icon: UserCheck, count: (c) => c.landlords },
-        { label: 'Listing reviews', to: '/offcampus/reviews', icon: ClipboardCheck, count: (c) => c.reviews },
+      /* One Approvals page for landlord and listing approvals (2026-11-19); its count is everything waiting on you. */
+      { items: [
+        { label: 'Approvals', to: '/offcampus/approvals', icon: UserCheck, count: (c) => c.landlords + c.reviews },
       ] },
       /* Landlord and Partner halls sit straight under the Listings label, each with its own icon (2026-11-13). */
       { label: 'Listings', items: [

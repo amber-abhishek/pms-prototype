@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/cn';
-import { GhostZone } from '../headerCtx'
+import { FooterZone, GhostZone } from '../headerCtx'
 import { keepOpenOnToast } from './dialog';
 
 /* shadcn Sheet (Radix Dialog) in the Amber Connect drawer look: 16px inset, r20,
@@ -62,7 +62,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
       leaveGhost(el, scrim.current);
     }, []);
     return (
-    <GhostZone.Provider value={false}><SheetPortal>
+    <GhostZone.Provider value={false}><FooterZone.Provider value={false}><SheetPortal>
       <SheetOverlay ref={scrim} className={stepped ? 'data-[state=open]:!animate-none' : undefined} />
       <SheetPrimitive.Content
         ref={setRef}
@@ -81,7 +81,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
       >
         {children}
       </SheetPrimitive.Content>
-    </SheetPortal></GhostZone.Provider>
+    </SheetPortal></FooterZone.Provider></GhostZone.Provider>
     );
   },
 );
@@ -91,7 +91,7 @@ SheetContent.displayName = SheetPrimitive.Content.displayName;
 const SheetHeader = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <header className={cn('shrink-0 p-5 flex items-center gap-3 border-b border-[#E5E5E5]', className)} {...props}>
     {children}
-    <SheetPrimitive.Close className="ml-auto size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <SheetPrimitive.Close className="ml-auto size-7 shrink-0 rounded-lg text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <X size={16} strokeWidth={1.5} />
       <span className="sr-only">Close</span>
     </SheetPrimitive.Close>

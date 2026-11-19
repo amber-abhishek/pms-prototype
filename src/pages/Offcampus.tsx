@@ -1,7 +1,6 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Approvals } from './offcampus/Approvals';
 import { NotFound } from './Misc';
-import { Landlords } from './offcampus/Landlords';
-import { Reviews } from './offcampus/Reviews';
 import { Listings } from './offcampus/Listings';
 import { Enquiries } from './offcampus/Enquiries';
 import { Portal } from './offcampus/Portal';
@@ -9,9 +8,11 @@ import { Portal } from './offcampus/Portal';
 export function OffcampusRoutes() {
   return (
     <Routes>
-      <Route index element={<Navigate to="landlords" replace />} />
-      <Route path="landlords" element={<Landlords />} />
-      <Route path="reviews" element={<Reviews />} />
+      <Route index element={<Navigate to="approvals" replace />} />
+      <Route path="approvals" element={<Approvals />} />
+      {/* Landlord applications and Listing reviews are one Approvals page now; old links keep their ?tab / ?open. */}
+      <Route path="landlords" element={<Moved kind="landlords" />} />
+      <Route path="reviews" element={<Moved kind="listings" />} />
       <Route path="listings" element={<Listings />} />
       <Route path="enquiries" element={<Enquiries />} />
       <Route path="portal" element={<Portal sec="behaviour" />} />
@@ -21,4 +22,11 @@ export function OffcampusRoutes() {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
+}
+
+function Moved({ kind }: { kind: 'landlords' | 'listings' }) {
+  const { search } = useLocation();
+  const sp = new URLSearchParams(search);
+  sp.set('kind', kind);
+  return <Navigate to={`/offcampus/approvals?${sp}`} replace />;
 }

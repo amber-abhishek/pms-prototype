@@ -75,10 +75,10 @@ export function DisplayButton({ cols, hidden, onChange }: { cols: { key: string;
   );
 }
 
-/** Radio card used in dialogs and sheets (frames 3199:285, 3191:343): selected = blue ground + blue border, ring-style dot. */
+/** Radio card used in dialogs (frames 3199:285, 3191:343): selected = white ground, primary border and ring-style dot (no blue tint, 2026-11-19). */
 export function Radio({ checked, onChange, title, sub, disabled }: { checked: boolean; onChange: () => void; title: ReactNode; sub?: ReactNode; disabled?: boolean }) {
   return (
-    <label className={cx('flex items-center gap-3 min-h-16 px-4 py-2.5 rounded-xl border cursor-pointer transition-colors', checked ? 'bg-[#EFF6FF] border-primary' : 'border-line hover:bg-[#FAFAFA]', disabled && 'opacity-50 pointer-events-none')}>
+    <label className={cx('flex items-center gap-3 min-h-16 px-4 py-2.5 rounded-xl border cursor-pointer transition-colors', checked ? 'bg-white border-primary' : 'border-line hover:bg-[#FAFAFA]', disabled && 'opacity-50 pointer-events-none')}>
       <input type="radio" checked={checked} onChange={onChange} className="sr-only peer" />
       <span aria-hidden className={cx('size-4 rounded-full bg-white shrink-0 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30', checked ? 'border-[5px] border-primary' : 'border border-gray-300')} />
       <span className="min-w-0"><span className="block text-sm font-semibold text-ink">{title}</span>{sub && <span className="block text-xs text-gray-500 mt-0.5">{sub}</span>}</span>

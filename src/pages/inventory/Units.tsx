@@ -4,12 +4,14 @@ import { toast } from 'sonner';
 import {
   Archive, ArrowSquareOut, ArrowUUpLeft, ArrowsOutCardinal, Bed, Buildings, CaretDown, CaretRight, Door, DotsThree, Info, LinkSimple, ListDashes, PencilSimple, Plus, Stack, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Button, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
+import { PersonName, Button, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, flatsOf, money, per, useInv, type ArchivedRow, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
-import { FieldErr, Menu, Modal, Picker, PropStatus, RadioCard } from './common';
+import { EditLink, FieldErr, LineTabs, Menu, Modal, Picker, PropStatus, RadioCard } from './common';
 import { GhostZone } from '../../components/headerCtx';
+import { LevelSheet, type LevelKind } from './LevelSheet';
+import { PHOTO } from './photos';
 import { EmptyArea } from '../allocations/common';
 
 type Sel = { pid: string; bi: number; floor: number; flat: number | null };
@@ -28,7 +30,7 @@ export function UnitsPage() {
     <>
       <PageHeader icon={ListDashes} title="Units" crumbs={['Inventory']} />
       <EmptyArea art="getStarted" icon={ListDashes} title="No units yet" sub="Rooms show here once a property is built or imported.">
-        <Button variant="primary" onClick={() => location.assign('#/inventory/properties')}>Add a property</Button>
+        <Button variant="primary" onClick={() => location.assign('#/inventory/properties')}>Create a property</Button>
       </EmptyArea>
     </>
   );
@@ -51,10 +53,15 @@ function UnitsView({ props }: { props: Property[] }) {
   const [tab, setTab] = useState<TabId>('all');
   const [typeF, setTypeF] = useState<string[]>([]);
   const [cursor, setCursor] = useState(0);
+  /* The J/K cursor's grey shows only while moving by keyboard; a click (and closing the panel after it) leaves no grey behind. */
+  const [kbd, setKbd] = useState(false);
   const [checked, setChecked] = useState<string[]>([]);
   const [archiveFlat, setArchiveFlat] = useState<Flat | null>(null);
   const [restore, setRestore] = useState<ArchivedRow | null>(null);
   const [renaming, setRenaming] = useState(false);
+  /* The level panel (Block, Floor or Flat) for filling in custom fields; one panel at a time, so it closes the unit's. */
+  const [level, setLevelRaw] = useState<LevelRef | null>(null);
+  const setLevel = (l: LevelRef | null) => { if (l) setOpen(null); setLevelRaw(l); };
 
   const p = props.find((x) => x.id === sel.pid) ?? props[0];
   useEffect(() => { if (p && p.id !== sel.pid) setSel({ pid: p.id, bi: 0, floor: 1, flat: null }); }, [p, sel.pid]);
@@ -87,8 +94,8 @@ function UnitsView({ props }: { props: Property[] }) {
       if (/INPUT|TEXTAREA|SELECT/.test(t.tagName) || document.querySelector('[role=dialog]') || e.metaKey || e.ctrlKey) return;
       const { flatList: l, cursor: c } = stateRef.current;
       if (!l.length) return;
-      if (e.key === 'j') setCursor(Math.min(l.length - 1, c + 1));
-      else if (e.key === 'k') setCursor(Math.max(0, c - 1));
+      if (e.key === 'j') { setKbd(true); setCursor(Math.min(l.length - 1, c + 1)); }
+      else if (e.key === 'k') { setKbd(true); setCursor(Math.max(0, c - 1)); }
       else if (e.key === 'Enter') setOpen(l[c]?.id ?? null);
       else if (e.key === 'x') { const id = l[c]?.id; if (id) setChecked((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id])); }
     };
@@ -123,7 +130,7 @@ function UnitsView({ props }: { props: Property[] }) {
         <Button variant="primary" icon={Plus} onClick={() => addUnit()}>Add unit</Button>
       </PageHeader>
       <div className="flex-1 min-h-0 flex">
-        <Tree props={props} p={p} sel={sel} go={go} archivedFlats={archivedFlats} />
+        <Tree props={props} p={p} sel={sel} go={go} archivedFlats={archivedFlats} onInfo={setLevel} />
         <section className="flex-1 min-w-0 flex flex-col">
           {/* Heading band (Figma "Heading", 20/24/4/24): 12px #737373 crumb over the 20px medium title, flat actions on the right. */}
           <div className="shrink-0 px-6 pt-5 pb-1 flex items-end gap-3">
@@ -136,6 +143,7 @@ function UnitsView({ props }: { props: Property[] }) {
               </div>
               <h1 className="mt-1 text-xl leading-7 font-medium text-[#0A0A0A] truncate">{title}</h1>
             </div>
+            <Button icon={null} onClick={() => setLevel(curFlat ? { kind: 'Flat', bi: sel.bi, floor: sel.floor, flat: sel.flat ?? undefined } : { kind: 'Floor', bi: sel.bi, floor: sel.floor })}>Details</Button>
             <Menu width={200} trigger={(o) => <Button icon={DotsThree} onClick={o} aria-label="More" />} items={[
               { label: 'Rename', icon: PencilSimple, onClick: () => setRenaming(true), disabled: !curFlat },
               { label: 'Move', icon: ArrowsOutCardinal, onClick: () => toast('Pick a new floor for the flat in the tree'), disabled: !curFlat },
@@ -166,7 +174,7 @@ function UnitsView({ props }: { props: Property[] }) {
                   </tr></thead>
                   <tbody>
                     {groups.map(({ f, units }) => (
-                      <FlatGroup key={f.id} f={f} units={units} cursorId={flatList[cursor]?.id} open={open} checked={checked} setChecked={setChecked} onOpen={(id) => { setOpen(id); setCursor(flatList.findIndex((u) => u.id === id)); }}
+                      <FlatGroup key={f.id} f={f} units={units} cursorId={kbd ? flatList[cursor]?.id : undefined} open={open} checked={checked} setChecked={setChecked} onOpen={(id) => { setKbd(false); setOpen(id); setCursor(flatList.findIndex((u) => u.id === id)); }}
                         onFlat={() => go({ flat: +f.id.split('|')[3] })} onArchive={() => setArchiveFlat(f)} />
                     ))}
                     {!groups.length && <tr><td colSpan={6} className="h-32 text-center text-sm text-[#737373]">No {tab === 'all' ? '' : tab.toLowerCase() + ' '}units here{typeF.length ? ` of type ${typeF.join(' or ')}` : ''}.</td></tr>}
@@ -190,6 +198,7 @@ function UnitsView({ props }: { props: Property[] }) {
       </div>
 
       <UnitSheet p={p} unit={openUnit} nav={listNav(flatList, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} path={[p.name, block?.name ?? '', `Floor ${sel.floor}`, flats.find((f) => f.units.some((u) => u.id === open))?.name ?? '']} />
+      {level && <LevelSheetFor key={`${level.kind}${level.bi}${level.floor}${level.flat}`} p={p} l={level} onClose={() => setLevelRaw(null)} />}
       <ArchiveFlatDialog flat={archiveFlat} onClose={() => setArchiveFlat(null)} onConfirm={doArchiveFlat} />
       <RestoreDialog p={p} row={restore} onClose={() => setRestore(null)} />
       <RenameDialog flat={renaming ? curFlat : null} siblings={flats} onClose={() => setRenaming(false)} />
@@ -224,18 +233,21 @@ function restoreOne(p: Property, r: ArchivedRow) {
 /* Figma 3884:43935 tree panel: 264px, a property picker on top, a "HIERARCHY · N UNITS" mono label, then the picked
    property's blocks → floors → flats. 32px r8 rows indented 4/20/36; counts in Geist Mono 12 #A3A3A3; the selected
    row is raised white (1px #E5E5E5, soft drop) with its icon and count in blue. */
-function Tree({ props, p, sel, go, archivedFlats }: { props: Property[]; p: Property; sel: Sel; go: (s: Partial<Sel>) => void; archivedFlats: string[] }) {
+function Tree({ props, p, sel, go, archivedFlats, onInfo }: { props: Property[]; p: Property; sel: Sel; go: (s: Partial<Sel>) => void; archivedFlats: string[]; onInfo: (l: LevelRef) => void }) {
   const edits = useInv((s) => s.unitEdits);
   const [open, setOpen] = useState<Record<string, boolean>>({ [`${sel.pid}|${sel.bi}`]: true, [`${sel.pid}|${sel.bi}|${sel.floor}`]: true });
   const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
-  const row = (depth: number, k: string, I: typeof Bed, label: string, n: number | null, active: boolean, onClick: () => void, leaf = false) => (
+  const row = (depth: number, k: string, I: typeof Bed, label: string, n: number | null, active: boolean, onClick: () => void, leaf = false, info?: LevelRef) => (
     <div key={k} aria-current={active || undefined} style={{ paddingLeft: 4 + depth * 16 }} onClick={onClick}
-      className={cx('h-8 shrink-0 flex items-center gap-1.5 rounded-lg border pr-2 text-sm leading-5 cursor-pointer transition-colors',
+      className={cx('group h-8 shrink-0 flex items-center gap-1.5 rounded-lg border pr-2 text-sm leading-5 cursor-pointer transition-colors',
         depth === 0 || active ? 'font-medium' : 'font-normal',
         active ? 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(10,13,20,0.06)] text-[#0A0A0A]' : 'border-transparent text-[#0A0A0A] hover:bg-black/[0.03]')}>
       {leaf ? <span className="w-4 shrink-0" /> : <button type="button" aria-label={open[k] ? 'Collapse' : 'Expand'} aria-expanded={!!open[k]} onClick={(e) => { e.stopPropagation(); tog(k); }} className="size-4 shrink-0 rounded flex items-center justify-center text-[#737373] hover:text-[#0A0A0A]">{open[k] ? <CaretDown size={14} strokeWidth={1.5} /> : <CaretRight size={14} strokeWidth={1.5} />}</button>}
       <I size={16} strokeWidth={1.5} className={cx('shrink-0', active ? 'text-[#2563EB]' : 'text-[#404040]')} />
       <span className="truncate flex-1">{label}</span>
+      {/* Every level opens its own panel (custom fields), on hover or when it's the current one. */}
+      {info && <button type="button" aria-label={`${label} details`} title="Details" onClick={(e) => { e.stopPropagation(); onInfo(info); }}
+        className={cx('size-5 shrink-0 rounded flex items-center justify-center text-[#737373] hover:text-[#0A0A0A] hover:bg-black/[0.05]', active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100')}><Info size={14} strokeWidth={1.5} /></button>}
       {n != null && <span className={cx('font-mono text-xs tabular-nums', active ? 'text-[#2563EB]' : 'text-[#A3A3A3]')}>{n}</span>}
     </div>
   );
@@ -253,15 +265,15 @@ function Tree({ props, p, sel, go, archivedFlats }: { props: Property[]; p: Prop
         const bk = `${p.id}|${bi}`;
         return (
           <div key={bk} className="flex flex-col">
-            {row(0, bk, Buildings, b.name, b.rooms, false, () => { tog(bk); go({ pid: p.id, bi, floor: 1, flat: null }); })}
+            {row(0, bk, Buildings, b.name, b.rooms, false, () => { tog(bk); go({ pid: p.id, bi, floor: 1, flat: null }); }, false, { kind: 'Block', bi, floor: 1 })}
             {open[bk] && Array.from({ length: b.floors }, (_, i) => {
               const fk = `${bk}|${i + 1}`;
               const isFloor = sel.pid === p.id && sel.bi === bi && sel.floor === i + 1;
               const fl = open[fk] || isFloor ? flatsOf(p, bi, i + 1, edits).filter((f) => !archivedFlats.includes(f.id)) : [];
               return (
                 <div key={fk} className="flex flex-col">
-                  {row(1, fk, Stack, p.structure === 'House' ? 'Houses' : `Floor ${i + 1}`, Math.round(b.rooms / b.floors), isFloor && sel.flat == null, () => { setOpen((o) => ({ ...o, [fk]: true })); go({ pid: p.id, bi, floor: i + 1, flat: null }); })}
-                  {open[fk] && fl.map((f) => row(2, f.id, Door, f.name, f.units.length, isFloor && sel.flat === +f.id.split('|')[3], () => go({ pid: p.id, bi, floor: i + 1, flat: +f.id.split('|')[3] }), true))}
+                  {row(1, fk, Stack, p.structure === 'House' ? 'Houses' : `Floor ${i + 1}`, Math.round(b.rooms / b.floors), isFloor && sel.flat == null, () => { setOpen((o) => ({ ...o, [fk]: true })); go({ pid: p.id, bi, floor: i + 1, flat: null }); }, false, { kind: 'Floor', bi, floor: i + 1 })}
+                  {open[fk] && fl.map((f) => row(2, f.id, Door, f.name, f.units.length, isFloor && sel.flat === +f.id.split('|')[3], () => go({ pid: p.id, bi, floor: i + 1, flat: +f.id.split('|')[3] }), true, { kind: 'Flat', bi, floor: i + 1, flat: +f.id.split('|')[3] }))}
                 </div>
               );
             })}
@@ -270,6 +282,31 @@ function Tree({ props, p, sel, go, archivedFlats }: { props: Property[]; p: Prop
       })}
     </aside>
   );
+}
+
+/* ---------------- Level panel (Block, Floor, Flat): custom field values ---------------- */
+type LevelRef = { kind: LevelKind; bi: number; floor: number; flat?: number };
+function LevelSheetFor({ p, l, onClose }: { p: Property; l: LevelRef; onClose: () => void }) {
+  const edits = useInv((s) => s.unitEdits);
+  const b = p.blocks[l.bi];
+  if (!b) return null;
+  if (l.kind === 'Block') {
+    return <LevelSheet p={p} kind="Block" id={`${p.id}|${l.bi}`} name={b.name} meta={p.name} onClose={onClose}
+      facts={[['Floors', String(b.floors)], ['Units', String(b.rooms)], ['Room type', b.roomType]]} />;
+  }
+  const fl = flatsOf(p, l.bi, l.floor, edits);
+  const unitsOf = (us: Unit[]) => [String(us.length), String(us.filter((u) => u.status === 'Active').length)];
+  if (l.kind === 'Floor') {
+    const us = fl.flatMap((f) => f.units);
+    const [n, a] = unitsOf(us);
+    return <LevelSheet p={p} kind="Floor" id={`${p.id}|${l.bi}|${l.floor}`} name={`Floor ${l.floor}`} meta={`${p.name} · ${b.name}`} onClose={onClose}
+      facts={[['Flats', String(fl.length)], ['Units', n], ['Active', a]]} />;
+  }
+  const f = fl.find((x) => +x.id.split('|')[3] === l.flat);
+  if (!f) return null;
+  const [n, a] = unitsOf(f.units);
+  return <LevelSheet p={p} kind="Flat" id={f.id} name={f.name} meta={`${p.name} · ${b.name} · Floor ${l.floor}`} onClose={onClose}
+    facts={[['Units', n], ['Active', a], ['Room types', String(new Set(f.units.map((u) => u.type)).size)]]} />;
 }
 
 /* ---------------- Grouped table rows ---------------- */
@@ -303,14 +340,36 @@ function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFl
   );
 }
 
-/* ---------------- F4-04/05: unit side panel ---------------- */
+/* ---------------- F4-04/05: unit side panel (Figma "Side panel · Unit" 4073:17181: Overview, Tenancy, History) ---------------- */
+/* Prototype dummy history per unit, stable by id: residents, past tenancies and jobs. The backend fills these later. */
+const U_FIRST = ['Priya', 'Leo', 'Sam', 'Ella', 'Josh', 'Aisha', 'Noah', 'Mia', 'Omar', 'Freya', 'Ravi', 'Isla'];
+const U_LAST = ['Shah', 'Grant', 'Patel', 'Hughes', 'Okafor', 'Khan', 'Bell', 'Ward', 'Ahmed', 'Lowe', 'Rao', 'Ford'];
+const U_JOBS: [string, string][] = [['Shower dripping', 'Plumbing'], ['Loose socket', 'Electrical'], ['Window seal', 'Joinery'], ['Radiator cold', 'Heating'], ['Door closer', 'Joinery'], ['Mould on wall', 'Damp']];
+const hashOf = (k: string) => [...k].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+function unitHistory(u: Unit) {
+  const h = hashOf(u.id);
+  const name = (i: number) => `${U_FIRST[(h + i * 5) % U_FIRST.length]} ${U_LAST[(h + i * 7) % U_LAST.length]}`;
+  const rent = u.rent ?? 0;
+  const let_ = u.rent != null && u.status === 'Active' && h % 6 !== 0;
+  const past = [1, 2].map((i) => ({ who: name(i), year: `${2026 - i}/${String(27 - i).padStart(2, '0')}`, rent: Math.max(0, rent - i * 7), ended: i === 1 ? '13 Sep' : `${12 + i} Sep ${2026 - i}` }));
+  const jobs = U_JOBS.slice(h % 3, h % 3 + 3).map(([what, kind], i) => ({ what, kind, when: ['18 Nov', '3 Feb', '2 Oct 2025'][i], open: i === 0 && h % 2 === 0 }));
+  return { current: let_ ? { who: name(0), rent } : null, past, jobs };
+}
+const STOCK = Object.values(PHOTO);
+/** Dummy unit photos: 3 stock photos picked by the unit id, so a unit always shows the same ones. */
+const unitPhotos = (id: string) => { const h = [...id].reduce((n, c) => n + c.charCodeAt(0), 0); return [0, 1, 2].map((i) => STOCK[(h + i * 2) % STOCK.length]); };
+const STATE_TONE = { Current: 'green', Past: 'grey', Open: 'orange', Fixed: 'green' } as const;
+const State = ({ s }: { s: keyof typeof STATE_TONE }) => <Pill tone={STATE_TONE[s]}>{s}</Pill>;
 function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Property; unit: (Unit & { block?: string }) | null; onClose: () => void; path: string[] }) {
   const editUnit = useInv((s) => s.editUnit);
   const [blocked, setBlocked] = useState(false);
   const [size, setSize] = useState('');
-  useEffect(() => { setBlocked(false); setSize(unit ? String(unit.size) : ''); }, [unit?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [tab, setTab] = useState<'overview' | 'tenancy' | 'history'>('overview');
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { setBlocked(false); setEditing(false); setSize(unit ? String(unit.size) : ''); }, [unit?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [confirmArchive, setConfirmArchive] = useState(false);
   if (!unit) return null;
+  const hist = unitHistory(unit);
   const archive = () => { editUnit(unit.id, { status: 'Archived' }); toast.success(`${unit.code} archived`, { action: { label: 'Undo', onClick: () => editUnit(unit.id, { status: unit.status }) } }); onClose(); };
   const sizeErr = !size.trim() ? 'Enter a room size.' : !/^\d+(\.\d{1,2})?$/.test(size) || +size <= 0 ? 'Room size must be a number above 0, e.g. 14.' : '';
   const setStatus = (s: UStatus) => {
@@ -328,40 +387,80 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
     setBlocked(false);
     toast.success(andActivate ? `${unit.type} · ${weeks} wk applied · ${unit.code} is active` : `${unit.type} · ${weeks} wk applied to ${unit.code}`);
   };
+  const rentTxt = unit.rent != null ? `${money(unit.rent)} / ${per(p)}` : '—';
+  const flat = path[3] || '';
   return (
-    <Sheet open onClose={onClose} nav={nav} width={420} title="Unit"
-      footer={<Button className="mr-auto" icon={Archive} variant="danger-ghost" onClick={() => (unit.rent != null ? setConfirmArchive(true) : archive())}>Archive unit</Button>}>
+    <Sheet open onClose={onClose} nav={nav} width={520} title="Unit"
+      onDelete={{ label: `Archive ${unit.code}`, text: 'Archive', icon: Archive, onClick: () => (unit.rent != null ? setConfirmArchive(true) : archive()) }}>
       <Modal open={confirmArchive} onClose={() => setConfirmArchive(false)} icon={Archive} width={420} title={`Archive ${unit.code}?`} sub={`It has a ${unit.template ?? 'tenancy'} linked. Archiving takes it off sale; the tenancy stays on record.`}
         footer={<><Button onClick={() => setConfirmArchive(false)}>Keep</Button><Button variant="danger" icon={null} onClick={() => { setConfirmArchive(false); archive(); }}>Archive unit</Button></>}>{null}</Modal>
-      <SheetHero avatar={false} name={<span className="font-mono">{unit.code}</span>} meta={path.filter(Boolean).join(' › ')}>
+      <SheetHero icon={Door} tone="blue" name={unit.code} meta={path.filter(Boolean).join(' · ')}
+        facts={[['Rent', rentTxt], ['Size', `${unit.size} m²`], ['Resident', hist.current ? hist.current.who : 'Vacant']]}>
         <PropStatus s={unit.status} />
-        <Pill outline icon={Bed}>Room · BSU{unit.note ? ` · ${unit.note}` : ''}</Pill>
+        <Pill tone="blue">{unit.type}</Pill>
       </SheetHero>
+      <div className="-mx-5 mb-5">
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'tenancy', label: 'Tenancy' }, { id: 'history', label: 'History' }]} />
+      </div>
       {blocked && (
-        <div className="mb-5 rounded-xl border border-[#EF44444D] p-3.5">
+        <div className="mb-3 rounded-xl border border-[#EF44444D] p-3.5">
           <div className="flex gap-2.5"><WarningCircle size={18} weight="fill" className="text-[#EF4444] shrink-0" /><div><div className="text-sm font-semibold text-[#E0243A]">{unit.code} can’t be active</div><div className="text-sm text-[#737373] mt-0.5">Apply the {unit.type} tenancy first, then it goes active.</div></div></div>
           <div className="mt-3 flex gap-2 justify-end"><Button size="sm" onClick={() => setBlocked(false)}>Keep as Draft</Button><Button size="sm" variant="primary" onClick={() => applyTenancy(true)}>Apply tenancy</Button></div>
         </div>
       )}
-      <SheetSection title="Status">
-        <Picker value={unit.status === 'Archived' ? 'Inactive' : unit.status} onChange={(v) => setStatus(v as UStatus)} options={[{ id: 'Draft', label: 'Draft' }, { id: 'Active', label: 'Active' }, { id: 'Inactive', label: 'Inactive' }]} />
-      </SheetSection>
-      <SheetSection title="Room">
-        <div className="space-y-4">
-          <Field label="Room type"><Picker value={unit.type} onChange={(v) => { editUnit(unit.id, { type: v }); toast.success(`${unit.code} is now ${v}`); }} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></Field>
-          <Field label="Room size *">
-            <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Room size" value={size} onChange={(e) => setSize(e.target.value.replace(/[^0-9.]/g, ''))} onBlur={() => !sizeErr && +size !== unit.size && (editUnit(unit.id, { size: +size }), toast.success(`${unit.code} room size saved · ${+size} m²`))} className="flex-1 outline-none" /><span className="text-[#737373] text-xs">m²</span></label>
-            <FieldErr>{sizeErr && `${sizeErr} Not saved.`}</FieldErr>
-          </Field>
-        </div>
-      </SheetSection>
-      <SheetSection title="Tenancy">
-        {unit.rent != null ? (
-          <div className="rounded-xl border border-line p-3.5"><div className="text-sm font-medium">{unit.template}</div><div className="text-xs text-[#737373]">{money(unit.rent)} / {per(p)} · linked to the template</div></div>
+      {tab === 'overview' && <>
+        {editing ? (
+          <SheetSection title="Room" action={<EditLink onClick={() => { if (!sizeErr) setEditing(false); }}>Done</EditLink>}>
+            <div className="space-y-4">
+              <Field label="Status"><Picker value={unit.status === 'Archived' ? 'Inactive' : unit.status} onChange={(v) => setStatus(v as UStatus)} options={[{ id: 'Draft', label: 'Draft' }, { id: 'Active', label: 'Active' }, { id: 'Inactive', label: 'Inactive' }]} /></Field>
+              <Field label="Room type"><Picker value={unit.type} onChange={(v) => { editUnit(unit.id, { type: v }); toast.success(`${unit.code} is now ${v}`); }} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></Field>
+              <Field label="Room size *">
+                <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Room size" value={size} onChange={(e) => setSize(e.target.value.replace(/[^0-9.]/g, ''))} onBlur={() => !sizeErr && +size !== unit.size && (editUnit(unit.id, { size: +size }), toast.success(`${unit.code} room size saved · ${+size} m²`))} className="flex-1 outline-none" /><span className="text-[#737373] text-xs">m²</span></label>
+                <FieldErr>{sizeErr && `${sizeErr} Not saved.`}</FieldErr>
+              </Field>
+            </div>
+          </SheetSection>
         ) : (
-          <div className="rounded-xl border border-dashed border-gray-300 p-3.5 flex items-center gap-3"><span className="text-sm text-[#737373] flex-1">No tenancy</span><Button size="sm" onClick={() => applyTenancy(false)}>Apply tenancy</Button></div>
+          <SheetSection title="Room" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>} rows={[['Room type', unit.type], ['Size', `${unit.size} m²`], ['Location', [path[1], flat].filter(Boolean).join(' · ') || '—'], ['Status', unit.status]]} />
         )}
-      </SheetSection>
+        {/* Photos of this unit (2026-11-19). Prototype: stock photos stand in, stable by unit id; Add is a stub. */}
+        <SheetSection title={`Photos · ${unitPhotos(unit.id).length}`} action={<EditLink onClick={() => toast('Photo upload arrives with the backend')}>Add photos</EditLink>}>
+          <div className="grid grid-cols-3 gap-2">
+            {unitPhotos(unit.id).map((src, i) => <div key={i} className="aspect-[4/3] rounded-lg bg-[#F5F5F5] bg-cover bg-center border border-[#EBEBEB]" style={{ backgroundImage: `url(${src})` }} role="img" aria-label={`${unit.code} photo ${i + 1}`} />)}
+          </div>
+        </SheetSection>
+        <SheetSection title="Tenancy">
+          {unit.rent == null ? (
+            <div className="flex items-center gap-3"><span className="text-sm text-[#737373] flex-1">No tenancy</span><Button size="sm" onClick={() => applyTenancy(false)}>Apply tenancy</Button></div>
+          ) : <>
+            {hist.current && <SheetRow title={hist.current.who} sub={`21 Sep 2026 – 12 Sep 2027 · ${money(hist.current.rent)} / ${per(p)}`} end={<State s="Current" />} />}
+            <SheetRow title={hist.past[0].who} sub={`${hist.past[0].year} · ended ${hist.past[0].ended}`} end={<State s="Past" />} />
+          </>}
+        </SheetSection>
+      </>}
+      {tab === 'tenancy' && <>
+        {hist.current ? (
+          <SheetSection title="Current tenancy" rows={[['Resident', hist.current.who], ['Term', '21 Sep 2026 – 12 Sep 2027'], ['Rent', rentTxt], ['Balance', <span className="text-[#0B8A4C]">£0.00</span>], ['Template', unit.template ?? '—']]} />
+        ) : (
+          <SheetSection title="Current tenancy">
+            {unit.rent == null
+              ? <div className="flex items-center gap-3"><span className="text-sm text-[#737373] flex-1">No tenancy</span><Button size="sm" onClick={() => applyTenancy(false)}>Apply tenancy</Button></div>
+              : <p className="text-sm text-[#737373]">Vacant · {unit.template} at {rentTxt}</p>}
+          </SheetSection>
+        )}
+        <SheetSection title="Next year">
+          <SheetRow title="2027/28" sub={`Not let yet${unit.rent != null ? ` · ${money(unit.rent + 8)} / ${per(p)}` : ''}`} end={<EditLink onClick={() => toast('Offers live in Allocations › Offers')}>Offer</EditLink>} />
+        </SheetSection>
+      </>}
+      {tab === 'history' && <>
+        <SheetSection title={`Tenancies · ${hist.past.length + (hist.current ? 1 : 0)}`}>
+          {hist.current && <SheetRow title={hist.current.who} sub={`2026/27 · ${money(hist.current.rent)} / ${per(p)}`} end={<State s="Current" />} />}
+          {hist.past.map((t) => <SheetRow key={t.year} title={t.who} sub={`${t.year} · ${money(t.rent)} / ${per(p)}`} end={<State s="Past" />} />)}
+        </SheetSection>
+        <SheetSection title={`Jobs · ${hist.jobs.length}`}>
+          {hist.jobs.map((j) => <SheetRow key={j.what} title={j.what} sub={`${j.kind} · ${j.when}`} end={<State s={j.open ? 'Open' : 'Fixed'} />} />)}
+        </SheetSection>
+      </>}
     </Sheet>
   );
 }
@@ -397,7 +496,7 @@ function ArchivedTable({ p, rows, onRestore }: { p: Property; rows: ArchivedRow[
                 <td className="pl-[var(--cx,12px)] pr-3 h-10"><span className="flex items-center gap-2">{r.flat ? <Door size={14} className="text-[#737373]" /> : <Bed size={14} className="text-[#737373]" />}<span className={r.flat ? 'font-medium' : 'font-mono text-sm'}>{r.name}</span>{r.flat && <span className="text-xs text-[#737373]">+ {r.units} units</span>}</span></td>
                 <td className="px-3 text-[#737373]">{r.flat ? 'Flat' : r.type}</td>
                 <td className="px-3"><PropStatus s="Archived" /></td>
-                <td className="px-3 text-[#737373]">{r.who} · {r.when}</td>
+                <td className="px-3"><PersonName name={r.who}><span className="text-[#737373] whitespace-nowrap">· {r.when}</span></PersonName></td>
                 <td className="pl-3 pr-[var(--cx,12px)] text-right"><Button size="sm" icon={ArrowUUpLeft} onClick={() => onRestore(r)}>Restore…</Button></td>
               </tr>
             ))}

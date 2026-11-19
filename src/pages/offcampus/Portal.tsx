@@ -238,7 +238,7 @@ function SiteDetails() {
   const checks = [
     { label: 'Branding', ok: !missing.length, note: missing.length ? `Missing: ${missing.join(', ')}` : 'Crest and colours set', fix: () => nav('/offcampus/portal/appearance'), fixLabel: 'Finish branding' },
     { label: 'Campuses shown', ok: campuses.length > 0, note: campuses.length ? campuses.map((c) => c.name).join(', ') : 'None chosen', fix: () => nav('/offcampus/portal'), fixLabel: 'Choose campuses' },
-    { label: 'Approved listings', ok: live > 0, note: `${live} · ${waiting} waiting for review`, fix: () => nav('/offcampus/reviews'), fixLabel: 'Review listings' },
+    { label: 'Approved listings', ok: live > 0, note: `${live} · ${waiting} waiting for review`, fix: () => nav('/offcampus/approvals?kind=listings'), fixLabel: 'Review listings' },
     { label: 'Domain', ok: true, note: host, fix: () => nav('/offcampus/portal/domain'), fixLabel: 'Set up domain' },
   ];
   const firstFail = checks.find((c) => !c.ok);

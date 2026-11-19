@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlarmClock, AlarmClockOff, ArrowDown, ArrowUp, ArrowsLeftRight, Bell, CalendarBlank, CalendarX, Check, CheckCircle, Plus, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Empty, Field, FilterButton, inFilter, type Filters, Input, PageHeader, Select, Sheet, SheetSection, Tabs, cx, toolbarCls, PIN, listNav, PageHeading } from '../../components/ui';
+import { Button, Empty, Field, FilterButton, inFilter, type Filters, Input, PageHeader, Select, SheetRow, SheetSection, Tabs, cx, toolbarCls, PIN, listNav, PageHeading } from '../../components/ui';
 import { useOpen } from '../hooks';
 import { useEmpty } from '../../data/empty';
 import { DONE_EARLIER, EXTRAS, ME, PEOPLE, TOM_HIDDEN, useHome, type CaseId, type Due, type HTask } from '../../data/home';
@@ -10,6 +10,7 @@ import { Box, CaughtUp, DuePill, Who, fromIcon } from './parts';
 import { ROW_IN_MS, TaskSheet, useChange, useReturned } from './TaskSheet';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { SnoozeMenu, useSnooze } from './Snooze';
+import { PanelModal } from '../inventory/common';
 
 /** Sortable column head, same look as `Table sort`: ink label + arrow; click flips the order. */
 function SortHead({ desc, onToggle, children }: { desc: boolean; onToggle: () => void; children: ReactNode }) {
@@ -44,9 +45,10 @@ function NewTaskButton({ scope }: { scope: 'main' | CaseId }) {
   return (
     <>
       <Button variant="primary" icon={Plus} onClick={() => setOpen(true)}>New task</Button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="New task" width={480}
-        footer={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" type="submit" form="new-task" disabled={!title.trim()}>Add task</Button></>}>
-        <form id="new-task" onSubmit={create} className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+      {/* Creating opens a centred modal (2026-11-19), never a side sheet. */}
+      <PanelModal open={open} onClose={() => setOpen(false)} eyebrow="New task" title="New task" width={520}
+        right={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" icon={null} type="submit" form="new-task" disabled={!title.trim()}>Create task</Button></>}>
+        <form id="new-task" onSubmit={create}>
           <SheetSection title="Task">
           <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Call the lift engineer about Ustinov B block" /></Field>
           </SheetSection>
@@ -57,7 +59,7 @@ function NewTaskButton({ scope }: { scope: 'main' | CaseId }) {
           </div>
           </SheetSection>
         </form>
-      </Sheet>
+      </PanelModal>
     </>
   );
 }
@@ -323,28 +325,17 @@ function TeamBoard({ scope }: { scope: CaseId }) {
       <TaskSheet scope={scope} task={task} nav={listNav(moving.map((m) => m.row), (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />
 
       {/* E3 step 2: choose who */}
-      <Sheet open={reassign} onClose={() => setReassign(false)} width={520}
-        title={`Reassign ${pile} tasks`} sub="From Tom Baker · on leave until Mon 21 Sep"
-        footer={<><Button onClick={() => setReassign(false)}>Cancel</Button><Button variant="primary" icon={Check} onClick={doReassign}>Reassign {pile}</Button></>}>
-        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+      <PanelModal open={reassign} onClose={() => setReassign(false)} eyebrow="Reassign tasks" title={`Reassign ${pile} tasks`} meta="From Tom Baker · on leave until Mon 21 Sep" width={560}
+        right={<><Button onClick={() => setReassign(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={doReassign}>Reassign {pile}</Button></>}>
         <SheetSection title="Hand them to">
-        <div className="rounded-[10px] border border-primary bg-[#EFF6FF] px-3 py-2.5 flex items-center gap-2.5" aria-selected="true" role="option">
-          <Who name="Aisha Khan" size={24} />
-          <div className="flex-1"><div className="text-sm leading-5 font-semibold">Aisha Khan</div><div className="text-xs text-gray-500">Hall manager · Van Mildert, Collingwood · 7 tasks today</div></div>
-          <Check size={16} className="text-primary" />
-        </div>
+          <SheetRow lead={<Who name="Aisha Khan" size={24} />} title="Aisha Khan" sub="Hall manager · Van Mildert, Collingwood · 7 tasks today" end={<Check size={16} className="shrink-0 text-[#0A0A0A]" aria-label="Picked" />} />
         </SheetSection>
         <SheetSection title="Where they go">
-        <div className="rounded-xl border border-line px-3.5 py-1 divide-y divide-[#F5F5F5]">
-          <div className="flex items-center gap-2.5 py-2 text-sm"><CheckCircle size={16} className="text-[#0B8A4C]" /><span className="flex-1 font-medium">{toAishaN} tasks at Collingwood</span><span className="text-xs text-gray-500">Aisha covers Collingwood</span></div>
-          <div className="flex items-center gap-2.5 py-2 text-sm"><XCircle size={16} className="text-[#B91C1C]" /><span className="flex-1 font-medium">{toMeN} tasks at Ustinov</span><span className="text-xs text-[#B91C1C] max-w-[180px]">Aisha doesn’t cover Ustinov · they come to you</span></div>
-        </div>
-        <div className="mt-4 rounded-lg border border-[#2563EB]/30 px-3 h-10 flex items-center gap-2 text-sm font-medium text-[#2563EB]">
-          <Bell size={16} />Tom will see who has his tasks when he’s back
-        </div>
+          <SheetRow lead={<CheckCircle size={20} className="shrink-0 text-[#737373]" />} title={`${toAishaN} tasks at Collingwood`} sub="Aisha covers Collingwood" />
+          <SheetRow lead={<XCircle size={20} className="shrink-0 text-[#737373]" />} title={`${toMeN} tasks at Ustinov`} sub="Aisha doesn’t cover Ustinov · they come to you" />
         </SheetSection>
-        </div>
-      </Sheet>
+        <p className="mt-3 flex items-center gap-2 text-sm leading-5 text-[#737373]"><Bell size={16} className="shrink-0" />Tom sees who has his tasks when he’s back.</p>
+      </PanelModal>
     </div>
   );
 }

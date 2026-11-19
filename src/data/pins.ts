@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 /** Pages pinned to Home, in the order shown. Kept with the demo data, so "Reset demo data" restores them. */
-const DEFAULT = ['/allocations/applications', '/residents/maintenance', '/offcampus/landlords'];
+const DEFAULT = ['/allocations/applications', '/residents/maintenance', '/offcampus/approvals'];
 
 type State = {
   pins: string[];

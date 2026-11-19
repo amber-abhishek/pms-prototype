@@ -2,7 +2,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { Illustration, artFor, type Illo } from '../../components/Illustration';
 import { DotsThree, type Icon } from '../../components/icons';
-import { Dropdown, PageHeader, cx } from '../../components/ui';
+import { ConfirmFrame, Dropdown, PageHeader, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 
@@ -35,12 +35,14 @@ export function RowMenu({ items, label = 'More actions' }: { items: { label: str
   );
 }
 
-/** Dialog as the designs draw it (shadcn Dialog): title + one-line sub at the top, grey footer bar. */
+/** Dialog as the designs draw it (shadcn Dialog): title + one-line sub at the top, grey footer bar. A question title
+ *  with a footer is a confirmation, so it takes the shared confirm layout. */
 export function ODialog({ open, onClose, title, sub, children, footer, width = 500 }: { open: boolean; onClose: () => void; title: string; sub?: ReactNode; children?: ReactNode; footer?: ReactNode; width?: number }) {
+  const confirm = footer != null && isConfirmTitle(title);
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>
+      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })} {...(confirm ? noAutoFocus : {})}>
+        {confirm ? <ConfirmFrame title={title} sub={sub} footer={footer}>{children}</ConfirmFrame> : <DialogFrame title={title} sub={sub} footer={footer}>{children}</DialogFrame>}
       </DialogContent>
     </Dialog>
   );

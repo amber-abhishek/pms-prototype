@@ -1,16 +1,17 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  ArrowUp, Bell, Check, CheckCircle, Drop, Envelope, FileText, Fan, HardHat, Key, Lamp, LightbulbFilament, LightningSlash, Lock,
-  Minus, PaperPlaneTilt, PawPrint, Plus, ArrowCounterClockwise, Shower, Siren, Snowflake, SpinnerGap, Thermometer, Timer, Toilet, User, UserMinus, UserPlus, WarningCircle, WashingMachine, WifiSlash, Wind, Wrench, Door, Package, Fire, type Icon,
+  ArrowUp, Bell, Check, CheckCircle, CircleDashed, Drop, Envelope, FileText, Fan, HardHat, ImageSquare, Key, Lamp, LightbulbFilament, LightningSlash, Lock,
+  Minus, PaperPlaneTilt, PawPrint, Plus, RadioButton, ArrowCounterClockwise, Shower, Siren, Snowflake, SpinnerGap, Thermometer, Timer, Toilet, User, UserMinus, UserPlus, WarningCircle, WashingMachine, WifiSlash, Wind, Wrench, Door, Package, Fire, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { fmtSla, useRms, type Fault, type FaultIcon, type FaultStatus, type Priority } from '../../data/residents';
-import { Avatar, Button, Card, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, Select, Sheet, SheetHero, SheetSection, Table, Textarea, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { PersonName, Avatar, Button, Card, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, SearchInput, Select, Sheet, SheetHero, SheetRow, SheetSection, Table, Textarea, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { Tabs as UITabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import { MaintenanceBoard } from './MaintenanceBoard';
-import { KV, Modal, Panel, Person, Photo, RHeader, RadioCard, SideSheet, Timeline, ToggleRow, undoToast, useOnce } from './kit';
+import { LineTabs, PanelModal } from '../inventory/common';
+import { KV, Modal, Panel, Person, Photo, RHeader, RadioRow, Timeline, ToggleRow, undoToast, useOnce } from './kit';
 
 const faultIcon: Record<FaultIcon, Icon> = {
   leak: Drop, power: LightningSlash, lock: Lock, shower: Shower, lamp: Lamp, wifi: WifiSlash, cold: Thermometer, window: Wind, fan: Fan, toilet: Toilet,
@@ -130,28 +131,36 @@ function LogFault({ open, onClose }: { open: boolean; onClose: () => void }) {
     nav(`/residents/maintenance/${id}`);
   });
   return (
-    <Modal open={open} onClose={onClose} title="Log a fault" sub="For a resident who called or came to the desk."
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Plus} onClick={submit}>Log fault</Button></>}>
-      <Field label="Fault"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Shower drains slowly" /></Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="On behalf of"><Select value={who} onChange={(e) => setWho(e.target.value)}><option value="">Nobody (a shared area)</option>{residents.map((r) => <option key={r.id}>{r.name}</option>)}</Select></Field>
-        <Field label="Priority"><Select value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>{['Urgent', 'High', 'Normal'].map((p) => <option key={p}>{p}</option>)}</Select></Field>
-      </div>
-      {!who && <Field label="Where"><Input value={where} onChange={(e) => setWhere(e.target.value)} placeholder="e.g. Collingwood · D kitchen" /></Field>}
-      <Field label="What’s wrong"><Textarea rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} /></Field>
-    </Modal>
+    <PanelModal open={open} onClose={onClose} eyebrow="New fault" title="New fault" width={560}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={submit}>Create fault</Button></>}>
+      <SheetSection title="Fault">
+        <div className="space-y-4">
+          <Field label="Fault"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Shower drains slowly" /></Field>
+          <Field label="What’s wrong"><Textarea rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} /></Field>
+        </div>
+      </SheetSection>
+      <SheetSection title="Who and where">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="On behalf of"><Select value={who} onChange={(e) => setWho(e.target.value)}><option value="">Nobody (a shared area)</option>{residents.map((r) => <option key={r.id}>{r.name}</option>)}</Select></Field>
+            <Field label="Priority"><Select value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>{['Urgent', 'High', 'Normal'].map((p) => <option key={p}>{p}</option>)}</Select></Field>
+          </div>
+          {!who && <Field label="Where"><Input value={where} onChange={(e) => setWhere(e.target.value)} placeholder="e.g. Collingwood · D kitchen" /></Field>}
+        </div>
+      </SheetSection>
+    </PanelModal>
   );
 }
 
 function ContractorsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <SideSheet open={open} onClose={onClose} icon={HardHat} title="Contractors" footer={<Button onClick={onClose}>Close</Button>}>
-      <SheetSection title="In-house and contract">
+    <Sheet open={open} onClose={onClose} title="Contractors">
+      <SheetSection title="In-house and contract · 5">
       {[['Dave Hughes', 'In-house plumber · 2 jobs today', 'In-house'], ['Kim Lowe', 'In-house electrician · off today', 'In-house'], ['Northern Heating Ltd', 'Heating and plumbing · £85 call-out · £120 out of hours', 'Contract'], ['Estates helpdesk', 'Operator estates team · 3–5 days', 'Operator'], ['Campus IT', 'Wi-Fi and network', 'Operator']].map(([n, s, t]) => (
-        <div key={n} className="flex items-center gap-3 py-1"><Avatar name={n} size={28} /><div className="flex-1"><div className="text-sm font-medium">{n}</div><div className="text-xs text-gray-500">{s}</div></div><Pill tone="grey" outline>{t}</Pill></div>
+        <SheetRow key={n} lead={<Avatar name={n} size={24} />} title={n} sub={s} end={<Pill tone="grey">{t}</Pill>} />
       ))}
       </SheetSection>
-    </SideSheet>
+    </Sheet>
   );
 }
 
@@ -243,8 +252,8 @@ function useFaultView(f: Fault) {
 }
 type FaultView = ReturnType<typeof useFaultView>;
 
-/** The report, progress and details. The page lays them out in two columns; the side panel stacks them. */
-function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: boolean }) {
+/** The report, progress and details, in the job page's two columns. The side panel has its own tabs (FaultPanelBody). */
+function FaultSections({ f, v }: { f: Fault; v: FaultView }) {
   const { isRad, late, steps, logUpdate } = v;
   const main = (
     <div className="space-y-4">
@@ -276,47 +285,12 @@ function FaultSections({ f, v, stacked }: { f: Fault; v: FaultView; stacked?: bo
           ['Category', isRad ? 'Heating · radiator' : f.category],
           ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
           ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
-          ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#737373]">Nobody yet</span>],
+          ['Assigned', f.assignee ? <PersonName name={f.assignee}>{f.assignee === 'Dave Hughes' && <span className="text-[#737373] whitespace-nowrap">· in-house plumber</span>}</PersonName> : <span className="text-[#737373]">Nobody yet</span>],
         ]} />
       </Panel>
     </div>
   );
-  if (!stacked) return <>{main}{side}</>;
-  /* Side panel (Mercury hierarchy): notes, then Details, Report and Progress as titled sections. */
-  const deadline = f.status === 'Fixed' ? (isRad ? 'Fixed in 19h 08m' : `Fixed in ${f.fixedIn}`) : f.status === 'Waiting on parts' ? 'Paused · waiting on parts' : `${isRad ? '15h' : fmtSla(Math.max(f.slaMins, 0))} left`;
-  const notes = [
-    f.approvedNote && <Note key="ok" tone="green" icon={CheckCircle} title={f.approvedNote}>Out-of-hours call-out · charged to Ustinov repairs.</Note>,
-    isRad && !f.assignee && <Note key="rad" tone="amber" icon={WarningCircle} title="Water near a socket">Marked urgent: 24-hour deadline.</Note>,
-    late && !f.assignee && <Note key="late" tone="red" icon={Timer} title={`Overdue by ${fmtSla(f.slaMins)}`}>Whole-block urgent faults have a 4-hour deadline.</Note>,
-  ].filter(Boolean);
-  return (
-    <>
-      {notes.length > 0 && <div className="space-y-2 mb-5">{notes}</div>}
-      <SheetSection title="Details" rows={[
-        ['Category', isRad ? 'Heating · radiator' : f.category],
-        ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
-        ...(isRad ? [['Asset', <span><span className="font-mono text-xs">RAD-C214-01</span> · fitted 2019</span>], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
-        ['Assigned', f.assignee ? (f.assignee === 'Dave Hughes' ? 'Dave Hughes · in-house plumber' : f.assignee) : <span className="text-[#737373]">Nobody yet</span>],
-        ['Deadline', deadline],
-      ]} />
-      <SheetSection title="Report">
-        <div className="flex items-center gap-2.5">
-          <Person name={f.reporter ?? 'Resident'} />
-          <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium">{f.reporter ?? 'A resident'}</div><div className="text-xs text-gray-500">{f.reporterRoom ? (f.reporterRoom.includes('reception') ? f.reporterRoom : `Resident · ${f.reporterRoom}`) : `Resident · ${f.where.split(' · ')[1] ?? ''}`}</div></div>
-          <span className="text-xs text-gray-500">{f.reported ?? 'Earlier'}</span>
-        </div>
-        <p className="text-sm leading-5 text-[#404040] mt-3">{f.report ?? `${f.title}. Please could someone take a look?`}</p>
-        {isRad && <div className="flex gap-2 mt-3"><Photo /><Photo /><Photo /></div>}
-        {isRad && <div className="flex gap-4 mt-3 text-xs text-gray-500"><span className="flex items-center gap-1.5"><Key size={13} className="text-gray-400" />OK to enter when I’m out</span><span className="flex items-center gap-1.5"><PawPrint size={13} className="text-gray-400" />No pets</span></div>}
-      </SheetSection>
-      {f.assignee && (
-        <SheetSection title="Progress">
-          <Timeline steps={steps} />
-          {f.status !== 'Fixed' && isRad && (f.stage ?? 2) < 5 && <Button size="sm" className="mt-4" icon={Plus} onClick={logUpdate}>Log an update</Button>}
-        </SheetSection>
-      )}
-    </>
-  );
+  return <>{main}{side}</>;
 }
 
 function FaultPage({ f }: { f: Fault }) {
@@ -351,16 +325,100 @@ export function FaultPeek({ id, onClose , nav }: { nav?: SheetNav;  id: string |
 }
 function PeekSheet({ f, open, onClose , nav }: { nav?: SheetNav;  f: Fault; open: boolean; onClose: () => void }) {
   const v = useFaultView(f);
+  const [tab, setTab] = useState<'overview' | 'updates' | 'photos'>('overview');
+  /* Footer per Figma: plain buttons, no icons. */
+  const plain = (b: ReactNode) => (isValidElement<{ icon?: unknown }>(b) ? cloneElement(b, { icon: null }) : b);
+  const statusPill = f.status === 'Fixed' ? <Pill tone="green">Fixed</Pill>
+    : v.late && !f.assignee ? <Pill tone="red">Overdue</Pill>
+      : !f.assignee ? <Pill tone="amber">Not assigned</Pill>
+        : f.status === 'Waiting on parts' ? <Pill tone="amber">Waiting on parts</Pill>
+          : <Pill tone="blue">In progress</Pill>;
   return (
     <>
-      <Sheet open={open} onClose={onClose} nav={nav} width={560} title="Fault"
-        footer={<>{v.message}{v.primary}</>}>
-        <SheetHero avatar={false} name={f.title} meta={<><span className="font-mono">{f.ref}</span> · {f.where}</>}>{v.pills}</SheetHero>
-        <FaultSections f={f} v={v} stacked />
+      <Sheet open={open} onClose={onClose} nav={nav} width={520} title={`Fault · ${f.ref}`}
+        footer={<>{plain(v.message)}{plain(v.primary)}</>}>
+        <SheetHero icon={faultIcon[f.icon]} name={f.title}
+          meta={`${f.where}${f.reporter ? ` · Reported by ${f.reporter}` : ''}`}
+          facts={[
+            ['SLA', f.status === 'Fixed' ? `Fixed in ${f.fixedIn ?? '—'}` : f.status === 'Waiting on parts' ? 'Paused' : f.slaMins < 0 ? `Overdue ${fmtSla(Math.abs(f.slaMins))}` : `${fmtSla(f.slaMins)} left`, f.status !== 'Fixed' && f.status !== 'Waiting on parts' && f.slaMins < 0 ? 'red' : undefined],
+            ['Assigned', f.assignee ?? 'Nobody', f.assignee ? undefined : 'amber'],
+            ['Logged', f.reported ?? '—'],
+          ]}>
+          {f.priority !== 'Normal' && <Pill tone={f.priority === 'Urgent' ? 'red' : 'orange'}>{f.priority}</Pill>}
+          {statusPill}
+        </SheetHero>
+        <div className="-mx-5 mb-5">
+          <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'updates', label: 'Updates' }, { id: 'photos', label: 'Photos' }]} />
+        </div>
+        <FaultPanelBody f={f} v={v} tab={tab} />
       </Sheet>
       {v.overlays}
     </>
   );
+}
+
+/* Prototype photo count for a job without the radiator's three: stable by id, 0–2. */
+const photoCount = (f: Fault) => (f.id === 'm1' ? 3 : [...f.id].reduce((h, c) => h + c.charCodeAt(0), 0) % 3);
+const STEP_ICON = {
+  done: <CheckCircle size={20} weight="fill" className="shrink-0 text-[#0B8A4C]" />,
+  now: <RadioButton size={20} className="shrink-0 text-primary" />,
+  todo: <CircleDashed size={20} className="shrink-0 text-[#A3A3A3]" />,
+};
+
+/** The Fault panel's tabs (Figma 4067:18295, 4074:19110, 4074:19281). */
+function FaultPanelBody({ f, v, tab }: { f: Fault; v: FaultView; tab: 'overview' | 'updates' | 'photos' }) {
+  const { isRad, late, steps, logUpdate } = v;
+  const notes = [
+    f.approvedNote && <Note key="ok" tone="green" icon={CheckCircle} title={f.approvedNote}>Out-of-hours call-out · charged to Ustinov repairs.</Note>,
+    isRad && !f.assignee && <Note key="rad" tone="amber" icon={WarningCircle} title="Water near a socket">Marked urgent: 24-hour deadline.</Note>,
+    late && !f.assignee && <Note key="late" tone="red" icon={Timer} title={`Overdue by ${fmtSla(f.slaMins)}`}>Whole-block urgent faults have a 4-hour deadline.</Note>,
+  ].filter(Boolean);
+  const reporter = f.reporter ?? 'A resident';
+  if (tab === 'updates') {
+    /* Newest first: the steps that have happened, as people's updates. */
+    const done = steps.filter((s) => s.done).reverse();
+    const who = (t: string) => (t.startsWith('Reported') ? reporter : t.startsWith('Assigned') ? 'Arjun Mehta' : f.assignee ?? 'Arjun Mehta');
+    return (
+      <SheetSection title={`Updates · ${done.length}`}>
+        {done.map((s) => <SheetRow key={s.title} lead={<Person name={who(s.title)} size={24} />} title={s.title} sub={[s.sub, s.when].filter(Boolean).join(' · ')} />)}
+        {f.status !== 'Fixed' && isRad && (f.stage ?? 2) < 5 && <Button size="sm" className="mt-3" icon={Plus} onClick={logUpdate}>Log an update</Button>}
+      </SheetSection>
+    );
+  }
+  if (tab === 'photos') {
+    const n = photoCount(f);
+    return <>
+      <SheetSection title={`Photos · ${n}`}>
+        {n ? <div className="grid grid-cols-3 gap-2">{Array.from({ length: n }, (_, i) => <span key={i} className="aspect-[4/3] rounded-lg bg-[#F5F5F5] flex items-center justify-center text-[#A3A3A3]"><ImageSquare size={20} /></span>)}</div>
+          : <p className="text-sm text-[#737373]">No photos with this report</p>}
+      </SheetSection>
+      {n > 0 && <SheetSection title="From" rows={[['Uploaded by', reporter], ['When', f.reported ?? 'Earlier']]} />}
+    </>;
+  }
+  /* Overview: Logged → Assigned → On site → Fixed, then the job's details. */
+  const onSite = f.status === 'Fixed' || (f.stage ?? 0) >= 3;
+  const prog = [
+    { title: 'Logged', sub: `${reporter} · ${f.reported ?? 'Earlier'}`, done: true },
+    { title: 'Assigned', sub: f.assignee ? f.assignee : 'Nobody yet', done: !!f.assignee },
+    { title: 'On site', sub: f.status === 'Waiting on parts' ? 'Waiting on parts' : onSite ? 'Engineer on site' : f.assignee ? 'Visit booked' : undefined, done: onSite },
+    { title: 'Fixed', sub: f.status === 'Fixed' ? `Fixed in ${f.fixedIn ?? '—'}` : undefined, done: f.status === 'Fixed' },
+  ];
+  const now = prog.findIndex((x) => !x.done);
+  return <>
+    {notes.length > 0 && <div className="space-y-2 mb-3">{notes}</div>}
+    <SheetSection title={`Progress · ${prog.filter((x) => x.done).length} / ${prog.length}`}>
+      {prog.map((x, i) => (
+        <SheetRow key={x.title} lead={x.done ? STEP_ICON.done : i === now ? STEP_ICON.now : STEP_ICON.todo}
+          title={<span className={x.done || i === now ? undefined : 'text-[#737373]'}>{x.title}</span>} sub={x.sub} />
+      ))}
+    </SheetSection>
+    <SheetSection title="Details" rows={[
+      ['Category', isRad ? 'Heating · radiator' : f.category],
+      ['Room', isRad ? 'C.2.14 · Standard single' : f.rooms ? `Block C · ${f.rooms} rooms` : f.where.split(' · ')[1] ?? f.where],
+      ...(isRad ? [['Asset', 'RAD-C214-01 · fitted 2019'], ['Last job here', 'MT-088 · bled radiator · Jan 2026']] as [string, ReactNode][] : []),
+      ['Report', f.report ?? `${f.title}. Please could someone take a look?`],
+    ]} />
+  </>;
 }
 
 function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; onClose: () => void; onDone: (name: string, closeTask: boolean) => void }) {
@@ -407,11 +465,11 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
   });
 
   return (
-    <SideSheet open={open} onClose={onClose} icon={UserPlus} title={`Assign ${f.ref}`} sub={`${f.title.replace(' onto the floor', '')} · ${f.where.replace(' · ', ' ')}`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={needsOk ? PaperPlaneTilt : Check} onClick={submit}>{needsOk ? 'Ask Aisha and assign' : `Assign to ${who === 'Estates helpdesk' ? 'Estates' : short.split(' ')[0]}`}</Button></>}>
-      {breached && <div className="mb-5"><Note tone="red" icon={UserMinus} title="No in-house plumber free before 18:00">Dave is on MT-204 and Kim is off today. The contractor can come in 2 hours at the out-of-hours rate.</Note></div>}
+    <PanelModal open={open} onClose={onClose} eyebrow={`Assign ${f.ref}`} title={f.title.replace(' onto the floor', '')} meta={f.where} width={600}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={submit}>{needsOk ? 'Ask Aisha and assign' : `Assign to ${who === 'Estates helpdesk' ? 'Estates' : short.split(' ')[0]}`}</Button></>}>
+      {breached && <div className="mb-3"><Note tone="red" icon={UserMinus} title="No in-house plumber free before 18:00">The contractor can come in 2 hours at the out-of-hours rate.</Note></div>}
       <SheetSection title="Who fixes it">
-        <div role="radiogroup" className="space-y-2">{opts.map((o) => <RadioCard key={o.id} checked={who === o.id} onClick={() => setWho(o.id)} title={o.title} sub={o.sub} avatar={o.avatar} right={o.right} />)}</div>
+        <div role="radiogroup" aria-label="Who fixes it">{opts.map((o) => <RadioRow key={o.id} checked={who === o.id} onClick={() => setWho(o.id)} title={o.title} sub={o.sub} avatar={o.avatar} right={o.right} />)}</div>
       </SheetSection>
       {breached ? (
         <SheetSection title="Approval">
@@ -426,17 +484,15 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
           </div>
           </SheetSection>
           {f.reporter && <SheetSection title="Resident">
-          <div className="space-y-3">
           <ToggleRow title={`Enter if ${first} is out`} sub={f.id === 'm1' ? 'He allowed it in the report · 24h notice waived for urgent jobs' : '24h notice is sent first'} checked={enter} onChange={setEnter} />
           <ToggleRow title={`Tell ${first} the visit time`} sub="Email and the resident portal" checked={tell} onChange={setTell} />
-          </div>
           </SheetSection>}
           <SheetSection title={`Note for ${who === 'Estates helpdesk' ? 'Estates' : short.split(' ')[0]}`}>
             <Textarea aria-label="Note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
           </SheetSection>
         </>
       )}
-    </SideSheet>
+    </PanelModal>
   );
 }
 

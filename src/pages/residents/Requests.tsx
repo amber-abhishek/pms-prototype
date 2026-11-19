@@ -1,12 +1,13 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowsLeftRight, CalendarBlank, Car, Check, CheckCircle, Clock, Envelope, Plus, SignOut, UserPlus, WarningCircle, Wrench, XCircle, type Icon } from '../../components/icons';
+import { ArrowsLeftRight, CalendarBlank, Car, Check, CheckCircle, Clock, Envelope, Plus, SignOut, UserPlus, WarningCircle, Wrench, XCircle, type Icon, ClipboardText } from '../../components/icons';
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { useRms, type ReqKind, type ReqStatus, type ResRequest } from '../../data/residents';
-import { Button, Check as CheckBox, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, Toolbar, cx, gbp, listNav, type SheetNav } from '../../components/ui';
-import { Modal, Person, RHeader, RoomMove, undoToast, useOnce } from './kit';
+import { Avatar, Button, Check as CheckBox, DL, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, SheetHero, SheetRow, SheetSection, Table, Tabs, Textarea, Toolbar, cx, gbp, listNav, type SheetNav , type Fact } from '../../components/ui';
+import { Modal, Person, RHeader, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
+import { LineTabs, PanelModal } from '../inventory/common';
 
 export const kindIcon: Record<ReqKind, Icon> = {
   'Room swap': ArrowsLeftRight, 'Leave early': SignOut, 'Overnight guest': UserPlus, 'Parking permit': Car, 'Room move': ArrowsLeftRight, Furniture: Wrench, 'Early arrival': CalendarBlank,
@@ -74,11 +75,18 @@ function NewRequest({ open, onClose, onCreate }: { open: boolean; onClose: () =>
     setWho(''); setDetail('');
   });
   return (
-    <Modal open={open} onClose={onClose} title="New request" sub="Log a request for a resident who asked at the desk or by phone." footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Check} onClick={submit}>Log request</Button></>}>
-      <Field label="Type"><Select value={kind} onChange={(e) => setKind(e.target.value as ReqKind)}>{Object.keys(kindIcon).map((k) => <option key={k}>{k}</option>)}</Select></Field>
-      <Field label="Resident"><Select value={who} onChange={(e) => setWho(e.target.value)}><option value="">Choose a resident</option>{residents.map((r) => <option key={r.id}>{r.name}</option>)}</Select></Field>
-      <Field label="Detail"><Input value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="e.g. 25–27 Sep" /></Field>
-    </Modal>
+    <PanelModal open={open} onClose={onClose} eyebrow="New request" title="New request" width={560}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={submit}>Create request</Button></>}>
+      <SheetSection title="Request">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Type"><Select value={kind} onChange={(e) => setKind(e.target.value as ReqKind)}>{Object.keys(kindIcon).map((k) => <option key={k}>{k}</option>)}</Select></Field>
+            <Field label="Resident"><Select value={who} onChange={(e) => setWho(e.target.value)}><option value="">Choose a resident</option>{residents.map((r) => <option key={r.id}>{r.name}</option>)}</Select></Field>
+          </div>
+          <Field label="Detail"><Input value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="e.g. 25–27 Sep" /></Field>
+        </div>
+      </SheetSection>
+    </PanelModal>
   );
 }
 
@@ -97,6 +105,8 @@ function RequestSheet({ id, onClose , nav }: { nav?: SheetNav;  id: string; onCl
   const [declining, setDeclining] = useState(false);
   const [messaging, setMessaging] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [talking, setTalking] = useState(false);
+  const [tab, setTab] = useState<'overview' | 'history'>('overview');
   const once = useOnce();
 
   // E1 · 03: once the arrears are paid the PMS re-runs the checks and says it's ready.
@@ -143,86 +153,64 @@ function RequestSheet({ id, onClose , nav }: { nav?: SheetNav;  id: string; onCl
     onClose();
   });
 
-  const title = r.arrears ? `${r.kind} · ${r.who}` : r.kind;
-  const statusPill = decided ? <Pill tone={r.status === 'Approved' ? 'green' : 'red'} icon={r.status === 'Approved' ? Check : XCircle}>{r.status} by {r.decidedBy}</Pill>
+  const title = r.who.includes(' ↔ ') ? r.kind : `${r.kind} · ${r.who}`;
+  /* Figma "Side panel · Request" 4073:17191: one state pill top-right, no icons. */
+  const statusPill = decided ? <Pill tone={r.status === 'Approved' ? 'green' : 'red'}>{r.status}</Pill>
     : held ? <Pill tone="amber">Needs a decision</Pill>
-      : r.arrears?.paid ? <Pill tone="green" icon={Check}>Ready to approve</Pill>
-        : r.due ? <Pill tone="orange" icon={CalendarBlank}>{r.due}</Pill> : <Pill tone="grey" icon={Clock}>Waiting {r.waiting}</Pill>;
+      : r.arrears?.paid ? <Pill tone="green">Ready to approve</Pill>
+        : r.due ? <Pill tone="orange">{r.due}</Pill> : <Pill tone="orange">Waiting</Pill>;
+  const rentDiff = isSwap ? r.sides![0].rentTo - r.sides![0].rentFrom : 0;
+  const checksFact: Fact = r.checks ? ['Checks', `${r.checks.filter((c) => c.ok).length} / ${r.checks.length}`, r.checks.every((c) => c.ok) ? 'green' : 'amber'] : ['Check', r.check.label, r.check.tone];
+  const whoOf = (w: string) => w.match(/by ([A-Z][a-z]+ [A-Z][a-z]+)/)?.[1] ?? r.who.split(' ↔ ').find((n) => w.startsWith(n) || w.startsWith(n.split(' ')[0])) ?? 'System';
   return (
     <>
-      <Sheet open onClose={onClose} nav={nav} width={600} title="Request"
-        footer={decided ? <Button onClick={onClose}>Close</Button> : <>
-          <Button variant="danger-ghost" className="mr-auto" onClick={() => setDeclining(true)}>Decline</Button>
-          <Button onClick={onClose}>Close</Button>
-          <Button variant="primary" icon={Check} disabled={held} onClick={() => (isSwap ? setApproving(true) : approve())}>Approve</Button>
+      <Sheet open onClose={onClose} nav={nav} width={520} title="Request"
+        onDelete={decided ? undefined : { label: 'Decline request', icon: XCircle, onClick: () => setDeclining(true) }}
+        footer={decided ? <Button icon={null} className="ml-auto" onClick={() => setTalking(true)}>Message</Button> : <>
+          <Button icon={null} className="ml-auto" onClick={() => setTalking(true)}>Message</Button>
+          <Button variant="primary" icon={null} disabled={held} onClick={() => (isSwap ? setApproving(true) : approve())}>{isSwap ? 'Approve swap' : 'Approve'}</Button>
         </>}>
-        <SheetHero avatar={false} name={title} meta={<><span className="font-mono">{r.ref}</span> · {r.hall}</>}>{statusPill}</SheetHero>
-        <div className="space-y-2 empty:hidden mb-5">
-          {held && r.arrears && !decided && (
-            <Note tone="red" icon={XCircle} title={`Can’t approve while ${r.arrears.first} is in arrears`}>
-              Swaps change the tenancy, so the rules hold them until rent is up to date. You can still decline or wait.
-              <div className="mt-3"><Button size="sm" icon={Envelope} onClick={() => setMessaging(true)} disabled={paying}>{paying ? `Waiting for ${r.arrears.first} to pay…` : `Message ${r.arrears.first} about arrears`}</Button></div>
-            </Note>
-          )}
-          {failing && !held && !decided && (
-            <Note tone="amber" icon={WarningCircle} title="Some checks haven’t passed">You can still approve it if you have checked these yourself, or wait for the resident.</Note>
-          )}
+        <SheetHero icon={r.kind === 'Room swap' || r.kind === 'Room move' ? ArrowsLeftRight : ClipboardText} name={title} meta={r.detail}
+          facts={[['Asked', /now/i.test(r.waiting) ? r.waiting : `${r.waiting} ago`], isSwap ? ['Rent', rentDiff ? `${rentDiff > 0 ? '+' : '−'}${gbp(Math.abs(rentDiff))} / wk` : 'Same', rentDiff > 0 ? 'orange' : rentDiff < 0 ? 'green' : undefined] : ['Kind', r.kind], checksFact]}>{statusPill}</SheetHero>
+        <div className="-mx-5 mb-5">
+          <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'history', label: 'History' }]} />
         </div>
-        <Details r={r} />
-
-          {isSwap && (
+        {tab === 'overview' && <>
+          <div className="space-y-2 empty:hidden mb-3">
+            {held && r.arrears && !decided && (
+              <Note tone="red" icon={XCircle} title={`Can’t approve while ${r.arrears.first} is in arrears`}>
+                <div className="mt-2"><Button size="sm" icon={Envelope} onClick={() => setMessaging(true)} disabled={paying}>{paying ? `Waiting for ${r.arrears.first} to pay…` : `Message ${r.arrears.first} about arrears`}</Button></div>
+              </Note>
+            )}
+            {failing && !held && !decided && (
+              <Note tone="amber" icon={WarningCircle} title="Some checks haven’t passed">Approve only if you have checked them yourself.</Note>
+            )}
+          </div>
+          {isSwap ? (
             <SheetSection title="Swap">
-            <div className="space-y-5">
-              {r.sides!.map((s) => (
-                <div key={s.name}>
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <Person name={s.name} />
-                    <div className="flex-1"><div className="text-sm leading-5 font-semibold">{s.name}</div><div className="text-xs text-gray-500">{s.agreed}</div></div>
-                    <Pill tone="green" icon={Check}>Agreed</Pill>
-                  </div>
-                  <RoomMove now={s.now} after={s.after} />
-                  <div className="grid grid-cols-[92px_1fr] gap-y-3 text-sm leading-5 mt-4 px-1">
-                    <span className="text-gray-500">Rent</span>
-                    <span>{gbp(s.rentFrom)} → <b className="font-semibold">{gbp(s.rentTo)} / wk</b> {s.rentTo !== s.rentFrom && <span>({s.rentTo > s.rentFrom ? '+' : '−'}{gbp(Math.abs(s.rentTo - s.rentFrom))})</span>}</span>
-                    <span className="text-gray-500">Reason</span><span>{s.reason}</span>
-                  </div>
-                </div>
+              {r.sides!.map((sd) => (
+                <SheetRow key={sd.name} lead={<Person name={sd.name} />} title={`${sd.name} · ${sd.now[0]} → ${sd.after[0]}`}
+                  sub={`${gbp(sd.rentFrom)} → ${gbp(sd.rentTo)} / wk · ${sd.reason}`} end={<Pill tone="green">Agreed</Pill>} />
               ))}
-            </div>
             </SheetSection>
-          )}
-
+          ) : <Details r={r} />}
           {r.checks && (
-            <SheetSection title="Checks">
-              <div className="rounded-xl border border-line divide-y divide-line">
-                {r.checks.map((c) => (
-                  <div key={c.label} className="px-3.5 py-2.5 flex items-start gap-2.5">
-                    {c.ok ? <CheckCircle size={16} className="text-[#0B8A4C] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#B91C1C] shrink-0 mt-0.5" />}
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-[#0A0A0A]">{c.label}</div>
-                      <div className={cx('text-xs mt-0.5', c.ok ? 'text-[#737373]' : 'text-[#B91C1C]')}>{c.sub}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <SheetSection title={`Checks · ${r.checks.filter((c) => c.ok).length} / ${r.checks.length}`}>
+              {r.checks.map((c) => (
+                <SheetRow key={c.label} title={c.label} sub={<span className={c.ok ? undefined : 'text-[#B91C1C]'}>{c.sub}</span>}
+                  lead={c.ok ? <CheckCircle size={20} weight="fill" className="text-[#16A34A] shrink-0" /> : <span aria-hidden className="size-5 shrink-0 rounded-full border-[1.5px] border-dashed border-[#A3A3A3]" />} />
+              ))}
             </SheetSection>
           )}
-
-          {r.history && (
-            <SheetSection title="History">
-              <ol className="relative pl-5">
-                <span aria-hidden className="absolute left-[5px] top-2 bottom-2 w-px bg-line" />
-                {r.history.map(([w, t], i) => (
-                  <li key={i} className="relative pb-3 last:pb-0">
-                    <span aria-hidden className={cx('absolute -left-5 top-1.5 size-[11px] rounded-full border-2 border-white', i === 0 ? 'bg-primary' : 'bg-gray-300')} />
-                    <div className="text-sm text-[#0A0A0A]">{w}</div>
-                    <div className="text-xs text-[#737373] mt-0.5">{t}</div>
-                  </li>
-                ))}
-              </ol>
-            </SheetSection>
-          )}
+        </>}
+        {tab === 'history' && (r.history?.length
+          ? <SheetSection title="History">{r.history.map(([w, t], i) => <SheetRow key={i} lead={<Avatar name={whoOf(w)} size={24} />} title={w} sub={t} />)}</SheetSection>
+          : <Empty art="requests" title="No history yet" sub="Checks, messages and decisions show here." />)}
       </Sheet>
+      <Modal open={talking} onClose={() => setTalking(false)} title={`Message ${r.who.split(' ↔ ').join(' and ')}`} sub="By email and in the resident portal."
+        footer={<><Button onClick={() => setTalking(false)}>Cancel</Button><Button variant="primary" icon={Envelope} onClick={() => { setTalking(false); update('requests', r.id, { history: [[`Messaged about ${r.ref}`, 'Just now'], ...(r.history ?? [])] }); toast.success('Message sent'); }}>Send</Button></>}>
+        <Textarea rows={4} placeholder="Write a message…" />
+      </Modal>
       {isSwap && <ApproveSwap open={approving} r={r} onClose={() => setApproving(false)} onApprove={approve} />}
       <DeclineDialog open={declining} r={r} onClose={() => setDeclining(false)} onDecline={decline} />
       {r.arrears && <MessageDialog open={messaging} to={r.who.split(' ↔ ').find((n) => n.startsWith(r.arrears!.first)) ?? r.arrears.first} owes={r.arrears.owes} onClose={() => setMessaging(false)}
@@ -241,9 +229,7 @@ function ApproveSwap({ open, r, onClose, onApprove }: { open: boolean; r: ResReq
     <Modal open={open} onClose={onClose} title="Approve the room swap?" sub={`${a.name} and ${b.name} swap rooms at ${r.hall}.`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Check} onClick={() => onApprove(on)}>Approve swap</Button></>}>
       <Field label="Swap on"><Select value={on} onChange={(e) => setOn(e.target.value)}>{['Monday 21 September', 'Saturday 19 September', 'Monday 28 September'].map((d) => <option key={d}>{d}</option>)}</Select></Field>
-      <div className="rounded-lg border border-line px-3 py-1">
-        {[a, b].map((s) => <div key={s.name} className="grid grid-cols-[120px_1fr] text-sm py-2"><span className="text-gray-500">{s.name}</span><span>{s.now[0]} → {s.after[0]} · {diff(s)}</span></div>)}
-      </div>
+      <DL rows={[a, b].map((s) => [s.name, `${s.now[0]} → ${s.after[0]} · ${diff(s)}`] as [string, ReactNode])} />
       <div className="space-y-2.5 pt-1">
         <CheckBox checked={lease} onChange={setLease} label="Update both tenancies and send lease addendums to sign" />
         <div><CheckBox checked={keys} onChange={setKeys} label="Book the key swap with reception" /></div>

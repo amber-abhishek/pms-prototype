@@ -1,11 +1,12 @@
-import { useMemo, useRef, useState } from 'react';
-import { CaretUpDown, ArrowsLeftRight, Bell, Check, CircleDashed, DownloadSimple, FileText, PaperPlaneTilt, Plus, Prohibit, Warning, WarningCircle } from '../../components/icons';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { CaretUpDown, ArrowsLeftRight, Bell, Check, CheckCircle, CircleDashed, DownloadSimple, FileText, PaperPlaneTilt, Plus, Prohibit, Warning, WarningCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, SelectFilter, Pill, Dialog, DL, Field, FilterButton, inFilter, type Filters, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetSection, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, SelectFilter, Pill, Field, FilterButton, inFilter, type Filters, Note, PageHeader, SearchInput, Select, Sheet, SheetHero, SheetRow, SheetSection, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, bookingCounts, fmtN, firstName, hallFull, heldUnits, roomTerms, unitCode, useAlloc, type App, type Booking, type Conflict, type Data, type Offer } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Grid, Ini, Modal, Person, Radio, St, type C } from './common';
 import { useAllocActions } from './actions';
+import { LineTabs, PanelModal } from '../inventory/common';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '../../components/shadcn/command';
 
@@ -162,22 +163,36 @@ export function Bookings() {
   );
 }
 
-const STEPS = ['Draft', 'Sent', 'Signed', 'Active'] as const;
-/** F2·09: the booking, its lease stepper and history; cancel with the E4 cooling-off path. */
+/* Prototype dummy detail per booking, stable by id: instalment dates, the deposit protection ref. */
+const bkHash = (k: string) => [...k].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+/** Who did a history step: "… by Arjun Mehta", the resident's own steps, or the system. */
+const actorOf = (t: string, name: string) => t.match(/\bby ([A-Z][a-z]+ [A-Z][a-z]+)/)?.[1] ?? (/accepted|signed|opened|paid/i.test(t) ? name : 'System');
+const green = (s: ReactNode) => <span className="text-[#0B8A4C]">{s}</span>;
+
+/** F2·09: the booking (Figma "Side panel · Booking" 4073:17178: Overview, Lease, Money, History); cancel with the E4 cooling-off path. */
 function BookingSheet({ b, onClose, onSend, onRemind, onSigned, withUndo , nav }: { nav?: SheetNav;  b: Booking; onClose: () => void; onSend: () => void; onRemind: () => void; onSigned: () => void; withUndo: () => { label: string; onClick: () => void } }) {
   const [cancelling, setCancelling] = useState(false);
   const [after, setAfter] = useState<null | { cooling: boolean; who?: string }>(null);
+  const [tab, setTab] = useState<'overview' | 'lease' | 'money' | 'history'>('overview');
   const { weeks, rate } = roomTerms(b.hall, b.room);
-  const step = b.cancelled ? -1 : STEPS.indexOf(b.lease);
+  const h = bkHash(b.id);
+  const paid = b.deposit.startsWith('Paid');
+  const signed = b.lease === 'Signed';
+  const sent = b.lease !== 'Draft';
+  const total = rate * weeks;
+  const inst = Math.round(total / 3);
+  const download = () => toast.success('Lease downloaded', { description: `${b.ref}.pdf` });
   return (
+    /* Cancelling is rare and destructive, so it sits in the control bar; the footer keeps the lease's next step only. */
     <Sheet open onClose={onClose} nav={nav} width={520} title="Booking"
-      footer={b.cancelled ? <Button onClick={onClose}>Close</Button> : <>
-        <Button variant="danger-ghost" className="mr-auto" onClick={() => setCancelling(true)}>Cancel booking</Button>
-        {b.lease === 'Draft' && <Button variant="primary" icon={PaperPlaneTilt} disabled={b.missing === 'Deposit not paid'} onClick={onSend}>Send lease</Button>}
-        {b.lease === 'Sent' && <><Button icon={Bell} onClick={onRemind}>Send reminder</Button><Button variant="primary" icon={Check} onClick={onSigned}>Mark signed</Button></>}
-        {b.lease === 'Signed' && <Button onClick={() => toast.success('Lease downloaded', { description: `${b.ref}.pdf` })}>Download lease</Button>}
+      onDelete={b.cancelled ? undefined : { label: 'Cancel booking', text: 'Cancel booking', icon: Prohibit, onClick: () => setCancelling(true) }}
+      footer={b.cancelled ? undefined : <>
+        {b.lease === 'Draft' && <Button variant="primary" icon={null} disabled={b.missing === 'Deposit not paid'} onClick={onSend}>Send lease</Button>}
+        {b.lease === 'Sent' && <><Button icon={null} onClick={onRemind}>Send reminder</Button><Button variant="primary" icon={null} onClick={onSigned}>Mark signed</Button></>}
+        {signed && <><Button icon={null} onClick={() => toast.success(`Message to ${firstName(b.name)} opened`)}>Message</Button><Button variant="primary" icon={null} onClick={() => toast(`${b.name}’s resident record opens once the tenancy starts`)}>Open resident</Button></>}
       </>}>
-      <SheetHero name={b.name} meta={<span className="font-mono text-xs">{b.ref}</span>}>
+      <SheetHero name={b.name} meta={<>{b.hall} · {b.unit} · <span className="font-mono">{b.ref}</span></>}
+        facts={[['Rent', `£${rate} / wk`], ['Deposit', paid ? 'Paid' : 'Due', paid ? 'green' : 'amber'], ['Term', `${weeks} weeks`]]}>
         <St s={leaseLabel(b)} />
       </SheetHero>
       {after && (
@@ -187,38 +202,41 @@ function BookingSheet({ b, onClose, onSend, onRemind, onSigned, withUndo , nav }
       )}
       {b.cancelled && <div className="mb-5"><Note tone="red" icon={Prohibit} title={`Cancelled ${b.cancelled.on}`}>{b.cancelled.reason} · {b.cancelled.money}</Note></div>}
       {b.missing && !b.cancelled && <div className="mb-5"><Note tone="amber" icon={WarningCircle} title={b.missing}>{b.missing === 'Deposit not paid' ? 'The lease goes out once the £250 deposit is paid.' : 'Sort this before you send the lease.'}</Note></div>}
-      {!b.cancelled && (
-        <SheetSection title="Lease">
-          <ol className="flex items-center gap-2" aria-label="Lease progress">
-            {STEPS.map((s, i) => (
-              <li key={s} className="flex items-center gap-2 flex-1 last:flex-none">
-                <span className={cx('flex items-center gap-1.5 text-sm', i <= step ? 'text-ink font-medium' : 'text-gray-400')}>
-                  <span className={cx('size-5 rounded-full flex items-center justify-center text-[11px]', i < step || (i === step && s === 'Signed') ? 'bg-[#0B8A4C] text-white' : i === step ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500')}>{i < step || (i === step && s === 'Signed') ? <Check size={11} weight="bold" /> : i + 1}</span>
-                  {s === 'Active' ? 'Active on 19 Sep' : s}
-                </span>
-                {i < STEPS.length - 1 && <span className={cx('flex-1 h-px', i < step ? 'bg-[#0B8A4C]' : 'bg-line')} />}
-              </li>
-            ))}
-          </ol>
-          {(b.signedOn || (b.leaseSent && b.lease === 'Sent')) && (
-            <div className="mt-5">
-              <DL rows={[
-                ...(b.signedOn ? [['Signed', b.signedOn] as [string, string]] : []),
-                ...(b.leaseSent && b.lease === 'Sent' ? [['Lease sent', `${b.leaseSent} · ${b.reminders ?? 0} reminders`] as [string, string]] : []),
-              ]} />
-            </div>
-          )}
+      <div className="-mx-5 mb-5">
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'lease', label: 'Lease' }, { id: 'money', label: 'Money' }, { id: 'history', label: 'History' }]} />
+      </div>
+      {tab === 'overview' && <>
+        <SheetSection title="Lease" rows={[
+          ['Lease sent', sent ? `${b.leaseSent ?? b.created} · by email${b.lease === 'Sent' ? ` · ${b.reminders ?? 0} reminders` : ''}` : 'Not yet'],
+          ['Signed', signed ? green(`${b.signedOn ?? b.created} · DocuSign`) : 'Not yet'],
+        ]} />
+        <SheetSection title="Room" rows={[['Unit', `${b.unit} · ${hallFull[b.hall]}`], ['Room type', b.room], ['Term', b.term]]} />
+        <SheetSection title="Money" rows={[['Rent', `£${rate} / wk · 3 instalments`], ['Deposit', paid ? green(`£250 · paid ${b.created}`) : 'Due £250']]} />
+      </>}
+      {tab === 'lease' && <>
+        <SheetSection title="Lease" rows={[['Template', `${b.hall} ${weeks} weeks · 2027/28`], ['Term', b.term], ['Break clause', 'None · fixed term']]} />
+        <SheetSection title={`Signatures · ${signed ? 2 : 0} / 2`}>
+          {[[b.name, signed ? `Signed ${b.signedOn ?? b.created} · DocuSign` : sent ? `Sent ${b.leaseSent ?? b.created} · waiting` : 'Lease not sent yet'], ['Durham University', signed ? `Signed ${b.signedOn ?? b.created} · automatic` : 'Signs automatically after the resident']].map(([who, sub]) => (
+            <SheetRow key={who} title={who} sub={sub} lead={signed ? <CheckCircle size={20} weight="fill" className="shrink-0 text-[#0B8A4C]" /> : <CircleDashed size={20} className="shrink-0 text-[#A3A3A3]" />} />
+          ))}
+        </SheetSection>
+        <SheetSection title="Files">
+          {sent ? <SheetRow title={`lease-${b.unit}.pdf`} sub={`PDF · ${180 + (h % 60)} KB`} end={<Button size="sm" icon={null} onClick={download}>Download</Button>} />
+            : <p className="text-sm text-[#737373]">The lease is made when you send it.</p>}
+        </SheetSection>
+      </>}
+      {tab === 'money' && <>
+        <SheetSection title="Rent" rows={[['Rent', `£${rate} / wk`], ['Total', `£${fmtN(total)} · ${weeks} weeks`], ['Plan', '3 instalments']]} />
+        <SheetSection title="Instalments · 3">
+          {['20 Sep', '6 Jan', '21 Apr'].map((d, i) => <SheetRow key={d} title={`Instalment ${i + 1}`} sub={`£${fmtN(inst)} · due ${d}`} end={<Pill tone="grey">Upcoming</Pill>} />)}
+        </SheetSection>
+        <SheetSection title="Deposit" rows={[['Amount', '£250'], ['Paid', paid ? green(`${b.created} · card`) : 'Not yet'], ['Protected', paid ? `DPS · ref ${4000 + (h % 999)}-${100 + (h % 899)}` : '—']]} />
+      </>}
+      {tab === 'history' && (
+        <SheetSection title="History">
+          {b.history.map((x, i) => { const who = actorOf(x.t, b.name); return <SheetRow key={i} title={x.t} sub={`${x.when}${x.sub ? ` · ${x.sub}` : ''}`} lead={<Ini name={who} size={24} />} />; })}
         </SheetSection>
       )}
-      <SheetSection title="Room" rows={[['Unit', `${hallFull[b.hall]} · ${b.unit}`], ['Room type', b.room], ['Term', `${b.term} · ${weeks} weeks`]]} />
-      <SheetSection title="Money" rows={[['Rent', `£${rate}/wk · £${fmtN(rate * weeks)}`], ['Deposit', b.deposit]]} />
-      <SheetSection title="History">
-        <ol className="space-y-3 border-l border-line ml-1.5 pl-4">
-          {b.history.map((h, i) => (
-            <li key={i} className="relative"><span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-gray-300" /><div className="text-sm">{h.t}</div><div className="text-xs text-gray-500">{h.when}{h.sub ? ` · ${h.sub}` : ''}</div></li>
-          ))}
-        </ol>
-      </SheetSection>
       {cancelling && <CancelBooking b={b} onClose={() => setCancelling(false)} onDone={(r) => { setCancelling(false); setAfter(r); }} withUndo={withUndo} />}
     </Sheet>
   );
@@ -249,9 +267,9 @@ function CancelBooking({ b, onClose, onDone, withUndo }: { b: Booking; onClose: 
   if (step === 2) {
     return (
       <Modal open onClose={() => finish(false)} tone="green" icon={Check} title="Booking cancelled" width={500}
-        sub={cooling ? `${firstName(b.name)} cancelled inside the 14-day cooling-off period, so the £250 deposit is refunded in full. Nothing else is owed.` : `${firstName(b.name)} hadn’t paid anything, so nothing is refunded.`}
-        footer={<><Button onClick={() => finish(false)}>Put it back in search</Button><Button variant="primary" icon={PaperPlaneTilt} disabled={!waiting.length} onClick={() => finish(true)}>Offer {b.unit} to the waitlist</Button></>}>
-        {waiting.length ? <Note tone="blue" title={`${waiting.length} waiting for ${b.hall} · ${b.room}`}>#1 is {waiting[0].name} · {waiting[0].note}</Note>
+        sub={cooling ? 'Inside the 14-day cooling-off period · the £250 deposit is refunded in full.' : `${firstName(b.name)} hadn’t paid anything, so nothing is refunded.`}
+        footer={<><Button onClick={() => finish(false)}>Put it back in search</Button><Button variant="primary" icon={null} disabled={!waiting.length} onClick={() => finish(true)}>Offer {b.unit} to the waitlist</Button></>}>
+        {waiting.length ? <Note tone="grey" title={`${waiting.length} waiting for ${b.hall} · ${b.room}`}>#1 is {waiting[0].name} · {waiting[0].note}</Note>
           : <Note tone="amber" title="No one is waiting for this room type">The unit goes back into search for the next allocation.</Note>}
       </Modal>
     );
@@ -259,7 +277,7 @@ function CancelBooking({ b, onClose, onDone, withUndo }: { b: Booking; onClose: 
   return (
     <Modal open onClose={onClose} icon={Prohibit} title={`Cancel ${b.name}’s booking`} width={520}
       sub={`${b.hall} · ${b.unit} · ${b.term}. The lease is voided and ${firstName(b.name)} is emailed.`}
-      footer={<><Button onClick={onClose}>Keep booking</Button><Button variant="danger" onClick={cancel}>Cancel booking</Button></>}>
+      footer={<><Button onClick={onClose}>Keep booking</Button><Button variant="danger" icon={null} onClick={cancel}>Cancel booking</Button></>}>
       {cooling && <div className="mb-3"><Note tone="green" icon={Check} title="Inside the cooling-off period">Signed or sent less than 14 days ago · the £250 deposit is refunded in full.</Note></div>}
       <div className="space-y-2">{['Withdrew · private halls', 'Didn’t meet study offer', 'Duplicate booking', 'Moved to another unit', 'Other'].map((r) => <Radio key={r} checked={reason === r} onChange={() => setReason(r)} title={r} />)}</div>
     </Modal>
@@ -277,7 +295,7 @@ function Resolve({ k, onClose, withUndo }: { k: Conflict; onClose: () => void; w
   const side = k[who];
   return (
     <Modal open onClose={onClose} tone="amber" icon={ArrowsLeftRight} title={`Resolve ${k.unit}`} width={540}
-      sub={`${k.overlap}. Move one resident to a free unit. Their deposit, lease and history move with them.`}
+      sub={`${k.overlap}. Their deposit, lease and history move with them.`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => {
         if (busy.current) return; busy.current = true;
         const undo = withUndo();
@@ -356,7 +374,9 @@ function NewBooking({ onClose, onMade }: { onClose: () => void; onMade: (id: str
   const terms = roomTerms(hall, room);
   const ok = !!who && !!code;
   return (
-    <Dialog open onClose={onClose} title="New booking" width={520} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!ok} onClick={() => {
+    /* Creating opens a centred modal (2026-11-19): sections as cards, Cancel + Create on the right. */
+    <PanelModal open onClose={onClose} eyebrow="New booking" title="New booking" width={560}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!ok} onClick={() => {
       if (busy.current || !who) return; busy.current = true;
       const id = `b${Date.now()}`;
       const b: Booking = { id, ref: `BKG-2027-00${5000 + n}`, name: who.name, hall, room, unit: code, term: '19 Sep 2027 – 9 Sep 2028', lease: 'Draft', deposit, created: TODAY, missing: 'Made by hand · lease not sent', history: [{ t: 'Booking made by hand by Arjun Mehta', when: `${TODAY} 10:44` }] };
@@ -364,21 +384,21 @@ function NewBooking({ onClose, onMade }: { onClose: () => void; onMade: (id: str
       toast.success(`Draft booking made for ${b.name}`, { description: `${hall} · ${b.unit} · send the lease when you’re ready` });
       onMade(id);
     }}>Create draft</Button></>}>
-      <div className="flex flex-col gap-4">
-        <Field label="Resident">
-          <ResidentPicker value={who} options={people} onPick={(a) => { setWho(a); if ((HALLS as readonly string[]).includes(a.hall)) setHall(a.hall); if ((ROOMS as readonly string[]).includes(a.room)) setRoom(a.room); setUnit(''); }} />
-        </Field>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-4">
-          <Field label="Hall"><Select value={hall} onChange={(e) => { setHall(e.target.value); setUnit(''); }}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
-          <Field label="Room type"><Select value={room} onChange={(e) => setRoom(e.target.value)}>{ROOMS.map((r) => <option key={r}>{r}</option>)}</Select></Field>
-          <Field label="Unit"><Select value={code} onChange={(e) => setUnit(e.target.value)}>{units.map((u) => <option key={u}>{u}</option>)}</Select></Field>
-          <Field label="Deposit"><Select value={deposit} onChange={(e) => setDeposit(e.target.value)}>{['Due £250', 'Paid £250', 'Waived'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
+      <SheetSection title="Booking">
+        <div className="flex flex-col gap-4">
+          <Field label="Resident">
+            <ResidentPicker value={who} options={people} onPick={(a) => { setWho(a); if ((HALLS as readonly string[]).includes(a.hall)) setHall(a.hall); if ((ROOMS as readonly string[]).includes(a.room)) setRoom(a.room); setUnit(''); }} />
+          </Field>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+            <Field label="Hall"><Select value={hall} onChange={(e) => { setHall(e.target.value); setUnit(''); }}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
+            <Field label="Room type"><Select value={room} onChange={(e) => setRoom(e.target.value)}>{ROOMS.map((r) => <option key={r}>{r}</option>)}</Select></Field>
+            <Field label="Unit"><Select value={code} onChange={(e) => setUnit(e.target.value)}>{units.map((u) => <option key={u}>{u}</option>)}</Select></Field>
+            <Field label="Deposit"><Select value={deposit} onChange={(e) => setDeposit(e.target.value)}>{['Due £250', 'Paid £250', 'Waived'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
+          </div>
         </div>
-        {/* What the draft will carry, read-only: it follows the cycle and the room type. */}
-        <div className="rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] px-3 py-3">
-          <DL rows={[['Cycle', '2027/28'], ['Term', '19 Sep 2027 – 9 Sep 2028'], ['Rent', `£${terms.rate} a week`], ['Lease', 'Draft · not sent']]} />
-        </div>
-      </div>
-    </Dialog>
+      </SheetSection>
+      {/* What the draft will carry, read-only: it follows the cycle and the room type. */}
+      <SheetSection title="Draft" rows={[['Cycle', '2027/28'], ['Term', '19 Sep 2027 – 9 Sep 2028'], ['Rent', `£${terms.rate} a week`], ['Lease', 'Draft · not sent']]} />
+    </PanelModal>
   );
 }

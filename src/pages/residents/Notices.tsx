@@ -1,12 +1,13 @@
+import { FooterZone } from '../../components/headerCtx';
 import { Fragment, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChatText, Clock, DeviceMobile, Envelope, Megaphone, Moon, PaperPlaneTilt, PencilSimple, Plus, Siren, X } from '../../components/icons';
 import { toast } from 'sonner';
 import { useDb } from '../../data/store';
 import { GROUPS, HALLS, MOVE_IN_BODY, audienceCount, useRms, type Channels, type Notice } from '../../data/residents';
-import { Button, Check as CheckBox, IconTile, DL, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, Switch, Table, Tabs, Textarea, Toolbar, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Check as CheckBox, IconTile, DL, Empty, Field, FilterButton, inFilter, type Filters, Input, Note, Pill, Select, Sheet, Switch, Table, Tabs, Textarea, Toolbar, SheetHero, SheetRow, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { Dialog as UIDialog, DialogContent, DialogTitle } from '../../components/shadcn/dialog';
-import { ACard } from '../inventory/common';
+import { ACard, EditLink, LineTabs } from '../inventory/common';
 import { Modal, RHeader, ToggleRow, undoToast, useOnce } from './kit';
 import { useTab } from '../hooks';
 
@@ -195,13 +196,13 @@ function Compose({ draft }: { draft?: Notice }) {
           </div></ACard>
         </aside>
       </div>
-          <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center gap-2">
+          <FooterZone.Provider value><div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center gap-2">
             <Button variant="ghost" onClick={close}>Cancel</Button>
             <div className="ml-auto flex items-center gap-2">
               <Button icon={null} onClick={saveDraft}>Save draft</Button>
               <Button variant="primary" icon={null} onClick={() => valid() && setScheduling(true)}>Schedule</Button>
             </div>
-          </div>
+          </div></FooterZone.Provider>
         </DialogContent>
       </UIDialog>
       <ScheduleDialog open={scheduling} onClose={() => setScheduling(false)} count={count} hall={hall} channels={channels} onSchedule={schedule} />
@@ -233,10 +234,10 @@ function ScheduleDialog({ open, onClose, count, hall, channels, onSchedule }: { 
       <CheckBox checked={pin} onChange={setPin} label="Pin it on the resident portal until Sat 19 Sep" />
       {quiet ? (
         <>
-          <Note tone="amber" icon={Moon} title={`${time} is inside quiet hours (21:00–08:00)`}>{urgent ? 'It goes at once, marked urgent. Your name and the reason are recorded.' : 'It will go at 08:00 the next morning. Mark it urgent to send now.'}</Note>
+          <Note tone="amber" icon={Moon} title={`${time} is inside quiet hours (21:00–08:00)`}>{urgent ? 'It goes at once, marked urgent.' : 'It goes at 08:00 the next morning.'}</Note>
           <ToggleRow title="Urgent · send in quiet hours" sub="Only for safety and service outages" checked={urgent} onChange={setUrgent} />
         </>
-      ) : <Note tone="blue" icon={Moon} title="Quiet hours are 21:00–08:00">Only urgent notices go out then.</Note>}
+      ) : <Note tone="grey" icon={Moon} title="Quiet hours are 21:00–08:00" />}
     </Modal>
   );
 }
@@ -266,60 +267,65 @@ function NoticeSheet({ n, onClose , nav: sheetNav }: { nav?: SheetNav;  n: Notic
     undoToast(`Sent to ${n.count.toLocaleString('en-GB')} residents`, undo);
   });
   const scheduled = n.status === 'Scheduled';
-  const message = (
-    <SheetSection title="Message">
-      <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{preview(n.body).replace(/\u0001/g, '')}</div>
-    </SheetSection>
-  );
-  const clicks = n.id === 'n1' ? 63 : Math.round(opened * 0.3);
+  const [tab, setTab] = useState<'overview' | 'unopened' | 'activity'>('overview');
+  const h = [...n.id].reduce((x, c) => (x * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const bounced = scheduled ? 0 : h % 4;
+  const chans = [n.channels.email && 'Email', n.channels.portal && 'Portal', n.channels.sms && 'SMS'].filter(Boolean).join(' · ') || '—';
+  const fmt = (x: number) => x.toLocaleString('en-GB');
+  const time = (n.when ?? '').match(/\d{1,2}:\d{2}/)?.[0] ?? '09:00';
+  const later = (mins: number) => { const [hh, mm] = time.split(':').map(Number); const t = hh * 60 + mm + mins; return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+  /* Figma "Side panel · Notice" 4073:17190: status pills top-right without icons; Overview, Not opened, Activity. */
   return (
     <>
-      <Sheet open onClose={onClose} nav={sheetNav} width={560} title="Notice"
+      <Sheet open onClose={onClose} nav={sheetNav} width={520} title="Notice"
         footer={scheduled
-          ? <><Button variant="ghost" className="mr-auto" onClick={() => { update('notices', n.id, { status: 'Draft' }); toast('Unscheduled · back in Drafts'); nav(`/residents/notices/${n.id}`); }}>Edit</Button><Button onClick={onClose}>Close</Button><Button variant="primary" icon={PaperPlaneTilt} onClick={sendNow}>Send now</Button></>
-          : <><Button variant="ghost" className="mr-auto" onClick={dup}>Duplicate</Button><Button onClick={onClose}>Close</Button><Button variant="primary" icon={PaperPlaneTilt} disabled={!unopened} onClick={() => setRemind(true)}>Send a reminder</Button></>}>
-        <SheetHero avatar={false} name={n.title} meta={`${scheduled ? `Sends ${n.when}` : `Sent ${n.when}`} · ${n.audience}`}>
-          {statusPill(n)}{n.urgent && <Pill tone="red">Urgent</Pill>}
+          ? <Button variant="primary" icon={null} className="ml-auto" onClick={sendNow}>Send now</Button>
+          : <><Button icon={null} className="ml-auto" onClick={dup}>Duplicate</Button><Button variant="primary" icon={null} disabled={!unopened} onClick={() => setRemind(true)}>{unopened ? `Remind ${fmt(unopened)}` : 'Everyone opened it'}</Button></>}>
+        <SheetHero icon={Megaphone} name={n.title} meta={`${scheduled ? `Sends ${n.when}` : `Sent ${(n.when ?? '').toLowerCase().startsWith('today') ? (n.when ?? '').toLowerCase().replace(',', '') : n.when}`} · ${n.audience}`}
+          facts={scheduled
+            ? [['Audience', fmt(n.count)], ['Hall', n.hall], ['Channels', chans]]
+            : [['Delivered', fmt(n.count - bounced)], ['Opened', `${n.opened ?? 0}%`, (n.opened ?? 0) >= 60 ? 'green' : 'amber'], ['Bounced', String(bounced), bounced ? 'red' : undefined]]}>
+          {n.status === 'Sent' ? <Pill tone="green">Sent</Pill> : n.status === 'Scheduled' ? <Pill tone="blue">Scheduled</Pill> : <Pill tone="grey">Draft</Pill>}
+          {n.urgent && <Pill tone="red">Urgent</Pill>}
         </SheetHero>
-        {scheduled && (
-          <div className="mb-5"><Note tone="blue" icon={Clock} title="The audience stays live">{n.count.toLocaleString('en-GB')} match today; new matches before it sends get it too.{n.pinned && ` Pinned on the portal until ${n.pinned}.`}</Note></div>
+        <div className="-mx-5 mb-5">
+          <LineTabs value={tab} onChange={setTab} tabs={scheduled ? [{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity' }] : [{ id: 'overview', label: 'Overview' }, { id: 'unopened', label: 'Not opened' }, { id: 'activity', label: 'Activity' }]} />
+        </div>
+        {tab === 'overview' && <>
+          {scheduled && (
+            <div className="mb-3"><Note tone="grey" icon={Clock} title="New matches before it sends get it too" /></div>
+          )}
+          <SheetSection title="Message" action={scheduled ? <EditLink onClick={() => { update('notices', n.id, { status: 'Draft' }); toast('Unscheduled · back in Drafts'); nav(`/residents/notices/${n.id}`); }}>Edit</EditLink> : undefined}>
+            <div className="text-sm text-[#0A0A0A] whitespace-pre-wrap leading-5">{preview(n.body).replace(/\u0001/g, '')}</div>
+          </SheetSection>
+          <SheetSection title="Details" rows={[
+            ['Sent by', 'Arjun Mehta'],
+            ...(n.urgent ? [['Urgent', 'Marked by Arjun Mehta'] as [string, string]] : []),
+            ['Audience', `${n.audience} · ${fmt(n.count)} residents`],
+            ['Channels', chans],
+            ...(scheduled && n.pinned ? [['Pinned', `On the portal until ${n.pinned}`] as [string, string]] : []),
+            ...(n.channels.sms ? [['Cost', `£${(n.count * 0.02).toFixed(2)} for SMS`] as [string, string]] : []),
+          ]} />
+        </>}
+        {tab === 'unopened' && (unopened > 0 ? (
+          <SheetSection title={`Not opened · ${fmt(unopened)}`}>
+            {notOpened.map(([nm, rm], i) => {
+              const bounce = bounced > 0 && i === notOpened.length - 1;
+              return (
+                <SheetRow key={nm} title={nm} sub={`${rm} · ${bounce ? `${by.split(' and ')[0]} bounced` : `${by} delivered`}`}
+                  end={bounce ? <Pill tone="red">Bounced</Pill> : <Button size="sm" icon={null} onClick={() => toast.success(`Reminder sent to ${nm.split(' ')[0]}`)}>Remind</Button>} />
+              );
+            })}
+            {unopened > notOpened.length && <SheetRow title={<span className="text-[#737373]">and {fmt(unopened - notOpened.length)} more</span>} />}
+          </SheetSection>
+        ) : <Empty art="records" title="Everyone has opened it" sub="Nobody left to remind." />)}
+        {tab === 'activity' && (
+          <SheetSection title="Activity">
+            {!scheduled && opened > 0 && <SheetRow lead={<Avatar name="System" size={24} />} title={`${fmt(opened)} residents opened it`} sub={later(150)} />}
+            {!scheduled && <SheetRow lead={<Avatar name="System" size={24} />} title={`Delivered to ${fmt(n.count - bounced)}${bounced ? ` · ${bounced} bounced` : ''}`} sub={later(1)} />}
+            <SheetRow lead={<Avatar name="Arjun Mehta" size={24} />} title={scheduled ? `Arjun Mehta scheduled the notice for ${n.when}` : 'Arjun Mehta sent the notice'} sub={scheduled ? 'Earlier' : time} />
+          </SheetSection>
         )}
-        <SheetSection title="Details" rows={[['Sent by', by], ...(n.urgent ? [['Urgent', 'Marked by Arjun Mehta'] as [string, string]] : []), ['Audience', `${n.audience} · ${n.count.toLocaleString('en-GB')}`]]} />
-        {!scheduled && (
-          <>
-            <SheetSection title="Delivery">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-                {/* Each figure wears a tone (2026-11-18): the number in the deep tone, the share on a 10% ground. */}
-                {([['Delivered', n.count.toLocaleString('en-GB'), '100%', '#16A34A', '#166534'], ['Opened', opened.toLocaleString('en-GB'), `${n.opened ?? 0}%`, '#2563EB', '#1E40AF'], [n.id === 'n1' ? 'Bedding packs ordered' : 'Clicked a link', clicks, n.count ? `${Math.round((clicks / n.count) * 100)}%` : '', '#7C3AED', '#5B21B6'], ['Bounced', 0, '', '#DC2626', '#991B1B']] as const).map(([l, v, sub, tone, deep]) => {
-                  const none = v === 0;
-                  return (
-                    <div key={l}>
-                      <div className="text-sm text-[#737373]">{l}</div>
-                      <div className="flex items-baseline gap-2 mt-1"><span className="text-xl font-semibold tracking-tight tabular-nums" style={{ color: none ? '#A3A3A3' : deep }}>{v}</span>{sub && <span className="px-1.5 rounded-md font-mono text-xs leading-5 font-medium" style={{ color: deep, background: `${tone}1A` }}>{sub}</span>}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </SheetSection>
-            <SheetSection title="Not opened">
-              {unopened > 0 && <div className="mb-2 flex items-center justify-between"><span className="text-sm text-ink"><span className="font-semibold text-[#B45309] tabular-nums">{unopened.toLocaleString('en-GB')}</span> residents</span><Button size="sm" icon={ChatText} onClick={() => setRemind(true)}>Remind by SMS</Button></div>}
-              {unopened > 0 ? (
-                <div className="divide-y divide-[#F5F5F5]">
-                  {notOpened.map(([nm, rm, ar]) => (
-                    <div key={nm} className="h-10 flex items-center gap-3 text-sm">
-                      <span className="flex-1 min-w-0 truncate text-[#0A0A0A]">{nm}</span>
-                      <span className="w-16 font-mono text-xs text-[#737373]">{rm}</span>
-                      <span className="w-20 text-[#737373]">{ar}</span>
-                      <span className="size-6 rounded-md bg-[#F59E0B]/10 text-[#B45309] flex items-center justify-center"><Envelope size={14} aria-label="Delivered, not opened" /></span>
-                    </div>
-                  ))}
-                  {unopened > notOpened.length && <div className="h-10 flex items-center text-sm text-[#737373]">and {(unopened - notOpened.length).toLocaleString('en-GB')} more</div>}
-                </div>
-              ) : <div className="text-sm text-[#737373]">Everyone has opened it.</div>}
-            </SheetSection>
-          </>
-        )}
-        {message}
       </Sheet>
       <Modal open={remind} onClose={() => setRemind(false)} title="Send a reminder" sub={`To the ${unopened.toLocaleString('en-GB')} residents who haven’t opened it yet.`}
         footer={<><Button onClick={() => setRemind(false)}>Cancel</Button><Button variant="primary" icon={PaperPlaneTilt} onClick={() => once(() => { setRemind(false); log(`sent a reminder for “${n.title}”`, 'Residents'); toast.success(`Reminder sent to ${unopened.toLocaleString('en-GB')} residents by SMS`); })}>Send reminder</Button></>}>

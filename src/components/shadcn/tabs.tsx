@@ -64,14 +64,15 @@ const TabsList = React.forwardRef<
       {slide && pill && (
         <span
           aria-hidden
+          data-slide-bar
           className={cn("pointer-events-none absolute left-0 top-0", slide === "underline" ? "z-[1] bg-[#2563EB]" : cn("rounded-md", PILL))}
           style={{
             width: pill.w,
             height: slide === "underline" ? 2 : pill.h,
             /* Underline: 1px above the list's bottom rule and 1px over it, as the old 2px tab border did. */
             transform: `translate(${pill.x}px, ${slide === "underline" ? pill.y + pill.h - 1 : pill.y}px)`,
-            /* Strong ease-out, 200ms: starts moving straight away, settles softly. */
-            transition: pill.animate ? "transform 200ms cubic-bezier(0.23, 1, 0.32, 1), width 200ms cubic-bezier(0.23, 1, 0.32, 1)" : "none",
+            /* No motion (2026-11-19: tab switches felt bouncy): the highlight moves straight to the picked tab. */
+            transition: "none",
           }}
         />
       )}

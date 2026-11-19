@@ -1,11 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowSquareOut, DownloadSimple, Tray } from '../../components/icons';
+import { ArrowSquareOut, DownloadSimple, Tray, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Dialog, PageHeader, SearchInput, SelectFilter, Sheet, SheetHero, SheetSection, Table, Tabs, Textarea, PIN, listNav } from '../../components/ui';
+import { PersonName, Avatar, Button, Dialog, PageHeader, SearchInput, SelectFilter, Sheet, SheetHero, SheetRow, SheetSection, Table, Tabs, Textarea, PIN, listNav } from '../../components/ui';
 import { useOpen, useTab } from '../hooks';
 import { enquiryStatus, stamp, useOc, type Enquiry, type EnquiryStatus } from '../../data/offcampus';
 import { EmptyArt, Tag, Title } from './parts';
+import { LineTabs } from '../inventory/common';
 
 type TabId = 'all' | 'hmo' | 'pbsa';
 type StatusView = EnquiryStatus | 'All';
@@ -104,36 +105,14 @@ export function Enquiries() {
 
       {/* The enquiry: the resident's question, who they are, and what has happened to it. */}
       <Sheet open={!!sel} onClose={() => setOpen(null)} title="Enquiry" nav={sel ? listNav(rows, (e) => e.id === sel.id, (e) => setOpen(e.id)) : undefined}
-        footer={sel && (() => {
-          const st = enquiryStatus(sel);
-          return (
-            <>
-              {st === 'Closed'
-                ? <Button variant="ghost" className="mr-auto" onClick={() => setStatusOf(sel, 'New', 'Reopened', `${sel.student}’s enquiry reopened`)}>Reopen</Button>
-                : <Button variant="danger-ghost" className="mr-auto" onClick={() => setStatusOf(sel, 'Closed', 'Closed', `${sel.student}’s enquiry closed`)}>Close enquiry</Button>}
-              {st !== 'Closed' && sel.source === 'Landlord' && <Button onClick={() => forward(sel)}>Forward to landlord</Button>}
-              {st !== 'Closed' && <Button variant="primary" onClick={() => setReplying(sel)}>Reply</Button>}
-            </>
-          );
-        })()}>
-        {sel && <>
-          <SheetHero name={sel.student} meta={`${sel.email} · ${sel.phone}`}>
-            <StatusTag s={enquiryStatus(sel)} />
-          </SheetHero>
-          <SheetSection title="Message">
-            <p className="text-sm leading-6 text-[#0A0A0A] whitespace-pre-line">{sel.message ?? 'No message, just a request to be contacted.'}</p>
-          </SheetSection>
-          <SheetSection title="Details" rows={[
-            ['Source', sel.source],
-            ['Property', sel.property],
-            ...(sel.source === 'Landlord' ? [['Landlord', landlordOf(sel) ?? '—'] as [string, string]] : []),
-            ['Move-in', sel.moveIn],
-            ['Received', sel.received],
-          ]} />
-          {!!sel.history?.length && (
-            <SheetSection title="Activity" rows={sel.history.map((h) => [h.t, h.when] as [string, string])} />
-          )}
-        </>}
+        onDelete={sel && enquiryStatus(sel) !== 'Closed' ? { label: 'Close enquiry', icon: XCircle, onClick: () => setStatusOf(sel, 'Closed', 'Closed', `${sel.student}’s enquiry closed`) } : undefined}
+        footer={sel && (enquiryStatus(sel) === 'Closed'
+          ? <Button icon={null} className="ml-auto" onClick={() => setStatusOf(sel, 'New', 'Reopened', `${sel.student}’s enquiry reopened`)}>Reopen</Button>
+          : <>
+            {sel.source === 'Landlord' && <Button icon={null} className="ml-auto" onClick={() => forward(sel)}>Forward to landlord</Button>}
+            <Button variant="primary" icon={null} className={sel.source === 'Landlord' ? undefined : 'ml-auto'} onClick={() => setReplying(sel)}>Reply</Button>
+          </>)}>
+        {sel && <EnquiryDetail e={sel} landlord={landlordOf(sel)} />}
       </Sheet>
 
       {replying && <ReplyDialog e={replying} onClose={() => setReplying(null)} onSend={() => {
@@ -142,6 +121,44 @@ export function Enquiries() {
         setReplying(null);
         toast.success(`Reply sent to ${e.student}`, { description: e.email });
       }} />}
+    </>
+  );
+}
+
+/* Enquiry panel (Figma "Side panel · Enquiry" 4073:17186): Overview (message, details) and Activity. */
+const groupOf = (id: string) => 1 + ([...id].reduce((n, c) => n + c.charCodeAt(0), 0) % 5);
+function EnquiryDetail({ e, landlord }: { e: Enquiry; landlord?: string }) {
+  const [tab, setTab] = useState<'overview' | 'activity'>('overview');
+  useEffect(() => setTab('overview'), [e.id]);
+  const group = groupOf(e.id);
+  const activity = [
+    ...(e.history ?? []).map((h) => ({ who: 'Arjun Mehta', t: h.t, when: h.when })),
+    { who: e.student, t: `${e.student} sent an enquiry`, when: e.received },
+  ];
+  return (
+    <>
+      <SheetHero name={e.student} meta={`${e.email} · ${e.phone}`} facts={[['Property', e.property], ['Move-in', e.moveIn], ['Group', group === 1 ? '1 student' : `${group} students`]]}>
+        <StatusTag s={enquiryStatus(e)} />
+      </SheetHero>
+      <div className="-mx-5 mb-5">
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity' }]} />
+      </div>
+      {tab === 'overview' && <>
+        <SheetSection title="Message">
+          <p className="text-sm leading-6 text-[#0A0A0A] whitespace-pre-line">{e.message ?? 'No message, just a request to be contacted.'}</p>
+        </SheetSection>
+        <SheetSection title="Details" rows={[
+          ['Source', e.source],
+          ['Property', e.property],
+          ...(e.source === 'Landlord' ? [['Landlord', landlord ? <PersonName name={landlord} /> : '—'] as [string, ReactNode]] : []),
+          ['Received', e.received],
+        ]} />
+      </>}
+      {tab === 'activity' && (
+        <SheetSection title="Activity">
+          {activity.map((a, i) => <SheetRow key={i} lead={<Avatar name={a.who} size={24} />} title={a.t} sub={a.when} />)}
+        </SheetSection>
+      )}
     </>
   );
 }

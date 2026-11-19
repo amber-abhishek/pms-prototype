@@ -1,11 +1,13 @@
-import { useState, type ReactNode } from 'react';
+import { FooterZone } from '../../components/headerCtx';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, Eye, FileText, FirstAid, MagicWand, ShieldCheck, Tray, UploadSimple, UserCheck, Warning, Wheelchair, type Icon } from '../../components/icons';
+import { FileText, FirstAid, Warning, Wheelchair, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Pill, SheetHero, SheetSection, cx } from '../../components/ui';
-import { available, firstName, hallFull, roomTerms, useAlloc, type App, type Req } from '../../data/allocations';
+import { Avatar, Button, Dialog, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
+import { available, firstName, hallFull, roomTerms, unitsFor, useAlloc, type App, type Req } from '../../data/allocations';
+import type { Tag as InvTag } from '../../data/inventory';
 import { St } from './common';
-import { LineTabs } from '../inventory/common';
+import { LineTabs, TagPicker, addTagChip } from '../inventory/common';
 import { useAllocActions } from './actions';
 
 export const statusLabel: Record<App['status'], string> = { review: 'In review', manual: 'Flagged', allocated: 'Allocated', rejected: 'Rejected', waitlist: 'Waitlist', declined: 'Declined' };
@@ -22,9 +24,10 @@ const stepFree = (a: App) => a.reqs.includes('Step-free access');
 export const bestPref = (ps: Pref[]) => ps.find((p) => p.avail > 0);
 export const ordinal = (n: number) => ord[n - 1] ?? `${n}th`;
 
-const DETAIL_TABS = ['Overview', 'Applicant', 'Requirements', 'Documents', 'Activity'] as const;
+const DETAIL_TABS = ['Overview', 'Documents', 'Messages', 'Activity'] as const;
 type DetailTab = typeof DETAIL_TABS[number];
-/** The right-hand detail of an application, with its five tabs and the action bar. */
+/** The application (Figma "Side panel · Application" 4073:17179): hero with a tag row, Overview / Documents / Messages /
+ *  Activity tabs, and the action bar. Used as the split-view detail and inside the Application sheet. */
 export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllocate: (p: Pref) => void; onReject: () => void; onAfter: () => void }) {
   const d = useAlloc();
   const act = useAllocActions();
@@ -32,35 +35,45 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
   const best = bestPref(ps);
   const canAct = a.status === 'review' || a.status === 'manual';
   const [tab, setTab] = useState<DetailTab>('Overview');
+  /* Tags added here live for the session only (prototype): the workspace tag list, picked per application. */
+  const [tags, setTags] = useState<InvTag[]>([]);
+  useEffect(() => { setTags([]); }, [a.id]);
+  const allocateBest = () => (best ? onAllocate(best) : toast.error(`No free unit in any of ${firstName(a.name)}’s choices`, { description: 'Pick a unit from another hall, or add them to the waitlist.' }));
   /* Five tabs instead of one long scroll: the hero stays put, the tab's content scrolls under it. */
   return (
     <div className="flex-1 min-w-0 flex flex-col">
       <div className="shrink-0 px-5 pt-5">
-        <SheetHero name={a.name} meta={`APP-${a.ref} · ${a.year.toLowerCase()} · submitted ${a.submitted}${canAct ? ` · waiting ${a.waiting} ${a.waiting === 1 ? 'day' : 'days'}` : ''}`}>
-          <St s={statusLabel[a.status]} />{a.tag && <Pill tone="amber">{a.tag}</Pill>}
-        </SheetHero>
+        <SheetHero name={a.name} meta={`${a.year} · Applied ${a.submitted}`}
+          tags={<>
+            <St s={statusLabel[a.status]} />{a.tag && <Pill tone="amber">{a.tag}</Pill>}
+            {tags.map((t) => <Pill key={t.label} tone={t.tone}>{t.label}</Pill>)}
+            <TagPicker have={tags} onPick={(t) => { setTags((l) => [...l, t]); toast.success(`Tagged ${t.label}`); }} onRemove={(t) => setTags((l) => l.filter((x) => x.label !== t.label))} trigger={addTagChip()} />
+          </>}
+          facts={[['1st choice', a.prefs[0]?.[0] ?? a.hall], ['Room type', a.prefs[0]?.[1] ?? a.room], canAct ? ['Waiting', `${a.waiting} ${a.waiting === 1 ? 'day' : 'days'}`, a.waiting >= 5 ? 'amber' : undefined] : ['Fee', a.fee]]} />
       </div>
       <LineTabs value={tab} onChange={setTab} tabs={DETAIL_TABS.map((t) => ({ id: t, label: t }))} />
       <div className="flex-1 overflow-auto px-5 py-5">
-        {tab === 'Overview' && <><AppNote a={a} /><Preferences a={a} ps={ps} best={best} canAct={canAct} onAllocate={onAllocate} /></>}
-        {tab === 'Applicant' && <>
-          <SheetSection title="Applicant" rows={[['Course', a.course], ['Fee status', a.fee], ['Arrival', a.arrival], ['Email', <span className="break-all">{a.email}</span>], ['Guarantee', a.guarantee ? <Pill tone="green">Guaranteed</Pill> : <Pill>Not guaranteed</Pill>]]} />
+        {tab === 'Overview' && <>
+          <AppNote a={a} />
+          <Preferences ps={ps} />
+          {canAct && best && <MatchingUnits a={a} best={best} onAllocate={onAllocate} />}
+          {(a.reqs.length > 0 || !!a.toCheck?.length || a.why === 'Under 18 at arrival') && <Requirements a={a} onVerify={(r) => act.verify(a, r)} />}
+          <SheetSection title="Applicant" rows={[['Course', a.course], ['Fee status', a.fee], ['Arrival', a.arrival], ['Email', <span className="break-all">{a.email}</span>], ['Guarantee', a.guarantee ? 'Guaranteed' : 'Not guaranteed']]} />
           <RoomAndContract a={a} />
         </>}
-        {tab === 'Requirements' && <Requirements a={a} onVerify={(r) => act.verify(a, r)} />}
         {tab === 'Documents' && <Documents a={a} onVerify={(r) => act.verify(a, r)} />}
+        {tab === 'Messages' && <Messages a={a} />}
         {tab === 'Activity' && <Activity a={a} />}
       </div>
-      <div className="h-16 shrink-0 px-5 flex items-center gap-2 border-t border-line">
+      <FooterZone.Provider value><div className="h-16 shrink-0 px-5 flex items-center gap-2 border-t border-line">
         {canAct ? (
           <>
-            <Button variant="danger-ghost" onClick={onReject}>Reject</Button>
-            <div className="ml-auto flex gap-2">
-              {a.status === 'review'
-                ? <Button onClick={() => { act.manual(a); onAfter(); }}>Flag</Button>
-                : <Button onClick={() => act.toQueue(a)}>Back to To review</Button>}
-              <Button variant="primary" icon={UserCheck} onClick={() => (best ? onAllocate(best) : toast.error(`No free unit in any of ${firstName(a.name)}’s choices`, { description: 'Pick a unit from another hall, or add them to the waitlist.' }))}>Allocate best match</Button>
-            </div>
+            {/* The two decisions on the right (Reject / Send offer); routing it is a quiet extra on the left. */}
+            {a.status === 'review'
+              ? <Button variant="ghost" icon={null} className="mr-auto" onClick={() => { act.manual(a); onAfter(); }}>Flag</Button>
+              : <Button variant="ghost" icon={null} className="mr-auto" onClick={() => act.toQueue(a)}>Back to To review</Button>}
+            <Button icon={null} onClick={onReject}>Reject</Button>
+            <Button variant="primary" icon={null} onClick={allocateBest}>Send offer</Button>
           </>
         ) : a.status === 'allocated' ? (
           <>
@@ -78,24 +91,12 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
             <div className="ml-auto"><Link to="/allocations/offers?tab=Waitlist"><Button>Open waitlist</Button></Link></div>
           </>
         )}
-      </div>
+      </div></FooterZone.Provider>
     </div>
   );
 }
 
 /* ---------- pieces ---------- */
-/** A flat list row inside a section: leading slot, title + grey sub, trailing slot. Rows split by #F5F5F5 hairlines. */
-function Row({ lead, title, sub, children }: { lead?: ReactNode; title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
-  return (
-    <div className="min-h-[52px] py-2 first:-mt-2 last:-mb-2 flex items-center gap-3 border-b border-[#F5F5F5] last:border-b-0">
-      {lead}
-      <div className="min-w-0 flex-1"><div className="text-sm font-medium text-ink truncate">{title}</div>{sub && <div className="text-xs text-gray-500 truncate">{sub}</div>}</div>
-      {children}
-    </div>
-  );
-}
-const Rank = ({ n, on }: { n: number; on?: boolean }) => <span className={cx('size-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0', on ? 'bg-primary text-white' : 'bg-[#F5F5F5] text-[#737373]')}>{n}</span>;
-
 function AppNote({ a }: { a: App }) {
   if (stepFree(a)) return <Callout icon={Wheelchair} title="Needs a ground-floor or lift-access room" sub="Verified by Disability Support, 20 Oct" />;
   if (a.tag === 'No study offer') return <Callout icon={Warning} title="No offer to study at Durham" sub="UCAS checked 27 Oct" />;
@@ -112,19 +113,24 @@ function Callout({ icon: I, title, sub }: { icon: Icon; title: string; sub: stri
   );
 }
 
-function Preferences({ a, ps, best, canAct, onAllocate }: { a: App; ps: Pref[]; best?: Pref; canAct: boolean; onAllocate: (p: Pref) => void }) {
+function Preferences({ ps }: { ps: Pref[] }) {
   return (
-    <SheetSection title="Hall preferences">
-      {ps.map((p) => {
-        const isBest = canAct && best === p;
-        return (
-          <Row key={p.rank} lead={<Rank n={p.rank} on={isBest} />} title={hallFull[p.hall]} sub={p.sub}>
-            {stepFree(a) && (p.hall === 'Hild Bede' ? <Pill tone="amber">No lift</Pill> : <Pill tone="green">Step-free</Pill>)}
-            <span className={cx('text-xs whitespace-nowrap', p.avail ? 'text-[#0B8A4C]' : 'text-gray-500')}>{p.avail ? `${p.avail} free` : 'Full'}</span>
-            {canAct && (isBest ? <Button size="sm" variant="secondary" className="w-[104px]" onClick={() => onAllocate(p)}>Allocate</Button> : <Button size="sm" variant="ghost" className="w-[104px]" onClick={() => onAllocate(p)}>Pick unit</Button>)}
-          </Row>
-        );
-      })}
+    <SheetSection title={`Preferences · ${ps.length}`}>
+      {ps.map((p) => (
+        <SheetRow key={p.rank} title={`${p.rank} · ${hallFull[p.hall]}`} sub={`${p.room} · ${p.avail ? `${p.avail} free` : 'full'}`}
+          end={p.avail ? <Pill tone="green">{`${p.avail} match`}</Pill> : <Pill tone="red">Full</Pill>} />
+      ))}
+    </SheetSection>
+  );
+}
+/** The best choice's free units: the top three, each one click from the allocate sheet. */
+function MatchingUnits({ a, best, onAllocate }: { a: App; best: Pref; onAllocate: (p: Pref) => void }) {
+  const d = useAlloc();
+  const units = unitsFor(d, a, best.hall, best.room);
+  if (!units.length) return null;
+  return (
+    <SheetSection title={`Matching units · ${units.length}`}>
+      {units.slice(0, 3).map((u) => <SheetRow key={u.code} title={u.code} sub={`${u.where} · ${best.room}`} end={<Button size="sm" icon={null} onClick={() => onAllocate(best)}>Allocate</Button>} />)}
     </SheetSection>
   );
 }
@@ -162,10 +168,9 @@ function ReqPill({ s, onCheck }: { s: string; onCheck?: () => void }) {
 function Requirements({ a, onVerify }: { a: App; onVerify: (r: Req) => void }) {
   return (
     <SheetSection title="Requirements">
-      {reqRows(a).map((x) => <Row key={x.r} title={x.r} sub={x.sub}><ReqPill s={x.s} onCheck={() => onVerify(x.r)} /></Row>)}
-      <Row title="Age at arrival" sub={a.why === 'Under 18 at arrival' ? '17 on 19 Sep 2027 · guardian form needed' : '19 on 19 Sep 2027'}>
-        {a.why === 'Under 18 at arrival' ? <Pill tone="amber">To check</Pill> : <ReqPill s="met" />}
-      </Row>
+      {reqRows(a).map((x) => <SheetRow key={x.r} title={x.r} sub={x.sub} end={<ReqPill s={x.s} onCheck={() => onVerify(x.r)} />} />)}
+      <SheetRow title="Age at arrival" sub={a.why === 'Under 18 at arrival' ? '17 on 19 Sep 2027 · guardian form needed' : '19 on 19 Sep 2027'}
+        end={a.why === 'Under 18 at arrival' ? <Pill tone="amber">To check</Pill> : <ReqPill s="met" />} />
     </SheetSection>
   );
 }
@@ -183,45 +188,51 @@ function Documents({ a, onVerify }: { a: App; onVerify: (r: Req) => void }) {
   const docs = docsOf(a);
   const [view, setView] = useState<Doc | null>(null);
   return (
-    <SheetSection title="Documents">
+    <SheetSection title={`Documents · ${docs.length}`}>
       {docs.map((x) => (
-        <Row key={x.name} lead={<span className="size-8 rounded-lg bg-[#F5F5F5] text-gray-500 flex items-center justify-center shrink-0"><FileText size={16} /></span>} title={x.name} sub={x.meta}>
-          {x.s === 'ok' ? <Pill tone="green">Verified</Pill> : x.s === 'check' ? <Pill tone="amber">To check</Pill> : <Pill tone="red">Missing</Pill>}
-          <Button size="sm" disabled={x.s === 'missing'} onClick={() => setView(x)}>View</Button>
-        </Row>
+        <SheetRow key={x.name} title={x.name} sub={x.s === 'missing' ? 'Not uploaded' : `Uploaded ${x.meta.split(' · ').pop()}`} onClick={x.s === 'missing' ? undefined : () => setView(x)}
+          end={x.s === 'ok' ? <Pill tone="green">Checked</Pill> : x.s === 'check' ? <Pill tone="orange">To review</Pill> : <Pill tone="red">Missing</Pill>} />
       ))}
       <Dialog open={!!view} onClose={() => setView(null)} title={view?.name ?? ''} width={560}
-        footer={view && <>{view.s === 'check' && view.req && <Button variant="success" icon={ShieldCheck} onClick={() => { onVerify(view.req!); setView(null); }}>Mark verified</Button>}<Button onClick={() => setView(null)}>Close</Button></>}>
+        footer={view && <><Button onClick={() => setView(null)}>Close</Button>{view.s === 'check' && view.req && <Button variant="primary" icon={null} onClick={() => { onVerify(view.req!); setView(null); }}>Mark verified</Button>}</>}>
         <div className="rounded-lg border border-line bg-[#FAFAFA] h-72 flex flex-col items-center justify-center text-gray-400 gap-2"><FileText size={40} weight="duotone" /><span className="text-sm">{view?.meta}</span></div>
       </Dialog>
     </SheetSection>
   );
 }
 
+/* Prototype dummy thread per application: the applicant's note, then the team's reply. */
+function Messages({ a }: { a: App }) {
+  const first = firstName(a.name);
+  const msgs = [
+    { who: a.name, when: a.submitted, t: a.reqs.length ? 'Hi, I’ve added a note about what I need from my room. Is there anything else you need?' : 'Hi, just checking my application came through. Is there anything else you need from me?' },
+    { who: 'Arjun Mehta', when: a.opened ? '27 Oct' : a.submitted, t: `Thanks ${first}, that’s all we need. We’ll be in touch once rooms are offered.` },
+  ];
+  return (
+    <SheetSection title={`Messages · ${msgs.length}`}>
+      {msgs.map((m, i) => (
+        <div key={i} className="py-3 border-t border-[#EBEBEB] first:border-t-0 first:pt-0 last:pb-0">
+          <div className="flex items-baseline gap-2"><span className="text-sm font-medium text-[#0A0A0A]">{m.who}</span><span className="text-[13px] text-[#737373]">{m.when}</span></div>
+          <p className="mt-1 text-sm leading-5 text-[#0A0A0A]">{m.t}</p>
+        </div>
+      ))}
+    </SheetSection>
+  );
+}
+
 function Activity({ a }: { a: App }) {
-  type E = { icon: Icon; tone: string; t: string; when: string; sub?: string };
+  type E = { who: string; t: string; when: string; sub?: string };
   const items: E[] = [
-    ...(a.log ?? []).map((l) => ({ icon: CheckCircle, tone: 'bg-[#E8F7EE] text-[#0B8A4C]', t: l.t, when: l.when, sub: l.sub })),
-    ...(a.opened ? [{ icon: Eye, tone: 'bg-[#E6ECFF] text-[#1F45E0]', t: 'Arjun Mehta opened the application', when: '27 Oct, 10:42' }] : []),
-    ...(a.tag ? [{ icon: MagicWand, tone: 'bg-[#F1E7FF] text-[#8B2CF5]', t: `Auto-allocate skipped ${firstName(a.name)}`, when: '22 Oct, 02:00', sub: a.tag === 'Requirements' ? 'Step-free requirement' : a.tag === 'No study offer' ? 'No study offer' : 'Flagged' }] : []),
-    ...(stepFree(a) ? [{ icon: ShieldCheck, tone: 'bg-[#E8F7EE] text-[#0B8A4C]', t: 'Disability Support verified step-free access', when: '20 Oct, 15:18' }] : []),
-    ...(a.reqs.includes('Medication fridge') ? [{ icon: UploadSimple, tone: 'bg-[#F5F5F5] text-gray-500', t: `${a.name} uploaded a GP note`, when: '19 Oct, 09:05' }] : []),
-    { icon: Tray, tone: 'bg-[#F5F5F5] text-gray-500', t: `${a.name} submitted the application`, when: `${a.submitted}, 21:37` },
+    ...(a.log ?? []).map((l) => ({ who: l.t.match(/\bby ([A-Z][a-z]+ [A-Z][a-z]+)/)?.[1] ?? 'System', t: l.t, when: l.when, sub: l.sub })),
+    ...(a.opened ? [{ who: 'Arjun Mehta', t: 'Arjun Mehta opened the application', when: '27 Oct, 10:42' }] : []),
+    ...(a.tag ? [{ who: 'System', t: `Auto-allocate skipped ${firstName(a.name)}`, when: '22 Oct, 02:00', sub: a.tag === 'Requirements' ? 'Step-free requirement' : a.tag === 'No study offer' ? 'No study offer' : 'Flagged' }] : []),
+    ...(stepFree(a) ? [{ who: 'Disability Support', t: 'Disability Support verified step-free access', when: '20 Oct, 15:18' }] : []),
+    ...(a.reqs.includes('Medication fridge') ? [{ who: a.name, t: `${a.name} uploaded a GP note`, when: '19 Oct, 09:05' }] : []),
+    { who: a.name, t: `${a.name} applied with ${a.prefs.length} ${a.prefs.length === 1 ? 'choice' : 'choices'}`, when: `${a.submitted}, 21:37` },
   ];
   return (
     <SheetSection title="Activity">
-      <ol>
-        {items.map((e, i) => (
-          <li key={i} className="flex gap-3 pb-4 last:pb-0 relative">
-            {i < items.length - 1 && <span className="absolute left-[11px] top-7 bottom-0 w-px bg-line" />}
-            <span className={cx('size-6 rounded-full flex items-center justify-center shrink-0', e.tone)}><e.icon size={12} /></span>
-            <div className="min-w-0">
-              <div className="text-sm text-ink">{e.t}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{e.when}{e.sub ? ` · ${e.sub}` : ''}</div>
-            </div>
-          </li>
-        ))}
-      </ol>
+      {items.map((e, i) => <SheetRow key={i} lead={<Avatar name={e.who} size={24} />} title={e.t} sub={`${e.when}${e.sub ? ` · ${e.sub}` : ''}`} />)}
     </SheetSection>
   );
 }

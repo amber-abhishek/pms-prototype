@@ -1,9 +1,10 @@
 // Organisation › Campuses. Figma: empty state 3095:2; add campus = Journeys Flow 1 · 04–05 (2819:544, 2819:820).
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Globe, ImageSquare, MagnifyingGlass, MapPin, Plus } from '../../components/icons';
+import { BookOpen, ImageSquare, MagnifyingGlass, MapPin, Plus } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dropdown, IconTile, Input, Pill, Status, Table } from '../../components/ui';
+import { Button, DL, Dropdown, Input, Pill, SheetSection, Status, Table } from '../../components/ui';
+import { PanelModal } from '../inventory/common';
 import { useDb } from '../../data/store';
 import { oid, useOrg, type Campus } from '../../data/org';
 import { EmptyState, Header, ODialog } from './parts';
@@ -111,63 +112,45 @@ function CampusDialog({ existing, onClose }: { existing?: Campus; onClose: () =>
   };
 
   return (
-    <ODialog open onClose={onClose} width={560} title={existing ? `Edit ${existing.name}` : 'Add campus'}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{existing ? 'Save campus' : 'Add campus'}</Button></>}>
-      <div className="space-y-6">
-        {/* Name and status on one row; the status rule sits right under it. */}
-        <div>
-          <div className="grid grid-cols-[1fr_168px] gap-3">
-            <div><span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Name</span><Input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Durham City" /></div>
-            <div><span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Status</span>
-              <Dropdown ariaLabel="Status" className="h-8 w-full border-gray-300" value={status} onChange={(v) => setStatus(v as Campus['status'])}
-                options={(['Draft', 'Active', 'Inactive'] as const).map((x) => ({ value: x, label: <span className="inline-flex items-center gap-2"><span className="size-2 rounded-full" style={{ background: STATUS_DOT[x] }} />{x}</span> }))} /></div>
+    <PanelModal open onClose={onClose} width={600} eyebrow={existing ? 'Edit campus' : 'New campus'} title={existing ? existing.name : 'New campus'}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{existing ? 'Save' : 'Create campus'}</Button></>}>
+      <SheetSection title="Campus">
+        <div className="grid grid-cols-[1fr_168px] gap-3">
+          <div><span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Name</span><Input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Durham City" /></div>
+          <div><span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Status</span>
+            <Dropdown ariaLabel="Status" className="h-8 w-full border-gray-300" value={status} onChange={(v) => setStatus(v as Campus['status'])}
+              options={(['Draft', 'Active', 'Inactive'] as const).map((x) => ({ value: x, label: <span className="inline-flex items-center gap-2"><span className="size-2 rounded-full" style={{ background: STATUS_DOT[x] }} />{x}</span> }))} /></div>
+        </div>
+        <p className="mt-1.5 text-xs text-[#737373]">Only active campuses show on the resident site.</p>
+      </SheetSection>
+
+      <SheetSection title="Address">
+        <label className="relative flex items-center">
+          <MagnifyingGlass size={14} className="absolute left-2.5 text-[#737373]" />
+          <Input aria-label="Address" value={q} onFocus={() => setFocus(true)} onBlur={() => window.setTimeout(() => setFocus(false), 150)} onChange={(e) => { setQ(e.target.value); setPlace(null); }} placeholder="Search for the campus address" className="pl-8" />
+        </label>
+        {/* Results sit in the flow, not floating, so the modal body never clips them. */}
+        {focus && matches.length > 0 && (
+          <div className="mt-1 rounded-xl border border-line bg-white shadow-pop p-1">
+            {matches.map((p) => (
+              <button key={p.address} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPlace(p); setQ(p.address); setFocus(false); }} className="w-full text-left px-2.5 h-9 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm"><MapPin size={14} className="text-gray-400" />{p.address}</button>
+            ))}
           </div>
-          <p className="mt-1.5 text-xs text-[#737373]">Only active campuses show on the resident site.</p>
+        )}
+        {/* The picked place: where it is, then the partner region it maps to. */}
+        <div className="mt-4">
+          {place
+            ? <DL rows={[['City', `${place.city}, ${place.region}`], ['Postcode', place.postcode], ['Country', place.country], ['Partner region', place.amberRegion]]} />
+            : <p className="text-sm text-[#737373]">Pick an address to set the city and partner region.</p>}
         </div>
+      </SheetSection>
 
-        <div>
-          <span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Address</span>
-          <label className="relative flex items-center">
-            <MagnifyingGlass size={14} className="absolute left-2.5 text-[#737373]" />
-            <Input aria-label="Address" value={q} onFocus={() => setFocus(true)} onBlur={() => window.setTimeout(() => setFocus(false), 150)} onChange={(e) => { setQ(e.target.value); setPlace(null); }} placeholder="Search for the campus address" className="pl-8" />
-          </label>
-          {/* Results sit in the flow, not floating, so the modal body never clips them. */}
-          {focus && matches.length > 0 && (
-            <div className="mt-1 rounded-xl border border-line bg-white shadow-pop p-1">
-              {matches.map((p) => (
-                <button key={p.address} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPlace(p); setQ(p.address); setFocus(false); }} className="w-full text-left px-2.5 h-9 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm"><MapPin size={14} className="text-gray-400" />{p.address}</button>
-              ))}
-            </div>
-          )}
-          {/* The picked place as a tinted card: where it is, then the partner region it maps to. */}
-          {place ? (
-            <div className="mt-3 rounded-xl border border-[#E5E5E5] bg-white p-3.5">
-              <div className="flex items-center gap-2.5">
-                <IconTile icon={MapPin} tone="blue" />
-                <div className="min-w-0 flex-1"><div className="text-sm font-medium truncate">{place.city}, {place.region}</div><div className="text-xs text-[#737373]">{place.country}</div></div>
-                <Pill tone="grey">{place.postcode}</Pill>
-              </div>
-              <div className="mt-3 pt-3 border-t border-[#F0F0F0] flex items-center gap-2 text-sm">
-                <Globe size={16} className="text-[#2563EB] shrink-0" />
-                <span className="text-[#737373]">Partner region</span>
-                <span className="ml-auto"><Pill tone="blue">{place.amberRegion}</Pill></span>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-3 rounded-xl border border-dashed border-gray-300 px-3.5 py-3 flex items-center gap-2.5 text-sm text-[#737373]">
-              <IconTile icon={MapPin} tone="grey" />Pick an address to set the city and partner region.
-            </div>
-          )}
-        </div>
-
-        <div>
-          <span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Images <span className="font-normal text-[#737373]">· optional</span></span>
-          <button type="button" onClick={() => toast('Image upload is off in the prototype')} className="h-24 w-full rounded-xl border border-dashed border-[#A78BFA]/60 bg-[#F5F3FF]/50 text-sm text-[#737373] flex flex-col items-center justify-center gap-2 hover:bg-[#F5F3FF] transition-colors">
-            <IconTile icon={ImageSquare} tone="purple" />
-            <span><span className="text-[#6D28D9] font-medium">Click to upload</span> or drop images</span>
-          </button>
-        </div>
-      </div>
-    </ODialog>
+      <SheetSection title="Images · optional">
+        <button type="button" onClick={() => toast('Image upload is off in the prototype')} className="h-24 w-full rounded-xl border border-dashed border-[#D4D4D4] text-sm text-[#737373] flex flex-col items-center justify-center gap-2 hover:bg-[#FAFAFA] transition-colors">
+          <ImageSquare size={20} className="text-[#A3A3A3]" />
+          <span><span className="text-[#0A0A0A] font-medium">Click to upload</span> or drop images</span>
+        </button>
+      </SheetSection>
+    </PanelModal>
   );
 }

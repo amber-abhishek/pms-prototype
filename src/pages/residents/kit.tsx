@@ -1,9 +1,8 @@
 import { useRef, type ReactNode } from 'react';
 import { ArrowRight, CheckCircle, Circle, Image as ImageIcon, XCircle, type Icon } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Card, PageHeader, SheetNavButtons, Switch, cx, type SheetNav } from '../../components/ui';
+import { Avatar, Card, ConfirmFrame, PageHeader, Switch, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
 import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
-import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '../../components/shadcn/sheet';
 
 /** The shared top bar (Figma 3884:39270), with breadcrumbs that link back. */
 export function RHeader({ icon, crumbs, title, meta, children }: { icon: Icon; crumbs: [string, string?][]; title: string; meta?: ReactNode; children?: ReactNode }) {
@@ -29,52 +28,56 @@ export function useOnce() {
 
 export const undoToast = (msg: string, undo: () => void) => toast.success(msg, { action: { label: 'Undo', onClick: undo } });
 
-/** Centred confirm dialog (shadcn Dialog): title and sub in the body, grey footer. */
+/** Centred dialog (shadcn Dialog): title and sub in the body, grey footer. A question title is a confirmation, so it
+    takes the shared confirm layout (both buttons right, no icons). */
 export function Modal({ open, onClose, title, sub, children, footer, width = 500 }: { open: boolean; onClose: () => void; title: string; sub?: ReactNode; children?: ReactNode; footer: ReactNode; width?: number }) {
+  const confirm = isConfirmTitle(title);
+  const body = children ? <div className="space-y-3">{children}</div> : null;
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <DialogFrame title={title} sub={sub} footer={footer}>{children && <div className="space-y-3">{children}</div>}</DialogFrame>
+      <DialogContent style={{ maxWidth: width }} {...(sub ? {} : { 'aria-describedby': undefined })} {...(confirm ? noAutoFocus : {})}>
+        {confirm ? <ConfirmFrame title={title} sub={sub} footer={footer}>{body}</ConfirmFrame> : <DialogFrame title={title} sub={sub} footer={footer}>{body}</DialogFrame>}
       </DialogContent>
     </Dialog>
   );
 }
 
-/** Right side sheet (shadcn Sheet) for Assign and Check in. No header icon (2026-11-09); `icon`/`tone` are ignored.
-    Bodies are SheetHero / SheetSection blocks (a leading section drops its rule); give a note before them mb-5. */
-export function SideSheet({ open, onClose, title, sub, children, footer, width = 520, nav }: { nav?: SheetNav; open: boolean; onClose: () => void; icon: Icon; tone?: 'blue' | 'green'; title: string; sub?: string; children: ReactNode; footer: ReactNode; width?: number }) {
-  return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent style={{ width }} {...(sub ? {} : { 'aria-describedby': undefined })}>
-        <SheetHeader className="gap-3">
-          <div className="min-w-0 flex-1"><SheetTitle>{title}</SheetTitle>{sub && <SheetDescription>{sub}</SheetDescription>}</div>
-          <SheetNavButtons nav={nav} />
-        </SheetHeader>
-        <SheetBody className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">{children}</SheetBody>
-        <SheetFooter>{footer}</SheetFooter>
-      </SheetContent>
-    </Sheet>
-  );
-}
+const RadioDot = ({ on }: { on: boolean }) => <span className={cx('size-4 rounded-full shrink-0 bg-white', on ? 'border-[5px] border-primary' : 'border border-gray-300')} />;
 
-/** A selectable option card with a radio dot. */
+/** A selectable option card with a radio dot, for dialogs. Neutral: a blue ring marks the pick, no tinted ground. */
 export function RadioCard({ checked, onClick, title, sub, right, avatar }: { checked: boolean; onClick: () => void; title: ReactNode; sub?: ReactNode; right?: ReactNode; avatar?: string }) {
   return (
     <button type="button" role="radio" aria-checked={checked} onClick={onClick}
-      className={cx('w-full text-left rounded-xl border px-3.5 py-3 flex items-center gap-3 transition-colors', checked ? 'border-primary bg-[#EFF6FF]' : 'border-line bg-white hover:bg-gray-50')}>
-      <span className={cx('size-4 rounded-full border shrink-0 flex items-center justify-center', checked ? 'border-primary bg-primary' : 'border-gray-300 bg-white')}>{checked && <span className="size-1.5 rounded-full bg-white" />}</span>
+      className={cx('w-full text-left rounded-xl border px-3.5 py-3 flex items-center gap-3 transition-colors bg-white', checked ? 'border-primary' : 'border-line hover:bg-gray-50')}>
+      <RadioDot on={checked} />
       {avatar && <Avatar name={avatar} size={24} />}
-      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-semibold text-[#0A0A0A]">{title}</span>{sub && <span className="block text-xs text-gray-500 mt-0.5">{sub}</span>}</span>
+      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A]">{title}</span>{sub && <span className="block text-xs text-[#737373] mt-0.5">{sub}</span>}</span>
       {right}
     </button>
   );
 }
 
-/** A bordered row with a label, a description and a green switch. */
+/* Rows inside a SheetSection card: split by hairlines like SheetRow, no boxes inside the box. */
+const ROW = 'w-full py-2.5 flex items-center gap-3 border-t border-[#EBEBEB] first:border-t-0 first:pt-0 last:pb-0';
+const rowText = (title: ReactNode, sub?: ReactNode) => <span className="min-w-0 flex-1"><span className="block text-sm leading-5 text-[#0A0A0A]">{title}</span>{sub != null && <span className="block text-[13px] leading-5 text-[#737373]">{sub}</span>}</span>;
+
+/** An option inside a section card: radio dot, title, grey sub, optional end (a pill). Wrap a set in role="radiogroup". */
+export function RadioRow({ checked, onClick, title, sub, right, avatar }: { checked: boolean; onClick: () => void; title: ReactNode; sub?: ReactNode; right?: ReactNode; avatar?: string }) {
+  return (
+    <button type="button" role="radio" aria-checked={checked} onClick={onClick} className={cx(ROW, 'text-left hover:opacity-80')}>
+      <RadioDot on={checked} />
+      {avatar && <Avatar name={avatar} size={24} />}
+      {rowText(title, sub)}
+      {right}
+    </button>
+  );
+}
+
+/** A switch row: label, grey sub and a green switch, split from its neighbours by a hairline (no bordered box). */
 export function ToggleRow({ title, sub, checked, onChange }: { title: string; sub?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="rounded-xl border border-line px-3.5 py-3 flex items-center gap-3">
-      <div className="flex-1"><div className="text-sm">{title}</div>{sub && <div className="text-xs text-gray-500 mt-0.5">{sub}</div>}</div>
+    <div className={ROW}>
+      {rowText(title, sub)}
       <Switch checked={checked} onChange={onChange} label={title} />
     </div>
   );

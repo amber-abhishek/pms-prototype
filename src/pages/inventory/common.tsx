@@ -1,11 +1,13 @@
-import { Fragment, type ReactNode } from 'react';
-import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, WarningCircle, XCircle, Archive, type Icon } from '../../components/icons';
+import { FooterZone } from '../../components/headerCtx';
+import { Fragment, useState, type ReactNode } from 'react';
+import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, MagnifyingGlass, WarningCircle, XCircle, Archive, type Icon } from '../../components/icons';
 import { ConfirmFrame, Pill, Status, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
 import type { Tone } from '../../data/seed';
 import { Dialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
-import type { PStatus, Tag, UStatus } from '../../data/inventory';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
+import { invId, useInv, type PStatus, type Tag, type UStatus } from '../../data/inventory';
 
 /* Status pills as the CMS frames draw them: Draft is a white outlined chip. */
 export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' | 'Succeeded' | 'Failed' }) {
@@ -101,7 +103,36 @@ export function InvModal({ open, onClose, title, width = 600, left, right, child
           <DialogCloseButton />
         </div>
         <div className="flex-1 min-h-0 overflow-auto px-6 py-6 flex flex-col gap-6">{children}</div>
-        <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center">{left}<div className="ml-auto flex items-center gap-2">{right}</div></div>
+        <FooterZone.Provider value><div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center">{left}<div className="ml-auto flex items-center gap-2">{right}</div></div></FooterZone.Provider>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** A modal in the side panels' language (2026-11-19, memory pms-panel-v2-design-language): a 61px control bar with the
+ *  flow in mono caps (+ an optional "STEP 1 OF 5"), then the ✕; a hero (20px Medium title, one grey line); the body as
+ *  SheetSection cards; a 64px footer with `left` (Cancel) and `right` (the action). */
+export function PanelModal({ open, onClose, eyebrow, pos, title, meta, width = 640, left, right, children }: {
+  open: boolean; onClose: () => void; eyebrow: string; pos?: string; title: ReactNode; meta?: ReactNode; width?: number; left?: ReactNode; right?: ReactNode; children: ReactNode;
+}) {
+  const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent aria-describedby={undefined} style={{ maxWidth: width }} {...noAutoFocus}>
+        <div className="h-[61px] shrink-0 border-b border-[#E5E5E5] pl-6 pr-5 flex items-center gap-2">
+          <DialogTitle className={cx(EYEBROW, 'flex-none w-auto text-[#737373]')}>{eyebrow}</DialogTitle>
+          {pos && <><span aria-hidden className="text-xs text-[#A3A3A3]">·</span><span className={cx(EYEBROW, 'text-[#A3A3A3] tabular-nums')}>{pos}</span></>}
+          <span aria-hidden className="flex-1" />
+          <DialogCloseButton />
+        </div>
+        <div className="flex-1 min-h-0 overflow-auto px-6 py-6">
+          <div className="mb-5">
+            <div className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</div>
+            {meta && <p className="text-sm leading-5 text-[#737373]">{meta}</p>}
+          </div>
+          {children}
+        </div>
+        <FooterZone.Provider value><div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center gap-2">{left}<div className="ml-auto flex items-center gap-2">{right}</div></div></FooterZone.Provider>
       </DialogContent>
     </Dialog>
   );
@@ -156,10 +187,17 @@ export function LineTabs<T extends string>({ value, onChange, tabs, className }:
   return (
     <Tabs value={value} onValueChange={(v) => onChange(v as T)}>
       {/* The blue underline slides to the picked tab (2026-11-13). */}
-      <TabsList slide="underline" className={cx('flex h-auto justify-start gap-4 rounded-none bg-transparent p-0 px-5 border-b border-line', className)}>
-        {tabs.map((t) => (
-          <TabsTrigger key={t.id} value={t.id} className="h-10 px-2.5 rounded-none text-[#737373] hover:text-[#0A0A0A] data-[state=active]:text-[#2563EB] data-[state=active]:shadow-none data-[state=active]:bg-transparent">{t.label}</TabsTrigger>
-        ))}
+      {/* Record panel tabs (2026-11-19): 24px apart from a 20px inset, 14px Medium label (grey, ink when picked; same weight so tabs never shift), a count after
+          " · " in grey 12px mono, 2px ink underline, #E5E5E5 rule. */}
+      <TabsList slide="underline" className={cx('flex h-auto justify-start gap-6 rounded-none bg-transparent p-0 px-5 border-b border-[#E5E5E5] [&>[data-slide-bar]]:bg-[#0A0A0A]', className)}>
+        {tabs.map((t) => {
+          const [label, ...count] = t.label.split(' · ');
+          return (
+            <TabsTrigger key={t.id} value={t.id} className="h-10 px-0 gap-1.5 rounded-none font-sans normal-case tracking-normal text-sm font-medium text-[#737373] hover:text-[#0A0A0A] data-[state=active]:text-[#0A0A0A] data-[state=active]:shadow-none data-[state=active]:bg-transparent">
+              {label}{count.length > 0 && <span className="font-mono text-xs font-medium text-[#A3A3A3] tabular-nums">{count.join(' · ')}</span>}
+            </TabsTrigger>
+          );
+        })}
       </TabsList>
     </Tabs>
   );
@@ -254,6 +292,79 @@ export function Progress({ value, tone = 'blue', className }: { value: number; t
 }
 
 export function EditLink({ onClick, children = 'Edit' }: { onClick: () => void; children?: ReactNode }) {
-  return <button type="button" onClick={onClick} className="-my-1 -mx-1.5 h-6 px-1.5 rounded-md text-xs font-medium text-primary hover:bg-[#EFF6FF] inline-flex items-center gap-1">{children}</button>;
+  return <button type="button" onClick={onClick} className="-my-1 -mx-1.5 h-6 px-1.5 rounded-md text-sm font-medium text-primary hover:bg-[#EFF6FF] inline-flex items-center gap-1">{children}</button>;
 }
 export { PencilSimple };
+
+/* Add a tag, Notion style (2026-11-18): type to filter the workspace's tags; when nothing matches the text exactly,
+   a last row offers "Create <text>", which adds it to the workspace tags (Setup › Tags) in the next free colour and
+   puts it on the record. Enter takes the highlighted row; ↑ ↓ move. */
+const NEW_TAG_TONES: Tone[] = ['blue', 'green', 'purple', 'orange', 'amber', 'red', 'grey'];
+/** Add tag trigger (Figma "Add tag"): a 20px dashed r6 chip with a plus and TAG in mono caps, the same height as the tag pills beside it. Pass as TagPicker's trigger. */
+export const addTagChip = (label = 'Tag') => (
+  <button type="button" aria-label="Add tag" className="h-5 px-1.5 inline-flex items-center gap-0.5 rounded-md border border-dashed border-[#A3A3A3] text-[#737373] hover:text-[#0A0A0A] hover:border-[#737373] hover:bg-[#F5F5F5] font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em] transition-colors">
+    <Plus size={12} />{label}
+  </button>
+);
+
+/** Figma "Tag picker (open)" 4052:17322: a 248px r12 popover. Search row (40px, grey magnifier), then the workspace tags as
+ *  pills; tags already on the record show a blue check and, with onRemove, click off. Below a divider, "Create" previews
+ *  the new tag as a pill in the colour it will get. */
+export function TagPicker({ have, onPick, onRemove, trigger }: { have: Tag[]; onPick: (t: Tag, created: boolean) => void; onRemove?: (t: Tag) => void; trigger: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [hi, setHi] = useState(0);
+  const all = useInv((st) => st.tags);
+  const text = q.trim();
+  const on = (t: Tag) => have.some((x) => x.label.toLowerCase() === t.label.toLowerCase());
+  const pool = onRemove ? all : all.filter((t) => !on(t));
+  const shown = pool.filter((t) => t.label.toLowerCase().includes(text.toLowerCase()));
+  const exact = all.some((t) => t.label.toLowerCase() === text.toLowerCase());
+  const canCreate = !!text && !exact;
+  const rows = shown.length + (canCreate ? 1 : 0);
+  const used = all.map((t) => t.tone);
+  const nextTone = NEW_TAG_TONES.find((x) => !used.includes(x)) ?? NEW_TAG_TONES[all.length % NEW_TAG_TONES.length];
+  const close = () => { setOpen(false); setQ(''); setHi(0); };
+  const pick = (t: Tag) => {
+    if (on(t)) { onRemove?.(have.find((x) => x.label.toLowerCase() === t.label.toLowerCase())!); return; }
+    onPick({ label: t.label, tone: t.tone }, false); close();
+  };
+  const create = () => {
+    useInv.getState().set('tags', (l) => [...l, { id: invId('tg'), label: text, tone: nextTone }]);
+    onPick({ label: text, tone: nextTone }, true); close();
+  };
+  const choose = (i: number) => (i < shown.length ? pick(shown[i]) : canCreate && create());
+  return (
+    <Popover open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent align="start" className="w-[248px] p-0 overflow-hidden rounded-xl border-[#E5E5E5] shadow-[0_8px_24px_rgba(0,0,0,0.12)]" onClick={(e) => e.stopPropagation()}>
+        <label className="h-10 px-3 flex items-center gap-2 border-b border-[#E5E5E5]">
+          <MagnifyingGlass size={14} className="shrink-0 text-[#A3A3A3]" />
+          <input value={q} onChange={(e) => { setQ(e.target.value); setHi(0); }} placeholder="Find or create a tag" aria-label="Find or create a tag"
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') { e.preventDefault(); setHi((h) => Math.min(rows - 1, h + 1)); }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(0, h - 1)); }
+              else if (e.key === 'Enter' && rows) { e.preventDefault(); choose(hi); }
+            }}
+            className="flex-1 min-w-0 h-full text-sm text-[#0A0A0A] caret-primary outline-none bg-transparent placeholder:text-[#A3A3A3]" />
+        </label>
+        <div role="listbox" aria-label="Tags" className="max-h-[248px] overflow-auto p-1 flex flex-col gap-0.5">
+          {!rows && <div className="h-8 px-2 flex items-center text-sm text-[#737373]">{pool.length ? 'No tags match' : 'Type to create a tag'}</div>}
+          {shown.map((t, i) => (
+            <button key={t.label} type="button" role="option" aria-selected={on(t)} onMouseEnter={() => setHi(i)} onClick={() => pick(t)}
+              className={cx('w-full h-8 shrink-0 px-2 rounded-lg flex items-center gap-2 text-left', hi === i && 'bg-[#F5F5F5]')}>
+              <Tags tags={[t]} /><span className="flex-1" />{on(t) && <Check size={14} weight="bold" className="shrink-0 text-primary" />}
+            </button>
+          ))}
+          {canCreate && <>
+            {shown.length > 0 && <div aria-hidden className="h-px shrink-0 bg-[#EBEBEB]" />}
+            <button type="button" role="option" aria-selected={false} onMouseEnter={() => setHi(shown.length)} onClick={create}
+              className={cx('w-full h-8 shrink-0 px-2 rounded-lg flex items-center gap-2 text-left text-sm text-[#737373] min-w-0', hi === shown.length && 'bg-[#F5F5F5]')}>
+              <span className="shrink-0">Create</span><span className="min-w-0 truncate"><Tags tags={[{ label: text, tone: nextTone }]} /></span>
+            </button>
+          </>}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}

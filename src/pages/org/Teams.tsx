@@ -1,9 +1,10 @@
 // Organisation › Teams. No Figma frame; styled like Roles and access (header, toolbar, full-bleed table, sheet).
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Empty } from '../../components/ui';
 import { Buildings, Plus, UsersThree } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, Field, Input, SearchInput, Sheet, Table, PageHeading, cx, SheetHero, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Avatar, Button, Field, Input, Pill, SearchInput, Sheet, Table, PageHeading, cx, SheetHero, SheetRow, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { EditLink, LineTabs, PanelModal } from '../inventory/common';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { HALLS, hallsLabel, oid, snapOrg, undoSince, useOrg, type Team } from '../../data/org';
 import { Header, IconSelect, RowMenu } from './parts';
@@ -38,12 +39,62 @@ export function TeamsPage() {
           } },
         ]} /> },
       ]} />
-      {edit && <TeamSheet key={edit === 'new' ? 'new' : edit.id} team={edit === 'new' ? undefined : edit} nav={edit === 'new' ? undefined : listNav(rows, (x) => x.id === edit.id, (x) => setEdit(x))} onClose={() => setEdit(null)} />}
+      {edit === 'new' && <TeamDialog open onClose={() => setEdit(null)} />}
+      {edit && edit !== 'new' && <TeamSheet key={edit.id} team={edit} nav={listNav(rows, (x) => x.id === edit.id, (x) => setEdit(x))} onClose={() => setEdit(null)} />}
     </>
   );
 }
 
-function TeamSheet({ team, onClose , nav }: { nav?: SheetNav;  team?: Team; onClose: () => void }) {
+/* Team panel (Figma "Side panel · Team" 4073:17189): read-only record with Overview (Halls, Members) and Activity. Edit on
+   either section opens the centred team modal; a new team uses the same modal. Delete is in the control bar. */
+function TeamSheet({ team: t0, onClose, nav }: { nav?: SheetNav; team: Team; onClose: () => void }) {
+  const { members, roles, audit, teams, set, audit_ } = useOrg();
+  /* The live record, so a save shows straight away in the panel. */
+  const team = teams.find((t) => t.id === t0.id) ?? t0;
+  const [editing, setEditing] = useState(false);
+  const [tab, setTab] = useState<'overview' | 'activity'>('overview');
+  const del = () => {
+    const before = snapOrg();
+    set('teams', (ts) => ts.filter((x) => x.id !== team.id)); audit_(`deleted the team ${team.name}`, 'Teams');
+    toast.success(`${team.name} deleted`, { action: { label: 'Undo', onClick: undoSince(before, `deleted the team ${team.name}`, 'Teams') } });
+    onClose();
+  };
+  const name = (id: string) => members.find((m) => m.id === id)?.name ?? 'Former member';
+  const hallList = team.halls === 'all' ? HALLS : HALLS.filter((h) => (team.halls as string[]).includes(h.id));
+  const leadName = team.leadId && members.some((m) => m.id === team.leadId) ? name(team.leadId) : 'No lead';
+  const ordered = [...team.memberIds].sort((a, b) => Number(b === team.leadId) - Number(a === team.leadId));
+  const acts = audit.filter((a) => a.what.includes(team.name)).slice(0, 6);
+  const activity = acts.length ? acts.map((a) => ({ who: a.who, what: a.what, when: a.when }))
+    : [...team.memberIds.slice(-1).map((id) => ({ who: 'Arjun Mehta', what: `added ${name(id)}`, when: '12 Nov' })),
+       ...hallList.slice(-1).map((h) => ({ who: 'Arjun Mehta', what: `added ${h.name}`, when: '3 Nov' })),
+       { who: leadName === 'No lead' ? 'Arjun Mehta' : leadName, what: 'created the team', when: 'Mar 2025' }];
+  return (
+    <Sheet open onClose={onClose} nav={nav} title="Team" onDelete={{ label: 'Delete team', onClick: del }}>
+      <SheetHero icon={UsersThree} name={team.name} meta={team.purpose || `${team.memberIds.length} ${team.memberIds.length === 1 ? 'member' : 'members'}`}
+        facts={[['Members', String(team.memberIds.length)], ['Halls', team.halls === 'all' ? 'All' : String(hallList.length)], ['Lead', leadName]]} />
+      <div className="-mx-5 mb-5"><LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity' }]} /></div>
+      {tab === 'overview' && <>
+        <SheetSection title={`Halls · ${hallList.length}`} action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
+          {hallList.map((h) => <SheetRow key={h.id} title={h.name} sub={`${h.rooms} rooms`} />)}
+        </SheetSection>
+        <SheetSection title={`Members · ${team.memberIds.length}`} action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
+          {ordered.map((id) => { const m = members.find((x) => x.id === id); return (
+            <SheetRow key={id} lead={<Avatar name={name(id)} size={24} />} title={name(id)} sub={roles.find((r) => r.id === m?.roleId)?.name ?? '—'} end={id === team.leadId ? <Pill tone="grey">Lead</Pill> : undefined} />
+          ); })}
+        </SheetSection>
+      </>}
+      {tab === 'activity' && (
+        <SheetSection title="Activity">
+          {activity.map((a, i) => <SheetRow key={i} lead={<Avatar name={a.who} size={24} />} title={`${a.who} ${a.what}`} sub={a.when} />)}
+        </SheetSection>
+      )}
+      <TeamDialog team={team} open={editing} onClose={() => setEditing(false)} />
+    </Sheet>
+  );
+}
+
+/** Create or edit a team in a centred modal: name and purpose, halls, members (with the lead). */
+function TeamDialog({ team, open, onClose }: { team?: Team; open: boolean; onClose: () => void }) {
   const { members, set, audit_ } = useOrg();
   const [n, setN] = useState(team?.name ?? '');
   const [purpose, setPurpose] = useState(team?.purpose ?? '');
@@ -51,6 +102,11 @@ function TeamSheet({ team, onClose , nav }: { nav?: SheetNav;  team?: Team; onCl
   const [lead, setLead] = useState(team?.leadId ?? members[0]?.id ?? '');
   const [hall, setHall] = useState(team ? (team.halls === 'all' ? 'all' : team.halls[0]) : 'all');
   const busy = useRef(false);
+  useEffect(() => {
+    if (!open) return;
+    busy.current = false;
+    setN(team?.name ?? ''); setPurpose(team?.purpose ?? ''); setIds(team?.memberIds ?? []); setLead(team?.leadId ?? members[0]?.id ?? ''); setHall(team ? (team.halls === 'all' ? 'all' : team.halls[0]) : 'all');
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const save = () => {
     if (busy.current) return;
     if (!n.trim()) { toast.error('Name the team'); return; }
@@ -65,10 +121,8 @@ function TeamSheet({ team, onClose , nav }: { nav?: SheetNav;  team?: Team; onCl
     onClose();
   };
   return (
-    <Sheet open onClose={onClose} nav={nav} title={team ? 'Edit team' : 'New team'}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{team ? 'Save' : 'Create team'}</Button></>}>
-      {team && <SheetHero avatar={false} name={team.name} meta={`${team.memberIds.length} members`} />}
-      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+    <PanelModal open={open} onClose={onClose} eyebrow={team ? 'Edit team' : 'New team'} title={team ? team.name : 'New team'} width={600}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{team ? 'Save' : 'Create team'}</Button></>}>
       <SheetSection title="Team">
         <div className="space-y-4">
           <Field label="Name"><Input value={n} onChange={(e) => setN(e.target.value)} placeholder="e.g. Van Mildert" /></Field>
@@ -79,17 +133,16 @@ function TeamSheet({ team, onClose , nav }: { nav?: SheetNav;  team?: Team; onCl
         <IconSelect ariaLabel="Halls" icon={Buildings} value={hall} onChange={setHall} options={[{ value: 'all', label: 'All halls' }, ...HALLS.map((h) => ({ value: h.id, label: h.name }))]} />
       </SheetSection>
       <SheetSection title={`Members · ${ids.length}`}>
-        <div className="divide-y divide-[#F5F5F5]">
+        <div className="divide-y divide-[#EBEBEB] -my-1">
           {members.map((m) => { const on = ids.includes(m.id); return (
             <label key={m.id} className="flex items-center gap-3 h-11 cursor-pointer">
               <Checkbox checked={on} onCheckedChange={(v) => setIds((v === true) ? [...ids, m.id] : ids.filter((x) => x !== m.id))} />
               <Avatar name={m.name} size={24} /><span className="flex-1 text-sm">{m.name}</span>
-              {on && <button type="button" onClick={(e) => { e.preventDefault(); setLead(m.id); }} className={cx('text-xs', lead === m.id ? 'text-[#0B8A4C] font-medium' : 'text-gray-400 hover:text-primary')}>{lead === m.id ? 'Lead' : 'Make lead'}</button>}
+              {on && <button type="button" onClick={(e) => { e.preventDefault(); setLead(m.id); }} className={cx('text-xs', lead === m.id ? 'text-[#0A0A0A] font-medium' : 'text-[#737373] hover:text-[#0A0A0A]')}>{lead === m.id ? 'Lead' : 'Make lead'}</button>}
             </label>
           ); })}
         </div>
       </SheetSection>
-      </div>
-    </Sheet>
+    </PanelModal>
   );
 }

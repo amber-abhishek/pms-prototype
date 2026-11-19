@@ -1,23 +1,25 @@
+import { FooterZone } from '../../components/headerCtx';
 import { useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import {
-  Bed, Buildings, CalendarBlank, CaretDown, CaretRight, Check, CircleDashed, ClipboardCheck, DotsThree, DoorOpen, FileText, MagnifyingGlass, MapPin, Minus, Plus, Receipt, Stack, Trash, WarningCircle, X, type Icon,
+  Bed, Buildings, CalendarBlank, Info, CaretDown, Check, DotsThree, MagnifyingGlass, MapPin, Minus, Plus, Trash, WarningCircle, X, type Icon,
 } from '../../components/icons';
-import { Button, Confirm, Field, Input, cx, Pill, toneCls, toneDot } from '../../components/ui';
+import { Button, Confirm, Field, Input, SheetRow, SheetSection, cx, toneCls } from '../../components/ui';
 import { Dialog as Modal, DialogContent, DialogTitle } from '../../components/shadcn/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/shadcn/tooltip';
 import { invId, useInv, type Property, type Template } from '../../data/inventory';
-import { ACard, LV, LayoutRadios, Menu, MoneyInput, Picker, Seg, Stepper, type Level } from './common';
+import { EditLink, LV, LayoutRadios, Menu, Modal as InvConfirm, MoneyInput, Picker, Stepper, type Level } from './common';
 
 type WBlock = { key: string; name: string; floors: number; flats: number; rpf: number; roomType: string; size: string; floorPat: string; flatPat: string; roomPat: string };
+const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
 type Terms = { weeks: string; rent: string; deposit: string };
 const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
 const DEF_TERMS: Record<string, Terms> = { 'Ensuite single': { weeks: '51', rent: '212', deposit: '250' }, 'Standard single': { weeks: '44', rent: '168', deposit: '250' }, Studio: { weeks: '51', rent: '246', deposit: '300' } };
-/* Figma 3884:40957–42635. One colour per step (back on 2026-11-18). */
-const STEPS: { title: string; tone: string; icon: Icon }[] = [
-  { title: 'Basics', tone: '#2563EB', icon: Buildings }, { title: 'Location', tone: '#DB2777', icon: MapPin }, { title: 'Units', tone: '#7C3AED', icon: Bed },
-  { title: 'Rent & terms', tone: '#D97706', icon: Receipt }, { title: 'Review', tone: '#16A34A', icon: ClipboardCheck },
+/* Figma "B · Left rail" (4119:17380, 2026-11-19): a numbered step list down the left, one hint line per step, neutral ink. */
+const STEPS: { title: string; sub: string }[] = [
+  { title: 'Basics', sub: 'Name, campus, layout' }, { title: 'Location', sub: 'Address and zone' }, { title: 'Units', sub: 'Blocks, floors, rooms' },
+  { title: 'Rent & terms', sub: 'Templates and dates' }, { title: 'Review', sub: 'Check and create' },
 ];
 /* One colour per level, from the tag-pill tones (2026-11-13): the layout cards, the previews, the Units tree and its
    counts all use it, so a level reads the same everywhere in the flow. */
@@ -54,10 +56,11 @@ export function AddPropertyWizard() {
   const [to, setTo] = useState('4 Aug 2028');
   const [billing, setBilling] = useState<'Termly' | 'Monthly' | 'Upfront'>('Termly');
   const creating = useRef(false);
+  /* Creating is instant, so the review ends in a confirmation popup, not a "what happens next" list (2026-11-19). */
+  const [done, setDone] = useState<Property | null>(null);
   const nameRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const house = structure === 'House';
-  const short = name.replace(/ College$/, '') || 'the property';
   const total = blocks.reduce((a, b) => a + rooms(b, house), 0);
   const floors = house ? 0 : blocks.reduce((a, b) => a + b.floors, 0);
   const flats = house ? 0 : blocks.reduce((a, b) => a + b.floors * b.flats, 0);
@@ -119,8 +122,7 @@ export function AddPropertyWizard() {
     st.set('properties', (ps) => [...ps.filter((x) => x.id !== id), p]);
     st.set('templates', (ts) => [...ts.filter((x) => x.propertyId !== id), ...tpls]);
     if (total) st.set('imports', (l) => [{ id: invId('im'), name: `${p.name} · ${total} rooms`, kind: 'Bulk create', status: 'Running', done: 0, total, by: 'Arjun Mehta', started: 'Just now', structure, creates: `1 property · ${total + flats + floors + blocks.length} entities` }, ...l]);
-    nav(`/inventory/properties/${id}`, { replace: true });
-    toast.success(total ? `${p.name} created · building its rooms` : `${p.name} created as a draft`);
+    setDone(p);
   };
 
 
@@ -128,64 +130,83 @@ export function AddPropertyWizard() {
   return (
     <>
       {/* Centred modal over the Properties list (Figma "Modal · Add property": 960×840, r16, 40% #0A0A0A dim). */}
-      <Modal open onOpenChange={(o) => { if (!o && !leaving) leave(); }}>
+      <Modal open={!done} onOpenChange={(o) => { if (!o && !leaving) leave(); }}>
         {/* Keep focus on the modal itself on open, so the ✕ doesn't open with a focus ring. */}
         <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[960px] h-[min(840px,calc(100vh-32px))] max-h-none">
-          <div className="h-14 shrink-0 border-b border-[#E5E5E5] pl-6 pr-4 flex items-center gap-3">
-            <DialogTitle className="flex-1 text-base leading-5 font-medium text-[#0A0A0A]">Add property</DialogTitle>
+          {/* Control bar, as the side panels (2026-11-19): 61px, the flow in 11px mono caps with "STEP 1 OF 5", then close. */}
+          <div className="h-[61px] shrink-0 border-b border-[#E5E5E5] pl-6 pr-5 flex items-center gap-2">
+            <DialogTitle className={cx(EYEBROW, 'flex-none w-auto text-[#737373] shrink-0')}>Create property</DialogTitle>
+            <span aria-hidden className="text-xs text-[#A3A3A3]">·</span>
+            <span className={cx(EYEBROW, 'text-[#A3A3A3] tabular-nums')}>Step {step + 1} of {STEPS.length}</span>
+            <span aria-hidden className="flex-1" />
             <button type="button" aria-label="Close" onClick={leave} className="size-7 shrink-0 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#0A0A0A] hover:bg-[#F5F5F5] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring"><X size={16} strokeWidth={1.5} /></button>
           </div>
 
-          {/* Stepper: 68px #FAFAFA band. Done = 12% tint + check, current = solid tile with a 4px glow, next = white outline. */}
-          <ol className="h-[68px] shrink-0 bg-[#FAFAFA] border-b border-[#E5E5E5] px-6 flex items-center gap-3">
-            {STEPS.map((s, i) => {
-              const done = i < step, cur = i === step;
-              const I = done ? Check : s.icon;
-              return (
-                <li key={s.title} className={cx('flex items-center gap-3 min-w-0', i < STEPS.length - 1 && 'flex-1')}>
-                  <button type="button" disabled={i > step} onClick={() => setStep(i)} className="flex items-center gap-2.5 shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default">
-                    <span className={cx('size-8 rounded-lg flex items-center justify-center', !done && !cur && 'bg-white border border-[#E5E5E5] text-[#A3A3A3]')}
-                      style={done ? { background: `${s.tone}1F`, color: s.tone } : cur ? { background: s.tone, color: '#fff', boxShadow: `0 0 0 4px ${s.tone}2E` } : undefined}>
-                      <I size={16} strokeWidth={1.5} />
-                    </span>
-                    <span className="flex flex-col gap-px text-left">
-                      <span className="font-mono uppercase text-[11px] leading-[14px] font-medium tracking-[0.44px]" style={{ color: done || cur ? s.tone : '#A3A3A3' }}>Step 0{i + 1}</span>
-                      <span className={cx('text-sm leading-[18px] whitespace-nowrap', done || cur ? 'font-medium text-[#0A0A0A]' : 'text-[#737373]')}>{s.title}</span>
-                    </span>
-                  </button>
-                  {i < STEPS.length - 1 && <span aria-hidden className={cx('flex-1 min-w-4 h-0.5 rounded-[1px]', !done && 'bg-[#E5E5E5]')} style={done ? { background: s.tone } : undefined} /* solid, no gradient (2026-11-12) */ />}
-                </li>
-              );
-            })}
-          </ol>
-
           <div className="flex-1 min-h-0 flex">
-            <section className="flex-1 min-w-0 overflow-auto px-10 py-6 flex flex-col gap-4">
-              <h2 className="text-xl leading-[26px] font-medium text-[#0A0A0A]">{STEPS[step].title}</h2>
+            {/* Rail: 240px #FAFAFA. Current = white raised row with a green (#0B8A4C) number; done = grey disc with a check, clickable
+                to go back; upcoming = outlined grey number. */}
+            <nav aria-label="Steps" className="w-[240px] shrink-0 bg-[#FAFAFA] border-r border-[#E5E5E5] overflow-auto px-4 py-6">
+              <ol className="flex flex-col gap-1">
+                {STEPS.map((s, i) => {
+                  const done = i < step, cur = i === step;
+                  return (
+                    <li key={s.title}>
+                      <button type="button" disabled={i > step} onClick={() => setStep(i)} aria-current={cur ? 'step' : undefined}
+                        className={cx('w-full text-left rounded-[10px] p-2.5 flex items-start gap-3 outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default border',
+                          cur ? 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'border-transparent', done && 'hover:bg-[#F0F0F0]')}>
+                        <span className={cx('size-6 shrink-0 rounded-full flex items-center justify-center text-xs font-medium tabular-nums',
+                          cur ? 'bg-[#0B8A4C] text-white' : done ? 'bg-[#E5E5E5] text-[#0A0A0A]' : 'bg-white border border-[#D4D4D4] text-[#737373]')}>
+                          {done ? <Check size={12} strokeWidth={2} /> : i + 1}
+                        </span>
+                        <span className="min-w-0">
+                          <span className={cx('block text-sm leading-5 font-medium', cur || done ? 'text-[#0A0A0A]' : 'text-[#737373]')}>{s.title}</span>
+                          <span className={cx('block text-xs leading-4', cur ? 'text-[#737373]' : 'text-[#A3A3A3]')}>{s.sub}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
+            <section className="flex-1 min-w-0 overflow-auto px-8 py-6">
+              {/* Hero, as the side panels: the step name at 20px Medium and one grey line under it; then r16 section cards
+                  with a 48px #FAFAFA strip (SheetSection). */}
+              <div className="mb-5">
+                <h2 className="text-xl leading-7 font-medium text-[#0A0A0A]">{STEPS[step].title}</h2>
+                <p className="text-sm leading-5 text-[#737373]">{STEPS[step].sub}</p>
+              </div>
 
               {step === 0 && (
-                <div className="flex flex-col gap-6 pt-2">
-                  <Field label="Property name"><Input className={i9} value={name} onChange={(e) => setName(e.target.value)} onBlur={() => setNameTouched(true)} placeholder="e.g. St Mary’s College" aria-invalid={nameTouched && !!nameErr} /><Err>{nameTouched ? nameErr : ''}</Err></Field>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Inventory number" hint="Optional · your own reference"><Input className={cx(i9, 'font-mono')} value={invNo} onChange={(e) => setInvNo(e.target.value)} placeholder="e.g. SMC-001" /></Field>
-                    <Field label="Campus"><Picker className={i9} value={campus} onChange={setCampus} options={[{ id: 'Durham City', label: 'Durham City' }, { id: 'Queen’s Campus', label: 'Queen’s Campus' }]} /></Field>
-                  </div>
-                  <div>
-                    <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">Letting period</div>
-                    <Seg value={letting} onChange={setLetting} options={['Weekly', 'Monthly']} className="w-[242px]" />
-                    <p className="text-xs text-[#737373] mt-1.5">Rent and tenancy length use this unit.</p>
-                  </div>
-                  <div>
-                    <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">Property layout</div>
+                <>
+                  <SheetSection title="Property">
+                    <div className="flex flex-col gap-4">
+                      <Field label="Property name"><Input className={i9} value={name} onChange={(e) => setName(e.target.value)} onBlur={() => setNameTouched(true)} placeholder="e.g. St Mary’s College" aria-invalid={nameTouched && !!nameErr} /><Err>{nameTouched ? nameErr : ''}</Err></Field>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label="Inventory number" hint="Optional · your own reference"><Input className={cx(i9, 'font-mono')} value={invNo} onChange={(e) => setInvNo(e.target.value)} placeholder="e.g. SMC-001" /></Field>
+                        <Field label="Campus"><Picker className={i9} value={campus} onChange={setCampus} options={[{ id: 'Durham City', label: 'Durham City' }, { id: 'Queen’s Campus', label: 'Queen’s Campus' }]} /></Field>
+                      </div>
+                    </div>
+                  </SheetSection>
+                  <SheetSection title="Letting period">
+                    <div role="radiogroup" aria-label="Letting period" className="flex items-center gap-6">
+                      {(['Weekly', 'Monthly'] as const).map((v) => (
+                        <button key={v} type="button" role="radio" aria-checked={letting === v} onClick={() => setLetting(v)} className="h-9 flex items-center gap-2 text-sm text-[#0A0A0A] outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md">
+                          <span className={cx('size-4 rounded-full border flex items-center justify-center shrink-0', letting === v ? 'border-[#2563EB] bg-[#2563EB]' : 'border-[#D4D4D4] bg-white')}>{letting === v && <span className="size-1.5 rounded-full bg-white" />}</span>{v}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[13px] leading-5 text-[#737373] mt-1">Rent and tenancy length use this unit.</p>
+                  </SheetSection>
+                  <SheetSection title="Layout" action={<EditLink onClick={() => nav('/inventory/structures')}>New layout</EditLink>}>
                     <LayoutRadios value={structure} onChange={setStructure} />
-                    <button type="button" onClick={() => nav('/inventory/structures')} className="mt-3 text-sm text-[#2563EB] hover:underline underline-offset-2 flex items-center gap-1.5"><Plus size={14} strokeWidth={1.5} />New property layout</button>
-                  </div>
-                </div>
+                  </SheetSection>
+                </>
               )}
 
               {step === 1 && (
-                <div className="flex flex-col gap-6 pt-2">
-                  <Field label="Find the address">
+                <>
+                  <SheetSection title="Address">
+                    <div className="flex flex-col gap-4">
                     <div className="relative">
                       <span className="h-9 flex items-center gap-2 rounded-lg border border-input bg-white px-3 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25">
                         <MagnifyingGlass size={16} strokeWidth={1.5} className="text-[#737373]" />
@@ -200,8 +221,7 @@ export function AddPropertyWizard() {
                         </div>
                       )}
                     </div>
-                  </Field>
-                  <MapArt picked={picked} />
+                      <MapArt picked={picked} />
                   {picked && (
                     <div className="rounded-xl border border-[#E5E5E5] px-4 py-3 flex items-center gap-3">
                       <MapPin size={16} strokeWidth={1.5} className="text-[#2563EB] shrink-0" />
@@ -209,27 +229,35 @@ export function AddPropertyWizard() {
                       <button type="button" onClick={() => { setPicked(false); setQuery(''); }} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Change</button>
                     </div>
                   )}
-                  <div className="w-[241px]"><Field label="Zone" hint="Optional · groups nearby properties"><Input className={i9} value={zone} onChange={(e) => setZone(e.target.value)} /></Field></div>
-                </div>
+                    </div>
+                  </SheetSection>
+                  <SheetSection title="Zone">
+                    <div className="w-[241px]"><Input className={i9} aria-label="Zone" value={zone} onChange={(e) => setZone(e.target.value)} placeholder="e.g. Elvet" /></div>
+                    <p className="text-[13px] leading-5 text-[#737373] mt-1.5">Optional · groups nearby properties</p>
+                  </SheetSection>
+                </>
               )}
 
               {step === 2 && (
                 <>
-                  <div className="rounded-xl border border-dashed border-[#D4D4D4] px-3.5 py-3 flex items-center gap-2.5">
-                    <FileText size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
-                    <span className="flex-1 text-sm text-[#404040]">Every room already in a spreadsheet?</span>
-                    <button type="button" onClick={() => nav('/inventory/properties?import=1')} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Import CSV</button>
-                  </div>
+                  <SheetSection title={`Blocks · ${blocks.length} · ${fmt(total)} rooms`} action={<EditLink onClick={addBlock}>Add block</EditLink>}>
+                    <div className="-my-3.5">
                   {blocks.map((b) => openBlock === b.key ? (
-                    <div key={b.key} className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                      <div className="h-[52px] pl-3.5 pr-2.5 flex items-center gap-2.5 border-b border-[#E5E5E5]">
+                    <div key={b.key} className="border-t border-[#EBEBEB] first:border-t-0 -mx-4">
+                      <div className="h-[52px] pl-4 pr-3 flex items-center gap-2.5">
                         <LevelTile level="Block" icon={Buildings} />
                         <Input aria-label="Block name" ref={(el: HTMLInputElement | null) => { nameRefs.current[b.key] = el; }} value={b.name} onChange={(e) => upd(b.key, { name: e.target.value })} className="h-8 w-[200px]" />
                         <span className="ml-auto font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, house))} rooms</span>
                         <Menu width={160} trigger={(o) => <button type="button" aria-label="Block menu" onClick={o} className="size-7 rounded-md hover:bg-[#F5F5F5] flex items-center justify-center text-[#737373]"><DotsThree size={16} /></button>}
                           items={[{ label: 'Remove block', icon: Trash, danger: true, disabled: blocks.length < 2, onClick: () => setBlocks((bs) => bs.filter((x) => x.key !== b.key)) }]} />
                       </div>
-                      <div className="p-3.5 grid grid-cols-[120px_auto_minmax(0,1fr)] gap-3 items-center text-sm text-[#0A0A0A]">
+                      <div className="px-4 pb-4 grid grid-cols-[120px_auto_minmax(0,1fr)] gap-3 items-center text-sm text-[#0A0A0A]">
+                        {/* Column heads, so "Floor {n}" reads as a naming pattern, with a tooltip on what {n} does (2026-11-19). */}
+                        <span /><span className="text-xs leading-4 text-[#737373]">How many</span>
+                        <span className="text-xs leading-4 text-[#737373] flex items-center gap-1">Names
+                          <Tooltip><TooltipTrigger asChild><button type="button" aria-label="How naming works" className="size-4 rounded-full flex items-center justify-center text-[#A3A3A3] hover:text-[#0A0A0A]"><Info size={13} strokeWidth={1.5} /></button></TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[260px]">{'{n}'} becomes 1, 2, 3… under each parent. “Floor {'{n}'}” makes Floor 1, Floor 2. Type your own words around it, e.g. “Level {'{n}'}” or “{'{n}'}F”.</TooltipContent></Tooltip>
+                        </span>
                         {!house && <><span>Floors</span><Stepper value={b.floors} onChange={(n) => upd(b.key, { floors: n })} /><Input className="h-8 font-mono" value={b.floorPat} onChange={(e) => upd(b.key, { floorPat: e.target.value })} aria-label="Floor name pattern" /></>}
                         {!house && <><span>Flats per floor</span><Stepper value={b.flats} onChange={(n) => upd(b.key, { flats: n })} /><Input className="h-8 font-mono" value={b.flatPat} onChange={(e) => upd(b.key, { flatPat: e.target.value })} aria-label="Flat name pattern" /></>}
                         <span>{house ? 'Rooms' : 'Rooms per flat'}</span><Stepper value={b.rpf} onChange={(n) => upd(b.key, { rpf: n })} /><Input className="h-8 font-mono" value={b.roomPat} onChange={(e) => upd(b.key, { roomPat: e.target.value })} aria-label="Room name pattern" />
@@ -238,167 +266,99 @@ export function AddPropertyWizard() {
                         <label className="h-8 w-[104px] flex items-center rounded-lg border border-input bg-white px-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25"><input aria-label="Room size" value={b.size} onChange={(e) => upd(b.key, { size: e.target.value.replace(/[^0-9.]/g, '') })} className="flex-1 min-w-0 outline-none bg-transparent" /><span className="text-[#A3A3A3] text-xs">m²</span></label>
                         <span className="text-xs text-[#737373]">Set on all {fmt(rooms(b, house))} rooms</span>
                       </div>
-                      {blockErr(b) && <div className="px-3.5 pb-3.5 -mt-1.5"><Err>{blockErr(b)}</Err></div>}
+                      {blockErr(b) && <div className="px-4 pb-4 -mt-2"><Err>{blockErr(b)}</Err></div>}
                     </div>
                   ) : (
-                    <button key={b.key} type="button" onClick={() => setOpenBlock(b.key)} className="w-full h-[52px] shrink-0 rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] px-3.5 flex items-center gap-2.5 text-left hover:bg-[#FAFAFA]">
+                    <button key={b.key} type="button" onClick={() => setOpenBlock(b.key)} className="-mx-4 w-[calc(100%+32px)] h-[52px] px-4 flex items-center gap-2.5 text-left hover:bg-[#FAFAFA] border-t border-[#EBEBEB] first:border-t-0">
                       <LevelTile level="Block" icon={Buildings} />
                       <span className="text-sm font-medium text-[#0A0A0A] whitespace-nowrap">{b.name}</span>
                       <span className="flex-1 min-w-0 text-xs text-[#737373] truncate">{blockErr(b) ? <span className="text-[#DC2626]">Needs a fix</span> : <>{house ? `${b.rpf} rooms` : `${b.floors} floors × ${b.flats} flats × ${b.rpf} rooms`} · {b.roomType}</>}</span>
                       <span className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, house))} rooms</span><CaretDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
                     </button>
                   ))}
-                  <button type="button" onClick={addBlock} className="w-full h-10 shrink-0 rounded-xl border border-dashed border-[#D4D4D4] text-sm font-medium text-[#0A0A0A] flex items-center justify-center gap-2 hover:bg-[#FAFAFA]"><Plus size={14} strokeWidth={1.5} className="text-[#404040]" />Add block</button>
+                    </div>
+                  </SheetSection>
                   {total > BIG && (
                     <label className="rounded-xl border border-[#D97706]/40 p-3.5 flex gap-3 items-start cursor-pointer">
                       <input type="checkbox" checked={bigOk} onChange={(e) => setBigOk(e.target.checked)} className="mt-0.5 size-4 accent-primary" />
                       <span><span className="block text-sm font-medium text-[#D97706]">That’s {fmt(total)} rooms</span><span className="block text-xs text-[#737373] mt-0.5">Far more than a typical hall. Check the counts, or tick to confirm.</span></span>
                     </label>
                   )}
+                  <p className="mt-3 text-sm leading-5 text-[#737373]">Every room already in a spreadsheet? <button type="button" onClick={() => nav('/inventory/properties?import=1')} className="text-[#2563EB] font-medium hover:underline underline-offset-2">Import CSV</button></p>
                 </>
               )}
 
               {step === 3 && (
-                <div className="flex flex-col gap-6 pt-2">
-                  <div>
-                    <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
+                <>
+                  <SheetSection title={`Room types · ${types.length}`}>
+                    <div className="-mx-4 -my-3.5">
                       <table className="w-full text-sm table-fixed">
-                        <colgroup><col /><col className="w-12" /><col className="w-[72px]" /><col className="w-[108px]" /><col className="w-[116px]" /></colgroup>
-                        <thead><tr className="text-left bg-[#FAFAFA] border-b border-[#E5E5E5] font-mono uppercase text-xs tracking-[0.48px] text-[#737373] [&>th]:font-medium [&>th]:h-9">
-                          <th className="pl-3.5">Room type</th><th className="px-1">Rooms</th><th className="px-1">Weeks</th><th className="px-1">Rent / {letting === 'Weekly' ? 'wk' : 'mo'}</th><th className="px-1 pr-3">Deposit</th>
+                        <colgroup><col /><col className="w-[68px]" /><col className="w-[72px]" /><col className="w-[108px]" /><col className="w-[116px]" /></colgroup>
+                        <thead><tr className="text-left border-b border-[#EBEBEB] text-sm text-[#737373] [&>th]:font-normal [&>th]:h-10">
+                          <th className="pl-4">Room type</th><th className="px-1">Rooms</th><th className="px-1">Weeks</th><th className="px-1">Rent / {letting === 'Weekly' ? 'wk' : 'mo'}</th><th className="px-1 pr-4">Deposit</th>
                         </tr></thead>
                         <tbody>
                           {types.map((t) => (
-                            <tr key={t.name} className="border-b border-[#E5E5E5] last:border-0">
-                              <td className="h-14 pl-3.5"><span className="flex items-center gap-2 font-medium text-[#0A0A0A]"><LevelTile level="Room" icon={Bed} /><span className="truncate">{t.name}</span></span></td>
+                            <tr key={t.name} className="border-b border-[#EBEBEB] last:border-0">
+                              <td className="h-14 pl-4"><span className="flex items-center gap-2 font-medium text-[#0A0A0A]"><LevelTile level="Room" icon={Bed} /><span className="truncate">{t.name}</span></span></td>
                               <td className="px-1 text-[#404040] tabular-nums">{fmt(t.rooms)}</td>
                               <td className="px-1"><Input className="h-8" aria-label={`${t.name} weeks`} value={t.weeks} onChange={(e) => setTerm(t.name, 'weeks', e.target.value.replace(/\D/g, ''))} /></td>
                               <td className="px-1"><MoneyInput value={t.rent} onChange={(v) => setTerm(t.name, 'rent', v)} /></td>
-                              <td className="px-1 pr-3"><MoneyInput value={t.deposit} onChange={(v) => setTerm(t.name, 'deposit', v)} /></td>
+                              <td className="px-1 pr-4"><MoneyInput value={t.deposit} onChange={(v) => setTerm(t.name, 'deposit', v)} /></td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                     {termErrs.filter((e) => e !== dateErr).map((e) => <Err key={e}>{e}</Err>)}
-                  </div>
-                  <div>
+                  </SheetSection>
+                  <SheetSection title="Dates and billing">
                     <div className="grid grid-cols-3 gap-4">
                       <Field label="Available from"><DateInput value={from} onChange={setFrom} /></Field>
                       <Field label="Available to"><DateInput value={to} onChange={setTo} /></Field>
                       <Field label="Billing"><Picker className={i9} value={billing} onChange={setBilling} options={[{ id: 'Termly', label: 'Termly' }, { id: 'Monthly', label: 'Monthly' }, { id: 'Upfront', label: 'Upfront' }]} /></Field>
                     </div>
                     <Err>{dateErr}</Err>
-                  </div>
-                  <div className="rounded-xl border border-[#E5E5E5] px-4 py-3 flex items-center gap-3">
-                    <span className="size-7 rounded-md flex items-center justify-center shrink-0 bg-[#D97706]/10 text-[#9A5B00]"><Receipt size={16} strokeWidth={1.5} /></span>
-                    <div className="flex-1 min-w-0"><div className="text-sm font-medium text-[#0A0A0A]">Organisation-wide fees apply</div><div className="text-xs text-[#737373]">Contents insurance · £45 per tenancy</div></div>
-                    <button type="button" onClick={() => nav('/inventory/rent-fees?tab=fees')} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Tenancy pricing</button>
-                  </div>
-                </div>
+                  </SheetSection>
+                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/inventory/rent-fees?tab=fees')}>Tenancy pricing</EditLink>}>
+                    <SheetRow title="Organisation-wide fees apply" sub="Contents insurance · £45 per tenancy" />
+                  </SheetSection>
+                </>
               )}
 
               {step === 4 && (
-                <div className="flex flex-col gap-6 pt-2">
-                  <div className="rounded-xl border border-[#E5E5E5] divide-y divide-[#E5E5E5]">
+                <>
+                  <SheetSection title="Summary">
                     {([
                       ['Basics', name, `${campus} · ${structure} layout · ${letting.toLowerCase()} · ${invNo || 'no ref'}`, 0],
                       ['Location', 'Elvet Hill Road, Durham DH1 3LR', zone ? `Zone ${zone}` : 'No zone', 1],
                       ['Units', `${fmt(total)} rooms`, blocks.map((b) => `${b.name} ${fmt(rooms(b, house))}`).join(' · '), 2],
                       ['Rent & terms', `${types.length} templates · ${fmt(total)} draft tenancies`, types.map((t) => `${t.name.split(' ')[0]} £${t.rent} · ${t.weeks} wk`).join(' · '), 3],
                     ] as const).map(([k, a, b, s]) => (
-                      <div key={k} className="px-3.5 py-3.5 grid grid-cols-[120px_minmax(0,1fr)_auto] gap-3 items-center">
-                        <span className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#737373]">{k}</span>
-                        <span className="min-w-0"><span className="block text-sm font-medium text-[#0A0A0A] truncate">{a}</span><span className="block text-xs text-[#737373] truncate">{b}</span></span>
-                        <button type="button" onClick={() => setStep(s)} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Edit</button>
+                      <div key={k} className="py-3 first:pt-0 last:pb-0 border-t border-[#EBEBEB] first:border-t-0 grid grid-cols-[120px_minmax(0,1fr)_auto] gap-3 items-center">
+                        <span className="text-sm text-[#737373]">{k}</span>
+                        <span className="min-w-0"><span className="block text-sm font-medium text-[#0A0A0A] truncate">{a}</span><span className="block text-[13px] leading-5 text-[#737373] truncate">{b}</span></span>
+                        <EditLink onClick={() => setStep(s)}>Edit</EditLink>
                       </div>
                     ))}
-                  </div>
-                  <div className="rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] px-3.5 py-3 flex items-center gap-3">
-                    <CircleDashed size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
-                    <span className="flex-1 text-sm text-[#404040]">Created as a draft. Nobody can book it until you make it active.</span>
-                    <Pill>Draft</Pill>
-                  </div>
-                </div>
+                  </SheetSection>
+                  <p className="mt-3 text-sm leading-5 text-[#737373]">Created as a draft. Nobody can book it until you make it active.</p>
+                </>
               )}
             </section>
 
-            {/* Aside: 380px, a preview card with a mono strip, then one grey line. */}
-            <aside className="w-[380px] shrink-0 border-l border-[#E5E5E5] overflow-auto p-6 flex flex-col gap-4">
-              {step === 0 && (
-                <>
-                  <ACard title="Preview">
-                    <div className="p-3 flex flex-col gap-2 text-sm">
-                      {(structure === 'College' ? [['Property', name || 'Untitled', Buildings], ['Block', 'e.g. Main House', Buildings], ['Floor', 'e.g. Floor 1', Stack], ['Flat', 'e.g. Flat 1', DoorOpen], ['Room', 'e.g. Room 1', Bed]] as const
-                        : [['Property', name || 'Untitled', Buildings], ['Room', 'e.g. Room 1', Bed]] as const).map(([l, ex, I], i) => (
-                        <div key={l} className="flex items-center gap-2" style={{ paddingLeft: i * 16 }}>
-                          <LevelTile level={l} icon={I} /><span className="font-medium text-[#0A0A0A]">{l}</span><span className="text-xs text-[#737373] truncate">{ex}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </ACard>
-                  <Note>You build these levels in Units. The layout can’t change once rooms exist.</Note>
-                </>
-              )}
-              {step === 1 && (
-                <>
-                  <ACard title="Preview">
-                    <div className="p-3 flex flex-col gap-2 text-sm">
-                      <div className="flex items-center gap-2"><LevelTile level="Property" icon={Buildings} /><span className="font-medium text-[#0A0A0A]">{name || 'Untitled'}</span></div>
-                      <div className="flex items-center gap-2 text-[#404040]"><span className="size-6 rounded-md flex items-center justify-center shrink-0 bg-[#DB2777]/10 text-[#BE185D]"><MapPin size={14} strokeWidth={1.5} /></span>{picked ? 'Elvet Hill Road, Durham DH1 3LR' : 'No address yet'}</div>
-                      {zone && <div className="pl-8"><Pill>Zone · {zone}</Pill></div>}
-                    </div>
-                  </ACard>
-                  <Note>The pin sets distances on the resident site.</Note>
-                </>
-              )}
-              {step === 2 && (
-                <>
-                  <ACard title="Preview" right={`${fmt(total)} rooms`}><div className="p-2"><PreviewTree blocks={blocks} house={house} /></div></ACard>
-                  <div className="flex flex-wrap gap-1.5">
-                    {([[blocks.length, 'blocks', 'Block'], ...(house ? [] : [[floors, 'floors', 'Floor'], [flats, 'flats', 'Flat']]), [total, 'rooms', 'Room']] as [number, string, Level][]).map(([n, l, lv]) => <Pill key={l} tone={LV[lv]}>{fmt(n)} {l}</Pill>)}
-                  </div>
-                  <Note>{'{n}'} counts up from 1 under each parent. Rename single rooms later in Inventory.</Note>
-                </>
-              )}
-              {step === 3 && (
-                <>
-                  <ACard title="What gets created">
-                    {types.map((t) => (
-                      <div key={t.name} className="px-3 py-2.5 flex items-center gap-3 border-b border-[#E5E5E5] last:border-0">
-                        <div className="flex-1 min-w-0"><div className="text-sm font-medium text-[#0A0A0A] truncate">{t.name} · {t.weeks} wk</div><div className="text-xs text-[#737373]">New template · {short}</div></div>
-                        <div className="text-right"><div className="text-sm font-medium text-[#0A0A0A] tabular-nums">{fmt(t.rooms)}</div><div className="font-mono uppercase text-[11px] leading-[14px] font-medium tracking-[0.44px] text-[#737373]">Tenancies</div></div>
-                      </div>
-                    ))}
-                  </ACard>
-                  <Note>Each room gets a draft tenancy from its template. Later template edits copy to linked tenancies.</Note>
-                </>
-              )}
-              {step === 4 && (
-                <>
-                  <div className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#737373]">What happens next</div>
-                  <ol className="flex flex-col gap-4">
-                    {[['Property', 'Saved as a draft with its address and zone.'], ['Templates', `${types.length === 2 ? 'Two' : types.length} tenancy templates are made for ${short}.`], ['Rooms and tenancies', `${blocks.length} blocks, ${floors} floors, ${fmt(flats)} flats and ${fmt(total)} rooms are built in the background. You get an email when it’s done.`]].map(([a, b], i) => (
-                      <li key={a} className="flex gap-3">
-                        <span className={cx('size-5 rounded-full font-mono text-[11px] font-medium flex items-center justify-center shrink-0', i === 0 ? 'bg-[#16A34A] text-white' : 'border border-[#D4D4D4] text-[#737373]')}>{i + 1}</span>
-                        <span><span className="block text-sm font-medium text-[#0A0A0A]">{a}</span><span className="block text-xs leading-[18px] text-[#737373] mt-0.5">{b}</span></span>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-            </aside>
           </div>
 
-          <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center">
+          <FooterZone.Provider value><div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center">
             {step === 0 ? <Button variant="ghost" onClick={leave}>Cancel</Button> : <Button variant="ghost" onClick={() => setStep(step - 1)}>Back</Button>}
             <div className="ml-auto">
               {step < 4 ? <Button variant="primary" icon={null} disabled={!canNext} onClick={() => setStep(step + 1)}>Continue</Button>
                 : <Button variant="primary" icon={Check} onClick={create}>Create property</Button>}
             </div>
-          </div>
+          </div></FooterZone.Provider>
         </DialogContent>
       </Modal>
+      <Created p={done} onView={() => done && nav(`/inventory/properties/${done.id}`, { replace: true })} onClose={() => nav('/inventory/properties', { replace: true })} />
       <Confirm open={leaving} onClose={() => setLeaving(false)} danger title="Discard this property?" sub="Nothing has been created yet. What you entered will be lost."
         cancel="Keep editing" confirm="Discard" onConfirm={() => nav('/inventory/properties')}>
         {/* What goes: the draft, and how far it got. */}
@@ -412,7 +372,15 @@ export function AddPropertyWizard() {
   );
 }
 
-const Note = ({ children }: { children: ReactNode }) => <p className="text-xs leading-[18px] text-[#737373]">{children}</p>;
+/** Shown once the property exists: what was made, then View property. */
+function Created({ p, onView, onClose }: { p: Property | null; onView: () => void; onClose: () => void }) {
+  return (
+    <InvConfirm open={!!p} onClose={onClose} width={440} title={`${p?.name ?? ''} created`}
+      sub={p ? `Saved as a draft with ${p.units.toLocaleString('en-GB')} rooms. Make it active when it’s ready to book.` : undefined}
+      footer={<><Button icon={null} onClick={onClose}>Done</Button><Button variant="primary" icon={null} onClick={onView}>View property</Button></>} />
+  );
+}
+
 
 function DateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return <label className="h-9 flex items-center gap-2 rounded-lg border border-input bg-white px-3 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25"><CalendarBlank size={16} strokeWidth={1.5} className="text-[#737373]" /><input value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 min-w-0 outline-none bg-transparent" /></label>;
@@ -448,37 +416,3 @@ function MapArt({ picked }: { picked: boolean }) {
   );
 }
 
-function PreviewTree({ blocks, house }: { blocks: WBlock[]; house: boolean }) {
-  const [open, setOpen] = useState<Record<string, boolean>>({ [`${blocks[0]?.key}`]: true, [`${blocks[0]?.key}-1`]: true, [`${blocks[0]?.key}-1-1`]: true });
-  const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
-  const pat = (p: string, n: number) => p.replace('{n}', String(n));
-  /* Figma "Tree": 30px rows, r6, 16px indent per level, 12px caret, 14px icon, mono 12 #737373 counts. */
-  const Row = ({ depth, k, icon: I, label, n, leaf, sub, level }: { depth: number; k?: string; icon: Icon; label: string; n?: number | string; leaf?: boolean; sub?: string; level: Level }) => (
-    <div className="h-[30px] pr-2 flex items-center gap-1.5 text-sm rounded-md hover:bg-[#FAFAFA] cursor-pointer select-none" style={{ paddingLeft: 4 + depth * 16 }} onClick={() => k && tog(k)}>
-      {leaf ? <span className="w-3" /> : open[k ?? ''] ? <CaretDown size={12} strokeWidth={1.5} className="text-[#737373]" /> : <CaretRight size={12} strokeWidth={1.5} className="text-[#737373]" />}
-      <I size={14} strokeWidth={1.5} style={{ color: toneDot[LV[level]] }} /><span className={cx('text-[#0A0A0A] truncate', depth === 0 && 'font-medium')}>{label}</span>
-      {sub && <span className="text-xs text-[#737373] truncate">{sub.split(' ')[0]}</span>}
-      {n !== undefined && <span className="ml-auto font-mono text-xs text-[#737373] tabular-nums">{n}</span>}
-    </div>
-  );
-  return (
-    <div>
-      {blocks.map((b) => (
-        <div key={b.key}>
-          <Row level="Block" depth={0} k={b.key} icon={Buildings} label={b.name} n={fmt(rooms(b, house))} />
-          {open[b.key] && (house ? <Row level="Room" depth={1} icon={Bed} leaf label={`Rooms 1–${b.rpf}`} sub={b.roomType} /> : Array.from({ length: b.floors }, (_, f) => (
-            <div key={f}>
-              <Row level="Floor" depth={1} k={`${b.key}-${f + 1}`} icon={Stack} label={pat(b.floorPat, f + 1)} n={fmt(b.flats * b.rpf)} />
-              {open[`${b.key}-${f + 1}`] && Array.from({ length: b.flats }, (_, t) => (
-                <div key={t}>
-                  <Row level="Flat" depth={2} k={`${b.key}-${f + 1}-${t + 1}`} icon={DoorOpen} label={pat(b.flatPat, t + 1)} n={b.rpf} />
-                  {open[`${b.key}-${f + 1}-${t + 1}`] && <Row level="Room" depth={3} icon={Bed} leaf label={`${b.roomPat.replace(' {n}', 's').replace('{n}', '')} 1–${b.rpf}`} sub={b.roomType} />}
-                </div>
-              ))}
-            </div>
-          )))}
-        </div>
-      ))}
-    </div>
-  );
-}

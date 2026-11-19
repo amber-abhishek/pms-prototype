@@ -4,7 +4,7 @@ import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
 import { ArrowCounterClockwise, ChevronDown, ChevronRight, ChevronsUpDown, Monitor, Moon, Palette as PaletteIcon, Sun, Tray, UserCircle, Check as CheckIcon, Lock, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
 import { toast } from 'sonner';
-import { modules, moduleFor, pinnable, rollup, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
+import { modules, moduleFor, pinnable, useNavCounts, type Module, type NavCounts, type NavItem } from '../nav';
 import { usePins, isCurrent, useNavHref, useNavPath, within } from '../data/pins';
 import { useDb, type Role } from '../data/store';
 import { cx, Pill } from '../components/ui';
@@ -88,14 +88,14 @@ export function Shell() {
 }
 
 /** Connect 2.0 sidebar (3095:16041) selected row: white, 1px #E5E5E5, 0 1 2 -1 and 0 1 3 0 drops at 10%, blue #2563EB medium label and icon (2026-11-13). */
-const RAISED = 'bg-white !border-[#E5E5E5] shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)] text-[#2563EB] font-medium [&>svg:first-child]:text-[#2563EB]';
+const RAISED = 'bg-white !border-[#E5E5E5] shadow-[0_1px_2px_rgba(0,0,0,0.04)] text-[#2563EB] font-medium [&>svg:first-child]:text-[#2563EB]';
 /** Rows: 14px, 8px padding, 8px gap, r8, packed with no gap. Hover nudges 2px right (Connect's whileHover x: 2). */
 const ROW = 'flex items-center gap-2 rounded-lg border border-transparent text-sm leading-5 outline-none transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring';
 /* Figma 3884:39810: idle module labels #3F404D at 80%, icons solid #3F404D. Hover (Connect) nudges right 2px and scales 1.02 over 0.3s, no colour change. */
 const HOVER = 'hover:translate-x-0.5 hover:scale-[1.02]';
-const IDLE = `text-[#3F404D]/80 [&>svg:first-child]:text-[#3F404D] ${HOVER}`;
+const IDLE = `text-[#3F404D]/80 [&>svg:first-child]:text-[#3F404D]/80 ${HOVER}`;
 /* Page rows under a module: #3F404D at 90%, regular. */
-const IDLE_SUB = `text-[#3F404D]/90 [&>svg:first-child]:text-[#3F404D] ${HOVER}`;
+const IDLE_SUB = `text-[#3F404D]/90 [&>svg:first-child]:text-[#3F404D]/90 ${HOVER}`;
 /** Figma divider: a 1px #E5E5E5 line, 8px in from the rows, 8px above and below. */
 function NavDivider() {
   return <div className="shrink-0 p-2" aria-hidden><div className="h-px bg-[#E5E5E5]" /></div>;
@@ -210,9 +210,8 @@ function ModuleRow({ m, on, counts, collapsed, onExpand, chevron }: { m: Module;
     );
   }
   const flat = on && single;
-  /* A single-page row (My tasks) carries its page's count; a closed module carries the work waiting inside it. */
+  /* A single-page row (My tasks) carries its page's count. Module rows carry no total: counts live on their pages (Maintenance etc.). */
   const n = single ? m.sections[0]?.items[0]?.count?.(counts) : undefined;
-  const sum = !single && !isOpen ? rollup(m, counts) : { n: 0, alert: false };
   const toggle = (e: { altKey: boolean }) => {
     const st = useNavOpen.getState();
     if (e.altKey) st.only(m.id); else st.set(m.id, !isOpen);
@@ -227,7 +226,6 @@ function ModuleRow({ m, on, counts, collapsed, onExpand, chevron }: { m: Module;
     <I size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />
     <span className="flex-1 truncate">{m.label}</span>
     {n !== undefined && n > 0 && <span className="font-mono text-xs font-normal tabular-nums text-[#737373]">{n}</span>}
-    {sum.n > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', sum.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{sum.n}</span>}
     {m.locked && <Lock size={14} strokeWidth={1.5} absoluteStrokeWidth className="text-[#737373]" />}
   </>);
   /* A single page (Overview, My tasks, Activity) is a link. A module with pages has no page of its own, so its row

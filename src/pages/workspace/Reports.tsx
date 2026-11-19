@@ -4,10 +4,11 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AirplaneLanding, ArrowsLeftRight, Car, DoorOpen, FileText, Lamp, Moon, SignOut,
   Bed, Buildings, CalendarBlank, CaretRight, ChartBar, ChatCircleText, Clock, CurrencyGbp, DownloadSimple, EnvelopeSimple, Funnel as FunnelIcon, Megaphone, Plus,
-  ShareNetwork, Info, UsersThree, Warning, Wrench, type Icon,
+  ShareNetwork, UsersThree, Warning, Wrench, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, avatarFx, Button, IconTile, type Tone, Note, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, SheetSection, StatStrip, listNav, type SheetNav, type MeterSpec } from '../../components/ui';
+import { Avatar, avatarFx, Button, IconTile, type Tone, Note, Dropdown, Input, Pill, Sheet, Switch, Table, Toolbar, cx, SheetHero, SheetRow, SheetSection, StatStrip, listNav, type SheetNav, type MeterSpec } from '../../components/ui';
+import { EditLink, PanelModal } from '../inventory/common';
 import { useTab } from '../hooks';
 import { useDb } from '../../data/store';
 import { useAlloc, appCounts, offerCounts } from '../../data/allocations';
@@ -72,6 +73,9 @@ export function ReportsLibrary() {
   const schedules = useWorkspace((s) => s.schedules);
   const [tab, setTab] = useTab<LibTab>('library');
   const [fix, setFix] = useState<Schedule | null>(null);
+  /* Change recipient / Edit schedule open the panel with its edit modal already up. */
+  const [fixEdit, setFixEdit] = useState(false);
+  const openFix = (s: Schedule, edit = false) => { setFix(s); setFixEdit(edit); };
   /* Occupancy is its own page in the Reports panel, so the library doesn't list it again (2026-11-13). */
   const list = REPORTS.filter((r) => r.id !== 'occupancy');
   const [sp, setSp] = useSearchParams();
@@ -114,7 +118,7 @@ export function ReportsLibrary() {
             <Button variant="primary" onClick={() => setTab('library')}>Browse the library</Button>
           </EmptyState>
         </div>
-      ) : <ScheduledList onFix={setFix} selected={fix?.id} />)}
+      ) : <ScheduledList onFix={openFix} selected={fix?.id} />)}
       {tab === 'shared' && (<div className="flex-1 min-h-0 flex flex-col">
         <Table rows={[{ id: 'sh1' }]} onRow={() => nav('/reports')} cols={[
           { key: 'r', label: 'Report', render: () => <span className="flex items-center gap-2.5"><span className="size-7 rounded-lg bg-[#DBEAFE] flex items-center justify-center"><Bed size={14} className="text-[#2563EB]" /></span><span className="text-sm font-medium">Arrivals this week · Collingwood</span></span> },
@@ -123,7 +127,7 @@ export function ReportsLibrary() {
           { key: 'w', label: 'Shared', render: () => <span className="text-sm text-[#737373]">12 Sep</span> },
         ]} />
       </div>)}
-      {fix && <RecipientSheet key={fix.id} s={fix} nav={listNav(schedules, (x) => x.id === fix.id, (x) => setFix(x))} onClose={() => setFix(null)} />}
+      {fix && <RecipientSheet key={`${fix.id}${fixEdit}`} s={fix} edit={fixEdit} nav={listNav(schedules, (x) => x.id === fix.id, (x) => openFix(x))} onClose={() => setFix(null)} />}
     </>
   );
 }
@@ -150,7 +154,7 @@ function ReportRow({ r, badge, onOpen }: { r: ReportDef; badge?: Schedule; onOpe
   );
 }
 
-function ScheduledList({ onFix, selected }: { onFix: (s: Schedule) => void; selected?: string }) {
+function ScheduledList({ onFix, selected }: { onFix: (s: Schedule, edit?: boolean) => void; selected?: string }) {
   const { schedules, set } = useWorkspace();
   const nav = useNavigate();
   const bounced = schedules.filter((s) => s.lastSend === 'Not delivered');
@@ -162,21 +166,21 @@ function ScheduledList({ onFix, selected }: { onFix: (s: Schedule) => void; sele
           {bounced.map((s) => (
             <div key={s.id} className="flex items-center gap-3">
               <Note plain tone="red" icon={Warning} title={`${s.sendsTo} bounced on ${s.bounced ?? 'Mon 08:00'}`}>The mailbox no longer exists.</Note>
-              <Button size="sm" className="ml-auto" onClick={() => onFix(s)}>Change recipient</Button>
+              <Button size="sm" className="ml-auto" onClick={() => onFix(s, true)}>Change recipient</Button>
             </div>
           ))}
         </div>
       )}
       <div className={cx('flex-1 min-h-0 flex flex-col', !bounced.length && 'pt-6')}>
-        <Table rows={schedules} onRow={onFix} selected={selected} cols={[
+        <Table rows={schedules} onRow={(s) => onFix(s)} selected={selected} cols={[
           { key: 'r', label: 'Report', className: 'w-[26%]', render: (s) => <span className="text-sm font-medium">{s.name}</span> },
           { key: 't', label: 'Sends to', render: (s) => <span className="text-sm text-gray-700">{s.sendsTo}</span> },
           { key: 'w', label: 'When', render: (s) => <span className="text-sm text-gray-700">{whenLabel(s)}</span> },
           { key: 'l', label: 'Last send', render: (s) => s.lastSend === 'Delivered' ? <Pill tone="green" icon={EnvelopeSimple}>Delivered</Pill> : s.lastSend === 'Not delivered' ? <Pill tone="red" icon={Warning}>Not delivered</Pill> : <Pill tone="grey">Not sent yet</Pill> },
           { key: 'x', label: '', className: 'w-12 text-right', render: (s) => <RowMenu items={[
-            { label: 'Edit schedule', onClick: () => onFix(s) },
+            { label: 'Edit schedule', onClick: () => onFix(s, true) },
             { label: 'Open report', onClick: () => nav(REPORTS.find((r) => r.id === s.reportId)?.to ?? '/reports') },
-            { label: 'Send now', onClick: () => { set('schedules', (ss) => ss.map((x) => (x.id === s.id && x.lastSend !== 'Not delivered' ? { ...x, lastSend: 'Delivered' as const } : x))); if (s.lastSend === 'Not delivered') onFix(s); else toast.success(`${s.name} sent to ${s.sendsTo}`); } },
+            { label: 'Send now', onClick: () => { set('schedules', (ss) => ss.map((x) => (x.id === s.id && x.lastSend !== 'Not delivered' ? { ...x, lastSend: 'Delivered' as const } : x))); if (s.lastSend === 'Not delivered') onFix(s, true); else toast.success(`${s.name} sent to ${s.sendsTo}`); } },
             { label: 'Stop sending', danger: true, onClick: () => { const u = scheduleUndo(); set('schedules', (ss) => ss.filter((x) => x.id !== s.id)); toast.success(`${s.name} won’t be sent any more`, { action: { label: 'Undo', onClick: u.arm() } }); } },
           ]} /> },
         ]} />
@@ -185,8 +189,44 @@ function ScheduledList({ onFix, selected }: { onFix: (s: Schedule) => void; sele
   );
 }
 
-/** E4 · 02: change a bounced schedule's recipient and send this week's copy. Also the general schedule editor from the list. */
-function RecipientSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Schedule; onClose: () => void }) {
+/* Schedule panel (record-panel language, 2026-11-19): read-only Send to, When and Format; Edit on a section opens the
+   centred schedule modal (E4 · 02: change a bounced recipient and send this week's copy). Stop sending is in the control bar. */
+const LAST_SEND_PILL: Record<Schedule['lastSend'], ReactNode> = { Delivered: <Pill tone="green">Delivered</Pill>, 'Not delivered': <Pill tone="red">Not delivered</Pill>, 'Not sent yet': <Pill tone="grey">Not sent yet</Pill> };
+function RecipientSheet({ s: s0, edit = false, onClose, nav }: { nav?: SheetNav; s: Schedule; edit?: boolean; onClose: () => void }) {
+  const { schedules, set } = useWorkspace();
+  /* The live record, so a save shows straight away in the panel. */
+  const s = schedules.find((x) => x.id === s0.id) ?? s0;
+  const [editing, setEditing] = useState(edit);
+  const bounced = s.lastSend === 'Not delivered';
+  const I = AREA_ICON[s.reportId] ?? ChartBar;
+  const stop = () => {
+    const u = scheduleUndo();
+    set('schedules', (ss) => ss.filter((x) => x.id !== s.id)); onClose();
+    toast.success(`${s.name} won’t be sent any more`, { action: { label: 'Undo', onClick: u.arm() } });
+  };
+  const sendNow = () => {
+    if (bounced) { setEditing(true); return; }
+    set('schedules', (ss) => ss.map((x) => (x.id === s.id ? { ...x, lastSend: 'Delivered' as const } : x)));
+    toast.success(`${s.name} sent to ${s.sendsTo}`);
+  };
+  const editLink = <EditLink onClick={() => setEditing(true)}>Edit</EditLink>;
+  return (
+    <Sheet open onClose={onClose} nav={nav} width={500} title="Schedule" onDelete={{ label: 'Stop sending', onClick: stop }}
+      footer={<Button variant="primary" icon={null} className="ml-auto" onClick={sendNow}>Send now</Button>}>
+      <SheetHero icon={I} name={s.name} meta={whenLabel(s)}>{LAST_SEND_PILL[s.lastSend]}</SheetHero>
+      {bounced && <div className="mb-3"><Note tone="red" icon={Warning} title={`${s.sendsTo} bounced on ${s.bounced ?? 'Mon 08:00'}`}>The mailbox no longer exists.</Note></div>}
+      <SheetSection title={`Send to · ${s.recipients.length}`} action={editLink}>
+        {s.recipients.map((r) => <SheetRow key={r.id} lead={r.count > 1 ? <span className="size-6 shrink-0 rounded-full bg-[#F5F5F5] flex items-center justify-center"><UsersThree size={12} className="text-[#737373]" /></span> : <Avatar name={r.name} size={24} />} title={r.name} sub={r.sub} />)}
+      </SheetSection>
+      <SheetSection title="When" action={editLink} rows={[['Every', s.day === '1st' ? '1st of the month' : s.day], ['At', s.time]]} />
+      <SheetSection title="Format" rows={[['PDF summary', s.formats.pdf ? 'On' : 'Off'], ['CSV data', s.formats.csv ? 'On' : 'Off']]} />
+      <RecipientDialog s={s} open={editing} onClose={() => setEditing(false)} />
+    </Sheet>
+  );
+}
+
+/** Edit a schedule in a centred modal: recipient (one address), day and time, and send this week's copy now. */
+function RecipientDialog({ s, open, onClose }: { s: Schedule; open: boolean; onClose: () => void }) {
   const { set } = useWorkspace();
   const bouncedNow = s.lastSend === 'Not delivered';
   const [to, setTo] = useState(bouncedNow ? 'warden.collingwood@durham.ac.uk' : s.sendsTo);
@@ -194,6 +234,7 @@ function RecipientSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Schedule; on
   const [time, setTime] = useState(s.time);
   const [now, setNow] = useState(bouncedNow);
   const busy = useRef(false);
+  useEffect(() => { if (open) { busy.current = false; setTo(bouncedNow ? 'warden.collingwood@durham.ac.uk' : s.sendsTo); setDay(s.day); setTime(s.time); setNow(bouncedNow); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const multi = s.recipients.length > 1 || s.recipients.some((r) => r.count > 1);
   const save = () => {
     if (busy.current) return;
@@ -210,29 +251,34 @@ function RecipientSheet({ s, onClose , nav }: { nav?: SheetNav;  s: Schedule; on
     toast.success(now ? `${s.name} sent to ${multi ? s.sendsTo : email}` : `${s.name} · schedule saved`, { action: { label: 'Undo', onClick: u.arm() } });
   };
   return (
-    <Sheet open onClose={onClose} nav={nav} width={500} title={`${s.name} · schedule`} sub={whenLabel(s)}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{now ? 'Save and send' : 'Save'}</Button></>}>
-      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
-        <SheetSection title="Send to">
-          {multi ? <div className="text-sm text-gray-700">{s.sendsTo}</div> : (
-            <label className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-[#737373]" /><Input value={to} onChange={(e) => setTo(e.target.value)} className="pl-8" /></label>
-          )}
-          {bouncedNow && <p className="text-xs text-[#E0243A] mt-1.5">{s.sendsTo} bounced: the mailbox no longer exists.</p>}
-        </SheetSection>
-        <SheetSection title="When">
-          <div className="grid grid-cols-2 gap-3">
-            <IconSelect ariaLabel="Day" value={day} onChange={setDay} options={[...DAYS.map((d) => ({ value: d, label: `${d}s` })), { value: '1st', label: '1st of the month' }]} />
-            <IconSelect ariaLabel="Time" icon={Clock} value={time} onChange={setTime} options={TIMES.map((t) => ({ value: t, label: t }))} />
-          </div>
-        </SheetSection>
-        <SheetSection title="This week">
-        <div className="rounded-xl border border-line p-3.5 flex items-center gap-3">
-          <span className="flex-1"><span className="block text-sm font-medium">Send this week’s now</span><span className="block text-xs text-[#737373] mt-0.5">{bouncedNow ? 'Monday’s copy never arrived' : 'Sends the latest copy straight away'}</span></span>
-          <Switch checked={now} onChange={setNow} label="Send this week’s now" />
+    <PanelModal open={open} onClose={onClose} eyebrow="Edit schedule" title={s.name} width={560}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{now ? 'Save and send' : 'Save'}</Button></>}>
+      <SheetSection title="Send to">
+        {multi ? <div className="text-sm text-[#0A0A0A]">{s.sendsTo}</div> : (
+          <label className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-[#737373]" /><Input aria-label="Send to" value={to} onChange={(e) => setTo(e.target.value)} className="pl-8" /></label>
+        )}
+        {bouncedNow && <p className="text-xs text-[#E0243A] mt-1.5">{s.sendsTo} bounced: the mailbox no longer exists.</p>}
+      </SheetSection>
+      <SheetSection title="When">
+        <div className="grid grid-cols-2 gap-3">
+          <IconSelect ariaLabel="Day" value={day} onChange={setDay} options={[...DAYS.map((d) => ({ value: d, label: `${d}s` })), { value: '1st', label: '1st of the month' }]} />
+          <IconSelect ariaLabel="Time" icon={Clock} value={time} onChange={setTime} options={TIMES.map((t) => ({ value: t, label: t }))} />
         </div>
-        </SheetSection>
-      </div>
-    </Sheet>
+      </SheetSection>
+      <SheetSection title="This week">
+        <SwitchRow title="Send this week’s now" sub={bouncedNow ? 'Monday’s copy never arrived' : 'Sends the latest copy straight away'} checked={now} onChange={setNow} />
+      </SheetSection>
+    </PanelModal>
+  );
+}
+/** A switch row inside a section card: label and grey sub, split from its neighbours by a hairline. */
+function SwitchRow({ title, sub, checked, onChange, icon: I }: { title: string; sub?: string; checked: boolean; onChange: (v: boolean) => void; icon?: Icon }) {
+  return (
+    <div className="py-2.5 flex items-center gap-3 border-t border-[#EBEBEB] first:border-t-0 first:pt-0 last:pb-0">
+      {I && <I size={16} className="shrink-0 text-[#737373]" />}
+      <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{title}</span>{sub && <span className="block text-[13px] leading-5 text-[#737373]">{sub}</span>}</span>
+      <Switch checked={checked} onChange={onChange} label={title} />
+    </div>
   );
 }
 
@@ -448,49 +494,41 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
     toast.success(`${existing?.name ?? 'Occupancy'} won’t be sent any more`, { action: { label: 'Undo', onClick: u.arm() } });
   };
   return (
-    <Sheet open onClose={onClose} width={500}
-      title="Schedule this report" sub={what}
-      footer={<>{existing && <Button variant="danger-ghost" className="mr-auto" onClick={stop}>Stop sending</Button>}<Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{existing ? 'Save' : 'Schedule'}</Button></>}>
-      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
-        <SheetSection title="When">
+    <PanelModal open onClose={onClose} width={560} eyebrow={existing ? 'Edit schedule' : 'New schedule'} title={existing?.name ?? 'Schedule this report'} meta={what}
+      left={existing && <Button variant="danger-ghost" icon={null} onClick={stop}>Stop sending</Button>}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{existing ? 'Save' : 'Schedule'}</Button></>}>
+      <SheetSection title="When">
         <div className="grid grid-cols-2 gap-3">
           <div><div className="text-sm font-medium mb-1.5">Every</div><IconSelect ariaLabel="Every" icon={CalendarBlank} value={day} onChange={setDay} options={[...DAYS.map((d) => ({ value: d, label: d })), { value: '1st', label: '1st of the month' }]} /></div>
           <div><div className="text-sm font-medium mb-1.5">At</div><IconSelect ariaLabel="At" icon={Clock} value={time} onChange={setTime} options={TIMES.map((t) => ({ value: t, label: t }))} /></div>
         </div>
-        </SheetSection>
-        <SheetSection title="Send to">
-          <div className="rounded-[10px] border border-line px-3 py-1">
-            {rec.map((r) => (
-              <div key={r.id} className="group h-8 flex items-center gap-2.5">
-                {r.count > 1 ? <span className="size-6 rounded-full bg-[#F5F5F5] flex items-center justify-center"><UsersThree size={12} className="text-[#737373]" /></span> : <Avatar name={r.name} size={24} />}
-                <span className="text-sm font-medium flex-1">{r.name}</span>
-                <span className="text-xs text-[#737373]">{r.sub}</span>
-                {r.sub !== 'You' && <button type="button" onClick={() => setRec(rec.filter((x) => x.id !== r.id))} className="text-xs text-gray-400 hover:text-[#E0243A] opacity-0 group-hover:opacity-100 focus:opacity-100">Remove</button>}
-              </div>
-            ))}
-            {adding ? (
-              <div className="py-1.5 relative">
-                <Input value={q} aria-label="Add people or a group" aria-invalid={!!err || undefined} onChange={(e) => { setQ(e.target.value); setErr(''); }} placeholder="Name, group or email" onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); enter(); }
-                  if (e.key === 'Escape') setAdding(false);
-                }} ref={(el) => el?.focus()} />
-                {err && <p role="alert" className="text-xs text-[#C11F14] mt-1.5">{err}</p>}
-                {sugg.length > 0 && <div className="mt-1 rounded-lg border border-line divide-y divide-line">{sugg.map((r) => <button key={r.id} type="button" onClick={() => add(r)} className="w-full h-8 px-2.5 flex items-center gap-2 text-left text-sm hover:bg-gray-50">{r.name}<span className="ml-auto text-xs text-[#737373]">{r.sub}</span></button>)}</div>}
-              </div>
-            ) : <button type="button" onClick={() => setAdding(true)} className="h-8 flex items-center gap-2 text-sm text-primary"><Plus size={13} />Add people or a group</button>}
-          </div>
-          <div className="mt-3 rounded-lg border border-primary/30 p-3 flex gap-2.5"><Info size={16} className="text-primary shrink-0 mt-0.5" />
-            <div><div className="text-sm font-medium text-primary">Recipients only see halls they have access to</div><div className="text-xs text-[#737373] mt-0.5">Heads of college get their own college’s rows.</div></div></div>
-        </SheetSection>
-        <SheetSection title="Format">
-          <div className="grid grid-cols-2 gap-2">
-            {([['pdf', 'PDF summary'], ['csv', 'CSV data']] as const).map(([k, l]) => (
-              <div key={k} className="h-10 rounded-[10px] border border-line px-3 flex items-center gap-2"><DownloadSimple size={14} className="text-[#737373]" /><span className="text-sm font-medium flex-1">{l}</span><Switch checked={fmts[k]} onChange={(v) => setFmts({ ...fmts, [k]: v })} label={l} /></div>
-            ))}
-          </div>
-        </SheetSection>
-      </div>
-    </Sheet>
+      </SheetSection>
+      <SheetSection title={`Send to · ${total} ${total === 1 ? 'person' : 'people'}`}>
+        {rec.map((r) => (
+          <SheetRow key={r.id} lead={r.count > 1 ? <span className="size-6 shrink-0 rounded-full bg-[#F5F5F5] flex items-center justify-center"><UsersThree size={12} className="text-[#737373]" /></span> : <Avatar name={r.name} size={24} />}
+            title={r.name} sub={r.sub}
+            end={r.sub !== 'You' ? <button type="button" onClick={() => setRec(rec.filter((x) => x.id !== r.id))} className="text-sm text-[#737373] hover:text-[#E0243A]">Remove</button> : undefined} />
+        ))}
+        <div className="mt-2.5 pt-2.5 border-t border-[#EBEBEB]">
+          {adding ? (
+            <div className="relative">
+              <Input value={q} aria-label="Add people or a group" aria-invalid={!!err || undefined} onChange={(e) => { setQ(e.target.value); setErr(''); }} placeholder="Name, group or email" onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); enter(); }
+                if (e.key === 'Escape') setAdding(false);
+              }} ref={(el) => el?.focus()} />
+              {err && <p role="alert" className="text-xs text-[#C11F14] mt-1.5">{err}</p>}
+              {sugg.length > 0 && <div className="mt-1 rounded-lg border border-line divide-y divide-line">{sugg.map((r) => <button key={r.id} type="button" onClick={() => add(r)} className="w-full h-8 px-2.5 flex items-center gap-2 text-left text-sm hover:bg-gray-50">{r.name}<span className="ml-auto text-xs text-[#737373]">{r.sub}</span></button>)}</div>}
+            </div>
+          ) : <button type="button" onClick={() => setAdding(true)} className="h-6 flex items-center gap-2 text-sm font-medium text-primary"><Plus size={13} />Add people or a group</button>}
+        </div>
+        <p className="mt-3 text-xs text-[#737373]">Recipients only see halls they have access to.</p>
+      </SheetSection>
+      <SheetSection title="Format">
+        {([['pdf', 'PDF summary'], ['csv', 'CSV data']] as const).map(([k, l]) => (
+          <SwitchRow key={k} icon={DownloadSimple} title={l} checked={fmts[k]} onChange={(v) => setFmts({ ...fmts, [k]: v })} />
+        ))}
+      </SheetSection>
+    </PanelModal>
   );
 }
 

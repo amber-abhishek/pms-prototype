@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, CalendarCheck, CalendarDots, Lock, Plus, Warning } from '../../components/icons';
+import { Calendar, CalendarCheck, CalendarDots, Plus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Dialog, Field, Input, PageHeader, SheetSection, StatStrip, Tabs, Toolbar, cx } from '../../components/ui';
+import { Button, Field, Input, PageHeader, SheetSection, StatStrip, Tabs, Toolbar } from '../../components/ui';
 import { TODAY, appCounts, fmtN, offerCounts, useAlloc, type Cycle } from '../../data/allocations';
 import { useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Modal, Radio, St } from './common';
 import { filterToCycle } from './Applications';
 import { useAllocActions } from './actions';
+import { PanelModal } from '../inventory/common';
 
 type TabId = 'All' | 'Live' | 'Closed';
 const label = (c: Cycle) => ({ open: 'Applications open', tenancy: 'In tenancy', closed: 'Closed', upcoming: 'Not open yet' }[c.status]);
@@ -143,22 +144,19 @@ function NewCycleSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
   const bars: [string, number, number, string][] = [['Applications', 0, 6, '#2563EB'], ['Review & allocate', 0.6, 7.5, '#7C3AED'], ['Offers open', 0.65, 10, '#F59E0B'], ['Move-in', 11.4, 12, '#0B8A4C']];
   return (
     /* Creating something opens a centred modal; side sheets are for reading and editing a record. */
-    <Dialog open onClose={onClose} title="New cycle" width={560}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!valid} onClick={create}>Create cycle</Button></>}>
-      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+    <PanelModal open onClose={onClose} eyebrow="New cycle" title="New cycle" width={600}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!valid} onClick={create}>Create cycle</Button></>}>
         <SheetSection title="Cycle">
         <Field label="Name" hint={!valid && name.trim() ? (d.cycles.some((c) => c.name === name.trim()) ? 'That cycle already exists' : 'Use the form 2028/29') : undefined}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
         </SheetSection>
         <SheetSection title="Start from">
-          <div className="space-y-2">
-            {latest && <label className={cx('flex gap-3 rounded-xl border p-3 cursor-pointer', from === 'dup' ? 'border-primary ring-2 ring-primary/15' : 'border-line')}>
-              <input type="radio" checked={from === 'dup'} onChange={() => setFrom('dup')} className="mt-0.5 size-4 accent-[#2563EB]" />
-              <span><span className="block text-sm font-medium">Duplicate {latest.name}</span><span className="block text-xs text-gray-500 mt-0.5">Properties, room types, rules, offer emails and form</span></span>
-            </label>}
-            <label className={cx('flex gap-3 rounded-xl border p-3 cursor-pointer', from === 'empty' ? 'border-primary ring-2 ring-primary/15' : 'border-line')}>
-              <input type="radio" checked={from === 'empty'} onChange={() => setFrom('empty')} className="mt-0.5 size-4 accent-[#2563EB]" />
-              <span><span className="block text-sm font-medium">Start empty</span></span>
-            </label>
+          <div role="radiogroup" aria-label="Start from">
+            {([...(latest ? [['dup', `Duplicate ${latest.name}`, 'Properties, room types, rules, offer emails and form']] : []), ['empty', 'Start empty', undefined]] as ['dup' | 'empty', string, string | undefined][]).map(([id, t, sub]) => (
+              <label key={id} className="py-2.5 flex items-start gap-3 border-t border-[#EBEBEB] first:border-t-0 first:pt-0 last:pb-0 cursor-pointer">
+                <input type="radio" name="cycle-from" checked={from === id} onChange={() => setFrom(id)} className="mt-0.5 size-4 accent-[#2563EB]" />
+                <span className="min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{t}</span>{sub && <span className="block text-[13px] leading-5 text-[#737373]">{sub}</span>}</span>
+              </label>
+            ))}
           </div>
         </SheetSection>
         <SheetSection title="Dates">
@@ -179,8 +177,7 @@ function NewCycleSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
             ))}
           </div>
         </SheetSection>
-      </div>
-    </Dialog>
+    </PanelModal>
   );
 }
 
@@ -188,17 +185,20 @@ function EditDates({ c, onClose }: { c: Cycle; onClose: () => void }) {
   const up = useAlloc((s) => s.up);
   const [v, setV] = useState({ opens: c.opens, closes: c.closes ?? '', offers: c.offersFrom ?? '', starts: c.starts ?? c.ends });
   return (
-    <Dialog open onClose={onClose} title={`Edit dates · ${c.name}`} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => {
+    <PanelModal open onClose={onClose} eyebrow="Edit dates" title={c.name} width={560}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={() => {
       up((d) => ({ cycles: d.cycles.map((x) => (x.id === c.id ? { ...x, opens: v.opens, closes: v.closes, offersFrom: v.offers, starts: v.starts, ends: v.starts } : x)) }));
       toast.success(`${c.name} dates saved`, { description: 'Residents who already applied are emailed if a deadline moved' }); onClose();
-    }}>Save dates</Button></>}>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Applications open"><Input value={v.opens} onChange={(e) => setV({ ...v, opens: e.target.value })} /></Field>
-        <Field label="Applications close"><Input value={v.closes} onChange={(e) => setV({ ...v, closes: e.target.value })} /></Field>
-        <Field label="Offers from"><Input value={v.offers} onChange={(e) => setV({ ...v, offers: e.target.value })} /></Field>
-        <Field label="Tenancies start"><Input value={v.starts} onChange={(e) => setV({ ...v, starts: e.target.value })} /></Field>
-      </div>
-    </Dialog>
+    }}>Save</Button></>}>
+      <SheetSection title="Dates">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Applications open"><Input value={v.opens} onChange={(e) => setV({ ...v, opens: e.target.value })} /></Field>
+          <Field label="Applications close"><Input value={v.closes} onChange={(e) => setV({ ...v, closes: e.target.value })} /></Field>
+          <Field label="Offers from"><Input value={v.offers} onChange={(e) => setV({ ...v, offers: e.target.value })} /></Field>
+          <Field label="Tenancies start"><Input value={v.starts} onChange={(e) => setV({ ...v, starts: e.target.value })} /></Field>
+        </div>
+      </SheetSection>
+    </PanelModal>
   );
 }
 
@@ -224,14 +224,14 @@ function CloseCycle({ c, onClose }: { c: Cycle; onClose: () => void }) {
   };
   if (!left.length) {
     return (
-      <Modal open onClose={onClose} tone="blue" icon={CalendarCheck} title={`Close the ${c.name} cycle?`} sub="Every application has been dealt with. Closing stops new offers; bookings carry on." footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={close}>Close cycle</Button></>}>
+      <Modal open onClose={onClose} tone="blue" icon={CalendarCheck} title={`Close the ${c.name} cycle?`} sub="Closing stops new offers; bookings carry on." footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={close}>Close cycle</Button></>}>
         <div className="text-sm text-gray-500">Closed cycles are read-only.</div>
       </Modal>
     );
   }
   return (
-    <Modal open onClose={onClose} tone="amber" icon={Warning} title={`${left.length} applications aren’t reviewed`} sub={`Closing the ${c.name} cycle stops new offers. Decide what happens to these residents.`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant={choice === 'decline' ? 'danger' : 'primary'} icon={choice === 'keep' ? undefined : Lock} onClick={close}>{choice === 'wait' ? `Close and waitlist ${left.length}` : choice === 'decline' ? `Close and decline ${left.length}` : 'Keep it open'}</Button></>}>
+    <Modal open onClose={onClose} tone="amber" icon={Warning} title={`${left.length} applications aren’t reviewed`} sub={`Closing the ${c.name} cycle stops new offers.`}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant={choice === 'decline' ? 'danger' : 'primary'} icon={null} onClick={close}>{choice === 'wait' ? `Close and waitlist ${left.length}` : choice === 'decline' ? `Close and decline ${left.length}` : 'Keep it open'}</Button></>}>
       <div className="space-y-2">
       <Radio checked={choice === 'wait'} onChange={() => setChoice('wait')} title="Move them to the waitlist" sub="In the order they applied; they get an email saying so." />
       <Radio checked={choice === 'decline'} onChange={() => setChoice('decline')} title="Decline with the standard email" sub="They can apply to off-campus housing from the resident site." />

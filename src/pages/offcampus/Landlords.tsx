@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChatCenteredText, CheckCircle, ClipboardText, Eye, Info, LinkSimple, XCircle } from '../../components/icons';
+import { ChatCenteredText, CheckCircle, ClipboardText, Eye, Hourglass, Info, LinkSimple, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, listNav, Empty, PageHeader, SearchInput, Sheet, SheetHero, SheetSection, Status, Table, Tabs, PIN } from '../../components/ui';
+import { Avatar, Button, listNav, Empty, Note, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, Status, Table, Tabs, PIN } from '../../components/ui';
+import { LineTabs } from '../inventory/common';
 import { useOpen, useTab } from '../hooks';
 import { SIGNUP_LINK, stamp, useOc, type LandlordApp, type LandlordStatus } from '../../data/offcampus';
 import { Checkbox } from '../../components/shadcn/checkbox';
@@ -10,11 +11,12 @@ import { BulkAction, BulkBar, EmptyArt, NoteDialog, ODialog, Tag, Title } from '
 
 type TabId = 'all' | 'submitted' | 'awaiting' | 'approved' | 'rejected' | 'suspended';
 const TABS: { id: TabId; label: string; status?: LandlordStatus }[] = [
-  { id: 'all', label: 'All' }, { id: 'submitted', label: 'Submitted', status: 'Submitted' }, { id: 'awaiting', label: 'Awaiting info', status: 'Awaiting info' },
-  { id: 'approved', label: 'Approved', status: 'Approved' }, { id: 'rejected', label: 'Rejected', status: 'Rejected' }, { id: 'suspended', label: 'Suspended', status: 'Suspended' },
+  { id: 'all', label: 'All' }, { id: 'submitted', label: 'In review', status: 'Submitted' }, { id: 'awaiting', label: 'Awaiting info', status: 'Awaiting info' },
+  { id: 'approved', label: 'Approved', status: 'Approved' }, { id: 'rejected', label: 'Rejected', status: 'Rejected' }, { id: 'suspended', label: 'Inactive', status: 'Suspended' },
 ];
 
-export function Landlords() {
+/** `bare`: rendered inside Approvals, which owns the page header. */
+export function Landlords({ bare }: { bare?: boolean } = {}) {
   const all = useOc((s) => s.landlords);
   const set = useOc((s) => s.set);
   const [sp] = useSearchParams();
@@ -79,13 +81,13 @@ export function Landlords() {
 
   return (
     <>
-      <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Landlord applications" />
+      {!bare && <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Landlord applications" />}
       <div className="flex-1 min-h-0 flex flex-col relative">
-        <Title title="Landlord applications" />
+        {!bare && <Title title="Landlord applications" />}
         {rows0.length > 0 && (<div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3">
-          {/* Search on the left; the status tabs at the right edge. */}
-          <div className="w-[320px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or email" /></div>
-          <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: counted(x.id) }))} /></div>
+                    {/* Every off-campus list: search on the left, status tabs at the right edge. */}
+                    <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or email" /></div>
+                    <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: counted(x.id) }))} /></div>
         </div>)}
         {!rows0.length ? <NoLandlords /> : (
           <Table fill rows={rows} onRow={(l) => setOpen(l.id)} selected={open ?? undefined}
@@ -96,7 +98,7 @@ export function Landlords() {
             cols={[
               { key: 'sel', label: <Checkbox aria-label="Select all" checked={allTicked ? true : someTicked ? 'indeterminate' : false} onCheckedChange={(v) => setTicked(v === true ? rows.map((l) => l.id) : [])} />, className: 'w-12',
                 render: (l) => <span onClick={(e) => e.stopPropagation()} className="inline-flex"><Checkbox aria-label={`Select ${l.name}`} checked={ticked.includes(l.id)} onCheckedChange={(v) => setTicked((ts) => (v === true ? [...ts, l.id] : ts.filter((x) => x !== l.id)))} /></span> },
-              { key: 'n', label: 'Landlord', render: (l) => <div className="flex items-center gap-3 min-w-0"><Avatar name={l.name} size={32} /><div className="leading-tight min-w-0"><div className="text-sm font-medium text-ink truncate">{l.name}</div><div className="text-xs text-gray-500 truncate">{l.email}</div></div></div> },
+              { key: 'n', label: 'Landlord', render: (l) => <div className="flex items-center gap-3 min-w-0"><Avatar name={l.name} size={24} /><div className="leading-tight min-w-0"><div className="text-sm font-medium text-ink truncate">{l.name}</div><div className="text-xs text-gray-500 truncate">{l.email}</div></div></div> },
               { key: 'p', label: 'Portfolio', render: (l) => <div className="leading-tight"><div className="text-sm font-medium">{l.portfolio} {l.portfolio === 1 ? 'property' : 'properties'}</div><div className="text-xs text-gray-500">{l.areas.join(', ')}</div></div> },
               { key: 'a', label: 'Applied', render: (l) => <span className="text-gray-500">{l.applied}</span> },
               { key: 's', label: 'Status', render: (l) => <LStatus s={l.status} /> },
@@ -107,41 +109,15 @@ export function Landlords() {
         </BulkBar>
       </div>
 
-      <Sheet open={!!sel} onClose={() => setOpen(null)} width={560} title="Landlord application" nav={listNav(rows, (l) => l.id === open, (l) => setOpen(l.id))}
+      <Sheet open={!!sel} onClose={() => setOpen(null)} width={520} title="Landlord application" nav={listNav(rows, (l) => l.id === open, (l) => setOpen(l.id))}
+        onDelete={sel && (sel.status === 'Submitted' || sel.status === 'Awaiting info') ? { label: 'Reject application', icon: XCircle, onClick: () => setDlg('reject') } : undefined}
         footer={sel && (sel.status === 'Submitted' || sel.status === 'Awaiting info') && (
           <>
-            <Button variant="danger-ghost" className="mr-auto" onClick={() => setDlg('reject')}>Reject</Button>
-            {sel.status === 'Submitted' && <Button onClick={() => setDlg('info')}>Request more information</Button>}
-            <Button variant="primary" onClick={() => setDlg('approve')}>Approve</Button>
+            {sel.status === 'Submitted' && <Button icon={ChatCenteredText} className="ml-auto" onClick={() => setDlg('info')}>Request info</Button>}
+            <Button variant="primary" icon={CheckCircle} className={sel.status === 'Submitted' ? undefined : 'ml-auto'} onClick={() => setDlg('approve')}>Approve</Button>
           </>
         )}>
-        {sel && (
-          <>
-            <SheetHero name={sel.name} meta={sel.company ?? sel.entity}>
-              <LStatus s={sel.status} />
-              {sel.otherPortals > 0 && <Tag tone="grey" outline>On {sel.otherPortals} other {sel.otherPortals === 1 ? 'portal' : 'portals'}</Tag>}
-            </SheetHero>
-            {sel.lastNote && (
-              <div className={`mb-5 rounded-lg border px-3.5 py-2.5 flex gap-2.5 text-sm ${sel.status === 'Rejected' || sel.status === 'Suspended' ? 'border-[#E0243A]/30 text-[#E0243A]' : 'border-[#2B5CFF]/30 text-[#1F45E0]'}`}>
-                <Info size={16} className="shrink-0 mt-px" /><span>Last decision: {sel.lastNote}</span>
-              </div>
-            )}
-            {sel.status === 'Awaiting info' && !sel.updated && (
-              <div className="mb-5 rounded-lg border border-dashed border-gray-300 p-3 text-sm text-gray-500 flex items-center gap-3">
-                <span className="flex-1">Waiting for {sel.name.split(' ')[0]} to update their profile.</span>
-                <Button size="sm" onClick={() => simulateReply(sel)}>Simulate reply</Button>
-              </div>
-            )}
-            <SheetSection title="Contact" rows={[['Email', sel.email], ['Phone', sel.phone]]} />
-            <SheetSection title="Portfolio" rows={[
-              ['Entity', sel.entity],
-              ...(sel.company ? [['Company', sel.company] as [string, string]] : []),
-              ['Properties', String(sel.portfolio)], ['Areas', sel.areas.join(', ')],
-              ...(sel.website ? [['Website', <a key="w" href={`https://${sel.website}`} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">{sel.website}</a>] as [string, ReactNode]] : []),
-            ]} />
-            <SheetSection title="Application" rows={[['Submitted', sel.submitted], ['Reviewed', sel.reviewed ?? '—'], ['Heard about us', sel.heard]]} />
-          </>
-        )}
+        {sel && <LandlordDetail l={sel} onSimulateReply={() => simulateReply(sel)} />}
       </Sheet>
 
       <NoteDialog open={dlg === 'info' && !!sel} onClose={() => setDlg(null)} icon={ChatCenteredText} title="Request more information"
@@ -158,9 +134,81 @@ export function Landlords() {
   );
 }
 
+/* Landlord application panel (Figma "Side panel · Landlord" 4073:17182): Overview, Documents, Activity. */
+const day = (stampText: string) => stampText.split(',')[0].replace(/ \d{4}$/, '');
+/** Prototype dummy documents per application, stable by id; the backend sends the real uploads later. */
+function landlordDocs(l: LandlordApp) {
+  const on = day(l.submitted);
+  const h = [...l.id].reduce((n, c) => n + c.charCodeAt(0), 0);
+  const docs = l.entity === 'Company'
+    ? [{ name: 'Company registration', sub: `PDF · ${on}`, state: 'Checked' }, { name: 'Landlord insurance', sub: `PDF · ${on}`, state: 'Checked' }, { name: 'Gas safety certificate', sub: h % 2 ? 'PDF · expires 2 Dec' : `PDF · ${on}`, state: h % 2 ? 'Expiring' : 'Checked' }]
+    : [{ name: 'Photo ID', sub: `PDF · ${on}`, state: 'Checked' }, { name: 'Proof of address', sub: `PDF · ${on}`, state: 'Checked' }, { name: 'Landlord insurance', sub: h % 2 ? 'PDF · expires 2 Dec' : `PDF · ${on}`, state: h % 2 ? 'Expiring' : 'Checked' }];
+  return l.status === 'Submitted' ? docs.map((d) => (d.state === 'Checked' ? { ...d, state: 'To check' } : d)) : docs;
+}
+const DOC_TONE = { Checked: 'green', 'To check': 'grey', Expiring: 'orange' } as const;
+
+function LandlordDetail({ l, onSimulateReply }: { l: LandlordApp; onSimulateReply: () => void }) {
+  const [tab, setTab] = useState<'overview' | 'documents' | 'activity'>('overview');
+  useEffect(() => setTab('overview'), [l.id]);
+  const pending = l.status === 'Submitted' || l.status === 'Awaiting info';
+  const docs = landlordDocs(l);
+  const areas = l.areas.length > 1 ? `${l.areas[0]} +${l.areas.length - 1}` : l.areas[0] ?? '—';
+  const activity: { who: string; t: string; when: string }[] = [
+    ...(l.reviewed ? [{ who: 'Arjun Mehta', t: l.status === 'Approved' ? 'Arjun Mehta approved the application' : l.status === 'Rejected' ? 'Arjun Mehta rejected the application' : l.status === 'Suspended' ? 'Arjun Mehta made the landlord inactive' : 'Arjun Mehta asked for more information', when: day(l.reviewed) }] : []),
+    ...(l.updated ? [{ who: l.name, t: `${l.name} updated their application`, when: 'Today' }] : []),
+    ...(pending && !l.reviewed ? [{ who: 'System', t: 'Reminder sent to review the application', when: 'Today' }] : []),
+    { who: l.name, t: `${l.name} uploaded ${docs.length} documents`, when: day(l.submitted) },
+    { who: l.name, t: `${l.name} submitted the application`, when: day(l.submitted) },
+  ];
+  return (
+    <>
+      <SheetHero name={l.name} meta={`${l.company ?? l.entity} · Submitted ${day(l.submitted)}`}
+        facts={[['Properties', String(l.portfolio)], ['Areas', areas], pending ? ['Waiting', l.applied.replace(/ ago$/, ''), 'amber'] : ['Applied', l.applied]]}>
+        <LStatus s={l.status} />
+        {l.otherPortals > 0 && <Tag tone="grey" outline>On {l.otherPortals} other {l.otherPortals === 1 ? 'portal' : 'portals'}</Tag>}
+      </SheetHero>
+      <div className="-mx-5 mb-5">
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'documents', label: 'Documents' }, { id: 'activity', label: 'Activity' }]} />
+      </div>
+      {tab === 'overview' && <>
+        {(l.lastNote || (l.status === 'Awaiting info' && !l.updated)) && (
+          <div className="mb-3 space-y-2">
+            {l.lastNote && <Note tone={l.status === 'Rejected' || l.status === 'Suspended' ? 'red' : 'grey'} icon={Info} title="Last decision">{l.lastNote}</Note>}
+            {l.status === 'Awaiting info' && !l.updated && (
+              <Note tone="grey" icon={Hourglass} title={`Waiting for ${l.name.split(' ')[0]} to update their profile`}>
+                <div className="mt-2"><Button size="sm" icon={null} onClick={onSimulateReply}>Simulate reply</Button></div>
+              </Note>
+            )}
+          </div>
+        )}
+        <SheetSection title="Contact" rows={[['Email', l.email], ['Phone', l.phone]]} />
+        <SheetSection title="Portfolio" rows={[
+          ['Entity', l.entity],
+          ...(l.company ? [['Company', l.company] as [string, string]] : []),
+          ['Properties', String(l.portfolio)], ['Areas', l.areas.join(', ')],
+          ...(l.website ? [['Website', <a key="w" href={`https://${l.website}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">{l.website}</a>] as [string, ReactNode]] : []),
+        ]} />
+        <SheetSection title="Application" rows={[['Submitted', l.submitted], ['Reviewed', l.reviewed ?? 'Not yet'], ['Heard about us', l.heard]]} />
+      </>}
+      {tab === 'documents' && (
+        <SheetSection title={`Documents · ${docs.length}`}>
+          {docs.map((d) => <SheetRow key={d.name} title={d.name} sub={d.sub} end={<Pill tone={DOC_TONE[d.state as keyof typeof DOC_TONE]}>{d.state}</Pill>} />)}
+        </SheetSection>
+      )}
+      {tab === 'activity' && (
+        <SheetSection title="Activity">
+          {activity.map((a, i) => <SheetRow key={i} lead={<Avatar name={a.who} size={24} />} title={a.t} sub={a.when} />)}
+        </SheetSection>
+      )}
+    </>
+  );
+}
+
 export function LStatus({ s }: { s: LandlordStatus }) {
   if (s === 'Approved') return <Tag tone="green">Approved</Tag>;
-  if (s === 'Suspended') return <Tag tone="red">Suspended</Tag>;
+  /* Shared wording (2026-11-19): In review = waiting on you; Inactive = switched off, can come back; Archived = removed. */
+  if (s === 'Submitted') return <Tag tone="blue">In review</Tag>;
+  if (s === 'Suspended') return <Status s="Inactive" />;
   return <Status s={s} />;
 }
 

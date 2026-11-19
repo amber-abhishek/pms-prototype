@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarPlus, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, SelectFilter, Dialog, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, Pager, SearchInput, Select, Sheet, SheetHero, SheetSection, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
-import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
+import { Button, SelectFilter, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, Pager, SearchInput, Select, Sheet, SheetHero, SheetRow, SheetSection, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, roomTerms, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Ini, Person, St, type C } from './common';
 import { useAllocActions } from './actions';
+import { EditLink, LineTabs, Modal, PanelModal } from '../inventory/common';
 import { GhostZone } from '../../components/headerCtx';
 
 type TabId = 'Recent' | 'Open' | 'Accepted' | 'Declined' | 'Lapsed' | 'Waitlist';
@@ -239,32 +240,57 @@ function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void 
   );
 }
 
+/** The offer (Figma "Side panel · Offer" 4073:17183): Overview and Activity tabs. Decline records a reason in place. */
 function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBooking , nav }: { nav?: SheetNav;  o: Offer; onClose: () => void; onAccept: () => void; onLapse: () => void; onDecline: (r: string) => void; onExtend: () => void; onBooking: () => void }) {
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('Chose another operator');
+  const [tab, setTab] = useState<'overview' | 'activity'>('overview');
+  const { rate } = roomTerms(o.hall, o.room);
+  const left = o.leftH ?? 99;
+  const from = o.fromWaitlist ? `Waitlist ${o.fromWaitlist}` : 'Allocation';
+  const first = o.name.split(' ')[0];
+  const events: { who: string; t: string; when: string }[] = [
+    ...(o.lapsed ? [{ who: 'System', t: `The offer lapsed${o.wentTo ? ` · ${o.unit} went to ${o.wentTo}` : ''}`, when: o.lapsed }] : []),
+    ...(o.declined ? [{ who: o.name, t: `${o.name} declined · ${o.reason ?? 'no reason given'}`, when: o.declined }] : []),
+    ...(o.accepted ? [{ who: o.name, t: `${o.name} accepted${o.deposit ? ` · deposit ${o.deposit.toLowerCase()}` : ''}`, when: o.accepted }] : []),
+    ...Array.from({ length: o.reminders }, (_, i) => ({ who: 'System', t: `Reminder ${o.reminders - i} sent by email`, when: o.sent })),
+    ...(o.status !== 'open' || o.reminders ? [{ who: o.name, t: `${o.name} opened the offer`, when: o.sent }] : []),
+    { who: 'Arjun Mehta', t: `Arjun Mehta sent the offer${o.fromWaitlist ? ' from the waitlist' : ''}`, when: o.sent },
+  ];
   return (
-    <Sheet open onClose={onClose} nav={nav} width={560} title="Offer"
-      footer={o.status === 'open' ? (declining ? <><Button onClick={() => setDeclining(false)}>Back</Button><Button variant="danger" onClick={() => onDecline(reason)}>Record decline</Button></> : <>
-        <Button variant="danger-ghost" className="mr-auto" onClick={() => setDeclining(true)}>Declined</Button>
-        <Button onClick={onExtend}>Extend 2 days</Button>
-        <Button variant="success" onClick={() => { onAccept(); onClose(); }}>Accepted</Button>
-      </>) : o.status === 'accepted' ? <Button variant="primary" onClick={onBooking}>Open booking</Button> : <Button onClick={onClose}>Close</Button>}>
+    /* Read-only record (2026-11-19): letting it lapse sits in the control bar; the footer holds the two outcomes;
+       extending is an action on the Offer section; recording a decline asks for the reason in a centred modal. */
+    <Sheet open onClose={onClose} nav={nav} width={520} title="Offer"
+      onDelete={o.status === 'open' ? { label: 'Let it lapse', text: 'Let lapse', icon: HourglassMedium, onClick: onLapse } : undefined}
+      footer={o.status === 'open' ? <>
+        <Button icon={null} onClick={() => setDeclining(true)}>Declined</Button>
+        <Button variant="primary" icon={null} onClick={() => { onAccept(); onClose(); }}>Mark accepted</Button>
+      </> : o.status === 'accepted' ? <Button variant="primary" icon={null} onClick={onBooking}>Open booking</Button> : undefined}>
+      <Modal open={declining} onClose={() => setDeclining(false)} title={`Record ${first}’s decline`} width={440}
+        footer={<><Button onClick={() => setDeclining(false)}>Cancel</Button><Button variant="danger" icon={null} onClick={() => { setDeclining(false); onDecline(reason); }}>Record decline</Button></>}>
+        <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another operator', 'Too expensive', 'Living at home', 'Wanted a different hall', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
+      </Modal>
       <SheetHero name={o.name} meta={`${hallFull[o.hall]} · ${o.unit}`}
-        action={o.status === 'open' && !declining && <Button size="sm" onClick={onLapse}>Let it lapse</Button>}>
+        facts={o.status === 'open'
+          ? [['Expires', o.leftH !== undefined ? `${fmtLeft(o.leftH)} left` : o.expires ?? '—', left < 24 ? 'red' : left < 72 ? 'amber' : undefined], ['Rent', `£${rate} / wk`], ['From', from]]
+          : [['Sent', o.sent], ['Rent', `£${rate} / wk`], ['From', from]]}>
         <St s={ST[o.status]} />
       </SheetHero>
-      {o.status === 'open' && (o.leftH ?? 99) < 24 && <div className="mb-5"><Note tone="red" icon={HourglassMedium} title={`Expires in ${fmtLeft(o.leftH ?? 0)}`}>Lapses at {o.expires?.split(' ').slice(-1)[0]} if {o.name.split(' ')[0]} doesn’t reply; the unit goes to the waitlist.</Note></div>}
-      {declining ? (
-        <SheetSection title="Decline">
-          <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another operator', 'Too expensive', 'Living at home', 'Wanted a different hall', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
+      {o.status === 'open' && left < 24 && <div className="mb-5"><Note tone="red" icon={HourglassMedium} title={`Expires in ${fmtLeft(o.leftH ?? 0)}`}>Lapses at {o.expires?.split(' ').slice(-1)[0]} if {first} doesn’t reply.</Note></div>}
+      <div className="-mx-5 mb-5">
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity' }]} />
+      </div>
+      {tab === 'overview' && <>
+        <SheetSection title="Offer" action={o.status === 'open' ? <EditLink onClick={onExtend}>Extend 2 days</EditLink> : undefined} rows={[['Sent', `${o.sent} · by email`],
+          ...(o.status === 'open' ? [['Expires', <span className={left < 24 ? 'text-[#DC2626]' : left < 72 ? 'text-[#B45309]' : undefined}>{`${o.expires ?? '—'} · ${fmtLeft(o.leftH ?? 0)} left`}</span>] as [string, ReactNode], ['Reminder', o.reminders ? `${o.reminders} sent` : 'None yet'] as [string, string]] : []),
+          ...(o.accepted ? [['Accepted', `${o.accepted} · deposit ${o.deposit?.toLowerCase()}`] as [string, string]] : []), ...(o.declined ? [['Declined', `${o.declined} · ${o.reason}`] as [string, string], ['The unit now', o.unitNow ?? '—'] as [string, string]] : []),
+          ...(o.lapsed ? [['Lapsed', o.lapsed] as [string, string], ['Unit went to', o.wentTo ?? '—'] as [string, string]] : [])]} />
+        <SheetSection title="Room" rows={[['Unit', `${hallFull[o.hall]} · ${o.unit}`], ['Room type', o.room], ['From', from]]} />
+      </>}
+      {tab === 'activity' && (
+        <SheetSection title="Activity">
+          {events.map((e, i) => <SheetRow key={i} lead={<Ini name={e.who} size={24} />} title={e.t} sub={e.when} />)}
         </SheetSection>
-      ) : (
-        <>
-          <SheetSection title="Room" rows={[['Unit', `${hallFull[o.hall]} · ${o.unit}`], ['Room type', o.room], ...(o.fromWaitlist ? [['From', `Waitlist ${o.fromWaitlist}`] as [string, string]] : [])]} />
-          <SheetSection title="Offer" rows={[['Sent', o.sent], ...(o.status === 'open' ? [['Expires', `${o.expires} · ${fmtLeft(o.leftH ?? 0)} left`] as [string, string], ['Reminders', o.reminders ? `${o.reminders} sent` : 'None yet'] as [string, string]] : []),
-            ...(o.accepted ? [['Accepted', `${o.accepted} · deposit ${o.deposit?.toLowerCase()}`] as [string, string]] : []), ...(o.declined ? [['Declined', `${o.declined} · ${o.reason}`] as [string, string], ['The unit now', o.unitNow ?? '—'] as [string, string]] : []),
-            ...(o.lapsed ? [['Lapsed', o.lapsed] as [string, string], ['Unit went to', o.wentTo ?? '—'] as [string, string]] : [])]} />
-        </>
       )}
     </Sheet>
   );
@@ -279,21 +305,24 @@ function AddToWaitlist({ onClose }: { onClose: () => void }) {
   const busy = useRef(false);
   const people = [...new Set(d.apps.filter((a) => a.status === 'review' || a.status === 'manual' || a.status === 'rejected').map((a) => a.name))].slice(0, 60);
   return (
-    <Dialog open onClose={onClose} title="Add to waitlist" footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim()} onClick={() => {
+    <PanelModal open onClose={onClose} eyebrow="New waitlist entry" title="Add to waitlist" width={560}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!name.trim()} onClick={() => {
       if (busy.current) return; busy.current = true;
       d.up((x) => ({ waitlist: [...x.waitlist, { id: `w${Date.now()}`, name: name.trim(), hall, room, note: note.trim() || '—', joined: TODAY }], apps: x.apps.map((a) => (a.name === name.trim() && a.status === 'review' ? { ...a, status: 'waitlist' as const } : a)) }));
       const pos = d.waitlist.filter((w) => w.hall === hall && w.room === room).length + 1;
       toast.success(`${name.trim()} added to the waitlist`, { description: `${hall} · ${room} · #${pos} in line` }); onClose();
     }}>Add to waitlist</Button></>}>
-      <div className="space-y-3">
-        <Field label="Applicant"><Input list="wl-people" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name or APP- reference" /><datalist id="wl-people">{people.map((p) => <option key={p} value={p} />)}</datalist></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Hall"><Select value={hall} onChange={(e) => setHall(e.target.value)}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
-          <Field label="Room type"><Select value={room} onChange={(e) => setRoom(e.target.value)}>{ROOMS.map((r) => <option key={r}>{r}</option>)}</Select></Field>
+      <SheetSection title="Applicant">
+        <div className="space-y-4">
+          <Field label="Applicant"><Input list="wl-people" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name or APP- reference" /><datalist id="wl-people">{people.map((p) => <option key={p} value={p} />)}</datalist></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Hall"><Select value={hall} onChange={(e) => setHall(e.target.value)}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
+            <Field label="Room type"><Select value={room} onChange={(e) => setRoom(e.target.value)}>{ROOMS.map((r) => <option key={r}>{r}</option>)}</Select></Field>
+          </div>
+          <Field label="Note" hint="Shown to whoever offers the next unit"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" /></Field>
         </div>
-        <Field label="Note" hint="Shown to whoever offers the next unit"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" /></Field>
-      </div>
-    </Dialog>
+      </SheetSection>
+    </PanelModal>
   );
 }
 
@@ -304,17 +333,19 @@ function OfferUnit({ w, onClose }: { w: Wait; onClose: () => void }) {
   const [days, setDays] = useState('5');
   const busy = useRef(false);
   return (
-    <Dialog open onClose={onClose} title={`Offer a unit to ${w.name}`} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={PaperPlaneTilt} onClick={() => {
+    <PanelModal open onClose={onClose} eyebrow="New offer" title={w.name} meta={`#1 for ${w.hall} · ${w.room} · joined ${w.joined}${w.note !== '—' ? ` · ${w.note}` : ''}`} width={520}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={() => {
       if (busy.current) return; busy.current = true;
       const o: Offer = { id: `o${Date.now()}`, name: w.name, hall: w.hall, room: w.room, unit, status: 'open', sent: TODAY, expires: addDays('27 Oct 17:00', +days), leftH: +days * 24, reminders: 0, fromWaitlist: '#1', next: `From the waitlist · #1 for ${w.hall} ${w.room.toLowerCase()}`, recent: true };
       up((d) => ({ offers: [o, ...d.offers], recent: [o.id, ...d.recent], waitlist: d.waitlist.filter((x) => x.id !== w.id) }));
       toast.success(`${w.hall} ${unit} offered to ${w.name}`, { description: `#1 on the waitlist · expires in ${days} days` }); onClose();
     }}>Send offer</Button></>}>
-      <div className="space-y-3">
-        <Note tone="blue" title={`#1 for ${w.hall} · ${w.room}`}>{w.note !== '—' ? w.note : 'No note'} · joined {w.joined}</Note>
-        <Field label="Unit"><Select value={unit} onChange={(e) => setUnit(e.target.value)}>{units.map((u) => <option key={u} value={u}>{w.hall} · {u}</option>)}</Select></Field>
-        <Field label="Offer expires in"><Select value={days} onChange={(e) => setDays(e.target.value)}>{['3', '5', '7'].map((x) => <option key={x} value={x}>{x} days</option>)}</Select></Field>
-      </div>
-    </Dialog>
+      <SheetSection title="Offer">
+        <div className="space-y-4">
+          <Field label="Unit"><Select value={unit} onChange={(e) => setUnit(e.target.value)}>{units.map((u) => <option key={u} value={u}>{w.hall} · {u}</option>)}</Select></Field>
+          <Field label="Offer expires in"><Select value={days} onChange={(e) => setDays(e.target.value)}>{['3', '5', '7'].map((x) => <option key={x} value={x}>{x} days</option>)}</Select></Field>
+        </div>
+      </SheetSection>
+    </PanelModal>
   );
 }

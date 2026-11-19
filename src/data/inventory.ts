@@ -16,6 +16,7 @@ export type Property = {
   address: string; zone: string; invNo: string; letting: 'Weekly' | 'Monthly';
   blocks: Block[]; build: { done: number; total: number } | null;
   photos: number; description: string; amenities: string[]; wardenPhone: string;
+  /** The photos in their saved order, as indexes into the stock set (photoOf); unset = 0…photos-1. The first is the cover. */ photoOrder?: number[];
   createdBy: string; created: string; activity: ActivityRow[]; roomTypes: RoomType[];
   liveTenancies: number; archiveOn?: string; pendingRows?: number; counts: Counts; fees: number;
   /** The status it had when archived, so Restore can put it back. */ archivedFrom?: PStatus;
@@ -49,7 +50,7 @@ const base = {
 function prop(p: Partial<Property> & Pick<Property, 'id' | 'name' | 'campus' | 'tags' | 'units' | 'status' | 'address'>): Property {
   return {
     ...base, structure: 'College', blocks: blocks3(p.units, 'Standard single'), description: `${p.name} is a Durham college with ${p.units} rooms.`,
-    activity: [{ who: 'Tom Okafor', what: `${p.name} created`, when: '2 Sep 2024' }], liveTenancies: p.status === 'Active' ? p.units : 0,
+    activity: [{ who: 'Tom Okafor', what: `Created ${p.name}`, when: '2 Sep 2024' }], liveTenancies: p.status === 'Active' ? p.units : 0,
     counts: counts(p.units, p.status), ...p,
   } as Property;
 }
@@ -113,11 +114,14 @@ export function makeInventorySeed() {
     { id: 'cf3', name: 'Floor area (m²)', key: 'floor_area_m2', type: 'Number', attached: ['Studio block › Studio'] },
     { id: 'cf4', name: 'Bed size', key: 'bed_size', type: 'Pick one · 3 options', attached: ['Halls with flats › Room', 'Studio block › Studio'] },
     { id: 'cf5', name: 'Kitchen shared with', key: 'kitchen_shared_with', type: 'Number', attached: ['Halls with flats › Flat'] },
+    { id: 'cf7', name: 'Fire assembly point', key: 'fire_assembly_point', type: 'Text', attached: ['Halls with flats › Floor'] },
+    { id: 'cf8', name: 'Quiet floor', key: 'quiet_floor', type: 'Yes / no', attached: ['Halls with flats › Floor'] },
     { id: 'cf6', name: 'Lift access', key: 'lift_access', type: 'Yes / no', attached: ['Halls with flats › Building', 'Halls, rooms only › Building'] },
   ];
   const tags: TagDef[] = [];
   for (const p of properties) for (const t of p.tags) if (!tags.some((x) => x.label === t.label)) tags.push({ id: 'tg' + (tags.length + 1), ...t });
-  return { properties, templates, feeTypes, fees, imports, archived, structures, fields, tags, unitEdits: {} as Record<string, Partial<Unit>>, archivedFlats: [] as string[] };
+  return { properties, templates, feeTypes, fees, imports, archived, structures, fields, tags, unitEdits: {} as Record<string, Partial<Unit>>, archivedFlats: [] as string[],
+    /** Custom field values per level (block, floor or flat id) → field id → value. Prototype only. */ fieldValues: {} as Record<string, Record<string, string>> };
 }
 export type InvSeed = ReturnType<typeof makeInventorySeed>;
 

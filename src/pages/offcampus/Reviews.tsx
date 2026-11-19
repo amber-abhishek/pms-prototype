@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert } from '../org/parts';
-import { Empty, PIN } from '../../components/ui';
-import { ChatCenteredText, CheckCircle, FileMagnifyingGlass, Hourglass, Image as ImageIcon, Warning, XCircle } from '../../components/icons';
+import { PersonName, Empty, Note, PIN } from '../../components/ui';
+import { Bike, Car, ChatCenteredText, Check, CheckCircle, Dumbbell, LampDesk, Sofa, Trees, Utensils, WashingMachine, Wifi, FileMagnifyingGlass, Image as ImageIcon, Warning, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, listNav, PageHeader, Pill, Sheet, SheetHero, SheetSection, Tabs, cx } from '../../components/ui';
+import { Button, listNav, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, Tabs, cx } from '../../components/ui';
+import { LineTabs } from '../inventory/common';
 import type { Tone } from '../../data/seed';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useOpen, useTab } from '../hooks';
@@ -16,18 +17,19 @@ import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 
 type TabId = 'all' | 'review' | 'changes' | 'rejected';
 const TABS: { id: TabId; label: string; status?: ReviewStatus }[] = [
-  { id: 'all', label: 'All' }, { id: 'review', label: 'Under review', status: 'Under review' },
+  { id: 'all', label: 'All' }, { id: 'review', label: 'In review', status: 'Under review' },
   { id: 'changes', label: 'Changes requested', status: 'Changes requested' }, { id: 'rejected', label: 'Rejected', status: 'Rejected' },
 ];
 
 export function RStatus({ s }: { s: ReviewStatus }) {
-  if (s === 'Under review') return <Tag tone="blue" icon={Hourglass}>Under review</Tag>;
+  if (s === 'Under review') return <Tag tone="blue">In review</Tag>;
   if (s === 'Changes requested') return <Tag tone="amber" icon={Warning}>Changes requested</Tag>;
   if (s === 'Rejected') return <Tag tone="red" icon={XCircle}>Rejected</Tag>;
   return <Tag tone="green" icon={CheckCircle}>Approved</Tag>;
 }
 
-export function Reviews() {
+/** `bare`: rendered inside Approvals, which owns the page header. */
+export function Reviews({ bare }: { bare?: boolean } = {}) {
   const all = useOc((s) => s.reviews);
   const set = useOc((s) => s.set);
   const [tab, setTab] = useTab<TabId>('review');
@@ -37,11 +39,13 @@ export function Reviews() {
   const busy = useRef(false);
   const queue = all.filter((r) => r.status !== 'Approved');
   const st = TABS.find((t) => t.id === tab)?.status;
-  const rows = queue.filter((r) => !st || r.status === st);
+  const [q, setQ] = useState('');
+  const qt = q.trim().toLowerCase();
+  const rows = queue.filter((r) => (!st || r.status === st) && (!qt || `${r.title} ${r.landlord} ${r.town}`.toLowerCase().includes(qt)));
   const { items, bodyRef } = useRowMotion(rows);
   const sel = all.find((r) => r.id === open);
   const canTick = tab === 'review';
-  useEffect(() => setTicked([]), [tab]);
+  useEffect(() => setTicked([]), [tab, q]);
 
   const guard = (fn: () => void) => { if (busy.current) return; busy.current = true; fn(); setTimeout(() => { busy.current = false; }, 400); };
   const nav = useNavigate();
@@ -103,7 +107,7 @@ export function Reviews() {
   const resubmit = (r: Review) => {
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Under review' as const, received: '5 min ago', resubmission: true, rooms: x.rooms.map((rm) => ({ ...rm, photos: true })) } : x)));
     setOpen(null); setTab('review');
-    toast.success(`${r.landlord} resubmitted ${r.title}`, { description: 'It is back in the Under review queue.' });
+    toast.success(`${r.landlord} resubmitted ${r.title}`, { description: 'It is back in the In review queue.' });
   };
 
   const tick = (id: string, on: boolean) => setTicked((t) => (on ? [...t, id] : t.filter((x) => x !== id)));
@@ -111,15 +115,17 @@ export function Reviews() {
 
   return (
     <>
-      <PageHeader icon={FileMagnifyingGlass} crumbs={['Off-campus']} title="Listing reviews" />
+      {!bare && <PageHeader icon={FileMagnifyingGlass} crumbs={['Off-campus']} title="Listing reviews" />}
       <div className="flex-1 min-h-0 flex flex-col relative">
-        <Title title="Listing reviews" />
-        <div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 empty:hidden">
-          <Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: queue.filter((r) => !x.status || r.status === x.status).length }))} />
+        {!bare && <Title title="Listing reviews" />}
+        <div {...PIN} className="px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-3">
+          {/* Every off-campus list: search on the left, status tabs at the right edge. */}
+          <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search landlord or property" /></div>
+          <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: queue.filter((r) => !x.status || r.status === x.status).length }))} /></div>
         </div>
         <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
           {!rows.length ? (
-            (tab === 'review' ? <Empty art="queueClear" title="Nothing to review" sub="New landlord listings land here for checking." /> : <Empty art="nothingToShow" title={`No listings under ${TABS.find((x) => x.id === tab)?.label}`} />)
+            qt ? <Empty art="noResults" title="No listing matches that search" sub="Try another landlord or property." /> : (tab === 'review' ? <Empty art="queueClear" title="Nothing to review" sub="New landlord listings land here for checking." /> : <Empty art="nothingToShow" title={`No listings under ${TABS.find((x) => x.id === tab)?.label}`} />)
           ) : (
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white z-[1]">
@@ -138,7 +144,7 @@ export function Reviews() {
                         {/* Same cell as the Properties list: 120×64 photo, 16px name, 14px grey line under it. */}
                         <div className="flex items-center gap-4 min-w-0"><Thumb src={listingPhoto(all.findIndex((x) => x.id === r.id))} w={120} h={64} /><div className="min-w-0 flex flex-col gap-1"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={r.title}>{r.title}</span><span className="text-sm leading-5 text-[#737373] truncate max-w-[320px]">{r.town} · {r.type} · {r.beds} bed</span></div></div>
                       </td>
-                      <td>{r.landlord}</td>
+                      <td><PersonName name={r.landlord} size={24} /></td>
                       <td className="text-gray-500"><div className="leading-tight">{r.received}{r.resubmission && <div className="text-xs">Resubmission</div>}</div></td>
                       <td className="!pr-[var(--cx,12px)]"><RStatus s={r.status} /></td>
                     </tr>
@@ -153,16 +159,16 @@ export function Reviews() {
         </BulkBar>
       </div>
 
-      <Sheet open={!!sel} onClose={() => setOpen(null)} width={640} title="Listing review" nav={listNav(rows, (r) => r.id === open, (r) => setOpen(r.id))}
+      <Sheet open={!!sel} onClose={() => setOpen(null)} width={520} title="Listing review" nav={listNav(rows, (r) => r.id === open, (r) => setOpen(r.id))}
+        onDelete={sel?.status === 'Under review' ? { label: 'Reject listing', icon: XCircle, onClick: () => setDlg('reject') } : undefined}
         footer={sel && (sel.status === 'Under review' ? (
           <>
-            <Button variant="danger-ghost" className="mr-auto" onClick={() => setDlg('reject')}>Reject</Button>
-            <Button onClick={() => setDlg('changes')}>Request changes</Button>
-            <Button variant="primary" onClick={() => setDlg('approve')}>Approve</Button>
+            <Button icon={ChatCenteredText} className="ml-auto" onClick={() => setDlg('changes')}>Request changes</Button>
+            <Button variant="primary" icon={CheckCircle} onClick={() => setDlg('approve')}>Approve</Button>
           </>
         ) : sel.status === 'Changes requested' ? (
-          <><Button onClick={() => setOpen(null)}>Close</Button><Button variant="primary" onClick={() => resubmit(sel)}>Simulate landlord resubmission</Button></>
-        ) : <Button onClick={() => setOpen(null)}>Close</Button>)}>
+          <Button variant="primary" icon={null} className="ml-auto" onClick={() => resubmit(sel)}>Simulate landlord resubmission</Button>
+        ) : null)}>
         {sel && <ListingDetail r={sel} />}
       </Sheet>
 
@@ -177,7 +183,7 @@ export function Reviews() {
       <ODialog confirm width={480} open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title={block ? 'This listing can’t go live yet' : 'Approve this listing'}
         sub={block ? undefined : 'It goes live on your off-campus site straight away.'}
         footer={block?.kind === 'landlord'
-          ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => { setDlg(null); nav(block.id ? `/offcampus/landlords?tab=all&open=${block.id}` : '/offcampus/landlords?tab=all'); }}>Open their application</Button></>
+          ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => { setDlg(null); nav(block.id ? `/offcampus/approvals?kind=landlords&tab=all&open=${block.id}` : '/offcampus/approvals?kind=landlords&tab=all'); }}>Open their application</Button></>
           : block?.kind === 'duplicate'
             ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => setDlg('reject')}>Reject as duplicate</Button></>
             : noPhotos.length
@@ -190,49 +196,73 @@ export function Reviews() {
   );
 }
 
+/** The icon for an amenity by its wording; a tick when nothing fits. */
+function amenityIcon(a: string) {
+  const n = a.toLowerCase();
+  if (/wi-?fi|internet|broadband/.test(n)) return Wifi;
+  if (/washing|laundry/.test(n)) return WashingMachine;
+  if (/dishwasher|kitchen/.test(n)) return Utensils;
+  if (/desk|study/.test(n)) return LampDesk;
+  if (/bike|cycle/.test(n)) return Bike;
+  if (/garden|yard|outdoor/.test(n)) return Trees;
+  if (/parking|car/.test(n)) return Car;
+  if (/gym/.test(n)) return Dumbbell;
+  if (/lounge|living|sofa/.test(n)) return Sofa;
+  return Check;
+}
+
+/* Listing review panel (Figma "Side panel · Listing review" 4073:17187): Overview, Photos, Rooms. */
+const PHOTO_COUNT = 8;
+function billsFact(b: string): [string, string, Tone?] {
+  const some = /included/i.test(b), none = /not included/i.test(b);
+  const inc = b.replace(/not included/gi, '').match(/included/i);
+  if (some && !none) return ['Bills', 'Included', 'green'];
+  if (inc && none) return ['Bills', 'Some included'];
+  return ['Bills', 'Not included'];
+}
 function ListingDetail({ r }: { r: Review }) {
   const n = useOc((s) => s.reviews.findIndex((x) => x.id === r.id));
   const ll = useOc((s) => s.landlords.find((l) => l.name === r.landlord));
-  const tagTones: Tone[] = ['blue', 'green', 'purple', 'green', 'red'];
+  const [tab, setTab] = useState<'overview' | 'photos' | 'rooms'>('overview');
+  useEffect(() => setTab('overview'), [r.id]);
   return (
     <>
-      <SheetHero avatar={false} name={r.title} meta={`${r.address} · submitted ${r.submittedAt}`}>
+      <SheetHero lead={<img src={listingPhoto(n)} alt="" className="size-14 shrink-0 rounded-xl object-cover bg-[#F5F5F5]" />} name={r.title} meta={`${r.address} · submitted ${r.submittedAt}`}
+        facts={[['Rent', `£${r.from} / wk`], ['Rooms', `${r.beds} bed`], billsFact(r.bills)]}>
         <RStatus s={r.status} />{r.resubmission && <Tag tone="grey" outline>Resubmission</Tag>}
       </SheetHero>
-      {r.note && r.status !== 'Under review' && (
-        <div className={cx('mb-5 rounded-lg border px-3.5 py-2.5 text-sm', r.status === 'Rejected' ? 'border-[#E0243A]/30 text-[#E0243A]' : 'border-[#C47A00]/35 text-[#C47A00]')}>Your note: {r.note}</div>
-      )}
-      <SheetSection title="Photos">
-        <div className="flex gap-3">
-          <Thumb src={listingPhoto(n)} w={220} h={132} />
-          <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4].map((k) => <Thumb key={k} src={listingPhoto(n, k)} w={96} h={60} />)}
+      <div className="-mx-5 mb-5">
+        <LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'photos', label: 'Photos' }, { id: 'rooms', label: 'Rooms' }]} />
+      </div>
+      {tab === 'overview' && <>
+        {r.note && r.status !== 'Under review' && (
+          <div className="mb-3"><Note tone={r.status === 'Rejected' ? 'red' : 'amber'} title="Your note">{r.note}</Note></div>
+        )}
+        <SheetSection title="Property" rows={[['Type', `${r.type} · ${r.beds} bed`], ['Let as', r.letAs], ['Size', `${r.size} m²`], ['From', `£${r.from} per week`]]} />
+        <SheetSection title="Landlord">
+          <SheetRow title={r.landlord} sub={ll ? (ll.company ?? ll.entity) : 'No landlord account'} end={ll ? <LStatus s={ll.status} /> : <Tag tone="grey">Not registered</Tag>} />
+        </SheetSection>
+        <SheetSection title="Terms" rows={[['Bills', r.bills], ['House rules', r.rules]]} />
+        <SheetSection title={`Amenities · ${r.amenities.length}`}>
+          {/* A plain two-column list, each amenity with its own icon, not tags (2026-11-19). */}
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5">{r.amenities.map((a) => <li key={a} className="flex items-center gap-2 text-sm leading-5 text-[#0A0A0A] min-w-0">{(() => { const I = amenityIcon(a); return <I size={16} className="shrink-0 text-[#737373]" />; })()}<span className="truncate">{a}</span></li>)}</ul>
+        </SheetSection>
+      </>}
+      {tab === 'photos' && (
+        <SheetSection title={`Photos · ${PHOTO_COUNT}`}>
+          <div className="grid grid-cols-3 gap-2">
+            {Array.from({ length: PHOTO_COUNT }, (_, k) => <img key={k} src={listingPhoto(n, k)} alt="" loading="lazy" className="w-full aspect-[4/3] rounded-lg object-cover bg-[#F5F5F5]" />)}
           </div>
-        </div>
-      </SheetSection>
-      <SheetSection title="Property" rows={[
-        ['Address', r.address], ['Type', `${r.type} · ${r.beds} bed`], ['Let as', r.letAs], ['Size', `${r.size} m²`], ['From', `£${r.from} per week`],
-      ]} />
-      <SheetSection title="Landlord" rows={[['Name', r.landlord], ['Status', ll ? <LStatus key="s" s={ll.status} /> : <Tag key="s" tone="grey">Not registered</Tag>]]} />
-      <SheetSection title="Amenities">
-        <div className="flex flex-wrap gap-1.5">{r.amenities.map((a, i) => <Pill key={a} tone={tagTones[i % tagTones.length]} outline>{a}</Pill>)}</div>
-      </SheetSection>
-      <SheetSection title="Terms" rows={[['Bills', r.bills], ['House rules', r.rules]]} />
-      <SheetSection title={`Rooms · ${r.rooms.length}`}>
-        <div className="divide-y divide-[#F5F5F5]">
-          {r.rooms.map((rm, i) => (
-            <div key={rm.name} className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3">
-              {rm.photos ? <Thumb src={listingPhoto(n, i + 1)} w={56} h={40} />
-                : <span className="w-14 h-10 rounded-md border border-dashed border-[#8A909C] text-xs leading-tight text-[#737373] flex items-center px-1">No photos</span>}
-              <div className="flex-1 leading-tight">
-                <div className="flex items-center gap-2 text-sm font-medium">{rm.name}<Tag tone="green">Active</Tag></div>
-                <div className="text-xs text-gray-500 mt-0.5">{rm.kind} · {rm.size} m² · {rm.bath}</div>
-              </div>
-              <div className="text-sm font-medium">£{rm.rent} / wk</div>
-            </div>
+        </SheetSection>
+      )}
+      {tab === 'rooms' && (
+        <SheetSection title={`Rooms · ${r.rooms.length}`}>
+          {r.rooms.map((rm) => (
+            <SheetRow key={rm.name} title={rm.name} sub={`${rm.kind} · ${rm.size} m² · ${rm.bath} · £${rm.rent} / wk`}
+              end={rm.photos ? <Pill tone="green">Free</Pill> : <Pill tone="amber">No photos</Pill>} />
           ))}
-        </div>
-      </SheetSection>
+        </SheetSection>
+      )}
     </>
   );
 }
@@ -242,7 +272,7 @@ function blockFor(r: Review, st: { landlords: { id: string; name: string; status
   { kind: 'landlord' | 'duplicate'; id?: string; title: string; sub: string } | null {
   const l = st.landlords.find((x) => x.name === r.landlord);
   if (!l) return { kind: 'landlord', title: `${r.landlord} isn’t an approved landlord`, sub: 'Only approved landlords can list here.' };
-  if (l.status !== 'Approved') return { kind: 'landlord', id: l.id, title: `${r.landlord} ${({ Submitted: 'isn’t approved yet', 'Awaiting info': 'owes you more information', Rejected: 'was rejected', Suspended: 'is suspended' } as Record<string, string>)[l.status] ?? 'isn’t approved'}`, sub: 'Approve the landlord first, then their listings.' };
+  if (l.status !== 'Approved') return { kind: 'landlord', id: l.id, title: `${r.landlord} ${({ Submitted: 'isn’t approved yet', 'Awaiting info': 'owes you more information', Rejected: 'was rejected', Suspended: 'is inactive' } as Record<string, string>)[l.status] ?? 'isn’t approved'}`, sub: 'Approve the landlord first, then their listings.' };
   const key = (t: string) => t.trim().toLowerCase().replace(/\s+/g, ' ');
   const twin = st.hmos.find((h) => key(h.title) === key(r.title) && h.landlord !== r.landlord && h.status !== 'Archived');
   if (twin) return { kind: 'duplicate', title: `${twin.title} is already listed by ${twin.landlord}`, sub: 'Two landlords can’t list the same address.' };

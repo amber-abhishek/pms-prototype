@@ -3,22 +3,20 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   ArrowsLeftRight, Bed, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
-  Bike, Car, DotsThree, DownloadSimple, Dumbbell, Library, Sofa, Utensils, WashingMachine, FileCsv, Image, ImageSquare, Info, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, Tag as TagIcon, UploadSimple, Warning, WarningCircle,
+  DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, UploadSimple, Warning, WarningCircle, X,
 } from '../../components/icons';
-import { Avatar, Button, Card, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetSection } from '../../components/ui';
+import { Avatar, Button, Card, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
 import { allUnits, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
-import { EditLink, FieldErr, LineTabs, Menu, Modal, MoneyInput, PropStatus, Progress, RadioCard, Tags, moneyErr, parseDay } from './common';
-import { EmptyArt, shownOrder } from './Properties';
+import { EditLink, FieldErr, TagPicker, addTagChip, LineTabs, Menu, Modal, MoneyInput, PanelModal, PropStatus, Progress, RadioCard, Tags, moneyErr, parseDay } from './common';
+import { EmptyArt, PRE_LET, shownOrder } from './Properties';
 import { photoOf } from './photos';
+import { AMENITIES, AMENITY_ICON, PhotosCards, photoOrder } from './PropertyPhotos';
 import { GhostZone } from '../../components/headerCtx';
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
 
 type TabId = 'overview' | 'units' | 'tenancies' | 'photos' | 'activity';
-const AMENITIES = ['Laundry', 'Bike store', 'Gym', 'Library', 'Common room', 'Parking', 'Catered option'];
-const AMENITY_ICON: Record<string, typeof Bike> = { Laundry: WashingMachine, 'Bike store': Bike, Gym: Dumbbell, Library, 'Common room': Sofa, Parking: Car, 'Catered option': Utensils };
-const TAG_CHOICES: Tag[] = [{ label: 'Catered', tone: 'orange' }, { label: 'Self-catered', tone: 'green' }, { label: 'Undergraduate', tone: 'blue' }, { label: 'Postgraduate', tone: 'blue' }, { label: 'Hill colleges', tone: 'purple' }, { label: 'Accessible', tone: 'purple' }, { label: 'Riverside', tone: 'green' }];
 const shortName = (p: Property) => p.name.replace(/ College$/, '');
 
 export function PropertyDetail() {
@@ -27,6 +25,20 @@ export function PropertyDetail() {
   const allTpl = useInv((s) => s.templates);
   const templates = useMemo(() => allTpl.filter((t) => t.propertyId === id), [allTpl, id]);
   const patchProp = useInv((s) => s.patchProp);
+  const removeTag = (t: Tag) => {
+    if (!id) return;
+    patchProp(id, (x) => ({ tags: x.tags.filter((y) => y.label !== t.label), activity: logAct(x, `Untagged ${t.label}`) }));
+    toast.success(`${t.label} removed`, { action: { label: 'Undo', onClick: () => patchProp(id, (x) => ({ tags: x.tags.some((y) => y.label === t.label) ? x.tags : [...x.tags, t] })) } });
+  };
+  /* A tag on the record with a remove × on hover or keyboard focus, a small white disc on its top-right corner (2026-11-18). */
+  const TagX = ({ t }: { t: Tag }) => (
+    <span className="group relative inline-flex">
+      <Tags tags={[t]} />
+      <button type="button" aria-label={`Remove ${t.label}`} onClick={() => removeTag(t)}
+        className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-white border border-[#E5E5E5] shadow-[0_1px_2px_rgba(0,0,0,0.08)] text-[#525252] hover:text-[#0A0A0A] flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity"><X size={10} strokeWidth={2} /></button>
+    </span>
+  );
+  const addTag = (t: Tag, created: boolean) => { if (!id) return; patchProp(id, (x) => ({ tags: [...x.tags, t], activity: logAct(x, `Tagged ${t.label}`) })); toast.success(created ? `${t.label} created and added` : `Tagged ${t.label}`); };
   const nav = useNavigate();
   const loc = useLocation();
   /* ↑ ↓ (and the keys) step through the Properties list as it is shown; straight from a link, through every unarchived property. */
@@ -54,7 +66,7 @@ export function PropertyDetail() {
       const done = Math.min(cur.build.total, cur.build.done + Math.ceil(cur.build.total / 12));
       if (done >= cur.build.total) {
         const total = cur.build.total;
-        patchProp(cur.id, (x) => ({ build: null, activity: logAct(x, `${total} rooms and tenancies built`) }));
+        patchProp(cur.id, (x) => ({ build: null, activity: logAct(x, `Built ${total} rooms and tenancies`) }));
         useInv.getState().set('imports', (l) => l.map((j) => (j.name === `${cur.name} · ${total} rooms` ? { ...j, status: 'Succeeded' as const, done: total } : j)));
         toast.success(`${total} rooms and tenancies ready · email sent`);
       } else patchProp(cur.id, () => ({ build: { done, total: cur.build!.total } }));
@@ -82,12 +94,12 @@ export function PropertyDetail() {
     goActive();
   };
   const goActive = () => {
-    patchProp(p.id, (x) => ({ status: 'Active', counts: { ...x.counts, active: x.counts.all - x.counts.archived - x.counts.inactive, draft: 0 }, activity: logAct(x, `${x.name} made active`) }));
+    patchProp(p.id, (x) => ({ status: 'Active', counts: { ...x.counts, active: x.counts.all - x.counts.archived - x.counts.inactive, draft: 0 }, activity: logAct(x, `Made ${x.name} active`) }));
     toast.success(`${p.name} is active`);
   };
   const archiveNow = () => {
     const was = p.status;
-    patchProp(p.id, (x) => ({ status: 'Archived', archivedFrom: x.status, activity: logAct(x, `${x.name} archived`) }));
+    patchProp(p.id, (x) => ({ status: 'Archived', archivedFrom: x.status, activity: logAct(x, `Archived ${x.name}`) }));
     setArchiveAsk(false);
     nav('/inventory/properties');
     toast.success(`${p.name} archived`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: was })) } });
@@ -108,14 +120,13 @@ export function PropertyDetail() {
         footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations…</Button></>
           : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
       {/* E2: not ready to go active */}
-      <Modal open={checks} onClose={() => setChecks(false)} icon={WarningCircle} tone="amber" title={`${short} can’t go active yet`} sub="Do everything below first." width={520}
-        footer={<><Button onClick={() => setChecks(false)}>Later</Button>{(() => { const f = problems.find((x) => !x.ok); return f ? <Button variant="primary" onClick={() => { setChecks(false); setTab(f.tab); }}>Fix the {f.title.toLowerCase()}</Button> : null; })()}</>}>
-        <div className="rounded-xl border border-line divide-y divide-line">
+      <Modal open={checks} onClose={() => setChecks(false)} title={`${short} can’t go active yet`} width={520}
+        footer={<><Button onClick={() => setChecks(false)}>Later</Button>{(() => { const f = problems.find((x) => !x.ok); return f ? <Button variant="primary" icon={null} onClick={() => { setChecks(false); setTab(f.tab); }}>Fix the {f.title.toLowerCase()}</Button> : null; })()}</>}>
+        <div>
           {problems.map((x) => (
-            <div key={x.title} className="h-11 px-3.5 flex items-center gap-2.5 text-sm">
-              {x.ok ? <CheckCircle size={17} weight="fill" className="text-[#16A34A]" /> : <WarningCircle size={17} weight="fill" className="text-[#E0243A]" />}
-              <span className="font-medium flex-1">{x.title}</span><span className={x.ok ? 'text-[#737373]' : 'text-[#E0243A]'}>{x.ok ? x.okText : x.fail}</span>
-            </div>
+            <SheetRow key={x.title} title={x.title}
+              lead={x.ok ? <CheckCircle size={17} weight="fill" className="shrink-0 text-[#16A34A]" /> : <WarningCircle size={17} weight="fill" className="shrink-0 text-[#E0243A]" />}
+              end={<span className={cx('shrink-0 text-sm', x.ok ? 'text-[#737373]' : 'text-[#E0243A]')}>{x.ok ? x.okText : x.fail}</span>} />
           ))}
         </div>
       </Modal>
@@ -126,45 +137,28 @@ export function PropertyDetail() {
       <ImportRoomsSheet p={p} open={importOpen} onClose={() => setImportOpen(false)} />
     </>
   );
-  const moreMenu = (
-    <Menu width={200} align="left" trigger={(o) => <Button variant="ghost" icon={null} onClick={o}>More</Button>} items={[
-      ...(p.status === 'Draft' ? [{ label: 'Open in Inventory', icon: ListDashes, onClick: () => nav(`/inventory/units?p=${p.id}`) }] : []),
-      { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
-      { label: 'Tenancy pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
-      'sep',
-      { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
-    ]} />
-  );
   /* Default: a 640px right-hand side sheet over the Properties list (like a resident). ?view=modal keeps the centred modal. */
   if (!asModal) return (
     <>
+      {/* Record panel (2026-11-19): read-only. Archive sits in the control bar; edits open centred modals from the
+          section Edit links; the footer only carries a draft's Make active. Open in Inventory lives on the Units tab. */}
       <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={576} nav={stepper}
-        footer={<>
-          <div className="mr-auto">{moreMenu}</div>
-          <Button icon={PencilSimple} onClick={() => setEditOpen('basics')}>Edit</Button>
-          {/* Two buttons at most on the right: a draft's main action replaces Open in Inventory (which moves to More). */}
-          {p.status === 'Draft'
-            ? <Button variant="primary" icon={CheckCircle} onClick={activate}>Make active…</Button>
-            : <Button icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>}
-        </>}>
-        <div className="pb-5 flex items-center gap-3">
-          {photoOf(p.id)
-            ? <img src={photoOf(p.id)} alt="" className="size-12 shrink-0 rounded-lg border border-line object-cover bg-[#F5F5F5]" />
-            : <div className="size-12 shrink-0 rounded-lg bg-[#F5F5F5] border border-line flex items-center justify-center"><Image size={20} className="text-[#94A3B8]" /></div>}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2"><span className="text-xl leading-7 font-medium text-ink truncate">{p.name}</span><PropStatus s={p.status} /></div>
-            <div className="text-sm leading-5 text-gray-500 truncate">{p.campus} campus · {p.address || 'No address'}</div>
-          </div>
-        </div>
-        {/* Tags sit in the hero, visible on every tab, with Add tag at the end of the row. */}
-        <div className="-mt-1 pb-5 flex flex-wrap gap-1.5 items-center">
-          {p.tags.map((t) => <Tags key={t.label} tags={[t]} />)}
-          <span className={p.tags.length ? 'ml-2' : 'ml-1.5'}><Menu align="left" width={180} trigger={(o) => <EditLink onClick={o}>{p.tags.length ? 'Add tag' : 'Add a tag'}</EditLink>}
-            items={TAG_CHOICES.filter((t) => !p.tags.some((x) => x.label === t.label)).map((t) => ({ label: t.label, icon: TagIcon, onClick: () => { patchProp(p.id, (x) => ({ tags: [...x.tags, t] })); toast.success(`Tagged ${t.label}`); } }))} /></span>
-        </div>
+        onDelete={{ label: 'Archive property', icon: Archive, onClick: () => setArchiveAsk(true) }}
+        footer={p.status === 'Draft' ? <Button variant="primary" icon={null} onClick={activate}>Make active…</Button> : undefined}>
+        {/* Tags sit in the hero, visible on every tab: the status first, then the tags, with Add tag at the end of the row. */}
+        <SheetHero name={p.name} meta={`${p.campus} campus · ${p.address || 'No address'}`}
+          lead={photoOf(p.id)
+            ? <img src={photoOf(p.id, photoOrder(p)[0] ?? 0)} alt="" className="size-14 shrink-0 rounded-xl object-cover bg-[#F5F5F5]" />
+            : <div className="size-14 shrink-0 rounded-xl bg-[#F5F5F5] flex items-center justify-center"><Image size={24} className="text-[#A3A3A3]" /></div>}
+          tags={<>
+            <PropStatus s={p.status} />
+            {p.tags.map((t) => <TagX key={t.label} t={t} />)}
+            <TagPicker have={p.tags} onPick={addTag} onRemove={removeTag} trigger={addTagChip()} />
+          </>}
+          facts={[['Units', String(p.units)], ['Pre-let', PRE_LET[p.id] != null ? `${PRE_LET[p.id]}%` : '—', PRE_LET[p.id] != null ? 'green' : undefined], ['Letting', p.letting]]} />
         <div className="-mx-5">
-          <LineTabs className="px-2.5" value={tab} onChange={setTab} tabs={[
-            { id: 'overview', label: 'Overview' }, { id: 'units', label: `Units · ${p.units}` }, { id: 'tenancies', label: 'Tenancies' }, { id: 'photos', label: 'Photos' }, { id: 'activity', label: 'Activity' },
+          <LineTabs value={tab} onChange={setTab} tabs={[
+            { id: 'overview', label: 'Overview' }, { id: 'units', label: 'Units' }, { id: 'tenancies', label: 'Tenancies' }, { id: 'photos', label: 'Photos' }, { id: 'activity', label: 'Activity' },
           ]} />
         </div>
         {tab === 'overview' && (
@@ -181,18 +175,13 @@ export function PropertyDetail() {
             )}
             {p.pendingRows ? <div className="mb-5"><Note tone="amber" icon={Warning} title={`${p.pendingRows} rows still to add`}>Fix them and import again from the Units tab.</Note></div> : null}
             <SheetSection title={`Set-up · ${doneCount} of 5`}>
-              <div className="-my-2.5">
-                {setupRows.map((r) => (
-                  <div key={r.k} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
-                    {r.ok ? <span className="size-5 rounded-full bg-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" className="text-white" /></span> : <span className="size-5 rounded-full border border-dashed border-gray-400 shrink-0" />}
-                    <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{r.k}</span><span className="block text-xs leading-4 text-[#737373] truncate">{r.v}</span></span>
-                    <EditLink onClick={r.go} />
-                  </div>
-                ))}
-              </div>
+              {setupRows.map((r) => (
+                <SheetRow key={r.k} title={r.k} sub={r.v} end={<EditLink onClick={r.go} />}
+                  lead={r.ok ? <span className="size-5 rounded-full bg-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" className="text-white" /></span> : <span className="size-5 rounded-full border border-dashed border-gray-400 shrink-0" />} />
+              ))}
             </SheetSection>
-            <SheetSection title="Details" rows={[
-              ['Letting period', <span className="inline-flex items-center gap-2">{p.letting}<EditLink onClick={() => setLettingOpen(true)}>Change</EditLink></span>],
+            <SheetSection title="Details" action={<EditLink onClick={() => setEditOpen('basics')} />} rows={[
+              ['Letting period', <span className="flex items-center gap-2">{p.letting}<EditLink onClick={() => setLettingOpen(true)}>Change</EditLink></span>],
               ['Layout', `${p.structure} · ${p.structure === 'College' ? 5 : 2} levels`],
               ['Inventory no.', p.invNo || '—'],
               ['Zone', p.zone || '—'],
@@ -205,27 +194,18 @@ export function PropertyDetail() {
           <div className="-mx-5 px-5 pt-5">
             {p.blocks.length ? <>
               <SheetSection title={`Blocks · ${p.blocks.length}`}>
-                <div className="-my-2.5">
-                  {p.blocks.map((b) => {
-                    const t = templates.find((x) => x.name === b.roomType);
-                    return (
-                      <div key={b.name} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
-                        <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{b.name}</span><span className="block text-xs leading-4 text-[#737373] truncate">{p.structure === 'House' ? '' : `${b.floors} floors · `}{b.rooms} rooms · {b.roomType}</span></span>
-                        <span className="text-sm text-[#737373] tabular-nums">{p.tenancies === false ? 'No tenancy' : t ? `${money(t.rent)} / ${per(p)} · ${t.weeks} wk` : '—'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                {p.blocks.map((b) => {
+                  const t = templates.find((x) => x.name === b.roomType);
+                  return <SheetRow key={b.name} title={b.name} sub={`${p.structure === 'House' ? '' : `${b.floors} floors · `}${b.rooms} rooms · ${b.roomType}`}
+                    end={<span className="shrink-0 text-sm text-[#737373] tabular-nums">{p.tenancies === false ? 'No tenancy' : t ? `${money(t.rent)} / ${per(p)} · ${t.weeks} wk` : '—'}</span>} />;
+                })}
               </SheetSection>
-              <SheetSection title="Rooms">
-                <div className="-my-2.5">
-                  {allUnits(p, unitEdits).slice(0, 12).map((u) => (
-                    <button key={u.id} type="button" onClick={() => nav(`/inventory/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)} className="w-full flex items-center gap-3 py-2.5 border-b border-line last:border-0 text-left text-sm hover:bg-[#FAFAFA]">
-                      <span className="font-mono text-xs w-16 shrink-0">{u.code}</span><span className="flex-1 truncate text-[#737373]">{u.block} · {u.type}</span><PropStatus s={u.status} />
-                    </button>
-                  ))}
-                </div>
-                {p.units > 12 && <button type="button" className="mt-4 text-sm text-primary" onClick={() => nav(`/inventory/units?p=${p.id}`)}>See all {p.units} in Inventory</button>}
+              <SheetSection title={`Rooms · ${p.units}`} action={<EditLink onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</EditLink>}>
+                {allUnits(p, unitEdits).slice(0, 12).map((u) => (
+                  <SheetRow key={u.id} title={<span className="font-mono text-[13px]">{u.code}</span>} sub={`${u.block} · ${u.type}`} end={<PropStatus s={u.status} />}
+                    onClick={() => nav(`/inventory/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)} />
+                ))}
+                {p.units > 12 && <p className="pt-3 text-sm text-[#737373]">And {p.units - 12} more</p>}
               </SheetSection>
             </> : <div className="-mx-5 -mt-5"><UnitsTab p={p} onImport={() => setImportOpen(true)} /></div>}
           </div>
@@ -233,41 +213,29 @@ export function PropertyDetail() {
         {tab === 'tenancies' && (
           <div className="-mx-5 px-5 pt-5">
             {p.tenancies === false && <div className="mb-5"><Note tone="amber" icon={WarningCircle} title="These rooms have no tenancy yet">Apply a template to each room type first.</Note></div>}
-            <SheetSection title="Room types">
-              <div className="-my-2.5">
-                {p.roomTypes.map((r) => (
-                  <div key={r.name} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
-                    <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{r.name}</span><span className="block text-xs leading-4 text-[#737373] truncate">{r.rooms} rooms · {r.rent == null ? <span className="text-[#E0243A]">No rent</span> : `${money(r.rent)} / ${per(p)}`}{r.next ? ` → ${money(r.next.rent)} from ${r.next.from}` : ''}</span></span>
-                    <Button size="sm" icon={null} onClick={() => setRentFor(r)}>Change rent</Button>
-                  </div>
-                ))}
-                {!p.roomTypes.length && <p className="py-2.5 text-sm text-[#737373]">No room types yet</p>}
-              </div>
+            <SheetSection title={`Room types · ${p.roomTypes.length}`}>
+              {p.roomTypes.map((r) => (
+                <SheetRow key={r.name} title={r.name} end={<EditLink onClick={() => setRentFor(r)}>Change rent</EditLink>}
+                  sub={<>{r.rooms} rooms · {r.rent == null ? <span className="text-[#E0243A]">No rent</span> : `${money(r.rent)} / ${per(p)}`}{r.next ? ` → ${money(r.next.rent)} from ${r.next.from}` : ''}</>} />
+              ))}
+              {!p.roomTypes.length && <p className="text-sm text-[#737373]">No room types yet</p>}
             </SheetSection>
-            <SheetSection title={`Templates · ${templates.length}`}>
-              {templates.length ? <div className="-my-2.5">
-                {templates.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
-                    <span className="flex-1 min-w-0"><span className="block text-sm leading-5 text-[#0A0A0A]">{t.name}</span><span className="block text-xs leading-4 text-[#737373] truncate">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.linked} linked</span></span>
-                    <PropStatus s={t.status} />
-                  </div>
-                ))}
-              </div> : <p className="text-sm text-[#737373]">No templates for {short} yet.</p>}
-              <button type="button" onClick={() => nav('/inventory/rent-fees')} className="mt-4 text-sm text-primary">Tenancy pricing</button>
+            <SheetSection title={`Templates · ${templates.length}`} action={<EditLink onClick={() => nav('/inventory/rent-fees')}>Tenancy pricing</EditLink>}>
+              {templates.length ? templates.map((t) => (
+                <SheetRow key={t.id} title={t.name} end={<PropStatus s={t.status} />}
+                  sub={`${p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit ${money(t.deposit)} · ${t.linked} linked`} />
+              )) : <p className="text-sm text-[#737373]">No templates for {short} yet.</p>}
             </SheetSection>
           </div>
         )}
-        {tab === 'photos' && <div className="-mx-5 -mb-5"><PhotosTab p={p} narrow /></div>}
+        {tab === 'photos' && <div className="-mx-5 px-5 pt-5"><PhotosCards p={p} /></div>}
         {tab === 'activity' && (
           <div className="-mx-5 px-5 pt-5">
-            <SheetSection title="Timeline">
-              <div className="-my-2.5">
-                {p.activity.map((a, i) => (
-                  <div key={i} className="py-2.5 flex items-center gap-3 border-b border-line last:border-0">
-                    <Avatar name={a.who} size={24} /><span className="text-sm flex-1 min-w-0"><span className="text-ink">{a.who}</span> <span className="text-[#737373]">{a.what.charAt(0).toLowerCase() + a.what.slice(1)}</span></span><span className="text-sm text-[#737373] shrink-0">{a.when}</span>
-                  </div>
-                ))}
-              </div>
+            <SheetSection title="Activity">
+              {/* Figma "Property · Activity": avatar, "Name did something", the time under it in grey. */}
+              {p.activity.map((a, i) => (
+                <SheetRow key={i} lead={<Avatar name={a.who} size={24} />} title={<><span className="font-medium">{a.who}</span> <span className="text-[#525252]">{actText(a.what)}</span></>} sub={a.when} />
+              ))}
             </SheetSection>
           </div>
         )}
@@ -312,7 +280,7 @@ export function PropertyDetail() {
           </div>
         </div>
         <LineTabs className="px-3.5" value={tab} onChange={setTab} tabs={[
-          { id: 'overview', label: 'Overview' }, { id: 'units', label: `Units · ${p.units}` }, { id: 'tenancies', label: 'Tenancies' }, { id: 'photos', label: 'Photos & details' }, { id: 'activity', label: 'Activity' },
+          { id: 'overview', label: 'Overview' }, { id: 'units', label: 'Units' }, { id: 'tenancies', label: 'Tenancies' }, { id: 'photos', label: 'Photos & details' }, { id: 'activity', label: 'Activity' },
         ]} />
 
         {tab === 'overview' && (
@@ -372,9 +340,8 @@ export function PropertyDetail() {
                 <dt className="text-[#737373]">Units</dt><dd>{p.units}</dd>
                 <dt className="text-[#737373] self-start pt-0.5">Tags</dt>
                 <dd className="flex flex-wrap gap-1.5 items-center">
-                  {p.tags.length ? <span className="flex flex-wrap gap-1.5">{p.tags.map((t) => <Tags key={t.label} tags={[t]} />)}</span> : <span className="text-[#737373]">None yet</span>}
-                  <Menu align="left" width={180} trigger={(o) => <button type="button" onClick={o} className="text-xs font-medium text-primary inline-flex items-center gap-1">Add tag</button>}
-                    items={TAG_CHOICES.filter((t) => !p.tags.some((x) => x.label === t.label)).map((t) => ({ label: t.label, icon: TagIcon, onClick: () => { patchProp(p.id, (x) => ({ tags: [...x.tags, t] })); toast.success(`Tagged ${t.label}`); } }))} />
+                  {p.tags.length ? <span className="flex flex-wrap gap-1.5">{p.tags.map((t) => <TagX key={t.label} t={t} />)}</span> : <span className="text-[#737373]">None yet</span>}
+                  <TagPicker have={p.tags} onPick={addTag} onRemove={removeTag} trigger={addTagChip()} />
                 </dd>
                 <dt className="text-[#737373]">Created</dt><dd className="flex items-center gap-1.5"><Avatar name={p.createdBy} size={20} />{p.createdBy} · {p.created}</dd>
               </dl>
@@ -510,49 +477,48 @@ function ImportRoomsSheet({ p, open, onClose }: { p: Property; open: boolean; on
     patchProp(p.id, (x) => ({
       blocks: [{ name: 'Main House', floors: 4, flats: 4, rooms: 96, roomType: 'Ensuite single', size: 14 }, { name: 'Fenwick Block', floors: 2, flats: 4, rooms: 45, roomType: 'Standard single', size: 12 }],
       units: 141, build: null, tenancies: false, pendingRows: 5, roomTypes: x.roomTypes.length ? x.roomTypes : [{ name: 'Ensuite single', rooms: 96, rent: null }, { name: 'Standard single', rooms: 45, rent: null }],
-      counts: { all: 142, active: 0, draft: 142, inactive: 0, archived: 0 }, activity: logAct(x, '141 rooms imported from st-marys-rooms.csv'),
+      counts: { all: 142, active: 0, draft: 142, inactive: 0, archived: 0 }, activity: logAct(x, 'Imported 141 rooms from st-marys-rooms.csv'),
     }));
     onClose();
     toast.success(`141 rooms built in ${short} · all Draft`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ blocks: p.blocks, units: p.units, tenancies: p.tenancies, pendingRows: p.pendingRows, counts: p.counts, roomTypes: p.roomTypes })) } });
   };
   return (
-    <Sheet open={open} onClose={onClose} width={576} title={`Import ${short} rooms`} sub="One row per room · st-marys-rooms.csv"
-      footer={stage === 'pick' ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => setStage('check')}>Check the file</Button></> : <><Button onClick={() => setStage('pick')}>Choose another file</Button><Button variant="primary" onClick={run}>Import 141 rooms</Button></>}>
+    <PanelModal open={open} onClose={onClose} eyebrow="Import rooms" title={`Import ${short} rooms`} meta="st-marys-rooms.csv · one row per room" width={576}
+      right={stage === 'pick' ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={() => setStage('check')}>Check the file</Button></> : <><Button onClick={() => setStage('pick')}>Choose another file</Button><Button variant="primary" icon={null} onClick={run}>Import 141 rooms</Button></>}>
       {stage === 'pick' ? (
-        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <>
           <SheetSection title="File">
-          <button type="button" onClick={() => setStage('check')} className="w-full rounded-xl border-[1.5px] border-dashed border-gray-300 py-10 flex flex-col items-center gap-2 hover:bg-gray-50">
-            <FileCsv size={28} className="text-primary" /><span className="text-sm font-medium">st-marys-rooms.csv</span><span className="text-xs text-[#737373]">146 rows · 18 KB · click to check it</span>
-          </button>
+            <button type="button" onClick={() => setStage('check')} className="w-full rounded-xl border-[1.5px] border-dashed border-[#D4D4D4] py-10 flex flex-col items-center gap-2 hover:bg-[#FAFAFA]">
+              <FileCsv size={28} className="text-[#737373]" /><span className="text-sm font-medium">st-marys-rooms.csv</span><span className="text-xs text-[#737373]">146 rows · 18 KB · click to check it</span>
+            </button>
           </SheetSection>
           <SheetSection title="Columns">
-          <Note tone="blue" icon={Info} title="One row per room">Block, Floor, Flat, Room, Room type, Room size (m²). Rooms come in as Draft with no tenancy.</Note>
+            <p className="text-sm leading-5 text-[#0A0A0A]">Block, Floor, Flat, Room, Room type, Room size (m²)</p>
+            <p className="mt-1 text-sm leading-5 text-[#737373]">Rooms come in as Draft with no tenancy.</p>
           </SheetSection>
-        </div>
+        </>
       ) : (
-        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+        <>
           <SheetSection title="Check">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-line p-3.5"><div className="text-[22px] font-semibold text-[#0B8A4C]">141</div><div className="text-sm text-[#737373]">rooms ready to import</div></div>
-            <div className="rounded-xl border border-[#F59E0B4D] p-3.5"><div className="text-[22px] font-semibold text-[#B45309]">5</div><div className="text-sm text-[#737373]">rows need fixing · left out</div></div>
-          </div>
+            <SheetRow title="Rooms ready to import" end={<Pill tone="green">141</Pill>} />
+            <SheetRow title="Rows left out" sub="Fix them and import again" end={<Pill tone="amber">5</Pill>} />
           </SheetSection>
-          <SheetSection title="Rows to fix">
-          <div className="rounded-xl border border-line overflow-hidden">
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-[#737373] bg-[#FAFAFA] border-b border-line"><th className="font-medium h-9 px-3">Row</th><th className="font-medium">Room</th><th className="font-medium">Problem</th><th className="font-medium pr-3">Fix</th></tr></thead>
-              <tbody>{BAD_ROWS.map((r) => <tr key={r.row} className="border-b border-[#F5F5F5] last:border-0"><td className="px-3 h-11 tabular-nums">{r.row}</td><td className="font-mono">{r.room}</td><td className="text-[#E0243A]">{r.problem}</td><td className="pr-3 text-[#737373]">{r.fix}</td></tr>)}</tbody>
-            </table>
-          </div>
-          <p className="mt-3 text-xs text-[#737373]">Download the 5 rows after the import, fix them and import again.</p>
+          <SheetSection title={`Rows to fix · ${BAD_ROWS.length}`}>
+            {BAD_ROWS.map((r) => (
+              <SheetRow key={r.row} title={<>Row {r.row} · <span className="font-mono text-[13px]">{r.room}</span></>} sub={`${r.problem} · ${r.fix}`} end={<Pill tone="red">Error</Pill>} />
+            ))}
           </SheetSection>
-        </div>
+        </>
       )}
-    </Sheet>
+    </PanelModal>
   );
 }
 
 /* ---------------- F3: photos and description ---------------- */
+/** Activity rows read "Arjun Mehta archived Collingwood": the action's leading verb goes lower-case; a row that starts with a name stays as written. */
+const VERB = /^(Added|Archived|Built|Closed|Created|Edited|Imported|Made|Restored|Scheduled|Set|Started|Switched|Tagged|Untagged|Updated|Uploaded|Changed)\b/;
+const actText = (w: string) => (VERB.test(w) ? w.charAt(0).toLowerCase() + w.slice(1) : w);
+
 function PhotosTab({ p, narrow }: { p: Property; narrow?: boolean }) {
   const patchProp = useInv((s) => s.patchProp);
   const [photos, setPhotos] = useState(p.photos);
@@ -563,7 +529,7 @@ function PhotosTab({ p, narrow }: { p: Property; narrow?: boolean }) {
   const save = () => {
     if (saving.current) return;
     saving.current = true;
-    patchProp(p.id, (x) => ({ photos, description: desc, amenities: am, activity: logAct(x, 'Photos and description updated') }));
+    patchProp(p.id, (x) => ({ photos, description: desc, amenities: am, activity: logAct(x, 'Updated the photos and description') }));
     toast.success('Photos and description saved');
     window.setTimeout(() => { saving.current = false; }, 300);
   };
@@ -631,15 +597,9 @@ function WardenPhoneDialog({ p, open, onClose, onDone }: { p: Property; open: bo
     onDone();
   };
   return (
-    <Modal open={open} onClose={onClose} icon={WarningCircle} tone="amber" title={`${p.name} can’t be active yet`} sub="Fill in the required field to make it active." width={520}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!v.trim()} onClick={save}>Save and make active</Button></>}>
-      <div className="rounded-xl border border-line">
-        <div className="h-10 px-3.5 flex items-center border-b border-line text-sm font-medium">1 thing to fix</div>
-        <div className="p-3.5 space-y-3">
-          <div className="flex items-start gap-2.5"><WarningCircle size={17} weight="fill" className="text-[#E0243A] mt-px" /><div><div className="text-sm font-medium">Warden phone is empty</div><div className="text-xs text-[#737373]">A required custom field on Property · <span className="font-mono">field.wardenPhone</span></div></div></div>
-          <Field label="Warden phone"><Input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></Field>
-        </div>
-      </div>
+    <Modal open={open} onClose={onClose} title={`${p.name} can’t be active yet`} sub="Warden phone is a required field." width={520}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!v.trim()} onClick={save}>Save and make active</Button></>}>
+      <Field label="Warden phone"><Input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></Field>
     </Modal>
   );
 }
@@ -710,16 +670,16 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
     const old = p.roomTypes;
     patchProp(p.id, (x) => ({
       roomTypes: x.roomTypes.map((r) => (r.name !== rt.name ? r : apply === 'all' ? { ...r, rent: +rent, next: undefined } : { ...r, next: { rent: +rent, from: fromShort } })),
-      activity: logAct(x, `${rt.name} rent set to ${money(+rent)} from ${fromShort}`),
+      activity: logAct(x, `Set ${rt.name} rent to ${money(+rent)} from ${fromShort}`),
     }));
     onClose();
     toast.success(apply === 'new' ? `${rt.name} is ${money(+rent)} from ${fromShort} for new tenancies · ${signed} signed stay at ${money(rt.rent ?? 0)}` : `${rt.name} is ${money(+rent)} from ${fromShort} for all ${rt.rooms} tenancies`,
       { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ roomTypes: old })) } });
   };
   return (
-    <Sheet open onClose={onClose} width={576} title={`Change rent · ${rt.name}`} sub={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!rentErr || !!fromErr} onClick={save}>{apply === 'new' ? `Save ${money(+rent || 0)} for new tenancies` : `Save ${money(+rent || 0)} for all`}</Button></>}>
-      <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+    <PanelModal open onClose={onClose} width={576} eyebrow="Change rent" title={rt.name} meta={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!rentErr || !!fromErr} onClick={save}>{apply === 'new' ? `Save ${money(+rent || 0)} for new tenancies` : `Save ${money(+rent || 0)} for all`}</Button></>}>
+      <>
         <SheetSection title="New rent">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Rent"><MoneyInput value={rent} onChange={setRent} suffix={`/ ${unit}`} /><FieldErr>{rentErr}</FieldErr></Field>
@@ -731,15 +691,15 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
             <RadioCard checked={apply === 'new'} onClick={() => setApply('new')} title="New tenancies only" sub={`${signed} signed tenancies stay at ${rt.rent != null ? money(rt.rent) : '—'}`} />
             <RadioCard checked={apply === 'all'} onClick={() => setApply('all')} title="Also signed tenancies" sub={`Changes ${signed} signed contracts · each resident is emailed`} />
           </div>
-          {apply === 'all' && <div className="mt-4"><Note tone="amber" icon={Warning} title={`${signed} residents have signed at ${rt.rent != null ? money(rt.rent) : '—'}`}>Raising rent on a signed contract needs their agreement. They’re each emailed the change and can object.</Note></div>}
+          {apply === 'all' && <div className="mt-4"><Note tone="amber" icon={Warning} title={`${signed} residents have signed at ${rt.rent != null ? money(rt.rent) : '—'}`}>Each is emailed the change and can object.</Note></div>}
         </SheetSection>
-      </div>
-    </Sheet>
+      </>
+    </PanelModal>
   );
 }
 
 /* ---------------- Edit name/campus or address ---------------- */
-function EditSheet({ p, which, onClose }: { p: Property; which: null | 'basics' | 'address'; onClose: () => void }) {
+export function EditSheet({ p, which, onClose }: { p: Property; which: null | 'basics' | 'address'; onClose: () => void }) {
   const patchProp = useInv((s) => s.patchProp);
   const [name, setName] = useState(p.name);
   const [invNo, setInvNo] = useState(p.invNo);
@@ -750,36 +710,35 @@ function EditSheet({ p, which, onClose }: { p: Property; which: null | 'basics' 
   const nameErr = !name.trim() ? 'Enter a property name.' : others.some((x) => x.id !== p.id && x.name.trim().toLowerCase() === name.trim().toLowerCase()) ? `A property called ${name.trim()} already exists.` : '';
   const save = () => {
     if (nameErr) return;
-    patchProp(p.id, (x) => ({ name: name.trim(), invNo, address, zone, activity: logAct(x, which === 'basics' ? 'Details edited' : 'Address edited') }));
+    patchProp(p.id, (x) => ({ name: name.trim(), invNo, address, zone, activity: logAct(x, which === 'address' ? 'Edited the address' : 'Edited the details') }));
     onClose();
     toast.success(which === 'address' ? `${name.trim()} address saved` : `${name.trim()} details saved`);
   };
+  /* One centred edit modal for the property (2026-11-19): every editable part in one place; the section the user came
+     from (Address, or Name, campus and layout) comes first. */
+  const details = (
+    <SheetSection key="details" title="Details">
+      <div className="space-y-4">
+        <Field label="Property name"><Input value={name} onChange={(e) => setName(e.target.value)} /><FieldErr>{nameErr}</FieldErr></Field>
+        <Field label="Inventory number" hint="Optional"><Input className="font-mono" value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
+        <Field label="Campus"><Input value={p.campus} disabled /></Field>
+      </div>
+    </SheetSection>
+  );
+  const location = (
+    <SheetSection key="location" title="Location">
+      <div className="space-y-4">
+        <Field label="Address"><Input value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
+        <Field label="Zone" hint="Optional"><Input value={zone} onChange={(e) => setZone(e.target.value)} /></Field>
+      </div>
+    </SheetSection>
+  );
   return (
-    <Sheet open={!!which} onClose={onClose} width={576} title={which === 'address' ? 'Address' : 'Name, campus and layout'} sub={p.name} footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!!nameErr} onClick={save}>Save</Button></>}>
-      {which === 'basics' ? (
-        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
-          <SheetSection title="Details">
-          <div className="space-y-4">
-          <Field label="Property name"><Input value={name} onChange={(e) => setName(e.target.value)} /><FieldErr>{nameErr}</FieldErr></Field>
-          <Field label="Inventory number" hint="Optional · your own reference"><Input className="font-mono" value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
-          <Field label="Campus"><Input value={p.campus} disabled /></Field>
-          </div>
-          </SheetSection>
-          <SheetSection title="Layout">
-          <Note tone="blue" icon={Info} title="The layout can’t change">{p.name} has rooms built from the {p.structure} layout.</Note>
-          </SheetSection>
-        </div>
-      ) : (
-        <div className="[&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
-          <SheetSection title="Location">
-          <div className="space-y-4">
-          <Field label="Address"><Input value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
-          <Field label="Zone" hint="Optional · groups nearby properties"><Input value={zone} onChange={(e) => setZone(e.target.value)} /></Field>
-          </div>
-          </SheetSection>
-        </div>
-      )}
-    </Sheet>
+    <PanelModal open={!!which} onClose={onClose} width={576} eyebrow="Edit property" title={p.name}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!nameErr} onClick={save}>Save</Button></>}>
+      {which === 'address' ? [location, details] : [details, location]}
+      <SheetSection title="Layout" rows={[['Layout', `${p.structure} · can’t change once rooms are built`]]} />
+    </PanelModal>
   );
 }
 

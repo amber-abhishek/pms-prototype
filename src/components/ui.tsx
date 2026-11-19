@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from './shadcn/tooltip';
-import { Children, Fragment, isValidElement, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Illustration, artFor, type Illo } from './Illustration';
-import { GhostZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
+import { FooterZone, GhostZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
 
 /** The breadcrumb's current page: the h1 unless the page shows its own title. */
 export function CrumbTitle({ className, children }: { className: string; children: ReactNode }) {
@@ -20,7 +20,7 @@ import { Badge } from './shadcn/badge';
 import { Card as UICard } from './shadcn/card';
 import { Tabs as UITabs, TabsList, TabsTrigger } from './shadcn/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from './shadcn/popover';
-import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow, monoize } from './shadcn/table';
+import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from './shadcn/table';
 import { Input as UIInput } from './shadcn/input';
 import { Textarea as UITextarea } from './shadcn/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './shadcn/dropdown-menu';
@@ -32,7 +32,7 @@ import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogDescription
 import { toneCls, toneDot } from './tones';
 import { rowAttrs, useRowMotion } from './rowMotion';
 import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, CaretUp, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
-import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag } from './icons';
+import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag, Flag } from './icons';
 export { toneCls, toneDot, toneLine } from './tones';
 import type { Tone } from '../data/seed';
 export type { Tone };
@@ -50,8 +50,9 @@ const headerVariant = (v: NonNullable<BtnProps['variant']>, zone: boolean | 'mul
   zone === 'multi' && v === 'primary' ? 'primary' : v === 'control' || v === 'ghost' || v === 'danger-ghost' ? v : v === 'danger' || v === 'danger-outline' ? 'danger-ghost' : 'ghost';
 /* Every action button carries a leading icon (2026-11-09: "in all the buttons we need to have the icons"). When a call
    site passes none, the label picks one; dismiss buttons (Cancel, Close, Back, Keep…) stay text only. */
-const AUTO_ICON: [RegExp, Icon | null][] = [
-  [/^(cancel|close|back|keep|got it|not now|skip|no,)\b(?! (booking|offer|cycle|the booking))/i, null],
+const DISMISS = /^(cancel|close|back(?! to)|keep|got it|not now|skip|no,)\b(?! (booking|offer|cycle|the booking))/i;
+const AUTO_ICON: [RegExp, Icon][] = [
+  [/^request/i, ChatCenteredText], [/^simulate/i, MagicWand], [/^back to/i, ArrowCounterClockwise], [/^flag/i, Flag],
   [/^cancel (booking|offer|the booking)/i, Prohibit], [/^close cycle/i, Lock],
   [/^auto-allocate/i, MagicWand], [/^(allocate|assign|reassign|hand)/i, UserCheck],
   [/^(reject|decline)/i, XCircle], [/^(delete|remove|disconnect)/i, Trash], [/^archive/i, Archive],
@@ -66,15 +67,22 @@ const AUTO_ICON: [RegExp, Icon | null][] = [
   [/^(approve|accept|confirm|mark|done|claim|save|apply|verify|publish|finish|continue|next|check in)/i, CheckIcon],
 ];
 const labelOf = (c: ReactNode): string => (typeof c === 'string' || typeof c === 'number' ? String(c) : Array.isArray(c) ? c.map(labelOf).join('') : '');
-const autoIcon = (c: ReactNode): Icon | undefined => { const t = labelOf(c).trim(); if (!t) return; for (const [re, ic] of AUTO_ICON) if (re.test(t)) return ic ?? undefined; };
+/** In a footer (`foot`), dismiss buttons get ✕ and an unmatched label falls back to a tick, so every footer button has one. */
+const autoIcon = (c: ReactNode, foot = false): Icon | undefined => {
+  const t = labelOf(c).trim(); if (!t) return;
+  if (DISMISS.test(t)) return foot ? X : undefined;
+  for (const [re, ic] of AUTO_ICON) if (re.test(t)) return ic;
+  return foot ? CheckIcon : undefined;
+};
 export function Button({ variant: asked = 'secondary', size = 'md', icon, children, type = 'button', ...p }: BtnProps) {
   /* No arrows in buttons (2026-11-09): an arrow icon falls back to the label's icon, and trailing arrow glyphs are dropped. */
   if (icon === ArrowL || icon === ArrowR || icon === ArrowUR) icon = undefined;
   children = Children.toArray(children).filter((c) => !(isValidElement(c) && (c.type === ArrowL || c.type === ArrowR || c.type === ArrowUR)));
   const zone = useContext(GhostZone);
+  const foot = useContext(FooterZone);
   const variant = zone ? headerVariant(asked, zone) : asked;
   /* `icon={null}` opts out of the label icon (repeated row actions such as Change rent, Pick unit). */
-  const I = icon === null ? undefined : icon ?? (variant === 'control' ? undefined : autoIcon(children));
+  const I = foot ? icon ?? autoIcon(children, true) : icon === null ? undefined : icon ?? (variant === 'control' ? undefined : autoIcon(children));
   const solid = variant === 'primary' || variant === 'danger' || variant === 'success';
   return (
     <UIButton type={type} variant={btnVariant[variant]} size={size === 'sm' ? 'sm' : 'default'} {...p}>
@@ -133,11 +141,8 @@ export const Status = ({ s, tone, icon }: { s: string; tone?: Tone; icon?: Icon 
  *  Organisation…) are sidebar groups, not pages, so they stay plain text. */
 const CRUMB_TO: Record<string, string> = { Properties: '/inventory/properties' };
 export type Crumb = string | { label: string; to?: string; onClick?: () => void };
-/* The module's name (Allocations, Residents…) is already the sidebar panel's title, so it is not repeated as a crumb:
-   a page of a module shows its own name alone. A crumb stays when it leads somewhere, i.e. it is the parent page of a
-   full page ("Residents › Amira Rahman", "Campuses › Durham City"). */
-const MODULE_NAMES = new Set(['Inventory', 'Allocations', 'Residents', 'Off-campus', 'Booking site', 'Reports', 'Organisation', 'Settings']);
-const isModuleCrumb = (c: Crumb) => (typeof c === 'string' ? MODULE_NAMES.has(c) && !CRUMB_TO[c] : MODULE_NAMES.has(c.label) && !c.to && !c.onClick && !CRUMB_TO[c.label]);
+/* Every page shows its trail in the header (2026-11-18): the module's name (Inventory, Residents…) as plain text, then
+   any parent page as a link ("Residents › Amira Rahman", "Campuses › Durham City"), then the page's own name. */
 /** One clickable crumb + chevron. Strings resolve through CRUMB_TO; a crumb with neither `to` nor `onClick` stays plain text. */
 export function CrumbLink({ c }: { c: Crumb }) {
   const { label, to, onClick } = typeof c === 'string' ? { label: c, to: CRUMB_TO[c], onClick: undefined } : { ...c, to: c.to ?? (c.onClick ? undefined : CRUMB_TO[c.label]) };
@@ -160,7 +165,7 @@ export function PageHeader({ title, crumbs, children, search, meta }: { icon?: I
   return (
     <div data-page-head className="h-14 shrink-0 border-b border-[#E5E5E5] bg-[#F5F5F5] flex items-center gap-3 pl-6 pr-4">
       <div className="flex items-center gap-2 min-w-0 font-mono uppercase text-sm leading-5 font-medium">
-        {crumbs?.filter((c) => (typeof c === 'string' ? c : c.label) && !isModuleCrumb(c)).map((c, i) => <CrumbLink key={i} c={c} />)}
+        {crumbs?.filter((c) => { const l = typeof c === 'string' ? c : c.label; return l && l !== title; }).map((c, i) => <CrumbLink key={i} c={c} />)}
         <CrumbTitle className="text-[#0A0A0A] truncate">{title}</CrumbTitle>
       </div>
       {meta}
@@ -392,6 +397,11 @@ export function Avatar({ name, size = 24, color }: { name: string; size?: number
     <span data-avatar className="inline-flex items-center justify-center rounded-full font-semibold shrink-0"
       style={{ width: size, height: size, color: fg, fontSize: Math.max(10, Math.round(size * 0.4)), background: `linear-gradient(180deg, ${a}, ${b})`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px ${fg}33` }}>{ini}</span>
   );
+}
+
+/** A person's name with their avatar in front (2026-11-18): every name in a table, list or panel row uses this. */
+export function PersonName({ name, size = 20, className, children }: { name: string; size?: number; className?: string; children?: ReactNode }) {
+  return <span className={cx('inline-flex items-center gap-2 min-w-0 align-middle', className)}><Avatar name={name} size={size} /><span className="truncate">{name}</span>{children}</span>;
 }
 
 /* ---------- Filter tabs: segmented track, raised selected ---------- */
@@ -649,7 +659,7 @@ export function Note({ tone = 'amber', title, children, icon: I, plain }: { tone
     <div className={cx('flex items-start gap-2.5', !plain && 'rounded-lg border px-3 py-2.5', !plain && (tone === 'grey' ? 'bg-[#FAFAFA]' : 'bg-white'))} style={plain ? undefined : { borderColor: c[2] }}>
       {/* The icon sits on the title line (16px icon in a 20px line), not centred on the whole note. */}
       {I && <I size={16} weight="regular" style={{ color: c[0] }} className="shrink-0 mt-0.5" />}
-      <div className="min-w-0"><div className="text-sm leading-5 font-medium" style={{ color: c[1] }}>{title}</div>{children && <div className="text-xs leading-4 text-[#737373]">{children}</div>}</div>
+      <div className="min-w-0"><div className="text-sm leading-5 font-medium" style={{ color: c[1] }}>{title}</div>{children && <div className="mt-1 text-xs leading-4 text-[#737373]">{children}</div>}</div>
     </div>
   );
 }
@@ -658,7 +668,7 @@ export function Note({ tone = 'amber', title, children, icon: I, plain }: { tone
 /** 3054:2: 14px medium #0A0A0A label, 6px gap, 32px control; hint 12px #737373. */
 export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
   /* An error replaces the hint, in red, under the field it belongs to. */
-  return <Label className="block"><span className="block text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{label}</span>{children}{error ? <span role="alert" className="block text-xs leading-4 font-normal text-[#C11F14] mt-1.5">{error}</span> : hint && <span className="block text-xs leading-4 font-normal text-[#737373] mt-1.5">{hint}</span>}</Label>;
+  return <Label className="block"><span className="block text-sm leading-5 font-normal text-[#525252] mb-1.5">{label}</span>{children}{error ? <span role="alert" className="block text-xs leading-4 font-normal text-[#C11F14] mt-1.5">{error}</span> : hint && <span className="block text-xs leading-4 font-normal text-[#737373] mt-1.5">{hint}</span>}</Label>;
 }
 /* shadcn Input / Textarea / NativeSelect, styled in ./shadcn. */
 export const Input = (p: React.ComponentProps<typeof UIInput>) => <UIInput {...p} />;
@@ -737,6 +747,8 @@ export function listNav<T>(rows: readonly T[], isCur: (r: T) => boolean, go: (r:
   if (i < 0 || rows.length < 2) return undefined;
   return { prev: i > 0 ? () => go(rows[i - 1]) : undefined, next: i < rows.length - 1 ? () => go(rows[i + 1]) : undefined, pos: `${i + 1} of ${rows.length}` };
 }
+/** The control bar's destructive button (icon + verb, e.g. Delete / Archive): navBtn's box height, grey icon that turns red on hover. */
+const binBtn = 'h-7 pl-2 pr-2.5 gap-1.5 text-sm font-medium rounded-lg border border-[#E5E5E5] bg-white text-[#525252] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-[#FEF2F2] hover:text-[#DC2626] hover:border-[#FECACA] flex items-center justify-center transition-[background-color,color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const navBtn = 'size-7 rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 /** The list row of the open record, outside the sheet: a table row, a list option, or a queue row. */
 const SELECTED_ROW = '[data-state="selected"], [aria-selected="true"], [data-selected]';
@@ -779,21 +791,60 @@ function shieldClicks(ms = 350) {
   document.body.appendChild(d);
   setTimeout(() => d.remove(), ms);
 }
-export function Sheet({ open, onClose, title, sub, children, footer, width = 520, nav }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav }) {
+/** A SheetHero inside a Sheet switches the sheet to the record layout (control bar + hero) by calling this. */
+const RecordCtx = createContext<((on: boolean) => void) | null>(null);
+const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
+export function Sheet({ open, onClose, title, sub, children, footer, width = 520, nav, onDelete }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav;
+  /** Record panels: a destructive icon button in the control bar (rare action, so no footer). Label is its aria-label and
+   *  tooltip, e.g. "Delete layout"; icon defaults to the bin (Archive for archiving). */ onDelete?: { label: string; onClick: () => void; icon?: Icon; /** Visible text; defaults to the full label ("Close enquiry", not "Close", beside the ✕). */ text?: string } }) {
   useEffect(() => { if (!open) return; return () => shieldClicks(); }, [open]);
+  const [record, setRecord] = useState(false);
   /* While it slides out, show what it last showed: pages clear the record on close, which would empty the panel mid-exit. */
-  const last = useRef({ title, sub, children, footer, nav });
-  if (open) last.current = { title, sub, children, footer, nav };
-  if (!open) ({ title, sub, children, footer, nav } = last.current);
+  const last = useRef({ title, sub, children, footer, nav, onDelete });
+  if (open) last.current = { title, sub, children, footer, nav, onDelete };
+  if (!open) ({ title, sub, children, footer, nav, onDelete } = last.current);
+  /* A panel with footer actions keeps its destructive action in the footer; without one it sits in the control bar. */
+  const barDelete = footer ? undefined : onDelete;
   return (
     <UISheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent style={{ width }} {...noDesc(sub)}>
-        <SheetHeader>
-          <SheetNavButtons nav={nav} />
-          <div className="min-w-0 flex-1"><SheetTitle>{title}</SheetTitle>{sub && <SheetDescription>{sub}</SheetDescription>}</div>
-        </SheetHeader>
-        <SheetBody>{children}</SheetBody>
-        {footer && <SheetFooter>{footer}</SheetFooter>}
+        {/* Record panels (2026-11-19, Figma "Side panel · …" sections): a 61px control bar names the record type in mono
+            caps with "2 OF 7", then ⌃ ⌄, a hairline and close; the hero below carries the name. Forms keep the title row.
+            Otherwise, Notion-style: with ↑/↓ a control bar sits above the title block; without them one row. */}
+        {record ? (
+          <SheetHeader className="h-[61px] py-0 gap-2">
+            <SheetTitle className={cx(EYEBROW, 'text-[#737373] shrink-0')}>{title}</SheetTitle>
+            {nav?.pos && <><span aria-hidden className="text-xs text-[#A3A3A3]">·</span><span className={cx(EYEBROW, 'text-[#A3A3A3] tabular-nums')}>{nav.pos}</span></>}
+            {sub && <SheetDescription className="sr-only">{sub}</SheetDescription>}
+            <span aria-hidden className="flex-1" />
+            {(nav || barDelete) && <div className="flex items-center gap-3">
+              {/* The bin comes after ⌃ ⌄ in the DOM (shown first via order) so opening the panel never focuses Delete. */}
+              <SheetNavButtons nav={nav} />
+              {barDelete && <button type="button" className={cx(binBtn, 'order-first')} onClick={barDelete.onClick} aria-label={barDelete.label} title={barDelete.label}>{(() => { const I = barDelete.icon ?? Trash; return <I size={15} />; })()}<span>{barDelete.text ?? barDelete.label}</span></button>}<span aria-hidden className="w-px h-4 bg-[#E5E5E5]" />
+            </div>}
+          </SheetHeader>
+        ) : nav ? (
+          <>
+            <SheetHeader className="px-5 pt-4 pb-0 border-b-0"><SheetNavButtons nav={nav} /></SheetHeader>
+            <div className="shrink-0 px-5 pt-3 pb-5 border-b border-[#E5E5E5]">
+              <SheetTitle className="text-base leading-7 whitespace-normal">{title}</SheetTitle>
+              {sub && <SheetDescription className="leading-4">{sub}</SheetDescription>}
+            </div>
+          </>
+        ) : (
+          <SheetHeader className="items-start">
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="text-base leading-7 whitespace-normal">{title}</SheetTitle>
+              {sub && <SheetDescription className="leading-4">{sub}</SheetDescription>}
+            </div>
+          </SheetHeader>
+        )}
+        <RecordCtx.Provider value={setRecord}><SheetBody>{children}</SheetBody></RecordCtx.Provider>
+        {footer && <FooterZone.Provider value><SheetFooter>
+          {/* With workflow buttons in the footer, the destructive action joins them: red text on the left (2026-11-19). */}
+          {onDelete && <Button variant="danger-ghost" icon={onDelete.icon ?? Trash} className="mr-auto" onClick={onDelete.onClick}>{onDelete.text ?? onDelete.label}</Button>}
+          {footer}
+        </SheetFooter></FooterZone.Provider>}
       </SheetContent>
     </UISheet>
   );
@@ -828,11 +879,11 @@ export function ConfirmFrame({ title, sub, children, footer }: { title: ReactNod
       </div>
       {(sub || body) && (
         <div className="px-6 py-5 flex flex-col gap-4">
-          {sub && <DialogDescription>{sub}</DialogDescription>}
+          {sub && <DialogDescription className="text-base leading-6 text-[#525252]">{sub}</DialogDescription>}
           {children}
         </div>
       )}
-      <div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center justify-end gap-2 [&_button>svg]:hidden">{footer}</div>
+      <FooterZone.Provider value><div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center justify-end gap-2">{footer}</div></FooterZone.Provider>
     </>
   );
 }
@@ -855,39 +906,99 @@ export function Confirm({ open, onClose, title, sub, danger, cancel = 'Cancel', 
 /* Mercury-style detail sheet body (2026-11-09): a hero (avatar, 20px Medium name, grey meta, chips), then titled
    sections split by a 1px #F5F5F5 rule. Section rows: 12px-gap grid, grey label column, ink value. */
 /** `action`: a secondary action that sits top-right of the hero, keeping the footer to its main choices. */
-export function SheetHero({ name, meta, avatar = true, action, children }: { name: ReactNode; meta?: ReactNode; avatar?: boolean; action?: ReactNode; children?: ReactNode }) {
+/* Record panel (2026-11-19, Figma "Side panel · …" sections): hero = 56px lead (avatar, photo or icon tile), 20px Medium
+   name, grey meta; 1–2 status pills sit top-right of the title block (they looked like they hung in the air on a row of
+   their own); a tag row (`tags`, for records that take tags) under it; then the key-facts box. Sections are cards. */
+export type Fact = [label: string, value: ReactNode, tone?: Tone];
+/** `children` = status pills, top-right. `tags` = a row under the title, for records that take tags (with an Add).
+ *  `lead` replaces the default 56px avatar (a photo); `icon` + `tone` give things an icon tile; `avatar={false}` shows neither. */
+export function SheetHero({ name, meta, avatar = true, lead, icon: I, tone = 'grey', action, tags, facts, children }: {
+  name: ReactNode; meta?: ReactNode; avatar?: boolean; lead?: ReactNode; icon?: Icon; tone?: Tone; action?: ReactNode; tags?: ReactNode; facts?: Fact[]; children?: ReactNode;
+}) {
+  const setRecord = useContext(RecordCtx);
+  useLayoutEffect(() => { setRecord?.(true); return () => setRecord?.(false); }, [setRecord]);
+  /* Icon tiles are neutral in every panel (2026-11-19, no decorative colour); `tone` is kept for callers but ignored. */
+  void tone;
+  const leadNode = lead ?? (I ? <span className="size-14 shrink-0 rounded-xl flex items-center justify-center" style={avatarFx(TONE_FG.grey)}><I size={24} strokeWidth={1.75} /></span>
+    : avatar && typeof name === 'string' ? <Avatar name={name} size={56} /> : null);
+  const nStatus = Children.toArray(children).length + (action ? 1 : 0);
+  /* One status pill shares the name's line at its far right, so the meta line gets the full width; two or more drop to a
+     row under the title (2026-11-19). */
+  const inline = nStatus === 1;
   return (
-    <div className="pb-5">
-      <div className="flex items-center gap-3">
-        {avatar && typeof name === 'string' && <Avatar name={name} size={40} />}
-        <div className="min-w-0 flex-1">
-          <div className="text-xl font-medium text-ink leading-7 [overflow-wrap:anywhere]">{name}</div>
-          {meta && <div className="text-sm text-gray-500 leading-5 truncate">{meta}</div>}
+    <div data-sheet-hero className="pb-4 flex flex-col gap-3.5">
+      <div className="flex items-start gap-3.5">
+        {leadNode}
+        <div className={cx('min-w-0 flex-1 flex flex-col justify-center', leadNode && 'min-h-14')}>
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1 text-xl leading-7 font-medium text-ink [overflow-wrap:anywhere]">{name}</div>
+            {inline && <div className="shrink-0 h-7 flex items-center gap-1.5">{children}{action}</div>}
+          </div>
+          {meta && <div className="mt-0.5 text-sm leading-5 text-[#737373] [overflow-wrap:anywhere]">{meta}</div>}
         </div>
-        {action && <div className="shrink-0 self-start">{action}</div>}
       </div>
-      {children && <div className="mt-4 flex items-center gap-2 flex-wrap">{children}</div>}
+      {(tags || nStatus > 1) && <div className="flex flex-wrap items-center gap-1.5">{nStatus > 1 && <>{children}{action}</>}{tags}</div>}
+      {facts && facts.length > 0 && <SheetFacts facts={facts} />}
     </div>
   );
 }
-/** Connect drawer section: a full-width #FAFAFA strip with the Geist Mono uppercase title, then a 20px body over a #E5E5E5 rule. */
-export function SheetSection({ title, rows, children }: { title: string; rows?: [string, ReactNode][]; children?: ReactNode }) {
+/** Key facts under the hero: an r12 box split into equal cells, mono caps label over a 16px Medium value (tone = colour). */
+export function SheetFacts({ facts }: { facts: Fact[] }) {
   return (
-    <section className="-mx-5 first:-mt-5 last:-mb-5">
-      <h3 className="h-9 px-5 flex items-center bg-[#FAFAFA] font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#171717]">{title}</h3>
-      <div className="p-5">
-        {rows && <DL rows={rows} />}
-        {children && <div className={rows ? 'mt-4' : undefined}>{children}</div>}
+    <div className="grid rounded-xl border border-[#E5E5E5]" style={{ gridTemplateColumns: `repeat(${facts.length}, minmax(0, 1fr))` }}>
+      {facts.map(([k, v, t], i) => (
+        <div key={k} className={cx('min-w-0 px-3.5 py-3', i > 0 && 'border-l border-[#E5E5E5]')}>
+          <div className={cx(EYEBROW, 'text-[#737373] truncate')}>{k}</div>
+          <div className="mt-1 text-base leading-6 font-medium truncate" style={{ color: t ? TONE_FG[t] : '#0A0A0A' }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+/** A list row inside a SheetSection card (Figma record panels): 14px title, grey 13px sub line, a state pill or link on the
+ *  right; rows are split by #EBEBEB rules. Optional `lead` (24px avatar or icon) sits before the text. */
+export function SheetRow({ title, sub, end, lead, onClick }: { title: ReactNode; sub?: ReactNode; end?: ReactNode; lead?: ReactNode; onClick?: () => void }) {
+  const Tag = onClick ? 'button' : 'div';
+  return (
+    <Tag type={onClick ? 'button' : undefined} onClick={onClick} className={cx('w-full text-left py-2.5 flex items-center gap-3 border-t border-[#EBEBEB] first:border-t-0 first:pt-0 last:pb-0', onClick && 'hover:opacity-80')}>
+      {lead}
+      <div className="min-w-0 flex-1"><div className="text-sm leading-5 text-[#0A0A0A] truncate">{title}</div>{sub != null && <div className="text-[13px] leading-5 text-[#737373] truncate">{sub}</div>}</div>
+      {end}
+    </Tag>
+  );
+}
+/** Section card (2026-11-19): r16 bordered card, a 48px #FAFAFA strip with the 16px semibold heading, the content in 16px
+ *  side padding. "Set-up · 5 of 5" splits at " · ": the part after it is a quiet grey count at the strip's right end. */
+export function SheetSection({ title, rows, action, children }: { title: string; rows?: [string, ReactNode][]; action?: ReactNode; children?: ReactNode }) {
+  const [head, ...rest] = title.split(' · ');
+  return (
+    <section className="mt-3 first:mt-0 [[data-sheet-hero]+&]:mt-0 rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden">
+      <div className="h-12 px-4 flex items-center gap-3 bg-[#FAFAFA] border-b border-[#EBEBEB]">
+        {/* With an action (Edit, See all) the count sits beside the heading so it doesn't crowd the action; without one it ends the strip. */}
+        <h3 className={cx('min-w-0 truncate text-base leading-6 font-semibold text-[#0A0A0A]', !action && 'flex-1')}>{head}</h3>
+        {rest.length > 0 && <span className={cx('shrink-0 text-sm leading-5 text-[#737373] tabular-nums', action && '-ml-1 flex-1')}>{rest.join(' · ')}</span>}
+        {action && !rest.length && <span aria-hidden className="flex-1" />}
+        {action && <div className="shrink-0 flex items-center gap-3">{action}</div>}
+      </div>
+      <div className="px-4 py-3.5">
+        {rows && <div className="-my-2.5"><DL rows={rows} /></div>}
+        {children && <div className={rows ? 'mt-6' : undefined}>{children}</div>}
       </div>
     </section>
   );
 }
 
-/** Connect key/value rows: label left in ink, value right in medium #737373 (numbers and dates in Geist Mono), 16px apart. */
+/** Key/value rows: 32px rows, a 140px grey label column and the value in ink, left-aligned (numbers and dates in
+ *  Geist Mono). Read-only, so no hover (2026-11-18). */
 export function DL({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="flex flex-col gap-4 text-sm leading-5">
-      {rows.map(([k, v]) => <div key={k} className="flex items-start justify-between gap-4"><dt className="shrink-0 text-[#0A0A0A]">{k}</dt><dd className="min-w-0 text-right font-medium text-[#737373] break-words">{monoize(muteDash(v))}</dd></div>)}
+    <dl className="-mx-2 flex flex-col text-sm leading-5">
+      {rows.map(([k, v]) => (
+        <div key={k} className="min-h-8 px-2 py-1.5 grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 items-start">
+          <dt className="text-[#737373]">{k}</dt>
+          <dd className="min-w-0 text-[#0A0A0A] break-words [&_.font-mono]:text-[#0A0A0A]">{muteDash(v)}</dd>
+        </div>
+      ))}
     </dl>
   );
 }

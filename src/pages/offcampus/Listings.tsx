@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PersonName, Empty, PIN, Tabs } from '../../components/ui';
 import { Link } from 'react-router-dom';
-import { Archive, ArrowCounterClockwise, Buildings, CheckCircle, EyeSlash, Pause, WarningCircle } from '../../components/icons';
+import { Archive, ArrowCounterClockwise, Buildings, CheckCircle, EyeSlash, Pause } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, PageHeader, Pager, SearchInput, Table } from '../../components/ui';
 import { Foot } from '../allocations/common';
@@ -10,6 +10,8 @@ import { regionOf, stamp, useOc, type Hmo, type HmoStatus, type Pbsa } from '../
 import { NoteDialog, Tag, Thumb, Title, listingPhoto } from './parts';
 import { Picker } from '../inventory/common';
 import { GhostZone } from '../../components/headerCtx';
+
+const openListing = (ref: string) => window.open(`https://partnerhalls.example/places/${ref}`, '_blank', 'noopener');
 
 export function Listings() {
   const [src] = useTab<'hmo' | 'pbsa'>('hmo');
@@ -64,7 +66,7 @@ function HmoTab() {
 
   return (
     <>
-      {hmos.length > 0 && (<div {...PIN} className="px-6 pt-6 pb-4 flex items-center gap-3 empty:hidden">
+      {hmos.length > 0 && (<div {...PIN} className="px-6 py-4 flex items-center gap-3 empty:hidden">
                 {/* Every off-campus list: search on the left, status tabs at the right edge. */}
                 <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search landlord or property" /></div>
                 <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Inactive', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} /></div>
@@ -138,34 +140,16 @@ function PbsaTab() {
   const nothing = view === 'all' && !!region && !inRegion.length && !hiddenAll.length;
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className="px-6 pt-6 space-y-3 empty:hidden">
-        {/* One row: search and the campus dropdown on the left, All / Hidden on the right edge. */}
+      <div className="px-6 py-4 empty:hidden">
+        {/* One row: search on the left; the campus dropdown and All / Hidden on the right edge. */}
         <div className="flex items-center gap-3">
           <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search hall name or reference" /></div>
-          <div className="w-[220px] shrink-0"><Picker value={campus} onChange={setCampus} icon={Buildings}
+          <div className="ml-auto w-[220px] shrink-0"><Picker value={campus} onChange={setCampus} icon={Buildings}
             options={campuses.map((x) => ({ id: x.id, label: <span className="flex items-center gap-2"><span className="flex-1 truncate">{x.name}</span><span className="font-mono text-xs text-[#A3A3A3] tabular-nums">{!x.ticked ? 0 : pbsa.filter((p) => p.region === regionOf(x)).length}</span></span> }))} /></div>
-          {!nothing && <div className="ml-auto"><Tabs value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: rows.length }, { id: 'hidden', label: 'Hidden', count: hiddenHere.length }]} /></div>}
+          {!nothing && <div><Tabs value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: rows.length }, { id: 'hidden', label: 'Hidden', count: hiddenHere.length }]} /></div>}
         </div>
-        {/* The note follows what you're looking at: the portal switch, the campus tab, and how many of its halls are hidden. */}
-        {(() => {
-          const here = c.ticked && region ? pbsa.filter((p) => p.region === region) : [];
-          const nHidden = hiddenHere.length;
-          const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
-          if (view === 'hidden' || nothing) return null; // the Hidden list and the empty state speak for themselves
-          const [ok, text, link] = !portal.showPbsa ? [false, 'Partner halls are not shown on your portal.', 'Turn it on in Off-campus portal']
-            : !c.ticked ? [false, `${c.name} isn't on your portal, so its partner halls aren't shown.`, 'Add it in Off-campus portal']
-            : !here.length ? [false, `${c.name} has no partner halls yet.`, null]
-            : [true, nHidden ? `${here.length - nHidden} of ${plural(here.length, 'partner hall')} in ${c.name} are shown on your portal.` : here.length === 1 ? `The partner hall in ${c.name} is shown on your portal.` : `All ${here.length} partner halls in ${c.name} are shown on your portal.`, 'Change in Off-campus portal'];
-          return (
-            <div className="flex items-center gap-2 text-sm">
-              {ok ? <CheckCircle size={16} className="text-[#16A34A]" /> : <WarningCircle size={16} className="text-[#F59E0B]" />}
-              <span>{text}</span>
-              {link && <Link to="/offcampus/portal" className="text-primary hover:underline">{link}</Link>}
-            </div>
-          );
-        })()}
       </div>
-      <div className="mt-3 flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col">
         {view === 'hidden' ? (
           <Table fill rows={hiddenHere.map((h) => ({ ...h, id: h.ref }))}
             empty={qt ? <Empty art="noResults" title="No hidden hall matches that search" /> : <Empty art="getStarted" title="No hidden partner halls" sub="All partner halls show on your portal." />}
@@ -193,7 +177,7 @@ function PbsaTab() {
           </div>
         ) : !rows.length && qt ? (
           <div className="flex-1 flex items-center justify-center"><Empty art="noResults" title="No hall matches that search" sub="Try another name or reference." /></div>
-        ) : !rows.length ? (
+                ) : !rows.length ? (
           <div className="flex-1 flex items-center justify-center">
             <Empty art="nothingHere" title="No partner halls yet" sub={`Halls listed with Amber in ${region} show here.`}
               action={<Link to="/offcampus/portal"><Button>Open Off-campus portal</Button></Link>} />
@@ -203,20 +187,21 @@ function PbsaTab() {
             <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-white"><tr className="text-left text-xs text-gray-500 [&>th]:font-medium [&>th]:h-9 [&>th]:border-b [&>th]:border-line [&>th]:px-3">
-                  <th className="!pl-[var(--cx,12px)] w-14">S.No.</th><th>Listing</th><th>Region</th><th>From</th><th /><th>Status</th><th className="w-24" />
+                  <th className="!pl-[var(--cx,12px)] w-14">S.No.</th><th>Listing</th><th>Region</th><th>From</th><th>Status</th><th className="w-24" />
                 </tr></thead>
                 <GhostZone.Provider value><tbody>
                   {shown.map((p) => {
                     const h = isHidden(p.ref);
                     return (
-                      <tr key={p.id} className="border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-[11px]">
+                      /* The whole row opens the hall's public listing in a new tab; Hide / Unhide stop the click. */
+                      <tr key={p.id} tabIndex={0} title="Open listing" onClick={() => openListing(p.ref)} onKeyDown={(e) => { if (e.key === 'Enter') openListing(p.ref); }}
+                        className="cursor-pointer hover:bg-[#FAFAFA] focus-visible:outline-none focus-visible:bg-[#F5F5F5] border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-[11px]">
                         <td className="!pl-[var(--cx,12px)] font-mono text-xs text-[#737373] tabular-nums">{rows.indexOf(p) + 1}</td>
                         <td><div className="flex items-center gap-4 min-w-0"><Thumb src={listingPhoto(inRegion.indexOf(p) + 3)} w={120} h={64} /><div className="min-w-0 flex flex-col gap-1"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={p.name}>{p.name}</span><span className="text-sm leading-5 text-[#737373]">{p.ref}</span></div></div></td>
                         <td>{p.region === 'Newcastle upon Tyne' ? 'Newcastle' : p.region}</td>
                         <td>£{p.from} / week</td>
-                        <td><a href={`https://partnerhalls.example/places/${p.ref}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">View listing</a></td>
                         <td>{h ? <Tag tone="grey" icon={EyeSlash}>Hidden</Tag> : <Tag tone="green" icon={CheckCircle}>Shown</Tag>}</td>
-                        <td className="text-right !pr-[var(--cx,12px)]">{h ? <Button size="sm" onClick={() => unhide(p.ref)}>Unhide</Button> : <Button size="sm" onClick={() => setHiding(p)}>Hide</Button>}</td>
+                        <td className="text-right !pr-[var(--cx,12px)]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>{h ? <Button size="sm" onClick={() => unhide(p.ref)}>Unhide</Button> : <Button size="sm" onClick={() => setHiding(p)}>Hide</Button>}</td>
                       </tr>
                     );
                   })}

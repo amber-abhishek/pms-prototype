@@ -153,7 +153,7 @@ function UnitsView({ props }: { props: Property[] }) {
             ]} />
           </div>
           {/* Toolbar: search on the left; the status (was the tab strip) as a single-choice dropdown and the room-type filter on the right. */}
-          <div {...PIN} className="shrink-0 px-6 pt-3 pb-4 flex items-center gap-2">
+          <div {...PIN} className="shrink-0 px-6 py-4 flex items-center gap-2">
             <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder="Search units" /></div>
             <div className="ml-auto min-w-0 flex items-center gap-2">
               <SelectFilter prefix="Status" value={tab} onChange={(t) => { setTab(t as typeof tab); setCursor(0); }} width={220}

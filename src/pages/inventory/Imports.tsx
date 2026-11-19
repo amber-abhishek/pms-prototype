@@ -58,7 +58,7 @@ export function ImportsPage() {
         <Button icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
       </PageHeader>
       <PageHeading />
-      <div {...PIN} className="shrink-0 px-[var(--tx,16px)] pt-6 pb-4 flex items-center gap-2 empty:hidden">
+      <div {...PIN} className="shrink-0 px-[var(--tx,16px)] py-4 flex items-center gap-2 empty:hidden">
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: jobs.length }, { id: 'Running', label: 'Running', count: cnt('Running') }, { id: 'Queued', label: 'Queued', count: cnt('Queued') }, { id: 'Failed', label: 'Failed', count: cnt('Failed') }]} />
       </div>
       <div className="flex-1 min-h-0 flex">

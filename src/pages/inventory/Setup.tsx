@@ -8,7 +8,7 @@ import { Checkbox } from '../../components/shadcn/checkbox';
 import { Button, IconTile, PageHeading, Field, Input, Note, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneDot, SheetHero, SheetRow, SheetSection, listNav, type SheetNav } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { invId, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
-import { EditLink, FieldErr, LineTabs, Modal, PanelModal, Picker, PropStatus } from './common';
+import { EditActions, EditLink, FieldErr, LineTabs, Modal, PanelModal, Picker, PropStatus } from './common';
 
 /* ---------------- Property layouts (code: /cms/structures; Figma 3057:2) ---------------- */
 export function StructuresPage() {
@@ -333,7 +333,6 @@ function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | n
   const structures = useInv((s) => s.structures);
   const [editing, setEditing] = useState(false);
   const [asking, setAsking] = useState(false);
-  const [required, setRequired] = useState(false);
   const fid = f && f !== 'new' ? f.id : '';
   useEffect(() => { setEditing(false); }, [fid]);
   if (!f) return null;
@@ -351,7 +350,7 @@ function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | n
           rows={[['Name', f.name], ['Answer type', type]]} />}
       <SheetSection title="Attached to"><AttachPicker f={f} structures={structures} /></SheetSection>
       <SheetSection title="Rules">
-        <SheetRow title="Required" sub={requiredCopy(f)} end={<Switch checked={required} onChange={(b) => { setRequired(b); toast.success(`${f.name} is ${b ? 'required' : 'optional'}`); }} label="Required" />} />
+        <SheetRow title="Required" sub={requiredCopy(f)} end={<Switch checked={!!f.required} onChange={(b) => { useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, required: b } : x))); toast.success(`${f.name} is ${b ? 'required' : 'optional'}`); }} label="Required" />} />
       </SheetSection>
     </Sheet>
   );
@@ -449,10 +448,7 @@ function FieldDetailsEdit({ f, onDone }: { f: CField; onDone: () => void }) {
   };
   const keys = (e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') { e.stopPropagation(); onDone(); } };
   return (
-    <SheetSection title="Details" action={<>
-      <button type="button" onClick={onDone} className="-my-1 -mx-1.5 h-6 px-1.5 rounded-md text-sm font-medium text-[#525252] hover:bg-[#F0F0F0]">Cancel</button>
-      <EditLink onClick={save}>Save</EditLink>
-    </>}
+    <SheetSection title="Details" action={<EditActions onCancel={onDone} onSave={save} />}
       rows={[
         ['Name', <span className="block -my-1 -ml-2"><input ref={nameRef} aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={keys} aria-invalid={!!nameErr} className={cx(inlineInput, 'my-0 ml-0', nameErr && 'border-[#DC2626]')} /></span>],
         ['Answer type', <span className="block -my-1 -ml-2">

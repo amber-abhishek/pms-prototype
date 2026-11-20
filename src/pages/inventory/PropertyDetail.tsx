@@ -2,16 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowsLeftRight, Bed, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
+  ArrowRight, ArrowsLeftRight, Bed, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
   DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, UploadSimple, Warning, WarningCircle, X,
 } from '../../components/icons';
-import { Avatar, Button, Card, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
-import { allUnits, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag } from '../../data/inventory';
+import { Avatar, Button, barBtn, Card, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
+import { allUnits, invId, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
 import { EditLink, FieldErr, TagPicker, addTagChip, LineTabs, Menu, Modal, MoneyInput, PanelModal, PropStatus, Progress, RadioCard, Tags, moneyErr, parseDay } from './common';
 import { EmptyArt, PRE_LET, shownOrder } from './Properties';
 import { photoOf } from './photos';
+import { TemplateDialog, draftTemplate } from './RentFees';
+import { Checkbox } from '../../components/shadcn/checkbox';
 import { AMENITIES, AMENITY_ICON, PhotosCards, photoOrder } from './PropertyPhotos';
 import { GhostZone } from '../../components/headerCtx';
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, DialogTitle } from '../../components/shadcn/dialog';
@@ -24,6 +26,10 @@ export function PropertyDetail() {
   const p = useInv((s) => s.properties.find((x) => x.id === id));
   const allTpl = useInv((s) => s.templates);
   const templates = useMemo(() => allTpl.filter((t) => t.propertyId === id), [allTpl, id]);
+  /* Add template: when other properties already have templates, start by offering to copy one; a blank template is
+     the alternative (2026-11-20). With none anywhere else, go straight to the blank one. */
+  const otherTpl = allTpl.filter((t) => t.propertyId !== id);
+  const addTemplate = () => (otherTpl.length ? setCopyTpl(true) : setNewTpl(draftTemplate(id)));
   const patchProp = useInv((s) => s.patchProp);
   const removeTag = (t: Tag) => {
     if (!id) return;
@@ -49,6 +55,8 @@ export function PropertyDetail() {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [lettingOpen, setLettingOpen] = useState(false);
   const [editOpen, setEditOpen] = useState<null | 'basics' | 'address'>(null);
+  const [newTpl, setNewTpl] = useState<Template | null>(null);
+  const [copyTpl, setCopyTpl] = useState(false);
   const [rentFor, setRentFor] = useState<RoomType | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [archiveAsk, setArchiveAsk] = useState(false);
@@ -105,13 +113,18 @@ export function PropertyDetail() {
     toast.success(`${p.name} archived`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: was })) } });
   };
   const setupRows = [
-    { k: 'Name, campus and layout', v: `${p.campus} · ${p.structure}`, ok: true, go: () => setEditOpen('basics') },
-    { k: 'Address', v: p.address || 'Not set', ok: !!p.address, go: () => setEditOpen('address') },
-    { k: 'Units', v: building ? `Building ${p.build!.done} of ${p.build!.total}` : p.units ? `${p.units} rooms in ${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No rooms yet', ok: hasRooms, go: () => setTab('units') },
-    { k: 'Tenancies', v: p.tenancies === false ? 'Rooms have no tenancy yet' : !templates.length ? 'No tenancy templates yet' : rentless.length ? `${rentless.map((r) => r.name).join(', ')} has no rent` : `${templates.length} ${templates.length === 1 ? 'template' : 'templates'}`, ok: tenanciesOk, go: () => setTab('tenancies') },
-    { k: 'Photos and description', v: p.photos ? `${p.photos} photos${p.description ? ' · description' : ''}${p.amenities.length ? ` · ${p.amenities.length} amenities` : ''}` : 'Not added', ok: p.photos > 0 && !!p.description, go: () => setTab('photos') },
+    { k: 'Name, campus and layout', v: `${p.campus} · ${p.structure}`, ok: true, cta: 'Edit', go: () => setEditOpen('basics') },
+    { k: 'Address', v: p.address || 'Not set', ok: !!p.address, cta: 'Add address', go: () => setEditOpen('address') },
+    { k: 'Units', v: building ? `Building ${p.build!.done} of ${p.build!.total}` : p.units ? `${p.units} rooms in ${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No rooms yet', ok: hasRooms, cta: building ? 'View' : 'Add rooms', go: () => setTab('units') },
+    { k: 'Tenancies', v: p.tenancies === false ? 'Rooms have no tenancy yet' : !templates.length ? 'No tenancy templates yet' : rentless.length ? `${rentless.map((r) => r.name).join(', ')} has no rent` : `${templates.length} ${templates.length === 1 ? 'template' : 'templates'}${!hasRooms ? ' · waiting for rooms' : ''}`, ok: tenanciesOk,
+      /* Templates and rent are in but rooms aren't built yet: nothing to do here, so no link (2026-11-20). */
+      cta: !templates.length ? 'Add template' : p.tenancies !== false && rentless.length ? 'Set rent' : p.tenancies === false ? 'Apply templates' : null, go: () => { setTab('tenancies'); if (!templates.length) addTemplate(); } },
+    { k: 'Photos and description', v: p.photos ? `${p.photos} photos${p.description ? ' · description' : ''}${p.amenities.length ? ` · ${p.amenities.length} amenities` : ''}` : 'Not added', ok: p.photos > 0 && !!p.description, cta: !p.photos ? 'Add photos' : 'Add description', go: () => setTab('photos') },
   ];
   const doneCount = setupRows.filter((r) => r.ok).length;
+  /* A checklist, not a form: done steps carry no link (their details are edited in Details or on their tab); a step
+     still to do gets one action that names what's missing (2026-11-20). */
+  const setupAction = (r: typeof setupRows[number]) => (r.ok || !r.cta ? null : <EditLink onClick={r.go}>{r.cta}</EditLink>);
 
   const extras = (
     <>
@@ -144,6 +157,9 @@ export function PropertyDetail() {
           section Edit links; the footer only carries a draft's Make active. Open in Inventory lives on the Units tab. */}
       <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={576} nav={stepper}
         onDelete={{ label: 'Archive property', icon: Archive, onClick: () => setArchiveAsk(true) }}
+        more={<Menu width={220} trigger={(o) => <button type="button" onClick={o} aria-label="More actions" title="More actions" className={barBtn}><DotsThree size={16} /></button>} items={[
+          { label: 'Change letting period…', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
+        ]} />}
         footer={p.status === 'Draft' ? <Button variant="primary" icon={null} onClick={activate}>Make active…</Button> : undefined}>
         {/* Tags sit in the hero, visible on every tab: the status first, then the tags, with Add tag at the end of the row. */}
         <SheetHero name={p.name} meta={`${p.campus} campus · ${p.address || 'No address'}`}
@@ -176,12 +192,12 @@ export function PropertyDetail() {
             {p.pendingRows ? <div className="mb-5"><Note tone="amber" icon={Warning} title={`${p.pendingRows} rows still to add`}>Fix them and import again from the Units tab.</Note></div> : null}
             <SheetSection title={`Set-up · ${doneCount} of 5`}>
               {setupRows.map((r) => (
-                <SheetRow key={r.k} title={r.k} sub={r.v} end={<EditLink onClick={r.go} />}
+                <SheetRow key={r.k} title={r.k} sub={r.v} end={setupAction(r)}
                   lead={r.ok ? <span className="size-5 rounded-full bg-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" className="text-white" /></span> : <span className="size-5 rounded-full border border-dashed border-gray-400 shrink-0" />} />
               ))}
             </SheetSection>
             <SheetSection title="Details" action={<EditLink onClick={() => setEditOpen('basics')} />} rows={[
-              ['Letting period', <span className="flex items-center gap-2">{p.letting}<EditLink onClick={() => setLettingOpen(true)}>Change</EditLink></span>],
+              ['Letting period', p.letting],
               ['Layout', `${p.structure} · ${p.structure === 'College' ? 5 : 2} levels`],
               ['Inventory no.', p.invNo || '—'],
               ['Zone', p.zone || '—'],
@@ -220,12 +236,14 @@ export function PropertyDetail() {
               ))}
               {!p.roomTypes.length && <p className="text-sm text-[#737373]">No room types yet</p>}
             </SheetSection>
-            <SheetSection title={`Templates · ${templates.length}`} action={<EditLink onClick={() => nav('/inventory/rent-fees')}>Tenancy pricing</EditLink>}>
+            <SheetSection title={`Templates · ${templates.length}`} action={<EditLink onClick={addTemplate}><Plus size={14} />Add template</EditLink>}>
               {templates.length ? templates.map((t) => (
                 <SheetRow key={t.id} title={t.name} end={<PropStatus s={t.status} />}
                   sub={`${p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit ${money(t.deposit)} · ${t.linked} linked`} />
               )) : <p className="text-sm text-[#737373]">No templates for {short} yet.</p>}
             </SheetSection>
+            {newTpl && <TemplateDialog t={newTpl} isNew open onClose={() => setNewTpl(null)} siblings={templates} />}
+            <CopyTemplatesDialog p={p} open={copyTpl} onClose={() => setCopyTpl(false)} onBlank={() => { setCopyTpl(false); setNewTpl(draftTemplate(p.id)); }} />
           </div>
         )}
         {tab === 'photos' && <div className="-mx-5 px-5 pt-5"><PhotosCards p={p} /></div>}
@@ -255,6 +273,7 @@ export function PropertyDetail() {
           { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
           { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
           { label: 'Tenancy pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
+          { label: 'Change letting period…', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
           'sep',
           { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
         ]} />
@@ -304,7 +323,7 @@ export function PropertyDetail() {
                   <div key={r.k} className="h-14 px-4 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0">
                     {r.ok ? <span className="size-5 rounded-full bg-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" className="text-white" /></span> : <span className="size-5 rounded-full border border-dashed border-gray-400 shrink-0" />}
                     <span className="flex-1 min-w-0"><span className="block text-sm leading-5 font-medium text-[#0A0A0A]">{r.k}</span><span className="block text-xs leading-4 text-[#737373] truncate">{r.v}</span></span>
-                    <EditLink onClick={r.go} />
+                    {setupAction(r)}
                   </div>
                 ))}
               </Card>
@@ -332,7 +351,7 @@ export function PropertyDetail() {
               <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5] text-sm font-semibold">Details</div>
               <dl className="px-4 py-2 grid grid-cols-[120px_1fr] text-sm leading-5 items-center [&>dt]:py-[7px] [&>dd]:py-[6px] [&>dd]:min-w-0">
                 <dt className="text-[#737373]">Status</dt><dd><PropStatus s={p.status} /></dd>
-                <dt className="text-[#737373]">Letting period</dt><dd className="flex items-center gap-2">{p.letting}<EditLink onClick={() => setLettingOpen(true)}>Change</EditLink></dd>
+                <dt className="text-[#737373]">Letting period</dt><dd>{p.letting}</dd>
                 <dt className="text-[#737373]">Campus</dt><dd>{p.campus}</dd>
                 <dt className="text-[#737373]">Structure</dt><dd>{p.structure} · {p.structure === 'College' ? 5 : 2} levels</dd>
                 <dt className="text-[#737373]">Inventory no.</dt><dd className="font-mono">{p.invNo || '—'}</dd>
@@ -605,47 +624,129 @@ function WardenPhoneDialog({ p, open, onClose, onDone }: { p: Property; open: bo
 }
 
 /* ---------------- F7: switch letting period ---------------- */
-function LettingDialog({ p, open, onClose }: { p: Property; open: boolean; onClose: () => void }) {
+/* Copy templates from other properties (2026-11-20): every other property's templates, grouped by property, each with a
+   checkbox. A name this property already uses can't be picked. Copies are new templates here, linked to no rooms yet;
+   the originals don't change. "Start from scratch" in the footer opens the blank template instead. No Cancel: it's a
+   choice between two ways forward, and ✕ / Esc already close it (2026-11-20). */
+function CopyTemplatesDialog({ p, open, onClose, onBlank }: { p: Property; open: boolean; onClose: () => void; onBlank: () => void }) {
+  const all = useInv((s) => s.templates);
+  const props = useInv((s) => s.properties);
+  const [picked, setPicked] = useState<string[]>([]);
+  useEffect(() => { if (open) setPicked([]); }, [open]);
+  const mine = all.filter((t) => t.propertyId === p.id).map((t) => t.name.trim().toLowerCase());
+  const groups = props.filter((x) => x.id !== p.id).map((x) => ({ x, tpls: all.filter((t) => t.propertyId === x.id) })).filter((g) => g.tpls.length);
+  const toggle = (id: string) => setPicked((l) => (l.includes(id) ? l.filter((v) => v !== id) : [...l, id]));
+  const fmt = (t: Template) => (p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`);
+  const copy = () => {
+    const src = all.filter((t) => picked.includes(t.id));
+    useInv.getState().set('templates', (l) => [...l, ...src.map((t) => ({ ...t, id: invId('tp'), propertyId: p.id, linked: 0, own: 0, ownNote: undefined, status: 'Active' as const }))]);
+    onClose();
+    toast.success(src.length === 1 ? `${src[0].name} copied to ${shortName(p)}` : `${src.length} templates copied to ${shortName(p)}`);
+  };
+  return (
+    <PanelModal open={open} onClose={onClose} width={560} eyebrow="Add template" title={`Copy templates to ${shortName(p)}`}
+      meta="Copies start with no rooms linked."
+      left={<Button icon={Plus} onClick={onBlank}>Start from scratch</Button>}
+      right={<Button variant="primary" icon={null} disabled={!picked.length} onClick={copy}>{picked.length > 1 ? `Copy ${picked.length} templates` : 'Copy template'}</Button>}>
+      {groups.map(({ x, tpls }) => (
+        <SheetSection key={x.id} title={`${x.name} · ${tpls.length}`}>
+          {/* Rows run to the card's edges: cancel the card's own 14px so the first and last row keep just their 12px. */}
+          <div className="-my-3.5">{tpls.map((t) => {
+            const taken = mine.includes(t.name.trim().toLowerCase());
+            const on = picked.includes(t.id);
+            return (
+              <label key={t.id} className={cx('-mx-4 px-4 py-3 flex items-center gap-3 border-b border-[#EBEBEB] last:border-0', taken ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[#FAFAFA]')}>
+                <Checkbox checked={on} disabled={taken} onCheckedChange={() => !taken && toggle(t.id)} aria-label={`Copy ${t.name}`} />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm leading-5 text-[#0A0A0A] truncate">{t.name}</span>
+                  <span className="block text-[13px] leading-[18px] text-[#737373]">{fmt(t)} · deposit {money(t.deposit)} · {t.billing.toLowerCase()}</span>
+                </span>
+                {taken && <span className="shrink-0 font-mono text-[11px] leading-4 uppercase tracking-[0.04em] text-[#737373]">Already here</span>}
+              </label>
+            );
+          })}</div>
+        </SheetSection>
+      ))}
+    </PanelModal>
+  );
+}
+
+/* The Weekly / Monthly choice and, when it differs from the property's current period, what switching does. Used by the
+   Edit property modal and the ⋯ › Change letting period dialog. */
+function LettingChoice({ p, pick, setPick, section }: { p: Property; pick: Letting; setPick: (v: Letting) => void; /** Put the choice in a titled card, with the preview as its own card below (no card inside a card). */ section?: boolean }) {
   const allTpl = useInv((s) => s.templates);
   const templates = useMemo(() => allTpl.filter((t) => t.propertyId === p.id), [allTpl, p.id]);
-  const patchProp = useInv((s) => s.patchProp);
-  const target = p.letting === 'Weekly' ? 'Monthly' : 'Weekly';
-  const [pick, setPick] = useState<'Weekly' | 'Monthly'>(target);
-  const busy = useRef(false);
-  useEffect(() => { if (open) { setPick(target); busy.current = false; } }, [open, target]);
   const n = p.counts.all;
-  const save = () => {
-    if (busy.current) return;
-    if (pick === p.letting) return onClose();
-    busy.current = true;
-    patchProp(p.id, (x) => ({ letting: pick, activity: logAct(x, `Switched to ${pick.toLowerCase()} letting`) }));
-    onClose();
-    toast.success(`${shortName(p)} is ${pick.toLowerCase()} · ${templates.length} templates and ${n} tenancies converted`);
-  };
-  const now = (rent: number, weeks: number) => (p.letting === 'Weekly' ? `${money(rent)} / wk · ${weeks} wk` : `${money(toMonthly(rent, weeks).rent, true)} / mo · ${toMonthly(rent, weeks).months} mo`);
-  const after = (rent: number, weeks: number) => (pick === 'Monthly' ? `${money(toMonthly(rent, weeks).rent, true)} / mo · ${toMonthly(rent, weeks).months} mo` : `${money(rent)} / wk · ${weeks} wk`);
+  const fmt = (monthly: boolean, rent: number, weeks: number) => (monthly ? `${money(toMonthly(rent, weeks).rent, true)} / mo · ${toMonthly(rent, weeks).months} mo` : `${money(rent)} / wk · ${weeks} wk`);
+  /* What the switch does to money, shown on real templates when there are some, else on a sample room's rent. */
+  const sample = p.roomTypes.find((r) => r.rent);
+  const examples = templates.length ? templates.map((t) => ({ k: t.id, name: t.name, rent: t.rent, weeks: t.weeks }))
+    : [{ k: 'sample', name: sample ? `Example · ${sample.name}` : 'Example room', rent: sample?.rent ?? 182, weeks: 44 }];
+  const toMo = pick === 'Monthly';
+  const title = (t: Letting) => <span className="flex items-center gap-2">{t}{p.letting === t && <span className="font-mono text-[11px] leading-4 uppercase tracking-[0.04em] text-[#737373]">· Current</span>}</span>;
+  const radios = (
+    <div className="grid grid-cols-2 gap-2.5">
+      <RadioCard checked={pick === 'Weekly'} onClick={() => setPick('Weekly')} title={title('Weekly')} sub="Rent per week, length in weeks" />
+      <RadioCard checked={pick === 'Monthly'} onClick={() => setPick('Monthly')} title={title('Monthly')} sub="Rent per month, length in months" />
+    </div>
+  );
   return (
-    <Modal open={open} onClose={onClose} icon={ArrowsLeftRight} title={`Switch ${p.name} to ${pick.toLowerCase()}?`} width={580}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={pick === p.letting} onClick={save}>Switch to {pick.toLowerCase()}</Button></>}>
-      <div className="grid grid-cols-2 gap-2.5">
-        <RadioCard checked={pick === 'Weekly'} onClick={() => setPick('Weekly')} title="Weekly" sub="Rent per week, length in weeks" />
-        <RadioCard checked={pick === 'Monthly'} onClick={() => setPick('Monthly')} title="Monthly" sub="Rent per month, length in months" />
-      </div>
+    <>
+      {section ? <SheetSection title="Letting period">{radios}</SheetSection> : radios}
       {pick !== p.letting && (
         <>
-          <div className="rounded-xl border border-line overflow-hidden mt-4">
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-[#737373] bg-[#FAFAFA] border-b border-line"><th className="font-medium h-9 px-3">Template</th><th className="font-medium">Now</th><th className="font-medium pr-3">After</th></tr></thead>
-              <tbody>{templates.map((t) => <tr key={t.id} className="border-b border-[#F5F5F5] last:border-0 h-10"><td className="px-3 font-medium">{t.name}</td><td className="text-[#737373]">{now(t.rent, t.weeks)}</td><td className="pr-3 font-medium">{after(t.rent, t.weeks)}</td></tr>)}</tbody>
-            </table>
-          </div>
-          <ul className="mt-3 space-y-1 text-sm text-[#737373] list-disc pl-5">
-            <li>Converts {templates.length} templates and {n} tenancies: rent × 52 ÷ 12 to the penny, length to whole months.</li>
-            <li>Deposits and billing frequency stay as they are.</li>
-          </ul>
+          {/* Record-panel card: grey strip, then one row per template with the before → after figures. */}
+          <section className={cx(section ? 'mt-3' : 'mt-4', 'rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden')}>
+            <div className="h-12 px-4 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#EBEBEB]">
+              <h3 className="text-base leading-6 font-semibold text-[#0A0A0A]">What changes</h3>
+              <span className="text-sm leading-5 text-[#737373] tabular-nums">· {templates.length} {templates.length === 1 ? 'template' : 'templates'} · {n.toLocaleString('en-GB')} tenancies</span>
+            </div>
+            <div className="px-4">
+              {examples.map((e) => (
+                <div key={e.k} className="py-3 flex items-center gap-3 border-b border-[#EBEBEB]">
+                  <span className="flex-1 min-w-0 text-sm leading-5 text-[#0A0A0A] truncate">{e.name}</span>
+                  <span className="text-sm leading-5 text-[#737373] tabular-nums">{fmt(!toMo, e.rent, e.weeks)}</span>
+                  <ArrowRight size={14} className="shrink-0 text-[#A3A3A3]" />
+                  <span className="text-sm leading-5 font-medium text-[#0A0A0A] tabular-nums">{fmt(toMo, e.rent, e.weeks)}</span>
+                </div>
+              ))}
+              <div className="py-3 grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm leading-5">
+                <span className="text-[#737373]">Rent</span><span className="text-[#0A0A0A]">{toMo ? 'Weekly rent × 52 ÷ 12, to the penny' : 'Monthly rent × 12 ÷ 52, to the penny'}</span>
+                <span className="text-[#737373]">Length</span><span className="text-[#0A0A0A]">{toMo ? 'Rounded to whole months' : 'Rounded to whole weeks'}</span>
+                <span className="text-[#737373]">Stays the same</span><span className="text-[#0A0A0A]">Deposits and billing frequency</span>
+              </div>
+            </div>
+          </section>
           <div className="mt-3"><Note tone="amber" icon={Warning} title="Switching back won’t undo it exactly">A tenancy’s length can shift by a week.</Note></div>
         </>
       )}
+    </>
+  );
+}
+type Letting = 'Weekly' | 'Monthly';
+const switchLetting = (p: Property, pick: Letting, templates: number) => {
+  useInv.getState().patchProp(p.id, (x) => ({ letting: pick, activity: logAct(x, `Switched to ${pick.toLowerCase()} letting`) }));
+  return `${templates} templates and ${p.counts.all} tenancies converted`;
+};
+
+function LettingDialog({ p, open, onClose }: { p: Property; open: boolean; onClose: () => void }) {
+  const tplCount = useInv((s) => s.templates.filter((t) => t.propertyId === p.id).length);
+  /* Opens on the property's current period (as Details shows it); picking the other one previews the switch. */
+  const [pick, setPick] = useState<Letting>(p.letting);
+  const busy = useRef(false);
+  useEffect(() => { if (open) { setPick(p.letting); busy.current = false; } }, [open, p.letting]);
+  const changing = pick !== p.letting;
+  const save = () => {
+    if (busy.current || !changing) return;
+    busy.current = true;
+    const what = switchLetting(p, pick, tplCount);
+    onClose();
+    toast.success(`${shortName(p)} is ${pick.toLowerCase()} · ${what}`);
+  };
+  return (
+    <Modal open={open} onClose={onClose} icon={ArrowsLeftRight} title={changing ? `Switch ${shortName(p)} to ${pick.toLowerCase()}?` : 'Letting period'} width={580}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!changing} onClick={save}>{changing ? `Switch to ${pick.toLowerCase()}` : 'Save'}</Button></>}>
+      <LettingChoice p={p} pick={pick} setPick={setPick} />
     </Modal>
   );
 }
@@ -705,14 +806,18 @@ export function EditSheet({ p, which, onClose }: { p: Property; which: null | 'b
   const [invNo, setInvNo] = useState(p.invNo);
   const [address, setAddress] = useState(p.address);
   const [zone, setZone] = useState(p.zone);
-  useEffect(() => { if (which) { setName(p.name); setInvNo(p.invNo); setAddress(p.address); setZone(p.zone); } }, [which, p]);
+  const [letting, setLetting] = useState<Letting>(p.letting);
+  const tplCount = useInv((s) => s.templates.filter((t) => t.propertyId === p.id).length);
+  useEffect(() => { if (which) { setName(p.name); setInvNo(p.invNo); setAddress(p.address); setZone(p.zone); setLetting(p.letting); } }, [which, p]);
+  const switching = letting !== p.letting;
   const others = useInv((s) => s.properties);
   const nameErr = !name.trim() ? 'Enter a property name.' : others.some((x) => x.id !== p.id && x.name.trim().toLowerCase() === name.trim().toLowerCase()) ? `A property called ${name.trim()} already exists.` : '';
   const save = () => {
     if (nameErr) return;
     patchProp(p.id, (x) => ({ name: name.trim(), invNo, address, zone, activity: logAct(x, which === 'address' ? 'Edited the address' : 'Edited the details') }));
+    const what = switching ? switchLetting(p, letting, tplCount) : '';
     onClose();
-    toast.success(which === 'address' ? `${name.trim()} address saved` : `${name.trim()} details saved`);
+    toast.success(switching ? `${name.trim()} saved · now ${letting.toLowerCase()}, ${what}` : which === 'address' ? `${name.trim()} address saved` : `${name.trim()} details saved`);
   };
   /* One centred edit modal for the property (2026-11-19): every editable part in one place; the section the user came
      from (Address, or Name, campus and layout) comes first. */
@@ -722,6 +827,8 @@ export function EditSheet({ p, which, onClose }: { p: Property; which: null | 'b
         <Field label="Property name"><Input value={name} onChange={(e) => setName(e.target.value)} /><FieldErr>{nameErr}</FieldErr></Field>
         <Field label="Inventory number" hint="Optional"><Input className="font-mono" value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
         <Field label="Campus"><Input value={p.campus} disabled /></Field>
+        {/* Read-only like Campus, so it sits with it as a field rather than a label/value row in its own card. */}
+        <Field label="Layout" hint="Can’t change once rooms are built"><Input value={p.structure} disabled /></Field>
       </div>
     </SheetSection>
   );
@@ -735,9 +842,10 @@ export function EditSheet({ p, which, onClose }: { p: Property; which: null | 'b
   );
   return (
     <PanelModal open={!!which} onClose={onClose} width={576} eyebrow="Edit property" title={p.name}
-      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!nameErr} onClick={save}>Save</Button></>}>
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!nameErr} onClick={save}>{switching ? `Save and switch to ${letting.toLowerCase()}` : 'Save'}</Button></>}>
       {which === 'address' ? [location, details] : [details, location]}
-      <SheetSection title="Layout" rows={[['Layout', `${p.structure} · can’t change once rooms are built`]]} />
+      {/* Letting period is part of Edit (2026-11-20); picking the other period shows what switching converts, and Save says so. */}
+      <LettingChoice section p={p} pick={letting} setPick={setLetting} />
     </PanelModal>
   );
 }

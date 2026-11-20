@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Tone } from './seed';
-import { renameMe } from './rename';
+import { renameFrom } from './rename';
 
 /* ---------------- Types ---------------- */
 export type PStatus = 'Active' | 'Inactive' | 'Draft' | 'Closed to allocations' | 'Archived';
@@ -28,13 +28,14 @@ export type Template = {
 };
 export type FeeType = { id: string; name: string; calc: 'Flat' | 'Percentage' | 'Per unit'; mandatory: boolean; refundable: boolean };
 export type Fee = { id: string; typeId: string; amount: string; appliesTo: string | null; chargedOn: 'Each tenancy' | 'Each room' | 'The property' };
-export type ImportJob = { id: string; name: string; kind: 'Spreadsheet' | 'Bulk create'; status: 'Running' | 'Queued' | 'Succeeded' | 'Failed'; done: number; total: number; errors?: number; by: string; started: string; structure: string; creates: string };
+export type ImportJob = { id: string; name: string; kind: 'Spreadsheet' | 'Bulk create' | 'New property'; status: 'Running' | 'Queued' | 'Succeeded' | 'Failed'; done: number; total: number; errors?: number; by: string; started: string; structure: string; creates: string };
 export type Unit = { id: string; code: string; type: string; weeks: number | null; rent: number | null; status: UStatus; template: string | null; size: number; note?: string; accessible?: boolean };
 export type Flat = { id: string; name: string; units: Unit[] };
 export type ArchivedRow = { id: string; name: string; type: string; flat?: boolean; units?: number; who: string; when: string; parent?: string };
 export type Structure = { id: string; name: string; levels: { name: string; bsu: boolean }[]; properties: number; updated: string };
 export type TagDef = { id: string; label: string; tone: Tone };
-export type Field = { id: string; name: string; key: string; type: string; attached: string[] };
+/** `required`: every record on an attached level must fill it before going active. */
+export type Field = { id: string; name: string; key: string; type: string; attached: string[]; required?: boolean };
 
 /* ---------------- Seed ---------------- */
 const T = (label: string, tone: Tone): Tag => ({ label, tone });
@@ -109,12 +110,12 @@ export function makeInventorySeed() {
     { id: 'st4', name: 'Shared houses', levels: [{ name: 'House', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 0, updated: 'Arjun Mehta · 20 Sep' },
   ];
   const fields: Field[] = [
-    { id: 'cf1', name: 'Accessible room', key: 'accessible_room', type: 'Yes / no', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'] },
+    { id: 'cf1', name: 'Accessible room', key: 'accessible_room', type: 'Yes / no', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'], required: true },
     { id: 'cf2', name: 'Ensuite type', key: 'ensuite_type', type: 'Pick one · 3 options', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'] },
     { id: 'cf3', name: 'Floor area (m²)', key: 'floor_area_m2', type: 'Number', attached: ['Studio block › Studio'] },
     { id: 'cf4', name: 'Bed size', key: 'bed_size', type: 'Pick one · 3 options', attached: ['Halls with flats › Room', 'Studio block › Studio'] },
     { id: 'cf5', name: 'Kitchen shared with', key: 'kitchen_shared_with', type: 'Number', attached: ['Halls with flats › Flat'] },
-    { id: 'cf7', name: 'Fire assembly point', key: 'fire_assembly_point', type: 'Text', attached: ['Halls with flats › Floor'] },
+    { id: 'cf7', name: 'Fire assembly point', key: 'fire_assembly_point', type: 'Text', attached: ['Halls with flats › Floor'], required: true },
     { id: 'cf8', name: 'Quiet floor', key: 'quiet_floor', type: 'Yes / no', attached: ['Halls with flats › Floor'] },
     { id: 'cf6', name: 'Lift access', key: 'lift_access', type: 'Yes / no', attached: ['Halls with flats › Building', 'Halls, rooms only › Building'] },
   ];
@@ -139,7 +140,7 @@ export const useInv = create<InvState>()(
       patchProp: (id, fn) => set((st) => ({ properties: st.properties.map((p) => (p.id === id ? { ...p, ...fn(p) } : p)) })),
       editUnit: (id, e) => set((st) => ({ unitEdits: { ...st.unitEdits, [id]: { ...st.unitEdits[id], ...e } } })),
     }),
-    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
+    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 2, migrate: renameFrom(2) },
   ),
 );
 

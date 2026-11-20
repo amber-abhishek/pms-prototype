@@ -9,11 +9,13 @@ import { invId, useInv, type Field, type Property } from '../../data/inventory';
    custom fields attached to that level, and attach or create a field inline (the Add tag pattern). Values are prototype
    state (useInv.fieldValues), keyed by the level's id. */
 export type LevelKind = 'Block' | 'Floor' | 'Flat';
+/** A room (the unit) takes custom fields too; its panel lives in Units.tsx and shows them with LevelFields. */
+type FieldLevel = LevelKind | 'Room';
 const ICON: Record<LevelKind, Icon> = { Block: Buildings, Floor: Stack, Flat: Door };
 /** The layout a property uses and the level name inside it, as custom fields store their attachment ("Halls with flats › Floor"). */
 export const layoutOf = (p: Property) => (p.structure === 'House' ? 'Shared houses' : 'Halls with flats');
-const levelName = (p: Property, k: LevelKind) => (k === 'Block' ? (p.structure === 'House' ? 'House' : 'Building') : k);
-export const attachKey = (p: Property, k: LevelKind) => `${layoutOf(p)} › ${levelName(p, k)}`;
+const levelName = (p: Property, k: FieldLevel) => (k === 'Block' ? (p.structure === 'House' ? 'House' : 'Building') : k);
+export const attachKey = (p: Property, k: FieldLevel) => `${layoutOf(p)} › ${levelName(p, k)}`;
 
 const NEW_TYPES = ['Text', 'Number', 'Yes / no', 'Date'] as const;
 const OPTS: Record<string, string[]> = { ensuite_type: ['Shower', 'Bath', 'Wet room'], bed_size: ['Single', 'Small double', 'Double'] };
@@ -21,9 +23,22 @@ const OPTS: Record<string, string[]> = { ensuite_type: ['Shower', 'Bath', 'Wet r
 export function LevelSheet({ p, kind, id, name, meta, facts, onClose, nav }: {
   p: Property; kind: LevelKind; id: string; name: string; meta: string; facts: [string, string][]; onClose: () => void; nav?: SheetNav;
 }) {
+  return (
+    <Sheet open onClose={onClose} nav={nav} title={kind} width={520}>
+      <SheetHero icon={ICON[kind]} tone="grey" name={name} meta={meta} facts={facts} />
+      <LevelFields p={p} kind={kind} id={id} />
+      <p className="mt-3 text-[13px] leading-5 text-[#737373]">Custom fields apply to every {levelName(p, kind).toLowerCase()} in {layoutOf(p)}; each one keeps its own value.</p>
+    </Sheet>
+  );
+}
+
+/** The custom fields on one record at a level (block, floor, flat or room): fill values, attach an existing field or create
+ *  one inline, remove one from the level. Shared by the level panels and the unit panel (2026-11-20). */
+export function LevelFields({ p, kind, id }: { p: Property; kind: FieldLevel; id: string }) {
   const all = useInv((s) => s.fields);
   const values = useInv((s) => s.fieldValues[id]) ?? {};
   const key = attachKey(p, kind);
+  const lv = levelName(p, kind).toLowerCase();
   // Toggles first, then the fields that take a typed or picked value, each group in the order they were added.
   const isToggle = (f: Field) => f.type === 'Yes / no';
   const attached = all.filter((f) => f.attached.includes(key));
@@ -31,23 +46,21 @@ export function LevelSheet({ p, kind, id, name, meta, facts, onClose, nav }: {
   const setValue = (fid: string, v: string) => useInv.getState().set('fieldValues', (m) => ({ ...m, [id]: { ...m[id], [fid]: v } }));
   const attach = (f: Field) => {
     useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, attached: [...x.attached, key] } : x)));
-    toast.success(`${f.name} added to every ${levelName(p, kind).toLowerCase()} in ${layoutOf(p)}`);
+    toast.success(`${f.name} added to every ${lv} in ${layoutOf(p)}`);
   };
   const create = (fname: string, type: string) => {
     const f: Field = { id: invId('cf'), name: fname, key: fname.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''), type, attached: [key] };
     useInv.getState().set('fields', (l) => [...l, f]);
-    toast.success(`${fname} created on ${levelName(p, kind).toLowerCase()}s`);
+    toast.success(`${fname} created on ${lv}s`);
   };
   const [removing, setRemoving] = useState<Field | null>(null);
   const detach = (f: Field) => {
     useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, attached: x.attached.filter((a) => a !== key) } : x)));
-    toast.success(`${f.name} removed from ${levelName(p, kind).toLowerCase()}s`);
+    toast.success(`${f.name} removed from ${lv}s`);
   };
-  const filled = fields.filter((f) => (values[f.id] ?? '') !== '').length;
   return (
-    <Sheet open onClose={onClose} nav={nav} title={kind} width={520}>
-      <SheetHero icon={ICON[kind]} tone="grey" name={name} meta={meta} facts={facts} />
-      <SheetSection title={`Fields · ${filled} of ${fields.length}`} action={<FieldPicker have={fields} onAttach={attach} onCreate={create} />}>
+    <>
+      <SheetSection title={`Custom fields · ${fields.length}`} action={<FieldPicker have={fields} onAttach={attach} onCreate={create} />}>
         {fields.length ? fields.map((f) => (
           <div key={f.id} className="py-3 first:pt-0 last:pb-0 border-t border-[#EBEBEB] first:border-t-0 group/row grid grid-cols-[160px_minmax(0,1fr)] gap-3 items-center">
             <span className="min-w-0 flex items-center gap-1">
@@ -57,13 +70,12 @@ export function LevelSheet({ p, kind, id, name, meta, facts, onClose, nav }: {
             </span>
             <FieldInput f={f} value={values[f.id] ?? ''} onChange={(v) => setValue(f.id, v)} />
           </div>
-        )) : <p className="text-sm leading-5 text-[#737373]">No fields on {levelName(p, kind).toLowerCase()}s yet. Add one to record details here.</p>}
+        )) : <p className="text-sm leading-5 text-[#737373]">No fields on {lv}s yet. Add one to record details here.</p>}
       </SheetSection>
-      <p className="mt-3 text-[13px] leading-5 text-[#737373]">Fields apply to every {levelName(p, kind).toLowerCase()} in {layoutOf(p)}; each one keeps its own value.</p>
       <Confirm open={!!removing} onClose={() => setRemoving(null)} danger title={`Remove ${removing?.name ?? ''}?`}
-        sub={`It comes off every ${levelName(p, kind).toLowerCase()} in ${layoutOf(p)}. The field stays in Custom fields.`}
+        sub={`It comes off every ${lv} in ${layoutOf(p)}. The field stays in Custom fields.`}
         confirm="Remove" onConfirm={() => { if (removing) detach(removing); setRemoving(null); }} />
-    </Sheet>
+    </>
   );
 }
 

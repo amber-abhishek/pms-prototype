@@ -8,9 +8,9 @@ import { PersonName, Button, Field, Input, MultiFilter, PageHeader, Pill, Search
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, flatsOf, money, per, useInv, type ArchivedRow, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
-import { EditLink, FieldErr, LineTabs, Menu, Modal, Picker, PropStatus, RadioCard } from './common';
+import { EditLink, FieldErr, LineTabs, Menu, Modal, PanelModal, Picker, PropStatus, RadioCard } from './common';
 import { GhostZone } from '../../components/headerCtx';
-import { LevelSheet, type LevelKind } from './LevelSheet';
+import { LevelFields, LevelSheet, type LevelKind } from './LevelSheet';
 import { PHOTO } from './photos';
 import { EmptyArea } from '../allocations/common';
 
@@ -58,7 +58,7 @@ function UnitsView({ props }: { props: Property[] }) {
   const [checked, setChecked] = useState<string[]>([]);
   const [archiveFlat, setArchiveFlat] = useState<Flat | null>(null);
   const [restore, setRestore] = useState<ArchivedRow | null>(null);
-  const [renaming, setRenaming] = useState(false);
+  const [renaming, setRenaming] = useState<Flat | null>(null);
   /* The level panel (Block, Floor or Flat) for filling in custom fields; one panel at a time, so it closes the unit's. */
   const [level, setLevelRaw] = useState<LevelRef | null>(null);
   const setLevel = (l: LevelRef | null) => { if (l) setOpen(null); setLevelRaw(l); };
@@ -145,11 +145,11 @@ function UnitsView({ props }: { props: Property[] }) {
             </div>
             <Button icon={null} onClick={() => setLevel(curFlat ? { kind: 'Flat', bi: sel.bi, floor: sel.floor, flat: sel.flat ?? undefined } : { kind: 'Floor', bi: sel.bi, floor: sel.floor })}>Details</Button>
             <Menu width={200} trigger={(o) => <Button icon={DotsThree} onClick={o} aria-label="More" />} items={[
-              { label: 'Rename', icon: PencilSimple, onClick: () => setRenaming(true), disabled: !curFlat },
+              { label: 'Rename', icon: PencilSimple, onClick: () => setRenaming(curFlat), disabled: !curFlat },
               { label: 'Move', icon: ArrowsOutCardinal, onClick: () => toast('Pick a new floor for the flat in the tree'), disabled: !curFlat },
               { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
               'sep',
-              { label: curFlat ? `Archive ${curFlat.name}…` : 'Archive…', icon: Archive, danger: true, disabled: !curFlat, onClick: () => curFlat && setArchiveFlat(curFlat) },
+              { label: 'Archive flat', icon: Archive, danger: true, disabled: !curFlat, onClick: () => curFlat && setArchiveFlat(curFlat) },
             ]} />
           </div>
           {/* Toolbar: search on the left; the status (was the tab strip) as a single-choice dropdown and the room-type filter on the right. */}
@@ -175,7 +175,7 @@ function UnitsView({ props }: { props: Property[] }) {
                   <tbody>
                     {groups.map(({ f, units }) => (
                       <FlatGroup key={f.id} f={f} units={units} cursorId={kbd ? flatList[cursor]?.id : undefined} open={open} checked={checked} setChecked={setChecked} onOpen={(id) => { setKbd(false); setOpen(id); setCursor(flatList.findIndex((u) => u.id === id)); }}
-                        onFlat={() => go({ flat: +f.id.split('|')[3] })} onArchive={() => setArchiveFlat(f)} />
+                        onFlat={() => go({ flat: +f.id.split('|')[3] })} onArchive={() => setArchiveFlat(f)} onRename={() => setRenaming(f)} />
                     ))}
                     {!groups.length && <tr><td colSpan={6} className="h-32 text-center text-sm text-[#737373]">No {tab === 'all' ? '' : tab.toLowerCase() + ' '}units here{typeF.length ? ` of type ${typeF.join(' or ')}` : ''}.</td></tr>}
                   </tbody>
@@ -201,7 +201,7 @@ function UnitsView({ props }: { props: Property[] }) {
       {level && <LevelSheetFor key={`${level.kind}${level.bi}${level.floor}${level.flat}`} p={p} l={level} onClose={() => setLevelRaw(null)} />}
       <ArchiveFlatDialog flat={archiveFlat} onClose={() => setArchiveFlat(null)} onConfirm={doArchiveFlat} />
       <RestoreDialog p={p} row={restore} onClose={() => setRestore(null)} />
-      <RenameDialog flat={renaming ? curFlat : null} siblings={flats} onClose={() => setRenaming(false)} />
+      <RenameDialog flat={renaming} siblings={flats} onClose={() => setRenaming(null)} />
     </>
   );
 
@@ -310,8 +310,8 @@ function LevelSheetFor({ p, l, onClose }: { p: Property; l: LevelRef; onClose: (
 }
 
 /* ---------------- Grouped table rows ---------------- */
-function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFlat, onArchive }: {
-  f: Flat; units: Unit[]; cursorId?: string; open: string | null; checked: string[]; setChecked: (fn: (c: string[]) => string[]) => void; onOpen: (id: string) => void; onFlat: () => void; onArchive: () => void;
+function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFlat, onArchive, onRename }: {
+  f: Flat; units: Unit[]; cursorId?: string; open: string | null; checked: string[]; setChecked: (fn: (c: string[]) => string[]) => void; onOpen: (id: string) => void; onFlat: () => void; onArchive: () => void; onRename: () => void;
 }) {
   const active = f.units.filter((u) => u.status === 'Active').length;
   return (
@@ -322,7 +322,7 @@ function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFl
           <div className="flex items-center gap-2">
             <CaretDown size={16} strokeWidth={1.5} className="text-[#737373]" /><button type="button" onClick={onFlat} className="text-sm leading-5 font-medium text-[#0A0A0A] hover:underline underline-offset-2">{f.name}</button><span className="text-xs leading-4 text-[#737373]">{f.units.length} units · {active} active</span>
             <span className="ml-auto"><Menu width={180} trigger={(o) => <button type="button" aria-label={`More for ${f.name}`} onClick={o} className="size-6 rounded-md hover:bg-black/[0.05] flex items-center justify-center text-[#404040]"><DotsThree size={16} weight="bold" /></button>}
-              items={[{ label: 'Open flat', icon: ArrowSquareOut, onClick: onFlat }, 'sep', { label: `Archive ${f.name}…`, icon: Archive, danger: true, onClick: onArchive }]} /></span>
+              items={[{ label: 'Open flat', icon: ArrowSquareOut, onClick: onFlat }, { label: 'Rename', icon: PencilSimple, onClick: onRename }, 'sep', { label: 'Archive flat', icon: Archive, danger: true, onClick: onArchive }]} /></span>
           </div>
         </td>
       </tr>
@@ -366,18 +366,30 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
   const [size, setSize] = useState('');
   const [tab, setTab] = useState<'overview' | 'tenancy' | 'history'>('overview');
   const [editing, setEditing] = useState(false);
+  const [dType, setDType] = useState('');
+  const [dCode, setDCode] = useState('');
+  const unitEdits = useInv((s) => s.unitEdits);
+  const [dStatus, setDStatus] = useState<UStatus>('Draft');
   useEffect(() => { setBlocked(false); setEditing(false); setSize(unit ? String(unit.size) : ''); }, [unit?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [confirmArchive, setConfirmArchive] = useState(false);
   if (!unit) return null;
   const hist = unitHistory(unit);
   const archive = () => { editUnit(unit.id, { status: 'Archived' }); toast.success(`${unit.code} archived`, { action: { label: 'Undo', onClick: () => editUnit(unit.id, { status: unit.status }) } }); onClose(); };
+  const codeErr = !dCode.trim() ? 'Enter a unit name.' : allUnits(p, unitEdits).some((x) => x.id !== unit.id && x.id.split(':')[1] === unit.id.split(':')[1] && x.code.toLowerCase() === dCode.trim().toLowerCase()) ? `${dCode.trim()} is already used in ${path[1] || 'this block'}.` : '';
   const sizeErr = !size.trim() ? 'Enter a room size.' : !/^\d+(\.\d{1,2})?$/.test(size) || +size <= 0 ? 'Room size must be a number above 0, e.g. 14.' : '';
-  const setStatus = (s: UStatus) => {
-    if (s === unit.status) return;
-    if (s === 'Active' && unit.rent == null) { setBlocked(true); return; }
-    setBlocked(false);
-    editUnit(unit.id, { status: s });
-    toast.success(`${unit.code} is ${s.toLowerCase()}`);
+  /* Room card edits are drafts until Save, like every other in-place edit; Cancel throws them away (2026-11-20). */
+  const startEdit = () => { setDCode(unit.code); setSize(String(unit.size)); setDType(unit.type); setDStatus(unit.status === 'Archived' ? 'Inactive' as UStatus : unit.status); setEditing(true); };
+  const saveRoom = () => {
+    if (sizeErr || codeErr) return;
+    const ch: Partial<Unit> = {};
+    if (dCode.trim() !== unit.code) ch.code = dCode.trim();
+    if (dType !== unit.type) ch.type = dType;
+    if (+size !== unit.size) ch.size = +size;
+    const wantActive = dStatus !== unit.status && dStatus === 'Active' && unit.rent == null;
+    if (dStatus !== unit.status && !wantActive) ch.status = dStatus;
+    if (Object.keys(ch).length) { editUnit(unit.id, ch); toast.success(`${ch.code ?? unit.code} saved`); }
+    setBlocked(wantActive);
+    setEditing(false);
   };
   const applyTenancy = (andActivate: boolean) => {
     const rt = p.roomTypes.find((r) => r.name === unit.type);
@@ -409,20 +421,22 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
         </div>
       )}
       {tab === 'overview' && <>
-        {editing ? (
-          <SheetSection title="Room" action={<EditLink onClick={() => { if (!sizeErr) setEditing(false); }}>Done</EditLink>}>
-            <div className="space-y-4">
-              <Field label="Status"><Picker value={unit.status === 'Archived' ? 'Inactive' : unit.status} onChange={(v) => setStatus(v as UStatus)} options={[{ id: 'Draft', label: 'Draft' }, { id: 'Active', label: 'Active' }, { id: 'Inactive', label: 'Inactive' }]} /></Field>
-              <Field label="Room type"><Picker value={unit.type} onChange={(v) => { editUnit(unit.id, { type: v }); toast.success(`${unit.code} is now ${v}`); }} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></Field>
-              <Field label="Room size *">
-                <label className="h-8 flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Room size" value={size} onChange={(e) => setSize(e.target.value.replace(/[^0-9.]/g, ''))} onBlur={() => !sizeErr && +size !== unit.size && (editUnit(unit.id, { size: +size }), toast.success(`${unit.code} room size saved · ${+size} m²`))} className="flex-1 outline-none" /><span className="text-[#737373] text-xs">m²</span></label>
-                <FieldErr>{sizeErr && `${sizeErr} Not saved.`}</FieldErr>
-              </Field>
-            </div>
-          </SheetSection>
-        ) : (
-          <SheetSection title="Room" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>} rows={[['Room type', unit.type], ['Size', `${unit.size} m²`], ['Location', [path[1], flat].filter(Boolean).join(' · ') || '—'], ['Status', unit.status]]} />
-        )}
+        {/* Edit opens a centred modal with the form; the card stays read-only (2026-11-20, user asked for a modal here). */}
+        <SheetSection title="Room" action={<EditLink onClick={startEdit}>Edit</EditLink>} rows={[['Room type', unit.type], ['Size', `${unit.size} m²`], ['Location', [path[1], flat].filter(Boolean).join(' · ') || '—'], ['Status', unit.status]]} />
+        <PanelModal open={editing} onClose={() => setEditing(false)} width={480} eyebrow="Edit room" title={unit.code} meta={path.filter(Boolean).slice(1).join(' · ')}
+          right={<><Button onClick={() => setEditing(false)}>Cancel</Button><Button variant="primary" onClick={saveRoom}>Save</Button></>}>
+          <div className="space-y-4">
+            <Field label="Unit name"><Input aria-label="Unit name" value={dCode} onChange={(e) => setDCode(e.target.value)} className="w-full font-mono" /><FieldErr>{codeErr}</FieldErr></Field>
+            <Field label="Room type"><Picker className="w-full" value={dType} onChange={setDType} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></Field>
+            <Field label="Size">
+              <label className="w-full h-input flex items-center rounded-lg border border-gray-300 px-2.5 text-sm"><input aria-label="Room size" value={size} onChange={(e) => setSize(e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 min-w-0 outline-none" /><span className="text-[#737373] text-xs">m²</span></label>
+              <FieldErr>{sizeErr}</FieldErr>
+            </Field>
+            <Field label="Status"><Picker className="w-full" value={dStatus} onChange={(v) => setDStatus(v as UStatus)} options={[{ id: 'Draft', label: 'Draft' }, { id: 'Active', label: 'Active' }, { id: 'Inactive', label: 'Inactive' }]} /></Field>
+          </div>
+        </PanelModal>
+        {/* Custom fields attached to rooms in this layout (Accessible room, Ensuite type…), filled per room (2026-11-20). */}
+        <LevelFields p={p} kind="Room" id={unit.id} />
         {/* Photos of this unit (2026-11-19). Prototype: stock photos stand in, stable by unit id; Add is a stub. */}
         <SheetSection title={`Photos · ${unitPhotos(unit.id).length}`} action={<EditLink onClick={() => toast('Photo upload arrives with the backend')}>Add photos</EditLink>}>
           <div className="grid grid-cols-3 gap-2">

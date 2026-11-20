@@ -749,6 +749,7 @@ export function listNav<T>(rows: readonly T[], isCur: (r: T) => boolean, go: (r:
   return { prev: i > 0 ? () => go(rows[i - 1]) : undefined, next: i < rows.length - 1 ? () => go(rows[i + 1]) : undefined, pos: `${i + 1} of ${rows.length}` };
 }
 /** The control bar's destructive button (icon + verb, e.g. Delete / Archive): navBtn's box height, grey icon that turns red on hover. */
+export const barBtn = 'size-7 rounded-lg border border-[#E5E5E5] bg-white text-[#525252] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-[#F5F5F5] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const binBtn = 'h-7 pl-2 pr-2.5 gap-1.5 text-sm font-medium rounded-lg border border-[#E5E5E5] bg-white text-[#525252] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-[#FEF2F2] hover:text-[#DC2626] hover:border-[#FECACA] flex items-center justify-center transition-[background-color,color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const navBtn = 'size-7 rounded-lg border border-[#E5E5E5] bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(17,24,39,0.05)] hover:bg-subtle disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-[background-color,transform] duration-150 ease-snappy active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 /** The list row of the open record, outside the sheet: a table row, a list option, or a queue row. */
@@ -795,7 +796,8 @@ function shieldClicks(ms = 350) {
 /** A SheetHero inside a Sheet switches the sheet to the record layout (control bar + hero) by calling this. */
 const RecordCtx = createContext<((on: boolean) => void) | null>(null);
 const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
-export function Sheet({ open, onClose, title, sub, children, footer, width = 520, nav, onDelete }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav;
+export function Sheet({ open, onClose, title, sub, children, footer, width = 520, nav, onDelete, more }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav;
+  /** Record panels: a ⋯ menu (or other control) in the control bar, after the destructive button, for rare record-level actions. */ more?: ReactNode;
   /** Record panels: a destructive icon button in the control bar (rare action, so no footer). Label is its aria-label and
    *  tooltip, e.g. "Delete layout"; icon defaults to the bin (Archive for archiving). */ onDelete?: { label: string; onClick: () => void; icon?: Icon; /** Visible text; defaults to the full label ("Close enquiry", not "Close", beside the ✕). */ text?: string } }) {
   useEffect(() => { if (!open) return; return () => shieldClicks(); }, [open]);
@@ -818,10 +820,11 @@ export function Sheet({ open, onClose, title, sub, children, footer, width = 520
             {nav?.pos && <><span aria-hidden className="text-xs text-[#A3A3A3]">·</span><span className={cx(EYEBROW, 'text-[#A3A3A3] tabular-nums')}>{nav.pos}</span></>}
             {sub && <SheetDescription className="sr-only">{sub}</SheetDescription>}
             <span aria-hidden className="flex-1" />
-            {(nav || barDelete) && <div className="flex items-center gap-3">
+            {(nav || barDelete || more) && <div className="flex items-center gap-3">
               {/* The bin comes after ⌃ ⌄ in the DOM (shown first via order) so opening the panel never focuses Delete. */}
               <SheetNavButtons nav={nav} />
-              {barDelete && <button type="button" className={cx(binBtn, 'order-first')} onClick={barDelete.onClick} aria-label={barDelete.label} title={barDelete.label}>{(() => { const I = barDelete.icon ?? Trash; return <I size={15} />; })()}<span>{barDelete.text ?? barDelete.label}</span></button>}<span aria-hidden className="w-px h-4 bg-[#E5E5E5]" />
+              {barDelete && <button type="button" className={cx(binBtn, 'order-first')} onClick={barDelete.onClick} aria-label={barDelete.label} title={barDelete.label}>{(() => { const I = barDelete.icon ?? Trash; return <I size={15} />; })()}<span>{barDelete.text ?? barDelete.label}</span></button>}
+              {more && <span className="order-first flex items-center">{more}</span>}<span aria-hidden className="w-px h-4 bg-[#E5E5E5]" />
             </div>}
           </SheetHeader>
         ) : nav ? (

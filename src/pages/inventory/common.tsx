@@ -125,8 +125,9 @@ export function PanelModal({ open, onClose, eyebrow, pos, title, meta, width = 6
           <span aria-hidden className="flex-1" />
           <DialogCloseButton />
         </div>
-        <div className="flex-1 min-h-0 overflow-auto px-6 py-6">
-          <div className="mb-5">
+        {/* 20px under the header rule, like every other dialog body (2026-11-20). */}
+        <div className="flex-1 min-h-0 overflow-auto px-6 pt-5 pb-6">
+          <div className="mb-4">
             <div className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</div>
             {meta && <p className="text-sm leading-5 text-[#737373]">{meta}</p>}
           </div>
@@ -295,6 +296,15 @@ export function EditLink({ onClick, children = 'Edit' }: { onClick: () => void; 
   return <button type="button" onClick={onClick} className="-my-1 -mx-1.5 h-6 px-1.5 rounded-md text-sm font-medium text-primary hover:bg-[#EFF6FF] inline-flex items-center gap-1">{children}</button>;
 }
 export { PencilSimple };
+/* A section in edit mode (2026-11-20): grey Cancel throws the edit away, blue Save keeps it. Replaces the Edit link. */
+export function EditActions({ onCancel, onSave, save = 'Save' }: { onCancel: () => void; onSave: () => void; save?: string }) {
+  return (
+    <span className="flex items-center gap-3">
+      <button type="button" onClick={onCancel} className="-my-1 -mx-1.5 h-6 px-1.5 rounded-md text-sm font-medium text-[#525252] hover:bg-[#F0F0F0]">Cancel</button>
+      <EditLink onClick={onSave}>{save}</EditLink>
+    </span>
+  );
+}
 
 /* Add a tag, Notion style (2026-11-18): type to filter the workspace's tags; when nothing matches the text exactly,
    a last row offers "Create <text>", which adds it to the workspace tags (Setup › Tags) in the next free colour and

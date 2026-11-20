@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { Bike, Car, DotsSixVertical, Dumbbell, Image, ImageSquare, Library, Sofa, Star, Trash, Utensils, WashingMachine } from '../../components/icons';
 import { Button, SheetSection, Textarea, cx } from '../../components/ui';
 import { logAct, useInv, type Property } from '../../data/inventory';
-import { EditLink, PanelModal } from './common';
+import { EditActions, EditLink, PanelModal } from './common';
 import { photoOf } from './photos';
 
 export const AMENITIES = ['Laundry', 'Bike store', 'Gym', 'Library', 'Common room', 'Parking', 'Catered option'];
@@ -46,14 +46,14 @@ export function PhotosCards({ p }: { p: Property }) {
           </button>
         )}
       </SheetSection>
-      {/* One editable section: its Edit link turns the section into inputs and becomes Done, which saves (2026-11-19). */}
-      <SheetSection title="Description" action={editDesc ? <EditLink onClick={saveDesc}>Done</EditLink> : <EditLink onClick={() => { setDesc(p.description); setEditDesc(true); }} />}>
+      {/* One editable section: its Edit link turns the section into inputs and becomes Cancel / Save (2026-11-20). */}
+      <SheetSection title="Description" action={editDesc ? <EditActions onCancel={() => setEditDesc(false)} onSave={saveDesc} /> : <EditLink onClick={() => { setDesc(p.description); setEditDesc(true); }} />}>
         {editDesc ? (
           <Textarea rows={5} autoFocus={false} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={`What’s it like to live at ${p.name}?`} aria-label="Description" />
         ) : p.description ? <p className="text-sm leading-[22px] text-[#0A0A0A] whitespace-pre-line">{p.description}</p>
           : <p className="text-sm leading-5 text-[#737373]">No description yet. It shows on the booking site.</p>}
       </SheetSection>
-      <SheetSection title={`Amenities · ${p.amenities.length}`} action={editAm ? <EditLink onClick={saveAm}>Done</EditLink> : <EditLink onClick={() => { setAm(p.amenities); setEditAm(true); }} />}>
+      <SheetSection title={`Amenities · ${p.amenities.length}`} action={editAm ? <EditActions onCancel={() => setEditAm(false)} onSave={saveAm} /> : <EditLink onClick={() => { setAm(p.amenities); setEditAm(true); }} />}>
         {editAm ? (
           <div className="flex flex-wrap gap-2">
               {AMENITIES.map((a) => {

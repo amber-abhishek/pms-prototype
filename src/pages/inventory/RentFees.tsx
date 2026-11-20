@@ -15,6 +15,9 @@ const tplIcon = (name: string): [Icon, Tone] =>
 const feeIcon = (name = ''): [Icon, Tone] =>
   /insurance/i.test(name) ? [ShieldCheck, 'blue'] : /admin|booking/i.test(name) ? [Receipt, 'purple'] : /damage/i.test(name) ? [Shield, 'amber'] : /key|store/i.test(name) ? [Key, 'green'] : [Money, 'grey'];
 
+/* A draft: nothing is stored until Save, so Cancel leaves no orphan row. Shared with the property panel's Add template. */
+export const draftTemplate = (propertyId: string): Template => ({ id: invId('tp'), propertyId, name: '', weeks: 44, rent: 170, deposit: 250, billing: 'Termly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 0, own: 0, status: 'Inactive' });
+
 export function RentFeesPage() {
   const [tab, setTab] = useTab<TabId>('templates');
   const allProps = useInv((s) => s.properties);
@@ -77,8 +80,7 @@ export function RentFeesPage() {
   );
 
   function newTemplate() {
-    /* A draft: nothing is stored until Save, so Cancel leaves no orphan row. */
-    setEditing({ id: invId('tp'), propertyId: pid, name: '', weeks: 44, rent: 170, deposit: 250, billing: 'Termly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 0, own: 0, status: 'Inactive' });
+    setEditing(draftTemplate(pid));
   }
 }
 
@@ -118,7 +120,7 @@ function TemplateSheet({ t: picked, onClose, nav, isNew, siblings }: { nav?: She
 }
 
 /** New or edit a template in a centred dialog. */
-function TemplateDialog({ t, open, onClose, isNew, siblings }: { t: Template; open: boolean; onClose: () => void; isNew: boolean; siblings: Template[] }) {
+export function TemplateDialog({ t, open, onClose, isNew, siblings }: { t: Template; open: boolean; onClose: () => void; isNew: boolean; siblings: Template[] }) {
   const fromT = () => ({ name: t.name, weeks: String(t.weeks), rent: String(t.rent), deposit: String(t.deposit), billing: t.billing, from: t.from, to: t.to });
   const [v, setV] = useState(fromT);
   const busy = useRef(false);

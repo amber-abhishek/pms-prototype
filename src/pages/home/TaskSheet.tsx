@@ -4,7 +4,7 @@ import { AlarmClock, CheckCircle, Info, ShieldWarning, ListChecks } from '../../
 import { toast } from 'sonner';
 import { create } from 'zustand';
 import { Avatar, Button, Note, Pill, Sheet, SheetHero, SheetRow, SheetSection, Textarea, cx, type Fact, type SheetNav } from '../../components/ui';
-import { EditLink, LineTabs, PanelModal } from '../inventory/common';
+import { EditActions, EditLink, LineTabs, PanelModal } from '../inventory/common';
 import { HALLS, ME, PEOPLE, useHome, type HTask, type Scope } from '../../data/home';
 import { Box, Picker, Who } from './parts';
 import { SnoozeMenu, useSnooze } from './Snooze';
@@ -169,7 +169,7 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
         <SheetSection title="Details" rows={factRows([...(main ? [...facts, ownerRow] : facts), ...(task.from ? [['Raised by', task.from.label] as [string, React.ReactNode]] : [])])} />
         {/* The one editable thing on a task: Edit turns this section into a box, Done saves it. */}
         {main && (
-          <SheetSection title="Note for the team" action={editingNote ? <EditLink onClick={saveNote}>Done</EditLink> : <EditLink onClick={() => { setNoteDraft(dt.teamNote ?? ''); setEditingNote(true); }}>Edit</EditLink>}>
+          <SheetSection title="Note for the team" action={editingNote ? <EditActions onCancel={() => setEditingNote(false)} onSave={saveNote} /> : <EditLink onClick={() => { setNoteDraft(dt.teamNote ?? ''); setEditingNote(true); }}>Edit</EditLink>}>
             {editingNote
               ? <Textarea aria-label="Note for the team" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} placeholder="Add context for whoever picks this up" className="text-sm leading-5 min-h-[72px]" />
               : <p className={cx('text-sm leading-5 whitespace-pre-wrap', dt.teamNote ? 'text-[#0A0A0A]' : 'text-[#737373]')}>{dt.teamNote || 'No note yet'}</p>}

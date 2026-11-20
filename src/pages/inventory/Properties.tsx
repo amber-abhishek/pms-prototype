@@ -236,6 +236,8 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
       counts: { all: roomsEach, active: 0, draft: roomsEach, inactive: 0, archived: 0 },
     }));
     useInv.getState().set('properties', (ps) => [...ps, ...made]);
+    /* Logged on Imports like every other build, so the team can see what was made and by whom (2026-11-20). */
+    useInv.getState().set('imports', (l) => [{ id: invId('im'), name: made.length > 1 ? `${made[0].name} – ${made[made.length - 1].name}` : made[0].name, kind: 'Bulk create', status: 'Succeeded', done: made.length * roomsEach, total: made.length * roomsEach, by: 'Arjun Mehta', started: 'Just now', structure, creates: `${made.length} properties · ${made.length * roomsEach} rooms` }, ...l]);
     setDone(made.length);
   };
   if (done) {
@@ -308,7 +310,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   };
   if (stage === 'queued') {
     return (
-      <Modal open={open} onClose={onClose} width={520} title="Import queued" sub="It starts when the import ahead of it ends. We’ll email you the outcome."
+      <Modal open={open} onClose={onClose} width={520} title="Import started" sub="It runs in the background and shows on Imports. We’ll email you the outcome."
         footer={<><Button icon={null} onClick={() => { onClose(); nav('/inventory/imports'); }}>View imports</Button><Button variant="primary" icon={null} onClick={onClose}>Done</Button></>}>
         <SheetRow lead={<FileCsv size={20} className="shrink-0 text-[#737373]" />} title="st-marys-rooms.csv" sub={`144 rows · ${structure} layout`}
           end={<button type="button" aria-label="Cancel import" onClick={() => { useInv.getState().set('imports', (l) => l.filter((x) => x.name !== 'st-marys-rooms.csv')); onClose(); toast('Import cancelled'); }} className="text-[#737373] hover:text-ink"><X size={14} /></button>} />

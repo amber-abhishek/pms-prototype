@@ -121,7 +121,7 @@ export function AddPropertyWizard() {
     const st = useInv.getState();
     st.set('properties', (ps) => [...ps.filter((x) => x.id !== id), p]);
     st.set('templates', (ts) => [...ts.filter((x) => x.propertyId !== id), ...tpls]);
-    if (total) st.set('imports', (l) => [{ id: invId('im'), name: `${p.name} · ${total} rooms`, kind: 'Bulk create', status: 'Running', done: 0, total, by: 'Arjun Mehta', started: 'Just now', structure, creates: `1 property · ${total + flats + floors + blocks.length} entities` }, ...l]);
+    if (total) st.set('imports', (l) => [{ id: invId('im'), name: `${p.name} · ${total} rooms`, kind: 'New property', status: 'Running', done: 0, total, by: 'Arjun Mehta', started: 'Just now', structure, creates: `1 property · ${total + flats + floors + blocks.length} entities` }, ...l]);
     setDone(p);
   };
 

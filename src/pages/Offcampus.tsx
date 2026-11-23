@@ -10,7 +10,7 @@ export function OffcampusRoutes() {
     <Routes>
       <Route index element={<Navigate to="approvals" replace />} />
       <Route path="approvals" element={<Approvals />} />
-      {/* Landlord applications and Listing reviews are one Approvals page now; old links keep their ?tab / ?open. */}
+      {/* Owner applications and Listing reviews are one Approvals page now; old links keep their ?tab / ?open. */}
       <Route path="landlords" element={<Moved kind="landlords" />} />
       <Route path="reviews" element={<Moved kind="listings" />} />
       <Route path="listings" element={<Listings />} />

@@ -3,14 +3,14 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { revertList } from './revert';
-import { renameMe } from './rename';
+import { renameFrom } from './rename';
 
-export type ReportDef = { id: string; name: string; area: 'Inventory' | 'Allocations' | 'Finance' | 'Maintenance' | 'Residents'; desc: string; to: string };
+export type ReportDef = { id: string; name: string; area: 'Properties' | 'Allocations' | 'Finance' | 'Maintenance' | 'Residents'; desc: string; to: string };
 export const REPORTS: ReportDef[] = [
-  { id: 'occupancy', name: 'Occupancy', area: 'Inventory', desc: 'Beds in residence, arriving and vacant, by hall and week', to: '/reports' },
+  { id: 'occupancy', name: 'Occupancy', area: 'Properties', desc: 'Beds in residence, arriving and vacant, by property and week', to: '/reports' },
   { id: 'applications', name: 'Applications funnel', area: 'Allocations', desc: 'Applied, offered, accepted and booked, by term', to: '/reports/applications' },
-  { id: 'rent', name: 'Rent and arrears', area: 'Finance', desc: 'Billed, collected and overdue, by hall', to: '/reports/rent' },
-  { id: 'sla', name: 'Maintenance deadlines', area: 'Maintenance', desc: 'Jobs fixed on time and cost, by hall and category', to: '/reports/maintenance-sla' },
+  { id: 'rent', name: 'Rent and arrears', area: 'Finance', desc: 'Billed, collected and overdue, by property', to: '/reports/rent' },
+  { id: 'sla', name: 'Maintenance deadlines', area: 'Maintenance', desc: 'Jobs fixed on time and cost, by property and category', to: '/reports/maintenance-sla' },
   { id: 'requests', name: 'Requests', area: 'Residents', desc: 'What residents ask for and how fast it’s answered', to: '/reports/requests' },
   { id: 'notices', name: 'Notice reach', area: 'Residents', desc: 'Delivered, opened and clicked, by notice', to: '/reports/notice-reach' },
 ];
@@ -24,7 +24,7 @@ export const whenLabel = (s: Pick<Schedule, 'day' | 'time'>) => (s.day === '1st'
 export const badgeLabel = (s: Pick<Schedule, 'day'>) => (s.day === '1st' ? 'Monthly · 1st' : `Weekly · ${s.day.slice(0, 3)}`);
 
 const SCHEDULES: Schedule[] = [
-  { id: 's1', reportId: 'occupancy', name: 'Occupancy by hall', sendsTo: 'head.collingwood@durham.ac.uk', recipients: [{ id: 'x1', name: 'head.collingwood@durham.ac.uk', sub: 'Email', count: 1, email: 'head.collingwood@durham.ac.uk' }], day: 'Monday', time: '08:00', lastSend: 'Not delivered', formats: { pdf: true, csv: false }, bounced: 'Mon 08:00' },
+  { id: 's1', reportId: 'occupancy', name: 'Occupancy by property', sendsTo: 'head.collingwood@durham.ac.uk', recipients: [{ id: 'x1', name: 'head.collingwood@durham.ac.uk', sub: 'Email', count: 1, email: 'head.collingwood@durham.ac.uk' }], day: 'Monday', time: '08:00', lastSend: 'Not delivered', formats: { pdf: true, csv: false }, bounced: 'Mon 08:00' },
   { id: 's2', reportId: 'rent', name: 'Arrears over 30 days', sendsTo: 'finance@durham.ac.uk', recipients: [{ id: 'x2', name: 'finance@durham.ac.uk', sub: 'Email', count: 1, email: 'finance@durham.ac.uk' }], day: '1st', time: '08:00', lastSend: 'Delivered', formats: { pdf: true, csv: true } },
 ];
 
@@ -33,7 +33,7 @@ const NOTIFS: NotifRow[] = [
   { id: 'n1', event: 'New application', sub: 'When a resident applies', app: true, email: false, sms: false },
   { id: 'n2', event: 'Offer accepted or declined', sub: 'For offers you sent', app: true, email: true, sms: false },
   { id: 'n3', event: 'Urgent maintenance', sub: 'Leaks, power and security', app: true, email: true, sms: false },
-  { id: 'n4', event: 'Request waiting over 2 days', sub: 'For halls you look after', app: true, email: true, sms: false },
+  { id: 'n4', event: 'Request waiting over 2 days', sub: 'For properties you look after', app: true, email: true, sms: false },
   { id: 'n5', event: 'Task assigned to me', sub: 'From anyone in the team', app: true, email: true, sms: false },
   { id: 'n6', event: 'Weekly digest', sub: 'Monday 08:00 · what changed last week', app: false, email: true, sms: false },
 ];
@@ -47,7 +47,7 @@ export type Integration = { id: string; name: string; short: string; state: Inte
 export type Branding = { logo: string; colour: string; sender: string; replyTo: string; footer: string };
 
 const INTEGRATIONS: Integration[] = [
-  { id: 'sits', name: 'Resident records (SITS)', short: 'Resident records · SITS', state: 'connected', meta: 'Synced 12 min ago', desc: 'Residents, courses and IDs for applications and check-in' },
+  { id: 'sits', name: 'Resident records', short: 'Resident records', state: 'connected', meta: 'Synced 12 min ago', desc: 'Residents and IDs for applications and check-in' },
   { id: 'entra', name: 'Microsoft Entra ID', short: 'Staff sign-in · Microsoft Entra', state: 'connected', meta: '14 members', desc: 'Staff sign in with their Durham account' },
   { id: 'salto', name: 'Salto access control', short: 'Door access · Salto', state: 'connected', meta: '1,883 fobs live', desc: 'Key fobs are issued at check-in and cancelled at move-out' },
   { id: 'xero', name: 'Xero', short: 'Finance · Xero', state: 'available', meta: '', desc: 'Send rent, refunds and repair costs to finance' },
@@ -73,17 +73,17 @@ export const useWorkspace = create<WsState>()(
         { id: 'y26', name: '2025/26', starts: '20 Sep 2025', ends: '19 Jun 2026', cycle: '2025/26 term · archived', status: 'Ended' },
       ],
       terms: [
-        { id: 't1', name: 'Michaelmas', starts: '5 Oct 2026', ends: '11 Dec 2026', weeks: 10, due: '1 Oct' },
-        { id: 't2', name: 'Epiphany', starts: '11 Jan 2027', ends: '19 Mar 2027', weeks: 10, due: '5 Jan' },
-        { id: 't3', name: 'Easter', starts: '19 Apr 2027', ends: '18 Jun 2027', weeks: 9, due: '12 Apr' },
+        { id: 't1', name: 'Autumn', starts: '5 Oct 2026', ends: '11 Dec 2026', weeks: 10, due: '1 Oct' },
+        { id: 't2', name: 'Spring', starts: '11 Jan 2027', ends: '19 Mar 2027', weeks: 10, due: '5 Jan' },
+        { id: 't3', name: 'Summer', starts: '19 Apr 2027', ends: '18 Jun 2027', weeks: 9, due: '12 Apr' },
       ],
-      payments: { methods: { card: true, bank: true, dd: false }, billed: 'Termly, in advance', due: 'Before each term starts', deposit: 250, remind: true, arrears: true, lateFee: false },
+      payments: { methods: { card: true, bank: true, dd: false }, billed: 'Each rent period, in advance', due: 'Before each period starts', deposit: 250, remind: true, arrears: true, lateFee: false },
       integrations: INTEGRATIONS,
       branding: { logo: 'durham-crest.svg', colour: '#68246D', sender: 'Durham Residences', replyTo: 'residences@durham.ac.uk', footer: 'Durham Residences · The Palatinate Centre, Durham DH1 3LE\nYou get this because you live in a Durham college.' },
       set: (k, v) => set((st) => ({ [k]: typeof v === 'function' ? (v as (c: unknown) => unknown)(st[k]) : v }) as Partial<WsState>),
       restore: (p) => set(p),
     }),
-    { name: 'pms-workspace', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
+    { name: 'pms-workspace', storage: createJSONStorage(() => sessionStorage), version: 2, migrate: renameFrom(2) as never },
   ),
 );
 export const wid = (p: string) => `${p}${Math.random().toString(36).slice(2, 8)}`;

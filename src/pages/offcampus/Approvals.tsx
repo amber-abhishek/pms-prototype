@@ -1,15 +1,17 @@
 import { useSearchParams } from 'react-router-dom';
 import { ClipboardText } from '../../components/icons';
-import { PageHeader, Tabs } from '../../components/ui';
+import { PageHeader } from '../../components/ui';
 import { useOc } from '../../data/offcampus';
 import { Landlords } from './Landlords';
 import { Reviews } from './Reviews';
-import { Title } from './parts';
+import { StatusTabsBar, Title } from './parts';
 
 type Kind = 'landlords' | 'listings';
 
-/** Approvals (2026-11-19): landlord applications and listing reviews are both approval queues, so they share one page.
- *  `?kind=` picks the queue; each keeps its own status tabs (`?tab=`) and open record (`?open=`). */
+/** Approvals (2026-11-19): owner applications and listing reviews are both approval queues, so they share one page.
+ *  Layout = Figma 4159:17532 "V3" (2026-11-23): Owners / Listings are underline tabs (counts = waiting on you); each queue
+ *  then has its own toolbar (search, Status and date filters, Needs action / All). `?kind=` picks the queue, `?tab=` its
+ *  Needs action / All view, `?open=` the open record. */
 export function Approvals() {
   const [sp, setSp] = useSearchParams();
   const kind: Kind = sp.get('kind') === 'listings' ? 'listings' : 'landlords';
@@ -18,13 +20,11 @@ export function Approvals() {
   const pick = (k: Kind) => setSp((p) => { const n = new URLSearchParams(p); n.set('kind', k); n.delete('tab'); n.delete('open'); return n; }, { replace: true });
   return (
     <>
-      {/* Landlords / Listings is a switch in the header (Figma 4159:17418); the status tabs below are the one row of tabs. */}
-      <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Approvals">
-        <div className="[&_[role=tablist]]:!bg-[#EBEBEB]"><Tabs value={kind} onChange={pick} tabs={[{ id: 'landlords', label: 'Landlords', count: waitingLandlords || undefined }, { id: 'listings', label: 'Listings', count: waitingListings || undefined }]} /></div>
-      </PageHeader>
+      <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Approvals" />
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Approvals" />
-        {kind === 'listings' ? <Reviews bare /> : <Landlords bare />}
+        <StatusTabsBar value={kind} onChange={pick} tabs={[{ id: 'landlords', label: 'Owners', count: waitingLandlords }, { id: 'listings', label: 'Listings', count: waitingListings }]} />
+        {kind === 'listings' ? <Reviews key="listings" bare /> : <Landlords key="landlords" bare />}
       </div>
     </>
   );

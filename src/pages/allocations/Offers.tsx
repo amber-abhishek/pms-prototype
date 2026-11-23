@@ -163,7 +163,7 @@ export function Offers() {
         <Toolbar right={<>
           <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as TabId)} width={220}
             options={[{ value: 'Recent' }, { value: 'Open', meta: fmtN(c.open) }, { value: 'Accepted', meta: fmtN(c.accepted) }, { value: 'Declined', meta: fmtN(c.declined) }, { value: 'Lapsed', meta: fmtN(c.lapsed) }, { value: 'Waitlist', meta: fmtN(c.waitlist) }]} />
-          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Term', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }]} />
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Term', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Property', options: HALLS.map((h) => hallFull[h]) }]} />
         </>}>
           <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search offers" /></div>
         </Toolbar>
@@ -174,7 +174,7 @@ export function Offers() {
         </EmptyArea>
       ) : tab === 'Waitlist' ? (
         c.waitlist === 0 ? (
-          <EmptyArea art="waitlist" icon={HourglassMedium} title="No one is waiting" sub="Applicants join when an offer lapses or a hall is full.">
+          <EmptyArea art="waitlist" icon={HourglassMedium} title="No one is waiting" sub="Applicants join when an offer lapses or a property is full.">
             <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add to waitlist</Button>
           </EmptyArea>
         ) : <Waitlist rows={waitRows} onOffer={setOffering} />
@@ -219,7 +219,7 @@ function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void 
                 <tr key={g} className="bg-[#FAFAFA] border-b border-[#F5F5F5]"><td colSpan={5} className="h-8 pl-[var(--cx,12px)] pr-3 text-xs"><span className="font-medium">{hall} · {room}</span><span className="text-gray-500"> · {list.length} waiting</span></td></tr>,
                 ...list.map((w, i) => (
                   <tr key={w.id} className="border-b border-[#F5F5F5] text-sm">
-                    <td className="h-10 pl-[var(--cx,12px)] font-semibold tabular-nums">{i + 1}</td>
+                    <td className="h-10 pl-[var(--cx,12px)] font-mono text-[#737373] tabular-nums">{i + 1}</td>
                     <td className="px-3"><span className="flex items-center gap-2 font-medium"><Ini name={w.name} size={24} />{w.name}</span></td>
                     <td className="px-3 text-gray-500">{w.note}</td>
                     <td className="px-3 text-gray-500">{w.joined}</td>
@@ -266,7 +266,7 @@ function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBook
       </> : o.status === 'accepted' ? <Button variant="primary" icon={null} onClick={onBooking}>Open booking</Button> : undefined}>
       <Modal open={declining} onClose={() => setDeclining(false)} title={`Record ${first}’s decline`} width={440}
         footer={<><Button onClick={() => setDeclining(false)}>Cancel</Button><Button variant="danger" icon={null} onClick={() => { setDeclining(false); onDecline(reason); }}>Record decline</Button></>}>
-        <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another operator', 'Too expensive', 'Living at home', 'Wanted a different hall', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
+        <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another operator', 'Too expensive', 'Living at home', 'Wanted a different property', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>
       </Modal>
       <SheetHero name={o.name} meta={`${hallFull[o.hall]} · ${o.unit}`}
         facts={o.status === 'open'
@@ -314,7 +314,7 @@ function AddToWaitlist({ onClose }: { onClose: () => void }) {
         <div className="space-y-4">
           <Field label="Applicant"><Input list="wl-people" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name or APP- reference" /><datalist id="wl-people">{people.map((p) => <option key={p} value={p} />)}</datalist></Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Hall"><Select value={hall} onChange={(e) => setHall(e.target.value)}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
+            <Field label="Property"><Select value={hall} onChange={(e) => setHall(e.target.value)}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
             <Field label="Room type"><Select value={room} onChange={(e) => setRoom(e.target.value)}>{ROOMS.map((r) => <option key={r}>{r}</option>)}</Select></Field>
           </div>
           <Field label="Note" hint="Shown to whoever offers the next unit"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" /></Field>

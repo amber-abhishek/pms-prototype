@@ -47,7 +47,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
       </>}>
       {!units.length ? (
         <Note tone="amber" icon={WarningCircle} title={`${hallFull[pref.hall]} has no free ${pref.room.toLowerCase()}`}>
-          Add {firstName(a.name)} to the waitlist, or pick another hall.
+          Add {firstName(a.name)} to the waitlist, or pick another property.
         </Note>
       ) : (
         <>
@@ -92,7 +92,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
 }
 
 const REASONS = [
-  { r: 'No offer to study at Durham', sub: 'They can apply again if they get one', tpl: 'no study offer' },
+  { r: 'Failed the eligibility check', sub: 'They can apply again once eligible', tpl: 'no study offer' },
   { r: 'Not eligible for this term', tpl: 'not eligible' },
   { r: 'Duplicate application', tpl: 'duplicate' },
   { r: 'Withdrawn by the applicant', tpl: 'withdrawn' },
@@ -101,7 +101,7 @@ const REASONS = [
 /** Flow 2 · 07: reject with a structured reason, email, count it in the cycle report. */
 export function RejectDialog({ a, onClose, onDone }: { a: App; onClose: () => void; onDone: () => void }) {
   const act = useAllocActions();
-  const [reason, setReason] = useState(a.tag === 'No study offer' ? REASONS[0].r : '');
+  const [reason, setReason] = useState(a.tag === 'Eligibility' ? REASONS[0].r : '');
   const [note, setNote] = useState('');
   const [email, setEmail] = useState(true);
   const busy = useRef(false);

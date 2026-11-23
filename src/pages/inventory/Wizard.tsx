@@ -18,7 +18,7 @@ const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite doub
 const DEF_TERMS: Record<string, Terms> = { 'Ensuite single': { weeks: '51', rent: '212', deposit: '250' }, 'Standard single': { weeks: '44', rent: '168', deposit: '250' }, Studio: { weeks: '51', rent: '246', deposit: '300' } };
 /* Figma "B · Left rail" (4119:17380, 2026-11-19): a numbered step list down the left, one hint line per step, neutral ink. */
 const STEPS: { title: string; sub: string }[] = [
-  { title: 'Basics', sub: 'Name, campus, layout' }, { title: 'Location', sub: 'Address and zone' }, { title: 'Units', sub: 'Blocks, floors, rooms' },
+  { title: 'Basics', sub: 'Name, location, layout' }, { title: 'Address', sub: 'Address and zone' }, { title: 'Units', sub: 'Blocks, floors, rooms' },
   { title: 'Rent & terms', sub: 'Templates and dates' }, { title: 'Review', sub: 'Check and create' },
 ];
 /* One colour per level, from the tag-pill tones (2026-11-13): the layout cards, the previews, the Units tree and its
@@ -42,7 +42,7 @@ export function AddPropertyWizard() {
   const [invNo, setInvNo] = useState('');
   const [campus, setCampus] = useState<'Durham City' | 'Queen’s Campus'>('Durham City');
   const [letting, setLetting] = useState<'Weekly' | 'Monthly'>('Weekly');
-  const [structure, setStructure] = useState<'College' | 'House'>('College');
+  const [structure, setStructure] = useState<'Building' | 'House'>('Building');
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState(false);
   const [zone, setZone] = useState('');
@@ -54,7 +54,7 @@ export function AddPropertyWizard() {
   const [terms, setTerms] = useState<Record<string, Terms>>({});
   const [from, setFrom] = useState('19 Sep 2027');
   const [to, setTo] = useState('4 Aug 2028');
-  const [billing, setBilling] = useState<'Termly' | 'Monthly' | 'Upfront'>('Termly');
+  const [billing, setBilling] = useState<'Weekly' | 'Monthly' | 'Upfront'>('Weekly');
   const creating = useRef(false);
   /* Creating is instant, so the review ends in a confirmation popup, not a "what happens next" list (2026-11-19). */
   const [done, setDone] = useState<Property | null>(null);
@@ -183,7 +183,7 @@ export function AddPropertyWizard() {
                       <Field label="Property name"><Input className={i9} value={name} onChange={(e) => setName(e.target.value)} onBlur={() => setNameTouched(true)} placeholder="e.g. St Mary’s College" aria-invalid={nameTouched && !!nameErr} /><Err>{nameTouched ? nameErr : ''}</Err></Field>
                       <div className="grid grid-cols-2 gap-4">
                         <Field label="Inventory number" hint="Optional · your own reference"><Input className={cx(i9, 'font-mono')} value={invNo} onChange={(e) => setInvNo(e.target.value)} placeholder="e.g. SMC-001" /></Field>
-                        <Field label="Campus"><Picker className={i9} value={campus} onChange={setCampus} options={[{ id: 'Durham City', label: 'Durham City' }, { id: 'Queen’s Campus', label: 'Queen’s Campus' }]} /></Field>
+                        <Field label="Location"><Picker className={i9} value={campus} onChange={setCampus} options={[{ id: 'Durham City', label: 'Durham City' }, { id: 'Queen’s Campus', label: 'Queen’s Campus' }]} /></Field>
                       </div>
                     </div>
                   </SheetSection>
@@ -281,7 +281,7 @@ export function AddPropertyWizard() {
                   {total > BIG && (
                     <label className="rounded-xl border border-[#D97706]/40 p-3.5 flex gap-3 items-start cursor-pointer">
                       <input type="checkbox" checked={bigOk} onChange={(e) => setBigOk(e.target.checked)} className="mt-0.5 size-4 accent-primary" />
-                      <span><span className="block text-sm font-medium text-[#D97706]">That’s {fmt(total)} rooms</span><span className="block text-xs text-[#737373] mt-0.5">Far more than a typical hall. Check the counts, or tick to confirm.</span></span>
+                      <span><span className="block text-sm font-medium text-[#D97706]">That’s {fmt(total)} rooms</span><span className="block text-xs text-[#737373] mt-0.5">Far more than a typical property. Check the counts, or tick to confirm.</span></span>
                     </label>
                   )}
                   <p className="mt-3 text-sm leading-5 text-[#737373]">Every room already in a spreadsheet? <button type="button" onClick={() => nav('/inventory/properties?import=1')} className="text-[#2563EB] font-medium hover:underline underline-offset-2">Import CSV</button></p>
@@ -316,11 +316,11 @@ export function AddPropertyWizard() {
                     <div className="grid grid-cols-3 gap-4">
                       <Field label="Available from"><DateInput value={from} onChange={setFrom} /></Field>
                       <Field label="Available to"><DateInput value={to} onChange={setTo} /></Field>
-                      <Field label="Billing"><Picker className={i9} value={billing} onChange={setBilling} options={[{ id: 'Termly', label: 'Termly' }, { id: 'Monthly', label: 'Monthly' }, { id: 'Upfront', label: 'Upfront' }]} /></Field>
+                      <Field label="Billing"><Picker className={i9} value={billing} onChange={setBilling} options={[{ id: 'Weekly', label: 'Weekly' }, { id: 'Monthly', label: 'Monthly' }, { id: 'Upfront', label: 'Upfront' }]} /></Field>
                     </div>
                     <Err>{dateErr}</Err>
                   </SheetSection>
-                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/inventory/rent-fees?tab=fees')}>Tenancy pricing</EditLink>}>
+                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/inventory/rent-fees?tab=fees')}>Custom pricing</EditLink>}>
                     <SheetRow title="Organisation-wide fees apply" sub="Contents insurance · £45 per tenancy" />
                   </SheetSection>
                 </>
@@ -331,7 +331,7 @@ export function AddPropertyWizard() {
                   <SheetSection title="Summary">
                     {([
                       ['Basics', name, `${campus} · ${structure} layout · ${letting.toLowerCase()} · ${invNo || 'no ref'}`, 0],
-                      ['Location', 'Elvet Hill Road, Durham DH1 3LR', zone ? `Zone ${zone}` : 'No zone', 1],
+                      ['Address', 'Elvet Hill Road, Durham DH1 3LR', zone ? `Zone ${zone}` : 'No zone', 1],
                       ['Units', `${fmt(total)} rooms`, blocks.map((b) => `${b.name} ${fmt(rooms(b, house))}`).join(' · '), 2],
                       ['Rent & terms', `${types.length} templates · ${fmt(total)} draft tenancies`, types.map((t) => `${t.name.split(' ')[0]} £${t.rent} · ${t.weeks} wk`).join(' · '), 3],
                     ] as const).map(([k, a, b, s]) => (

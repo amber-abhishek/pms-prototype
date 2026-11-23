@@ -2,7 +2,7 @@ import { Badge } from '../../components/shadcn/badge';
 import { Illustration, type Illo } from '../../components/Illustration';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CaretUpDown, Image, X, type Icon } from '../../components/icons';
-import { Button, ConfirmFrame, TitleH1, cx, PIN, isConfirmTitle, noAutoFocus } from '../../components/ui';
+import { Button, ConfirmFrame, Tabs, TitleH1, cx, PIN, isConfirmTitle, noAutoFocus } from '../../components/ui';
 import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '../../components/shadcn/command';
@@ -142,13 +142,42 @@ export function EmptyArt({ art }: { art: Illo }) {
 
 /** Small segmented buttons (Enquiries source): selected is a white bordered button, the rest are ghost. */
 
-/** Approvals queues (Figma 4159:17418, 2026-11-23): one row of underline status tabs, each with its count, and search on the right. */
-export function StatusTabsBar<T extends string>({ value, onChange, tabs, search }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string; count: number }[]; search: ReactNode }) {
+/** Off-campus queues (Figma 4159:17418, 2026-11-23): one row of underline status tabs, each with its count. The right end holds
+ *  the search, or `aside` (Approvals puts its Owners / Listings switch there and the search in the header). */
+export function StatusTabsBar<T extends string>({ value, onChange, tabs, search, aside }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string; count: number }[]; search?: ReactNode; aside?: ReactNode }) {
   return (
     /* 56px row: tab labels and search share the centre line; the tab underline sits on the bottom rule. */
     <div {...PIN} className="shrink-0 h-14 px-[var(--tx,16px)] flex items-stretch gap-3 border-b border-[#E5E5E5]">
       <div className="min-w-0"><LineTabs value={value} onChange={onChange} className="!px-0 !border-b-0 h-full [&>button]:!h-[55px]" tabs={tabs.map((t) => ({ id: t.id, label: `${t.label} · ${t.count}` }))} /></div>
-      <div className="ml-auto self-center w-[240px] min-w-[140px] shrink [&>label]:!w-full">{search}</div>
+      {aside ? <div className="ml-auto self-center shrink-0">{aside}</div>
+        : search ? <div className="ml-auto self-center w-[240px] min-w-[140px] shrink [&>label]:!w-full">{search}</div> : null}
+    </div>
+  );
+}
+
+/* ---------- Approvals queue toolbar (Figma 4159:17532 "V3", 2026-11-23) ---------- */
+/** Days since a relative stamp the seeds use ("12 min ago", "Yesterday", "3 days ago", "2 weeks ago"). */
+export const daysAgo = (s: string) => {
+  const m = /^(\d+)\s+(min|hour|day|week)/.exec(s);
+  if (/yesterday/i.test(s)) return 1;
+  if (!m) return 0;
+  const n = Number(m[1]);
+  return m[2] === 'day' ? n : m[2] === 'week' ? n * 7 : 0;
+};
+export const WHEN = ['Today', 'This week', 'This month', 'Older'] as const;
+export const whenOf = (s: string): (typeof WHEN)[number] => { const d = daysAgo(s); return d < 1 ? 'Today' : d <= 7 ? 'This week' : d <= 30 ? 'This month' : 'Older'; };
+
+/** Search on the left; the Status and date filters, then Needs action / All, at the right edge. */
+export function QueueToolbar({ search, filters, view, onView, needs, all }: {
+  search: ReactNode; filters: ReactNode; view: 'needs' | 'all'; onView: (v: 'needs' | 'all') => void; needs: number; all: number;
+}) {
+  return (
+    <div {...PIN} className="shrink-0 px-[var(--tx,16px)] py-4 flex items-center gap-3">
+      <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full">{search}</div>
+      <div className="ml-auto flex items-center gap-2">
+        {filters}
+        <Tabs value={view} onChange={onView} tabs={[{ id: 'needs', label: 'Needs action', count: needs }, { id: 'all', label: 'All', count: all }]} />
+      </div>
     </div>
   );
 }

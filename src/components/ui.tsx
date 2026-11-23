@@ -31,6 +31,7 @@ import { Sheet as UISheet, sheetStep, SheetBody, SheetContent, SheetDescription,
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogDescription, DialogFrame, DialogTitle } from './shadcn/dialog';
 import { toneCls, toneDot } from './tones';
 import { rowAttrs, useRowMotion } from './rowMotion';
+import { useColumns } from './columns';
 import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, CaretUp, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
 import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag, Flag } from './icons';
 export { toneCls, toneDot, toneLine } from './tones';
@@ -111,7 +112,7 @@ export function Pill({ tone = 'grey', icon: I, dot, outline, children }: { tone?
 }
 
 /** One colour per product area, for the Area pill in activity and audit tables. */
-const AREA_TONE: Record<string, Tone> = { Inventory: 'blue', Allocations: 'purple', Residents: 'green', 'Off-campus': 'orange', Finance: 'amber', Maintenance: 'red', Workspace: 'grey', Members: 'blue', Roles: 'purple', Campuses: 'green', Teams: 'amber' };
+const AREA_TONE: Record<string, Tone> = { Properties: 'blue', Allocations: 'purple', Residents: 'green', 'Off-campus': 'orange', Finance: 'amber', Maintenance: 'red', Workspace: 'grey', Members: 'blue', Roles: 'purple', Campuses: 'green', Teams: 'amber' };
 export const AreaPill = ({ area }: { area: string }) => <Pill tone={AREA_TONE[area] ?? 'grey'}>{area}</Pill>;
 
 const statusTone: Record<string, Tone> = {
@@ -581,7 +582,8 @@ export function Pager({ pages, page, onPage }: { pages: number; page: number; on
   );
 }
 export type Col<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
-export function Table<T extends { id: string }>({ cols, rows, onRow, empty, after, pageSize = 25, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group }: {
+export function Table<T extends { id: string }>({ cols, rows, onRow, empty, after, pageSize = 25, selected, summary, card, footerRight, footer: showFooter = true, paginate = true, fill, sort, group, columns = true }: {
+  /** false turns off the header's Columns button (reorder / show / hide), for small fixed tables. */ columns?: boolean;
   cols: Col<T>[]; rows: T[]; onRow?: (r: T) => void; empty?: ReactNode; pageSize?: number; selected?: string;
   /** Footer text on the left, e.g. "7 properties · 2,749 units". Defaults to "N rows". */ summary?: ReactNode;
   /** Render inside a bordered card instead of full-bleed. */ card?: boolean; footerRight?: ReactNode;
@@ -595,23 +597,27 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
 }) {
   const [page, setPage] = useState(0);
   useEffect(() => setPage(0), [rows.length]);
+  const allCols = cols;
+  const { visible, picker } = useColumns(allCols, columns);
   const pages = paginate ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
   const shown = paginate ? rows.slice(page * pageSize, page * pageSize + pageSize) : rows;
   const { items, bodyRef } = useRowMotion(shown);
   /* Stepping with the sheet chevrons can cross a page boundary: follow the selected row to its page. */
   useEffect(() => { if (!paginate || selected == null) return; const i = rows.findIndex((r) => r.id === selected); if (i >= 0) setPage(Math.floor(i / pageSize)); }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!rows.length) return <div className={cx(!card && 'flex-1 min-h-0 p-5')}>{empty ?? <Empty art="nothingToShow" title="Nothing here" sub="Try a different tab or clear the filters." />}</div>;
+  /* The Columns button rides at the right end of the last header cell, so it adds no column of its own. */
+  const withPicker = (last: boolean, label: ReactNode) => (last && picker ? <span className="flex items-center gap-2"><span className="flex-1 min-w-0">{label}</span>{picker}</span> : label);
   const table = (
     /* 2820:111: 36px header, 12px medium #737373, #E5E5E5 rule; 40px rows, 14px, #F5F5F5 rules; 20px outer padding. */
     <UITable className="text-[#0A0A0A]">
-      <TableHeader className="sticky top-0 z-[1]"><TableRow>{group && <TableHead className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'w-[120px]', group.className)}>{group.label}</TableHead>}{cols.map((c, i) => <TableHead key={c.key} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === cols.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), c.className)}>{sort?.key === c.key ? (
+      <TableHeader className="sticky top-0 z-[1]"><TableRow>{group && <TableHead className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'w-[120px]', group.className)}>{group.label}</TableHead>}{visible.map((c, i) => <TableHead key={c.key} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === visible.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), c.className)}>{withPicker(i === visible.length - 1, sort?.key === c.key ? (
         <button type="button" disabled={!sort.onToggle} onClick={sort.onToggle} className="relative inline-flex items-center gap-1 text-[#0A0A0A] font-medium disabled:cursor-default after:absolute after:-inset-y-1 after:-inset-x-1 after:content-['']">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button>
-      ) : c.label}</TableHead>)}</TableRow></TableHeader>
+      ) : c.label)}</TableHead>)}</TableRow></TableHeader>
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }, ri) => (
           <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} aria-selected={selected === r.id || undefined} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow ? 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]' : 'hover:bg-transparent', (group || ri === items.length - 1) && 'border-b-0')}>
             {group && <TableCell className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'text-[#737373] whitespace-nowrap border-b', ri === items.length - 1 || group.get(items[ri + 1].row) === group.get(r) ? 'border-transparent' : 'border-[#F5F5F5]', group.className)}>{ri === 0 || group.get(items[ri - 1].row) !== group.get(r) ? group.get(r) : null}</TableCell>}
-            {cols.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === cols.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), i === cols.length - 1 && c.label === '' && 'row-act', group && ri < items.length - 1 && 'border-b border-[#F5F5F5]', c.className)}>{muteDash(c.render(r))}</TableCell>)}
+            {visible.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === visible.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), i === visible.length - 1 && c.label === '' && 'row-act', group && ri < items.length - 1 && 'border-b border-[#F5F5F5]', c.className)}>{muteDash(c.render(r))}</TableCell>)}
           </TableRow>
         ))}
       </TableBody>
@@ -986,7 +992,8 @@ export function SheetSection({ title, rows, action, children }: { title: string;
       </div>
       <div className="px-4 py-3.5">
         {rows && <div className="-my-2.5"><DL rows={rows} /></div>}
-        {children && <div className={rows ? 'mt-6' : undefined}>{children}</div>}
+        {/* Children that all render nothing ({false}, {null}) leave no empty block, so the bottom padding stays even. */}
+        {Children.toArray(children).length > 0 && <div className={rows ? 'mt-6' : undefined}>{children}</div>}
       </div>
     </section>
   );

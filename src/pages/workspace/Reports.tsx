@@ -24,7 +24,7 @@ import { Dialog, DialogCloseButton, DialogContent, DialogTitle } from '../../com
 
 /** Empty-states demo: a report with nothing to count yet. */
 function NoReportData({ icon, title }: { icon: Icon; title: string }) {
-  return <><RHeader icon={icon} title={title} /><div className="flex-1 flex items-center justify-center"><Empty icon={icon} title="No data yet" sub="Numbers appear once halls and residents are added." /></div></>;
+  return <><RHeader icon={icon} title={title} /><div className="flex-1 flex items-center justify-center"><Empty icon={icon} title="No data yet" sub="Numbers appear once properties and residents are added." /></div></>;
 }
 
 const AREA_ICON: Record<string, Icon> = { occupancy: Bed, applications: FunnelIcon, rent: CurrencyGbp, sla: Wrench, requests: ChatCircleText, notices: Megaphone };
@@ -99,7 +99,7 @@ export function ReportsLibrary() {
       {tab === 'library' && (
         /* Same frame as Settings (2026-11-13): a 960px column 32px in, and the list in a Connect card with a 44px #FAFAFA header band. */
         <div className="flex-1 overflow-auto">
-          <div className="max-w-[960px] px-8 pt-8 pb-16">
+          <div className="max-w-[720px] mx-auto px-8 pt-16 pb-16">
             <section className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
               <header className="min-h-11 py-3 pl-4 pr-3 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#E5E5E5]">
                 <h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">All reports</h2>
@@ -330,17 +330,17 @@ export function OccupancyReport() {
   const openHall = (id: string) => nav(props.some((p) => p.id === id) ? `/inventory/properties?open=${id}` : '/inventory/occupancy');
   const schedules = useWorkspace((s) => s.schedules);
   const [year, setYear] = useState('2026/27');
-  const [hall, setHall] = useState('All halls');
+  const [hall, setHall] = useState('All properties');
   const [by, setBy] = useState('By week');
   const [sheet, setSheet] = useState(false);
   const exportOnce = useOnceFor(1000);
   /* A schedule sends the view you're looking at: each hall + grouping is its own schedule. */
-  const viewId = hall === 'All halls' && by === 'By week' ? MAIN : `occ-${hall}-${by}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const viewId = hall === 'All properties' && by === 'By week' ? MAIN : `occ-${hall}-${by}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const mine = schedules.find((s) => s.id === viewId);
   if (useEmpty.getState().on) return <NoReportData icon={ChartBar} title="Occupancy" />;
   const archived = year !== CURRENT;
-  const view = archived ? 'By hall' : by;
-  const pick = (src: HallRow[]) => (hall === 'All halls' ? src : src.filter((r) => r.hall === hall));
+  const view = archived ? 'By property' : by;
+  const pick = (src: HallRow[]) => (hall === 'All properties' ? src : src.filter((r) => r.hall === hall));
   const total = (rs: HallRow[]) => rs.reduce((a, r) => ({ beds: a.beds + r.beds, res: a.res + r.res, arr: a.arr + r.arr, vac: a.vac + r.vac, blk: a.blk + r.blk, risk: a.risk + atRisk(r), roll: a.roll + rentRoll(r) }), { beds: 0, res: 0, arr: 0, vac: 0, blk: 0, risk: 0, roll: 0 });
   const rows = pick(archived ? ARCHIVE_ROWS : HALL_ROWS);
   const t = total(rows);
@@ -362,9 +362,9 @@ export function OccupancyReport() {
           : <Button variant="primary" icon={Clock} onClick={() => setSheet(true)}>Schedule</Button>}
       </Header>
       <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
-        <Chip icon={CalendarBlank} label="Academic year" value={year} onChange={setYear} options={[CURRENT, '2025/26']} />
-        <Chip icon={Buildings} label="Halls" value={hall} onChange={setHall} options={['All halls', ...HALL_ROWS.map((r) => r.hall)]} />
-        <Chip icon={CalendarBlank} label="Group by" value={view} onChange={setBy} options={archived ? ['By hall'] : ['By week', 'By hall']} />
+        <Chip icon={CalendarBlank} label="Letting year" value={year} onChange={setYear} options={[CURRENT, '2025/26']} />
+        <Chip icon={Buildings} label="Properties" value={hall} onChange={setHall} options={['All properties', ...HALL_ROWS.map((r) => r.hall)]} />
+        <Chip icon={CalendarBlank} label="Group by" value={view} onChange={setBy} options={archived ? ['By property'] : ['By week', 'By property']} />
         {archived && <span className="text-xs text-[#737373] whitespace-nowrap">Archived · final week only</span>}
       </Toolbar>
       <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
@@ -383,7 +383,7 @@ export function OccupancyReport() {
         <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">
         {/* Connect cards (2026-11-17): r16, a #FAFAFA mono strip, 20px body, as on the Overview. */}
         <Card className="overflow-hidden min-w-0">
-          <Strip title={view === 'By week' ? 'Beds filled by week' : 'Beds filled by hall'}
+          <Strip title={view === 'By week' ? 'Beds filled by week' : 'Beds filled by property'}
             right={<span className="flex items-center gap-4 text-xs text-[#737373]"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#2563EB]" />In residence</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-[#93C5FD]" />Arriving</span></span>} />
           <div className="p-5">
           <div className="h-[180px] border-b border-line flex items-end justify-around px-6">
@@ -416,10 +416,10 @@ export function OccupancyReport() {
         </Card>
         </div>
         <Card className="overflow-hidden">
-          <Strip title="Halls" right={<span className="font-mono text-xs uppercase tracking-[0.48px] text-[#737373]">{rows.length} {rows.length === 1 ? 'hall' : 'halls'}</span>} />
+          <Strip title="Properties" right={<span className="font-mono text-xs uppercase tracking-[0.48px] text-[#737373]">{rows.length} {rows.length === 1 ? 'hall' : 'halls'}</span>} />
           <table className="w-full text-sm">
             <thead><tr className="font-mono uppercase tracking-[0.48px] text-xs font-medium text-[#737373] border-b border-line bg-white [&>th]:bg-white">
-              <th className="text-left font-medium h-9 pl-5">Hall</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked', 'Rent roll', 'Rent at risk'].map((h) => <th key={h} className="text-left font-medium px-3">{h}</th>)}<th className="text-left font-medium px-3 pr-5">Filled</th>
+              <th className="text-left font-medium h-9 pl-5">Property</th>{['Beds', 'In residence', 'Arriving', 'Vacant', 'Blocked', 'Rent roll', 'Rent at risk'].map((h) => <th key={h} className="text-left font-medium px-3">{h}</th>)}<th className="text-left font-medium px-3 pr-5">Filled</th>
             </tr></thead>
             {/* Filled is a plain percentage; only the hall with the most rent at risk is red. */}
             <tbody>{rows.map((r) => { const p = pct(r); const worst = Math.max(...rows.map(atRisk)); return (
@@ -448,7 +448,7 @@ const DEFAULT_RECIPIENTS: Recipient[] = [
 /** F8 · 03: schedule the occupancy report. */
 function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: string; by: string; existing?: Schedule; onClose: () => void }) {
   const { set } = useWorkspace();
-  const what = `Occupancy · ${hall === 'All halls' ? 'all halls' : hall} · ${by.toLowerCase()}`;
+  const what = `Occupancy · ${hall === 'All properties' ? 'all properties' : hall} · ${by.toLowerCase()}`;
   const [err, setErr] = useState('');
   const people = useDb((s) => s.people);
   const [day, setDay] = useState(existing?.day ?? 'Monday');
@@ -461,7 +461,7 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
   const total = rec.reduce((a, r) => a + r.count, 0);
   const sugg = useMemo(() => {
     const t = q.trim().toLowerCase();
-    const groups: Recipient[] = [{ id: 'g-wardens', name: 'Hall wardens', sub: '4 people · group', count: 4 }, { id: 'g-estates', name: 'Estates', sub: '3 people · group', count: 3 }];
+    const groups: Recipient[] = [{ id: 'g-wardens', name: 'Resident managers', sub: '4 people · group', count: 4 }, { id: 'g-estates', name: 'Estates', sub: '3 people · group', count: 3 }];
     const ps: Recipient[] = people.map((p) => ({ id: p.id, name: p.name, sub: p.role, count: 1 }));
     /* Hide anyone already on the list, by id or by name ("Arjun Mehta" is also "You"). */
     return [...groups, ...ps].filter((r) => !rec.some((x) => x.id === r.id || x.name === r.name) && (!t || r.name.toLowerCase().includes(t))).slice(0, 5);
@@ -521,7 +521,7 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
             </div>
           ) : <button type="button" onClick={() => setAdding(true)} className="h-6 flex items-center gap-2 text-sm font-medium text-primary"><Plus size={13} />Add people or a group</button>}
         </div>
-        <p className="mt-3 text-xs text-[#737373]">Recipients only see halls they have access to.</p>
+        <p className="mt-3 text-xs text-[#737373]">Recipients only see properties they have access to.</p>
       </SheetSection>
       <SheetSection title="Format">
         {([['pdf', 'PDF summary'], ['csv', 'CSV data']] as const).map(([k, l]) => (
@@ -556,7 +556,7 @@ export function ApplicationsReport() {
     <>
       <RHeader icon={FunnelIcon} title="Applications funnel">
         <Button icon={DownloadSimple} onClick={() => exportOnce(() => toast.success('Applications funnel.csv downloaded'))}>Export CSV</Button>
-        <Button icon={ShareNetwork} onClick={() => { void navigator.clipboard?.writeText(location.href).catch(() => {}); toast.success('Link copied', { description: 'People see only the halls they have access to.' }); }}>Share</Button>
+        <Button icon={ShareNetwork} onClick={() => { void navigator.clipboard?.writeText(location.href).catch(() => {}); toast.success('Link copied', { description: 'People see only the properties they have access to.' }); }}>Share</Button>
       </RHeader>
       <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
         <Chip label="Term" value={cycle} onChange={setCycle} options={['2027/28', '2026/27']} />
@@ -586,14 +586,14 @@ export function ApplicationsReport() {
 type Simple = { title: string; tiles: [string, string, string?, string?][]; cols: string[]; rows: (string | number)[][] };
 /* The figures these reports had before they were derived; kept only as a fallback shape. Live builders below replace them. */
 const SIMPLE: Record<string, Simple> = {
-  rent: { title: 'Rent and arrears', tiles: [['Billed', '£4.12m', undefined, 'Michaelmas term'], ['Collected', '£3.86m', '#087A43', '94% of billed'], ['Overdue', '£61,240', '#E0243A', '£1,612 average'], ['Residents in arrears', '38', '#C2410C', '9 over 30 days']], cols: ['Hall', 'Billed', 'Collected', 'Overdue', 'In arrears'],
+  rent: { title: 'Rent and arrears', tiles: [['Billed', '£4.12m', undefined, 'Autumn period'], ['Collected', '£3.86m', '#087A43', '94% of billed'], ['Overdue', '£61,240', '#E0243A', '£1,612 average'], ['Residents in arrears', '38', '#C2410C', '9 over 30 days']], cols: ['Property', 'Billed', 'Collected', 'Overdue', 'In arrears'],
     rows: [['Ustinov', '£1.09m', '£1.01m', '£22,180', 14], ['Collingwood', '£0.92m', '£0.88m', '£9,460', 6], ['Van Mildert', '£1.06m', '£0.99m', '£18,120', 11], ['Josephine Butler', '£0.79m', '£0.74m', '£8,980', 5], ["St Mary’s", '£0.26m', '£0.24m', '£2,500', 2]] },
-  'maintenance-sla': { title: 'Maintenance deadlines', tiles: [['Jobs closed', '412'], ['On time', '91%', '#087A43', '+3 pts vs last term'], ['Open and overdue', '9', '#E0243A'], ['Cost', '£18,640', undefined, '£45 a job']], cols: ['Hall', 'Jobs', 'On time', 'Median fix', 'Cost'],
+  'maintenance-sla': { title: 'Maintenance deadlines', tiles: [['Jobs closed', '412'], ['On time', '91%', '#087A43', '+3 pts vs last period'], ['Open and overdue', '9', '#E0243A'], ['Cost', '£18,640', undefined, '£45 a job']], cols: ['Property', 'Jobs', 'On time', 'Median fix', 'Cost'],
     rows: [['Ustinov', 121, '88%', '50 h', '£5,980'], ['Collingwood', 84, '94%', '34 h', '£3,410'], ['Van Mildert', 97, '90%', '46 h', '£4,720'], ['Josephine Butler', 78, '93%', '38 h', '£3,220'], ["St Mary’s", 32, '97%', '26 h', '£1,310']] },
   requests: { title: 'Requests', tiles: [['Requests', '286'], ['Answered in 2 days', '84%', '#087A43'], ['Waiting', '6', '#C2410C'], ['Most asked', '112', undefined, 'Room swap']], cols: ['Kind', 'Requests', 'Approved', 'Median reply'],
     rows: [['Room swap', 112, '61%', '1.8 days'], ['Early arrival', 74, '89%', '0.9 days'], ['Guest stay', 63, '95%', '0.6 days'], ['Lease change', 37, '46%', '3.2 days']] },
   'notice-reach': { title: 'Notice reach', tiles: [['Notices sent', '18'], ['Delivered', '99%', '#087A43'], ['Opened', '72%', '#1F45E0'], ['Clicked', '31%']], cols: ['Notice', 'Sent', 'Delivered', 'Opened', 'Clicked'],
-    rows: [['Fire alarm test, Thursday', '10 Sep', '1,876', '81%', '12%'], ['Welcome week timetable', '7 Sep', '2,098', '77%', '46%'], ['Rent due for Michaelmas', '1 Sep', '2,203', '69%', '38%'], ['Water off in Fenwick Block', '28 Aug', '47', '91%', '4%']] },
+    rows: [['Fire alarm test, Thursday', '10 Sep', '1,876', '81%', '12%'], ['Welcome week timetable', '7 Sep', '2,098', '77%', '46%'], ['Rent due for Autumn', '1 Sep', '2,203', '69%', '38%'], ['Water off in Fenwick Block', '28 Aug', '47', '91%', '4%']] },
 };
 
 /* ---- Derived from the screens that own the data ---- */
@@ -620,8 +620,8 @@ function useLiveSimple(id: string): Simple | undefined {
     const weeks = terms[0]?.weeks ?? 10;
     const rows = HALL_OCC.map((h) => { const billed = (h.res + h.arr) * MONEY[h.id].rent * weeks; const [over, n] = OVERDUE[h.id]; return { h, billed, coll: billed - over, over, n }; });
     const t = rows.reduce((a, r) => ({ billed: a.billed + r.billed, coll: a.coll + r.coll, over: a.over + r.over, n: a.n + r.n }), { billed: 0, coll: 0, over: 0, n: 0 });
-    return { title: 'Rent and arrears', tiles: [['Billed', gbpM(t.billed), undefined, `${terms[0]?.name ?? 'Michaelmas'} term`], ['Collected', gbpM(t.coll), '#087A43', `${pctS(t.coll, t.billed)} of billed`], ['Overdue', gbp(t.over), '#E0243A', `${gbp(t.n ? t.over / t.n : 0)} average`], ['Residents in arrears', fmt(t.n), '#C2410C']],
-      cols: ['Hall', 'Billed', 'Collected', 'Overdue', 'In arrears'], rows: rows.map((r) => [r.h.hall, gbpM(r.billed), gbpM(r.coll), gbp(r.over), r.n]) };
+    return { title: 'Rent and arrears', tiles: [['Billed', gbpM(t.billed), undefined, `${terms[0]?.name ?? 'Autumn'} period`], ['Collected', gbpM(t.coll), '#087A43', `${pctS(t.coll, t.billed)} of billed`], ['Overdue', gbp(t.over), '#E0243A', `${gbp(t.n ? t.over / t.n : 0)} average`], ['Residents in arrears', fmt(t.n), '#C2410C']],
+      cols: ['Property', 'Billed', 'Collected', 'Overdue', 'In arrears'], rows: rows.map((r) => [r.h.hall, gbpM(r.billed), gbpM(r.coll), gbp(r.over), r.n]) };
   }
   if (id === 'maintenance-sla') {
     const fixed = faults.filter((f) => f.status === 'Fixed');
@@ -634,7 +634,7 @@ function useLiveSimple(id: string): Simple | undefined {
       return [h.hall, mine.length, pctS(done.filter(onTime).length, done.length), med === null ? '—' : `${Math.round(med)} h`, gbp(done.length * COST_PER_JOB)];
     });
     return { title: 'Maintenance deadlines', tiles: [['Jobs closed', fmt(fixed.length)], ['On time', pctS(fixed.filter(onTime).length, fixed.length), '#087A43', 'fixed within the deadline'], ['Open and overdue', fmt(overdue), '#E0243A'], ['Cost', gbp(fixed.length * COST_PER_JOB), undefined, `£${COST_PER_JOB} a job`]],
-      cols: ['Hall', 'Jobs', 'On time', 'Median fix', 'Cost'], rows: halls };
+      cols: ['Property', 'Jobs', 'On time', 'Median fix', 'Cost'], rows: halls };
   }
   if (id === 'requests') {
     const kinds = [...new Set(requests.map((r) => r.kind))].sort((a, b) => requests.filter((r) => r.kind === b).length - requests.filter((r) => r.kind === a).length);
@@ -667,7 +667,7 @@ const RATE_COLS = new Set(['Approved', 'On time', 'Opened', 'Clicked']);
 const DATE_COLS = new Set(['Sent']);
 const rateTone = (col: string, n: number) => (RATE_PLAIN.has(col) ? '#2563EB' : n >= 90 ? '#0B8A4C' : n >= 75 ? '#C47A00' : '#E0243A');
 function cellFor(col: string, v: string | number, row: number): ReactNode {
-  if (col === 'Hall' || col === 'Kind' || col === 'Notice') {
+  if (col === 'Property' || col === 'Kind' || col === 'Notice') {
     const [I, tone]: [Icon, Tone] = col === 'Kind' ? KIND_ICON[String(v)] ?? [ChatCircleText, 'grey'] : col === 'Notice' ? [Megaphone, ROW_TONES[row % ROW_TONES.length]] : [Buildings, ROW_TONES[row % ROW_TONES.length]];
     return <span className="flex items-center gap-2.5 min-w-0"><IconTile icon={I} tone={tone} size={28} /><span className="truncate">{v}</span></span>;
   }
@@ -698,7 +698,7 @@ export function SimpleReport({ id: idProp }: { id?: string } = {}) {
         <Button icon={DownloadSimple} onClick={() => toast.success(`${r.title}.csv downloaded`)}>Export CSV</Button>
         <Button variant="primary" icon={CalendarBlank} onClick={() => toast('Scheduling is set up on Occupancy in the prototype', { description: 'Open Occupancy and choose Schedule.' })}>Schedule</Button>
       </RHeader>
-      <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Academic year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Halls" value="All halls" onChange={() => {}} options={['All halls']} /></Toolbar>
+      <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}><Chip label="Letting year" value="2026/27" onChange={() => {}} options={['2026/27']} /><Chip label="Properties" value="All properties" onChange={() => {}} options={['All properties']} /></Toolbar>
       <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
         <StatStrip bleed items={r.tiles.map(([l, v, c, sub]) => ({ label: l, value: v, color: c, sub }))} />
         <div className="rounded-xl border border-line bg-white overflow-hidden">

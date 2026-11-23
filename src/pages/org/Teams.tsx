@@ -29,7 +29,7 @@ export function TeamsPage() {
         { key: 'm', label: 'Members', render: (t) => (
           <span className="flex items-center gap-2"><span className="flex -space-x-1.5">{t.memberIds.slice(0, 5).map((id) => <span key={id} className="ring-2 ring-white rounded-full"><Avatar name={name(id)} size={24} /></span>)}</span><span className="text-sm text-[#737373]">{t.memberIds.length}</span></span>
         ) },
-        { key: 'h', label: 'Halls', render: (t) => <span className="text-sm text-gray-700">{hallsLabel(t.halls)}</span> },
+        { key: 'h', label: 'Properties', render: (t) => <span className="text-sm text-gray-700">{hallsLabel(t.halls)}</span> },
         { key: 'x', label: '', className: 'w-12 text-right', render: (t) => <RowMenu items={[
           { label: 'Edit team', onClick: () => setEdit(t) },
           { label: 'Delete team', danger: true, onClick: () => {
@@ -71,10 +71,10 @@ function TeamSheet({ team: t0, onClose, nav }: { nav?: SheetNav; team: Team; onC
   return (
     <Sheet open onClose={onClose} nav={nav} title="Team" onDelete={{ label: 'Delete team', onClick: del }}>
       <SheetHero icon={UsersThree} name={team.name} meta={team.purpose || `${team.memberIds.length} ${team.memberIds.length === 1 ? 'member' : 'members'}`}
-        facts={[['Members', String(team.memberIds.length)], ['Halls', team.halls === 'all' ? 'All' : String(hallList.length)], ['Lead', leadName]]} />
+        facts={[['Members', String(team.memberIds.length)], ['Properties', team.halls === 'all' ? 'All' : String(hallList.length)], ['Lead', leadName]]} />
       <div className="-mx-5 mb-5"><LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity' }]} /></div>
       {tab === 'overview' && <>
-        <SheetSection title={`Halls · ${hallList.length}`} action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
+        <SheetSection title={`Properties · ${hallList.length}`} action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
           {hallList.map((h) => <SheetRow key={h.id} title={h.name} sub={`${h.rooms} rooms`} />)}
         </SheetSection>
         <SheetSection title={`Members · ${team.memberIds.length}`} action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
@@ -129,8 +129,8 @@ function TeamDialog({ team, open, onClose }: { team?: Team; open: boolean; onClo
           <Field label="What it’s for"><Input value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="One line" /></Field>
         </div>
       </SheetSection>
-      <SheetSection title="Halls">
-        <IconSelect ariaLabel="Halls" icon={Buildings} value={hall} onChange={setHall} options={[{ value: 'all', label: 'All halls' }, ...HALLS.map((h) => ({ value: h.id, label: h.name }))]} />
+      <SheetSection title="Properties">
+        <IconSelect ariaLabel="Properties" icon={Buildings} value={hall} onChange={setHall} options={[{ value: 'all', label: 'All properties' }, ...HALLS.map((h) => ({ value: h.id, label: h.name }))]} />
       </SheetSection>
       <SheetSection title={`Members · ${ids.length}`}>
         <div className="divide-y divide-[#EBEBEB] -my-1">

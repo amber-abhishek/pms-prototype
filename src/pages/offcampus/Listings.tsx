@@ -1,42 +1,45 @@
 import { useEffect, useRef, useState } from 'react';
 import { PersonName, Empty, PIN, Tabs } from '../../components/ui';
 import { Link } from 'react-router-dom';
-import { Archive, ArrowCounterClockwise, Buildings, CheckCircle, EyeSlash, Pause } from '../../components/icons';
+import { Buildings, Pause } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, PageHeader, Pager, SearchInput, Table } from '../../components/ui';
 import { Foot } from '../allocations/common';
 import { useTab } from '../hooks';
 import { regionOf, stamp, useOc, type Hmo, type HmoStatus, type Pbsa } from '../../data/offcampus';
-import { NoteDialog, Tag, Thumb, Title, listingPhoto } from './parts';
+import { NoteDialog, StatusTabsBar, Tag, Thumb, Title, listingPhoto } from './parts';
 import { Picker } from '../inventory/common';
 import { GhostZone } from '../../components/headerCtx';
 
 const openListing = (ref: string) => window.open(`https://partnerhalls.example/places/${ref}`, '_blank', 'noopener');
 
 export function Listings() {
-  const [src] = useTab<'hmo' | 'pbsa'>('hmo');
+  const [src, setSrc] = useTab<'hmo' | 'pbsa'>('hmo');
+  const owners = useOc((s) => s.hmos.length);
+  /* Partners: every hall in the regions of the campuses on the portal (the view itself narrows to one campus). */
+  const partners = useOc((s) => { const rs = new Set(s.portal.campuses.filter((c) => c.ticked).map(regionOf)); return s.pbsa.filter((p) => rs.has(p.region)).length; });
   return (
     <>
       <PageHeader icon={Buildings} crumbs={['Off-campus']} title="Listings" />
       <div className="flex-1 min-h-0 flex flex-col">
-        {/* HMO and Amber PBSA live in the side panel under Listings. */}
-        <Title title={src === 'pbsa' ? 'Partner halls' : 'Landlord listings'} />
-        {src === 'pbsa' ? <PbsaTab /> : <HmoTab />}
+        <Title title="Listings" />
+        {/* One Listings page (2026-11-23): Owners / Partners are underline tabs, like the status tabs on Approvals; each keeps its own toolbar below. */}
+        <StatusTabsBar value={src} onChange={setSrc} tabs={[{ id: 'hmo', label: 'Owners', count: owners }, { id: 'pbsa', label: 'Partners', count: partners }]} />
+        {src === 'pbsa' ? <PbsaTab key="pbsa" /> : <HmoTab key="hmo" />}
       </div>
     </>
   );
 }
 
 /* ---------------- HMO ---------------- */
-type HTab = 'all' | 'active' | 'paused' | 'archived';
+type HTab = 'all' | 'active' | 'paused';
 function HmoTab() {
   const hmos = useOc((s) => s.hmos);
   const set = useOc((s) => s.set);
-  const [tab, setTab] = useState<HTab>('active');
+  const [tab, setTab] = useState<HTab>('all');
   const [pausing, setPausing] = useState<Hmo | null>(null);
-  const [archiving, setArchiving] = useState<Hmo | null>(null);
   const busy = useRef(false);
-  const want: Record<HTab, HmoStatus | null> = { all: null, active: 'Active', paused: 'Paused', archived: 'Archived' };
+  const want: Record<HTab, HmoStatus | null> = { all: null, active: 'Active', paused: 'Paused' };
   const [q, setQ] = useState('');
   const t = q.trim().toLowerCase();
   const rows = hmos.filter((h) => (!want[tab] || h.status === want[tab]) && (!t || `${h.title} ${h.landlord} ${h.town}`.toLowerCase().includes(t)));
@@ -47,54 +50,38 @@ function HmoTab() {
     if (busy.current) return; busy.current = true;
     patch(h.id, { status: 'Paused', pausedBy: 'you', reason: reason || undefined });
     setPausing(null); setTab('paused');
-    toast.success('Listing made inactive', { description: `${h.title} is hidden from residents.` });
+    toast.success('Listing made inactive', { description: `${h.title} is off the resident site.` });
     setTimeout(() => { busy.current = false; }, 400);
   };
   const unpause = (h: Hmo) => { patch(h.id, { status: 'Active', pausedBy: undefined, reason: undefined }); toast.success('Listing reactivated', { description: `${h.title} is back on the resident site.` }); };
 
-  const archive = (h: Hmo, reason: string) => {
-    if (busy.current) return; busy.current = true;
-    const before = { status: h.status, pausedBy: h.pausedBy, reason: h.reason };
-    patch(h.id, { status: 'Archived', pausedBy: undefined, reason: reason || undefined });
-    setArchiving(null);
-    toast.success('Listing archived', { description: `${h.title} is off the resident site.`, action: { label: 'Undo', onClick: () => patch(h.id, before) } });
-    setTimeout(() => { busy.current = false; }, 400);
-  };
-  const restore = (h: Hmo) => { patch(h.id, { status: 'Paused', pausedBy: 'you', reason: undefined }); toast.success('Listing restored', { description: `${h.title} is inactive. Reactivate it to go live.` }); };
 
-  const pausedLine = (h: Hmo) => (h.pausedBy === 'you' ? `Made inactive by you${h.reason ? ` · ${h.reason}` : ''}` : h.pausedBy === 'landlord' ? `Made inactive by landlord${h.reason ? ` · ${h.reason}` : ''}` : 'Inactive · landlord is inactive');
+  const pausedLine = (h: Hmo) => (h.pausedBy === 'you' ? `Made inactive by you${h.reason ? ` · ${h.reason}` : ''}` : h.pausedBy === 'landlord' ? `Made inactive by the owner${h.reason ? ` · ${h.reason}` : ''}` : 'Inactive · owner is inactive');
 
   return (
     <>
       {hmos.length > 0 && (<div {...PIN} className="px-6 py-4 flex items-center gap-3 empty:hidden">
                 {/* Every off-campus list: search on the left, status tabs at the right edge. */}
-                <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search landlord or property" /></div>
-                <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Inactive', count: n('Paused') }, { id: 'archived', label: 'Archived', count: n('Archived') }]} /></div>
+                <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search owner or property" /></div>
+                <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Inactive', count: n('Paused') }]} /></div>
       </div>)}
       <Table fill rows={rows} footer={false}
-        empty={hmos.length ? (t ? <Empty art="noResults" title="No listing matches that search" /> : <Empty art="nothingToShow" title={`No ${tab === 'paused' ? 'inactive' : tab} listings`} />) : <Empty art="properties" title="No landlord listings yet" sub="Approved landlords’ houses show here." />}
+        empty={hmos.length ? (t ? <Empty art="noResults" title="No listing matches that search" /> : <Empty art="nothingToShow" title={`No ${tab === 'paused' ? 'inactive' : tab} listings`} />) : <Empty art="properties" title="No owner listings yet" sub="Approved owners’ houses show here." />}
         cols={[
           { key: 'no', label: 'S.No.', className: 'w-14', render: (h) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(h) + 1}</span> },
           /* Same cell as Properties and Listing reviews: 120×64 photo, 16px medium name, 14px grey line under it. */
           { key: 'p', label: 'Property', className: 'py-[11px]', render: (h) => <div className="flex items-center gap-4 min-w-0"><Thumb src={listingPhoto(hmos.findIndex((x) => x.id === h.id))} w={120} h={64} /><div className="min-w-0 flex flex-col gap-1"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={h.title}>{h.title}</span><span className="text-sm leading-5 text-[#737373] truncate max-w-[320px]">{h.town} · {h.type} · {h.beds} bed</span></div></div> },
-          { key: 'l', label: 'Landlord', render: (h) => <PersonName name={h.landlord} size={24} /> },
+          { key: 'l', label: 'Owner', render: (h) => <PersonName name={h.landlord} size={24} /> },
           { key: 's', label: 'Status', render: (h) => h.status === 'Paused'
             ? <div className="py-1"><Tag tone="grey">Inactive</Tag><div className="text-xs text-gray-500 mt-1">{pausedLine(h)}</div></div>
-            : h.status === 'Active' ? <Tag tone="green">Active</Tag> : <Tag tone="grey">Archived</Tag> },
-          { key: 'a', label: '', className: 'text-right w-48', render: (h) => (
-            <div className="inline-flex items-center gap-1">
-              {h.status === 'Active' && <Button size="sm" onClick={() => setPausing(h)}>Deactivate</Button>}
-              {h.status === 'Paused' && h.pausedBy === 'you' && <Button size="sm" onClick={() => unpause(h)}>Reactivate</Button>}
-              {h.status === 'Archived'
-                ? <Button size="sm" icon={ArrowCounterClockwise} onClick={() => restore(h)}>Restore</Button>
-                : <Button size="sm" icon={Archive} onClick={() => setArchiving(h)}>Archive</Button>}
-            </div>) },
+            : <Tag tone="green">Active</Tag> },
+          { key: 'a', label: '', className: 'text-right w-32', render: (h) => (
+            h.status === 'Active' ? <Button size="sm" onClick={() => setPausing(h)}>Make inactive</Button>
+              : h.pausedBy === 'you' ? <Button size="sm" onClick={() => unpause(h)}>Reactivate</Button> : null) },
         ]} />
-      <NoteDialog open={!!pausing} onClose={() => setPausing(null)} icon={Pause} optional title="Deactivate this listing" sub="It is hidden from residents until you reactivate it."
-        label="Reason (shown on the inventory page)" initial={pausing?.title === '9 Wanless Terrace' ? 'Damp reported in two bedrooms. Hidden until the landlord confirms repairs.' : ''}
-        submit="Deactivate" onSubmit={(r) => pausing && pause(pausing, r)} />
-      <NoteDialog open={!!archiving} onClose={() => setArchiving(null)} icon={Archive} optional danger title="Archive this listing" sub="It comes off the resident site and out of Active. You can restore it later."
-        label="Reason" submit="Archive" onSubmit={(r) => archiving && archive(archiving, r)} />
+      <NoteDialog open={!!pausing} onClose={() => setPausing(null)} icon={Pause} optional title="Make this listing inactive" sub="It comes off the resident site until you reactivate it."
+        label="Reason (shown on the inventory page)" initial={pausing?.title === '9 Wanless Terrace' ? 'Damp reported in two bedrooms. Inactive until the owner confirms repairs.' : ''}
+        submit="Make inactive" onSubmit={(r) => pausing && pause(pausing, r)} />
     </>
   );
 }
@@ -131,31 +118,31 @@ function PbsaTab() {
     if (busy.current) return; busy.current = true;
     set('hidden', (hs) => [{ ref: p.ref, reason: reason || '—', at: stamp() }, ...hs]);
     setHiding(null); setView('hidden');
-    toast.success('Listing hidden', { description: `${p.name} no longer shows on your site.` });
+    toast.success('Listing made inactive', { description: `${p.name} no longer shows on your site.` });
     setTimeout(() => { busy.current = false; }, 400);
   };
-  const unhide = (ref: string) => { set('hidden', (hs) => hs.filter((h) => h.ref !== ref)); toast.success('Listing shown again', { description: `${pbsa.find((p) => p.ref === ref)?.name ?? ref} is back on your site.` }); };
+  const unhide = (ref: string) => { set('hidden', (hs) => hs.filter((h) => h.ref !== ref)); toast.success('Listing reactivated', { description: `${pbsa.find((p) => p.ref === ref)?.name ?? ref} is back on your site.` }); };
 
-  /* No partner halls in this campus at all: just the empty state, no view tabs or status note. */
+  /* No partners in this campus at all: just the empty state, no view tabs or status note. */
   const nothing = view === 'all' && !!region && !inRegion.length && !hiddenAll.length;
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="px-6 py-4 empty:hidden">
-        {/* One row: search on the left; the campus dropdown and All / Hidden on the right edge. */}
+        {/* One row: search on the left; the campus dropdown and All / Inactive on the right edge. */}
         <div className="flex items-center gap-3">
           <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search hall name or reference" /></div>
           <div className="ml-auto w-[220px] shrink-0"><Picker value={campus} onChange={setCampus} icon={Buildings}
             options={campuses.map((x) => ({ id: x.id, label: <span className="flex items-center gap-2"><span className="flex-1 truncate">{x.name}</span><span className="font-mono text-xs text-[#A3A3A3] tabular-nums">{!x.ticked ? 0 : pbsa.filter((p) => p.region === regionOf(x)).length}</span></span> }))} /></div>
-          {!nothing && <div><Tabs value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: rows.length }, { id: 'hidden', label: 'Hidden', count: hiddenHere.length }]} /></div>}
+          {!nothing && <div><Tabs value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: rows.length }, { id: 'hidden', label: 'Inactive', count: hiddenHere.length }]} /></div>}
         </div>
       </div>
       <div className="flex-1 min-h-0 flex flex-col">
         {view === 'hidden' ? (
           <Table fill rows={hiddenHere.map((h) => ({ ...h, id: h.ref }))}
-            empty={qt ? <Empty art="noResults" title="No hidden hall matches that search" /> : <Empty art="getStarted" title="No hidden partner halls" sub="All partner halls show on your portal." />}
+            empty={qt ? <Empty art="noResults" title="No inactive hall matches that search" /> : <Empty art="getStarted" title="No inactive partners" sub="All partners show on your portal." />}
             cols={[
-              { key: 'no', label: 'S.No.', className: 'w-14', render: (h) => <span className="font-mono text-xs text-[#737373] tabular-nums">{hiddenHere.findIndex((x) => x.ref === h.ref) + 1}</span> },
-              { key: 'r', label: 'Partner hall listing', render: (h) => {
+              { key: 'no', label: 'S.No.', className: 'w-14', render: (h) => <span className="font-mono text-[#737373] tabular-nums">{hiddenHere.findIndex((x) => x.ref === h.ref) + 1}</span> },
+              { key: 'r', label: 'Partner listing', render: (h) => {
                 /* Same photo and name as the catalogue row it was hidden from. */
                 const p = pbsa.find((x) => x.ref === h.ref);
                 const i = p ? pbsa.filter((x) => x.region === p.region).indexOf(p) : 0;
@@ -168,7 +155,7 @@ function PbsaTab() {
               } },
               { key: 'w', label: 'Reason', render: (h) => h.reason },
               { key: 'a', label: 'Marked at', render: (h) => <span className="text-gray-500">{h.at}</span> },
-              { key: 'x', label: '', className: 'text-right w-28', render: (h) => <Button size="sm" onClick={() => unhide(h.ref)}>Unhide</Button> },
+              { key: 'x', label: '', className: 'text-right w-32', render: (h) => <Button size="sm" onClick={() => unhide(h.ref)}>Reactivate</Button> },
             ]} />
         ) : !region ? (
           <div className="flex-1 flex items-center justify-center">
@@ -179,7 +166,7 @@ function PbsaTab() {
           <div className="flex-1 flex items-center justify-center"><Empty art="noResults" title="No hall matches that search" sub="Try another name or reference." /></div>
                 ) : !rows.length ? (
           <div className="flex-1 flex items-center justify-center">
-            <Empty art="nothingHere" title="No partner halls yet" sub={`Halls listed with Amber in ${region} show here.`}
+            <Empty art="nothingHere" title="No partners yet" sub={`Halls listed with Amber in ${region} show here.`}
               action={<Link to="/offcampus/portal"><Button>Open Off-campus portal</Button></Link>} />
           </div>
         ) : (
@@ -187,21 +174,21 @@ function PbsaTab() {
             <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-white"><tr className="text-left text-xs text-gray-500 [&>th]:font-medium [&>th]:h-9 [&>th]:border-b [&>th]:border-line [&>th]:px-3">
-                  <th className="!pl-[var(--cx,12px)] w-14">S.No.</th><th>Listing</th><th>Region</th><th>From</th><th>Status</th><th className="w-24" />
+                  <th className="!pl-[var(--cx,12px)] w-14">S.No.</th><th>Listing</th><th>Region</th><th>From</th><th>Status</th><th className="w-32" />
                 </tr></thead>
                 <GhostZone.Provider value><tbody>
                   {shown.map((p) => {
                     const h = isHidden(p.ref);
                     return (
-                      /* The whole row opens the hall's public listing in a new tab; Hide / Unhide stop the click. */
+                      /* The whole row opens the hall's public listing in a new tab; Make inactive / Reactivate stop the click. */
                       <tr key={p.id} tabIndex={0} title="Open listing" onClick={() => openListing(p.ref)} onKeyDown={(e) => { if (e.key === 'Enter') openListing(p.ref); }}
                         className="cursor-pointer hover:bg-[#FAFAFA] focus-visible:outline-none focus-visible:bg-[#F5F5F5] border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-[11px]">
-                        <td className="!pl-[var(--cx,12px)] font-mono text-xs text-[#737373] tabular-nums">{rows.indexOf(p) + 1}</td>
+                        <td className="!pl-[var(--cx,12px)] font-mono text-[#737373] tabular-nums">{rows.indexOf(p) + 1}</td>
                         <td><div className="flex items-center gap-4 min-w-0"><Thumb src={listingPhoto(inRegion.indexOf(p) + 3)} w={120} h={64} /><div className="min-w-0 flex flex-col gap-1"><span className="text-base leading-6 font-medium text-[#0A0A0A] truncate max-w-[320px]" title={p.name}>{p.name}</span><span className="text-sm leading-5 text-[#737373]">{p.ref}</span></div></div></td>
                         <td>{p.region === 'Newcastle upon Tyne' ? 'Newcastle' : p.region}</td>
                         <td>£{p.from} / week</td>
-                        <td>{h ? <Tag tone="grey" icon={EyeSlash}>Hidden</Tag> : <Tag tone="green" icon={CheckCircle}>Shown</Tag>}</td>
-                        <td className="text-right !pr-[var(--cx,12px)]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>{h ? <Button size="sm" onClick={() => unhide(p.ref)}>Unhide</Button> : <Button size="sm" onClick={() => setHiding(p)}>Hide</Button>}</td>
+                        <td>{h ? <Tag tone="grey">Inactive</Tag> : <Tag tone="green">Active</Tag>}</td>
+                        <td className="row-act text-right !pr-[var(--cx,12px)]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>{h ? <Button size="sm" onClick={() => unhide(p.ref)}>Reactivate</Button> : <Button size="sm" onClick={() => setHiding(p)}>Make inactive</Button>}</td>
                       </tr>
                     );
                   })}
@@ -212,10 +199,10 @@ function PbsaTab() {
           </>
         )}
       </div>
-      <NoteDialog open={!!hiding} onClose={() => setHiding(null)} icon={EyeSlash} optional title="Hide this listing"
+      <NoteDialog open={!!hiding} onClose={() => setHiding(null)} icon={Pause} optional title="Make this listing inactive"
         sub="It stops showing on your off-campus site. It stays listed everywhere else." label="Reason (shown on this page)"
         initial={hiding?.name === 'The Sidings' ? 'Too far from the city centre for first-year residents.' : ''}
-        submit="Hide" onSubmit={(r) => hiding && hide(hiding, r)} />
+        submit="Make inactive" onSubmit={(r) => hiding && hide(hiding, r)} />
     </div>
   );
 }

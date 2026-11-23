@@ -43,9 +43,11 @@ export function NoticesList() {
         <Button variant="primary" icon={Plus} onClick={() => nav('/residents/notices/new')}>New notice</Button>
       </RHeader>
       {notices.length > 0 && (
-        <Toolbar right={<FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: HALLS }]} />}>
+        /* Filters first, the tabs at the right edge (2026-11-23: every toolbar with filters). */
+        <Toolbar right={<>
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Property', options: HALLS }]} />
           <Tabs value={tab} onChange={setTab} tabs={(['All', 'Sent', 'Scheduled', 'Drafts'] as Tab[]).map((t) => ({ id: t, label: t, count: c(t) }))} />
-        </Toolbar>
+        </>} />
       )}
       <Table fill rows={rows} selected={open ?? undefined} group={{ label: 'Date', get: (n) => (n.status === 'Draft' ? 'Drafts' : n.when?.split(',')[0] ?? '') }} onRow={(n) => (n.status === 'Draft' ? nav(`/residents/notices/${n.id}`) : setOpen(n.id))}
         empty={<Empty art="notices" icon={Megaphone} title={notices.length ? `No ${tab.toLowerCase()} notices` : 'No notices yet'} sub="Tell residents about outages, fire drills and events."
@@ -73,7 +75,7 @@ export function NoticePage() {
 }
 
 /* ---------------- Compose: 3015, 3016, 3210, 3211 ---------------- */
-type Cond = { field: 'Hall' | 'Status'; value: string };
+type Cond = { field: 'Property' | 'Status'; value: string };
 const preview = (s: string) => s.replace(/\{first name\}/g, 'Amira').replace(/\{arrival slot\}/g, '\u000110:00–12:00\u0001').replace(/\{room\}/g, 'G.04.A');
 
 function Compose({ draft }: { draft?: Notice }) {
@@ -87,7 +89,7 @@ function Compose({ draft }: { draft?: Notice }) {
   const [conds, setConds] = useState<Cond[]>(() => {
     const hall = draft?.hall ?? (tpl ? 'Ustinov College' : 'Ustinov College');
     const group = draft?.group ?? (tpl ? 'Arriving this week' : 'All residents');
-    return [...(hall !== 'All halls' ? [{ field: 'Hall' as const, value: hall }] : []), ...(group !== 'All residents' ? [{ field: 'Status' as const, value: group }] : [])];
+    return [...(hall !== 'All properties' ? [{ field: 'Property' as const, value: hall }] : []), ...(group !== 'All residents' ? [{ field: 'Status' as const, value: group }] : [])];
   });
   const [channels, setChannels] = useState<Channels>(draft?.channels ?? { email: true, portal: true, sms: false });
   const [body, setBody] = useState(draft?.body ?? (tpl ? MOVE_IN_BODY : ''));
@@ -95,7 +97,7 @@ function Compose({ draft }: { draft?: Notice }) {
   const [scheduling, setScheduling] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  const hall = conds.find((c) => c.field === 'Hall')?.value ?? 'All halls';
+  const hall = conds.find((c) => c.field === 'Property')?.value ?? 'All properties';
   const group = conds.find((c) => c.field === 'Status')?.value ?? 'All residents';
   const count = audienceCount(hall, group);
   const insert = (tok: string) => {
@@ -148,20 +150,20 @@ function Compose({ draft }: { draft?: Notice }) {
               {conds.map((c, i) => (
                 <div key={i} className="flex items-center gap-2">
                   {/* Sized wrappers: the trigger is w-full, which beats a width class passed to it. */}
-                  <div className="w-36 shrink-0"><Select value={c.field} onChange={(e) => setConds(conds.map((x, j) => (j === i ? { field: e.target.value as Cond['field'], value: e.target.value === 'Hall' ? 'Ustinov College' : 'Arriving this week' } : x)))}>
-                    <option>Hall</option><option>Status</option>
+                  <div className="w-36 shrink-0"><Select value={c.field} onChange={(e) => setConds(conds.map((x, j) => (j === i ? { field: e.target.value as Cond['field'], value: e.target.value === 'Property' ? 'Ustinov College' : 'Arriving this week' } : x)))}>
+                    <option>Property</option><option>Status</option>
                   </Select></div>
                   <span className="text-sm text-gray-500">is</span>
                   <div className="flex-1 min-w-0"><Select aria-label={c.field} value={c.value} onChange={(e) => setConds(conds.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}>
-                    {(c.field === 'Hall' ? HALLS.slice(1) : GROUPS.slice(1)).map((o) => <option key={o}>{o}</option>)}
+                    {(c.field === 'Property' ? HALLS.slice(1) : GROUPS.slice(1)).map((o) => <option key={o}>{o}</option>)}
                   </Select></div>
                   <button type="button" aria-label="Remove condition" onClick={() => setConds(conds.filter((_, j) => j !== i))} className="size-7 rounded-md text-gray-400 hover:bg-gray-100 hover:text-ink flex items-center justify-center"><X size={14} /></button>
                 </div>
               ))}
               {conds.length < 2 && (
-                <button type="button" className="text-sm text-primary flex items-center gap-1.5 px-1 h-7" onClick={() => setConds([...conds, conds.some((c) => c.field === 'Hall') ? { field: 'Status', value: 'Arriving this week' } : { field: 'Hall', value: 'Ustinov College' }])}><Plus size={13} /> Add a condition</button>
+                <button type="button" className="text-sm text-primary flex items-center gap-1.5 px-1 h-7" onClick={() => setConds([...conds, conds.some((c) => c.field === 'Property') ? { field: 'Status', value: 'Arriving this week' } : { field: 'Property', value: 'Ustinov College' }])}><Plus size={13} /> Add a condition</button>
               )}
-              {!conds.length && <div className="text-sm text-gray-500 px-1">Everyone in every hall</div>}
+              {!conds.length && <div className="text-sm text-gray-500 px-1">Everyone in every property</div>}
             </div>
             <p className="text-xs text-gray-500 mt-2 flex items-center gap-1.5"><Pill tone="blue">{count.toLocaleString('en-GB')} residents</Pill> match today; anyone added before sending gets it too</p>
           </div>
@@ -225,7 +227,7 @@ function ScheduleDialog({ open, onClose, count, hall, channels, onSchedule }: { 
   const sendNow = quiet && urgent && date === 'Today';
   const when = quiet && !urgent ? (date === 'Today' ? 'Wed 16 Sep, 08:00' : `${date}, 08:00 (next morning)`) : `${date}, ${time}`;
   return (
-    <Modal open={open} onClose={onClose} title="Schedule the notice" sub={`${count.toLocaleString('en-GB')} residents${hall === 'All halls' ? ' in every hall' : ` at ${hall}`}, by ${by}.`}
+    <Modal open={open} onClose={onClose} title="Schedule the notice" sub={`${count.toLocaleString('en-GB')} residents${hall === 'All properties' ? ' in every property' : ` at ${hall}`}, by ${by}.`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={sendNow ? PaperPlaneTilt : Clock} onClick={() => onSchedule(sendNow ? `Today ${time}` : when, { urgent: quiet && urgent, sendNow, pinned: pin ? 'Sat 19 Sep' : undefined })}>{sendNow ? 'Send now' : 'Schedule'}</Button></>}>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Date"><Select value={date} onChange={(e) => pickDate(e.target.value)}>{['Today', 'Wed 16 Sep', 'Thu 17 Sep', 'Fri 18 Sep'].map((d) => <option key={d}>{d}</option>)}</Select></Field>
@@ -283,7 +285,7 @@ function NoticeSheet({ n, onClose , nav: sheetNav }: { nav?: SheetNav;  n: Notic
           : <><Button icon={null} className="ml-auto" onClick={dup}>Duplicate</Button><Button variant="primary" icon={null} disabled={!unopened} onClick={() => setRemind(true)}>{unopened ? `Remind ${fmt(unopened)}` : 'Everyone opened it'}</Button></>}>
         <SheetHero icon={Megaphone} name={n.title} meta={`${scheduled ? `Sends ${n.when}` : `Sent ${(n.when ?? '').toLowerCase().startsWith('today') ? (n.when ?? '').toLowerCase().replace(',', '') : n.when}`} · ${n.audience}`}
           facts={scheduled
-            ? [['Audience', fmt(n.count)], ['Hall', n.hall], ['Channels', chans]]
+            ? [['Audience', fmt(n.count)], ['Property', n.hall], ['Channels', chans]]
             : [['Delivered', fmt(n.count - bounced)], ['Opened', `${n.opened ?? 0}%`, (n.opened ?? 0) >= 60 ? 'green' : 'amber'], ['Bounced', String(bounced), bounced ? 'red' : undefined]]}>
           {n.status === 'Sent' ? <Pill tone="green">Sent</Pill> : n.status === 'Scheduled' ? <Pill tone="blue">Scheduled</Pill> : <Pill tone="grey">Draft</Pill>}
           {n.urgent && <Pill tone="red">Urgent</Pill>}

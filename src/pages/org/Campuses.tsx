@@ -22,12 +22,12 @@ const PLACES: Omit<Campus, 'id' | 'name' | 'status'>[] = [
 
 function HowItWorks({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <ODialog open={open} onClose={onClose} title="How campuses work" sub="A campus groups halls by place." footer={<Button variant="primary" onClick={onClose}>Got it</Button>}>
+    <ODialog open={open} onClose={onClose} title="How locations work" sub="A location groups properties by place." footer={<Button variant="primary" onClick={onClose}>Got it</Button>}>
       <ul className="space-y-2.5 text-sm text-gray-700 list-disc pl-4">
-        <li>Every property belongs to one campus. You pick it when you add the property.</li>
-        <li>The resident site lets residents browse halls by campus. Only <b>Active</b> campuses appear there.</li>
-        <li>The address decides which partner region supplies partner hall listings near the campus.</li>
-        <li>Access on a campus covers every hall on it.</li>
+        <li>Every property belongs to one location. You pick it when you add the property.</li>
+        <li>The resident site lets residents browse properties by location. Only <b>Active</b> locations appear there.</li>
+        <li>The address decides which partner region supplies partner listings near the location.</li>
+        <li>Access on a location covers every property on it.</li>
       </ul>
     </ODialog>
   );
@@ -51,20 +51,20 @@ export function CampusesPage() {
 
   return (
     <>
-      <Header icon={ICON} crumbs={[{ label: 'Organisation' }]} title="Campuses">
-        {campuses.length > 0 && <Button variant="ghost" icon={BookOpen} onClick={() => setHow(true)}>How campuses work</Button>}
-        {campuses.length > 0 && <Button variant="primary" icon={Plus} onClick={() => nav('/org/campuses/new')}>Add a campus</Button>}
+      <Header icon={ICON} crumbs={[{ label: 'Organisation' }]} title="Locations">
+        {campuses.length > 0 && <Button variant="ghost" icon={BookOpen} onClick={() => setHow(true)}>How locations work</Button>}
+        {campuses.length > 0 && <Button variant="primary" icon={Plus} onClick={() => nav('/org/campuses/new')}>Add a location</Button>}
       </Header>
       {campuses.length === 0 ? (
         <div className="flex-1 overflow-auto flex items-center justify-center">
-          <EmptyState art="campuses" icon={MapPin} title="No campuses yet" sub="A campus groups halls by place.">
-            <Button variant="primary" icon={Plus} onClick={() => nav('/org/campuses/new')}>Add a campus</Button>
-            <Button icon={BookOpen} onClick={() => setHow(true)}>How campuses work</Button>
+          <EmptyState art="campuses" icon={MapPin} title="No locations yet" sub="A location groups properties by place.">
+            <Button variant="primary" icon={Plus} onClick={() => nav('/org/campuses/new')}>Add a location</Button>
+            <Button icon={BookOpen} onClick={() => setHow(true)}>How locations work</Button>
           </EmptyState>
         </div>
       ) : (
         <Table rows={rows} onRow={(c) => nav(`/org/campuses/${c.id}`)} selected={editing?.id} cols={[
-          { key: 'n', label: 'Campus', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#737373]">{c.address || 'No address yet'}</div></div> },
+          { key: 'n', label: 'Location', className: 'w-[34%]', render: (c) => <div className="leading-tight"><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-[#737373]">{c.address || 'No address yet'}</div></div> },
           { key: 's', label: 'Status', className: 'w-[12%]', render: (c) => <Status s={c.status} /> },
           { key: 'c', label: 'City', className: 'w-[14%]', render: (c) => <span className="text-sm whitespace-nowrap">{c.city || '—'}</span> },
           { key: 'r', label: 'Partner region', className: 'w-[14%]', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
@@ -81,7 +81,7 @@ export function CampusesPage() {
 
 /** A stale /org/campuses/:id link: say so once and drop back to the list. */
 function NotFoundToast({ onDone }: { onDone: () => void }) {
-  useEffect(() => { toast.error('That campus doesn’t exist'); onDone(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { toast.error('That location doesn’t exist'); onDone(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
@@ -99,35 +99,35 @@ function CampusDialog({ existing, onClose }: { existing?: Campus; onClose: () =>
   const save = () => {
     if (busy.current) return;
     const n = name.trim();
-    if (!n) { toast.error('Give the campus a name'); return; }
+    if (!n) { toast.error('Give the location a name'); return; }
     const twin = useOrg.getState().campuses.find((c) => c.id !== existing?.id && c.name.trim().toLowerCase() === n.toLowerCase());
-    if (twin) { toast.error(`There’s already a campus called ${twin.name}`); return; }
-    if (status === 'Active' && !place) { toast.error('An active campus needs an address', { description: 'Pick it from the address search, or keep it Draft.' }); return; }
+    if (twin) { toast.error(`There’s already a location called ${twin.name}`); return; }
+    if (status === 'Active' && !place) { toast.error('An active location needs an address', { description: 'Pick it from the address search, or keep it Draft.' }); return; }
     busy.current = true;
     const rec: Campus = { id: existing?.id ?? oid('c'), name: n, status, ...(place ?? { address: '', city: '', region: '', postcode: '', country: '', amberRegion: '' }) };
     set('campuses', (cs) => (existing ? cs.map((c) => (c.id === existing.id ? rec : c)) : [...cs, rec]));
-    audit_(existing ? `edited the campus ${n}` : `added the campus ${n}`, 'Campuses');
+    audit_(existing ? `edited the location ${n}` : `added the location ${n}`, 'Locations');
     toast.success(existing ? `${n} saved` : `${n} added`, { description: status === 'Active' ? 'It shows on the resident site.' : status === 'Draft' ? 'Make it Active to show it on the resident site.' : 'It’s off the resident site.' });
     onClose();
   };
 
   return (
-    <PanelModal open onClose={onClose} width={600} eyebrow={existing ? 'Edit campus' : 'New campus'} title={existing?.name}
-      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{existing ? 'Save' : 'Create campus'}</Button></>}>
-      <SheetSection title="Campus">
+    <PanelModal open onClose={onClose} width={600} eyebrow={existing ? 'Edit location' : 'New location'} title={existing?.name}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{existing ? 'Save' : 'Create location'}</Button></>}>
+      <SheetSection title="Location">
         <div className="grid grid-cols-[1fr_168px] gap-3">
           <div><span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Name</span><Input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Durham City" /></div>
           <div><span className="block text-sm font-medium text-[#0A0A0A] mb-1.5">Status</span>
             <Dropdown ariaLabel="Status" className="h-8 w-full border-gray-300" value={status} onChange={(v) => setStatus(v as Campus['status'])}
               options={(['Draft', 'Active', 'Inactive'] as const).map((x) => ({ value: x, label: <span className="inline-flex items-center gap-2"><span className="size-2 rounded-full" style={{ background: STATUS_DOT[x] }} />{x}</span> }))} /></div>
         </div>
-        <p className="mt-1.5 text-xs text-[#737373]">Only active campuses show on the resident site.</p>
+        <p className="mt-1.5 text-xs text-[#737373]">Only active locations show on the resident site.</p>
       </SheetSection>
 
       <SheetSection title="Address">
         <label className="relative flex items-center">
           <MagnifyingGlass size={14} className="absolute left-2.5 text-[#737373]" />
-          <Input aria-label="Address" value={q} onFocus={() => setFocus(true)} onBlur={() => window.setTimeout(() => setFocus(false), 150)} onChange={(e) => { setQ(e.target.value); setPlace(null); }} placeholder="Search for the campus address" className="pl-8" />
+          <Input aria-label="Address" value={q} onFocus={() => setFocus(true)} onBlur={() => window.setTimeout(() => setFocus(false), 150)} onChange={(e) => { setQ(e.target.value); setPlace(null); }} placeholder="Search for the location address" className="pl-8" />
         </label>
         {/* Results sit in the flow, not floating, so the modal body never clips them. */}
         {focus && matches.length > 0 && (

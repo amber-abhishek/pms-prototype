@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { AirplaneLanding, ArrowLeft, Buildings, CalendarBlank, CaretRight, Check, Clock, Funnel, GraduationCap, MagnifyingGlass, ShieldCheck, Wallet, Wheelchair, X, type Icon } from '../../components/icons';
+import { AirplaneLanding, ArrowLeft, Buildings, CalendarBlank, CaretRight, Check, Clock, Funnel, MagnifyingGlass, UserCircle, ShieldCheck, Wallet, Wheelchair, X, type Icon } from '../../components/icons';
 import { Button, Dropdown, FilterIcon, cx } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { HALLS, hallFull, type App } from '../../data/allocations';
@@ -15,12 +15,12 @@ type Field = { id: string; label: string; group: 'Application' | 'Applicant' | '
 export function fieldsFor(cycles: string[]): Field[] {
   return [
     { id: 'wait', label: 'Waiting time', group: 'Application', kind: 'number', icon: Clock },
-    { id: 'year', label: 'Year of study', group: 'Application', kind: 'single', icon: GraduationCap, options: ['First year', 'Returning', 'Postgraduate'], get: (a) => a.year },
+    { id: 'year', label: 'Resident type', group: 'Application', kind: 'single', icon: UserCircle, options: ['New', 'Returning', 'Long stay'], get: (a) => a.year },
     { id: 'cycle', label: 'Term', group: 'Application', kind: 'single', icon: CalendarBlank, options: cycles, get: (a) => a.cycle },
     { id: 'fee', label: 'Fee status', group: 'Applicant', kind: 'single', icon: Wallet, options: ['Home', 'International'], get: (a) => a.fee },
     { id: 'guarantee', label: 'Guarantee', group: 'Applicant', kind: 'single', icon: ShieldCheck, options: ['Guaranteed', 'Not guaranteed'], get: (a) => (a.guarantee ? 'Guaranteed' : 'Not guaranteed') },
     { id: 'arrival', label: 'Arrival date', group: 'Applicant', kind: 'single', icon: AirplaneLanding, options: ['19 Sep 2027', '20 Sep 2027'], get: (a) => a.arrival },
-    { id: 'halls', label: 'Hall preference', group: 'Rooms', kind: 'multi', icon: Buildings, options: HALLS.map((h) => hallFull[h]), get: (a) => a.prefs.map((p) => hallFull[p[0]]), search: true },
+    { id: 'halls', label: 'Property preference', group: 'Rooms', kind: 'multi', icon: Buildings, options: HALLS.map((h) => hallFull[h]), get: (a) => a.prefs.map((p) => hallFull[p[0]]), search: true },
     { id: 'reqs', label: 'Requirement', group: 'Rooms', kind: 'multi', icon: Wheelchair, options: ['Step-free access', 'Medication fridge', 'Year-round stay'], get: (a) => a.reqs.filter((r) => !a.toCheck?.includes(r)), hint: 'Only requirements Disability Support has verified' },
   ];
 }
@@ -132,7 +132,7 @@ function Editor({ field, rows, fs, fields, fromActive, onBack, onApply }: { fiel
         <div className="py-2 max-h-[300px] overflow-auto">
           {field.search && (
             <label className="mx-3 mb-1 h-8 flex items-center gap-2 px-2 rounded-lg border border-line text-sm">
-              <MagnifyingGlass size={14} className="text-gray-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search halls" className="flex-1 outline-none bg-transparent placeholder:text-gray-400" />
+              <MagnifyingGlass size={14} className="text-gray-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search properties" className="flex-1 outline-none bg-transparent placeholder:text-gray-400" />
             </label>
           )}
           {field.options!.filter((o) => o.toLowerCase().includes(q.toLowerCase())).map((o) => (

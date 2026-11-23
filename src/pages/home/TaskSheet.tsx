@@ -64,7 +64,7 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
     ? { ...dt.picker, can: dt.picker.can.filter((p) => p.name !== task.owner) }
     : { title: 'Can take this task', can: others.map((name) => ({ name, load: loads[name] })), cant: [{ name: 'James Reed', reason: 'No permission' }] };
   const nobody = picker.can.length === 0;
-  const hall = dt.hall ?? 'this hall';
+  const hall = dt.hall ?? 'this property';
 
   const close = () => {
     // E2: the work was done elsewhere, so the task closes itself when Arjun closes the sheet.
@@ -96,7 +96,7 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
   const saveHalls = () => {
     if (busy.current) return;
     const jb = halls.includes('Josephine Butler College');
-    if (!jb) { toast.success('Aisha’s halls saved'); setMode('pick'); return; }
+    if (!jb) { toast.success('Aisha’s properties saved'); setMode('pick'); return; }
     busy.current = true;
     change((rows) => rows.map((r) => (r.id === task.id ? { ...r, owner: 'Aisha Khan' } : r)), `Aisha can approve requests at ${hall} · swap handed to Aisha`);
     onClose();
@@ -135,7 +135,7 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
       {main && !task.done && task.owner === ME && (task.snoozed
         ? <Button className="mr-auto" variant="ghost" icon={null} onClick={() => { wake(task); onClose(); }}>Unsnooze</Button>
         : <SnoozeMenu t={task} scope={scope} align="start" onDone={onClose}><Button className="mr-auto" variant="ghost" icon={null}>Snooze</Button></SnoozeMenu>)}
-      {!task.done && <Button icon={null} onClick={() => setMode('pick')}>Hand it to…</Button>}
+      {!task.done && <Button icon={null} onClick={() => setMode('pick')}>Reassign</Button>}
       {dt.primary === 'approve' && !task.done
         ? <Button variant="primary" icon={null} onClick={() => finish('Swap approved · both residents told')}>Approve</Button>
         : task.to
@@ -193,16 +193,16 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
           <Button variant="primary" icon={null} onClick={() => setMode('halls')}>Open Roles and access</Button>
         </> : <Button onClick={() => setMode('detail')}>Cancel</Button>}>
         <Picker title={picker.title} can={picker.can} cant={picker.cant} onPick={handTo} />
-        {nobody && <div className="mt-3"><Note tone="amber" icon={ShieldWarning} title={`Only you can approve swaps at ${hall}`}>Give someone the hall, or keep the task.</Note></div>}
+        {nobody && <div className="mt-3"><Note tone="amber" icon={ShieldWarning} title={`Only you can approve swaps at ${hall}`}>Give someone the property, or keep the task.</Note></div>}
       </PanelModal>
 
       {/* E1 step 3: give Aisha the hall. */}
-      <PanelModal open={mode === 'halls'} onClose={() => setMode('pick')} eyebrow="Edit halls" title="Aisha Khan’s halls" meta="Hall manager" width={520}
+      <PanelModal open={mode === 'halls'} onClose={() => setMode('pick')} eyebrow="Edit properties" title="Aisha Khan’s properties" meta="Property manager" width={520}
         right={<>
           <Button onClick={() => setMode('pick')}>Cancel</Button>
           <Button variant="primary" icon={null} onClick={saveHalls}>{jb ? 'Save and hand over' : 'Save'}</Button>
         </>}>
-        <SheetSection title={`Halls · ${halls.length} of ${HALLS.length}`}>
+        <SheetSection title={`Properties · ${halls.length} of ${HALLS.length}`}>
           {HALLS.map((h) => {
             const on = halls.includes(h.name);
             const added = on && h.name === 'Josephine Butler College';

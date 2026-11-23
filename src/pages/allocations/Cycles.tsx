@@ -43,7 +43,7 @@ export function Cycles() {
         </Toolbar>
       )}
       {!d.cycles.length ? (
-        <EmptyArea art="cycles" icon={CalendarCheck} title="No terms yet" sub="A term is one academic year of allocations.">
+        <EmptyArea art="cycles" icon={CalendarCheck} title="No terms yet" sub="A term is one letting year of allocations.">
           <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New term</Button>
         </EmptyArea>
       ) : tab === 'All' ? (

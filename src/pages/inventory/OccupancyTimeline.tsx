@@ -98,7 +98,7 @@ function BarCard({ bar, room, hall }: { bar: Bar; room: TlRoom; hall: string }) 
         {bar.who ? <Avatar name={bar.who} size={36} /> : null}
         <div className="min-w-0">
           <div className="text-base leading-6 font-medium text-[#0A0A0A] truncate">{bar.who ?? bar.label}</div>
-          <div className="text-xs leading-4 text-[#737373]">{bar.kind === 'summer' ? 'Summer guest' : bar.kind === 'blocked' ? 'Room out of use' : bar.kind === 'held' ? 'Held for an offer' : 'Student · Year 2'}</div>
+          <div className="text-xs leading-4 text-[#737373]">{bar.kind === 'summer' ? 'Summer guest' : bar.kind === 'blocked' ? 'Room out of use' : bar.kind === 'held' ? 'Held for an offer' : 'Resident'}</div>
         </div>
       </div>
 

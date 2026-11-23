@@ -28,7 +28,7 @@ export function UnitsPage() {
   const props = useMemo(() => all.filter((p) => p.status !== 'Archived' && p.units > 0 && !p.build), [all]);
   if (!props.length) return (
     <>
-      <PageHeader icon={ListDashes} title="Units" crumbs={['Inventory']} />
+      <PageHeader icon={ListDashes} title="Units" crumbs={['Properties']} />
       <EmptyArea art="getStarted" icon={ListDashes} title="No units yet" sub="Rooms show here once a property is built or imported.">
         <Button variant="primary" onClick={() => location.assign('#/inventory/properties')}>Create a property</Button>
       </EmptyArea>
@@ -48,7 +48,8 @@ function UnitsView({ props }: { props: Property[] }) {
     const fromOpen = open ? parseUnit(open) : null;
     if (fromOpen) return fromOpen;
     const pid = sp.get('p') ?? 'col';
-    return pid === 'col' ? { pid, bi: 0, floor: 3, flat: null } : { pid, bi: 0, floor: 1, flat: null };
+    /* Every property opens on its first block's Floor 1 (2026-11-23). */
+    return { pid, bi: 0, floor: 1, flat: null };
   });
   const [tab, setTab] = useState<TabId>('all');
   const [typeF, setTypeF] = useState<string[]>([]);
@@ -65,7 +66,7 @@ function UnitsView({ props }: { props: Property[] }) {
 
   const p = props.find((x) => x.id === sel.pid) ?? props[0];
   useEffect(() => { if (p && p.id !== sel.pid) setSel({ pid: p.id, bi: 0, floor: 1, flat: null }); }, [p, sel.pid]);
-  useEffect(() => { const q = sp.get('p'); if (q && q !== sel.pid && !open) setSel({ pid: q, bi: 0, floor: q === 'col' ? 3 : 1, flat: null }); }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const q = sp.get('p'); if (q && q !== sel.pid && !open) setSel({ pid: q, bi: 0, floor: 1, flat: null }); }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const flats = useMemo(() => flatsOf(p, sel.bi, sel.floor, edits).filter((f) => !archivedFlats.includes(f.id)), [p, sel.bi, sel.floor, edits, archivedFlats]);
   const shownFlats = sel.flat ? flats.filter((f) => f.id.endsWith(`|${sel.flat}`)) : flats;
@@ -125,7 +126,7 @@ function UnitsView({ props }: { props: Property[] }) {
 
   return (
     <>
-      <PageHeader icon={ListDashes} title="Units" crumbs={['Inventory']}>
+      <PageHeader icon={ListDashes} title="Units" crumbs={['Properties']}>
         <Button icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
         <Button variant="primary" icon={Plus} onClick={() => addUnit()}>Add unit</Button>
       </PageHeader>
@@ -232,7 +233,8 @@ function restoreOne(p: Property, r: ArchivedRow) {
 /* ---------------- Left hierarchy tree ---------------- */
 /* Figma 3884:43935 tree panel: 264px, a property picker on top, a "HIERARCHY · N UNITS" mono label, then the picked
    property's blocks → floors → flats. 32px r8 rows indented 4/20/36; counts in Geist Mono 12 #A3A3A3; the selected
-   row is raised white (1px #E5E5E5, soft drop) with its icon and count in blue. */
+   row is raised white (1px #E5E5E5, soft drop) with its icon and count in blue. Rows sit 2px apart, so a hovered row
+   never touches the selected one (2026-11-23). */
 function Tree({ props, p, sel, go, archivedFlats, onInfo }: { props: Property[]; p: Property; sel: Sel; go: (s: Partial<Sel>) => void; archivedFlats: string[]; onInfo: (l: LevelRef) => void }) {
   const edits = useInv((s) => s.unitEdits);
   const [open, setOpen] = useState<Record<string, boolean>>({ [`${sel.pid}|${sel.bi}`]: true, [`${sel.pid}|${sel.bi}|${sel.floor}`]: true });
@@ -257,21 +259,21 @@ function Tree({ props, p, sel, go, archivedFlats, onInfo }: { props: Property[];
         <button type="button" onClick={o} className="h-9 shrink-0 px-2.5 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex items-center gap-2 text-sm font-medium text-[#0A0A0A] hover:bg-[#FAFAFA]">
           <Buildings size={16} strokeWidth={1.5} className="text-[#404040] shrink-0" /><span className="flex-1 text-left truncate">{p.name}</span><CaretDown size={16} strokeWidth={1.5} className="text-[#737373]" />
         </button>
-      )} items={props.map((x) => ({ label: x.name, icon: Buildings, onClick: () => go({ pid: x.id, bi: 0, floor: x.id === 'col' ? 3 : 1, flat: null }) }))} />
+      )} items={props.map((x) => ({ label: x.name, icon: Buildings, onClick: () => go({ pid: x.id, bi: 0, floor: 1, flat: null }) }))} />
       <div className="h-9 shrink-0 px-2 pt-3.5 pb-1.5 flex items-center justify-between font-mono uppercase text-xs leading-4 font-medium tracking-[0.48px] text-[#737373]">
         <span>Hierarchy</span><span>{p.units} units</span>
       </div>
       {p.blocks.map((b, bi) => {
         const bk = `${p.id}|${bi}`;
         return (
-          <div key={bk} className="flex flex-col">
+          <div key={bk} className="flex flex-col gap-0.5 mb-0.5">
             {row(0, bk, Buildings, b.name, b.rooms, false, () => { tog(bk); go({ pid: p.id, bi, floor: 1, flat: null }); }, false, { kind: 'Block', bi, floor: 1 })}
             {open[bk] && Array.from({ length: b.floors }, (_, i) => {
               const fk = `${bk}|${i + 1}`;
               const isFloor = sel.pid === p.id && sel.bi === bi && sel.floor === i + 1;
               const fl = open[fk] || isFloor ? flatsOf(p, bi, i + 1, edits).filter((f) => !archivedFlats.includes(f.id)) : [];
               return (
-                <div key={fk} className="flex flex-col">
+                <div key={fk} className="flex flex-col gap-0.5">
                   {row(1, fk, Stack, p.structure === 'House' ? 'Houses' : `Floor ${i + 1}`, Math.round(b.rooms / b.floors), isFloor && sel.flat == null, () => { setOpen((o) => ({ ...o, [fk]: true })); go({ pid: p.id, bi, floor: i + 1, flat: null }); }, false, { kind: 'Floor', bi, floor: i + 1 })}
                   {open[fk] && fl.map((f) => row(2, f.id, Door, f.name, f.units.length, isFloor && sel.flat === +f.id.split('|')[3], () => go({ pid: p.id, bi, floor: i + 1, flat: +f.id.split('|')[3] }), true, { kind: 'Flat', bi, floor: i + 1, flat: +f.id.split('|')[3] }))}
                 </div>
@@ -511,7 +513,7 @@ function ArchivedTable({ p, rows, onRestore }: { p: Property; rows: ArchivedRow[
                 <td className="px-3 text-[#737373]">{r.flat ? 'Flat' : r.type}</td>
                 <td className="px-3"><PropStatus s="Archived" /></td>
                 <td className="px-3"><PersonName name={r.who}><span className="text-[#737373] whitespace-nowrap">· {r.when}</span></PersonName></td>
-                <td className="pl-3 pr-[var(--cx,12px)] text-right"><Button size="sm" icon={ArrowUUpLeft} onClick={() => onRestore(r)}>Restore…</Button></td>
+                <td className="row-act pl-3 pr-[var(--cx,12px)] text-right"><Button size="sm" icon={ArrowUUpLeft} onClick={() => onRestore(r)}>Restore</Button></td>
               </tr>
             ))}
             {!top.length && <tr><td colSpan={5} className="h-32 text-center text-sm text-[#737373]">Nothing archived in {p.name}.</td></tr>}

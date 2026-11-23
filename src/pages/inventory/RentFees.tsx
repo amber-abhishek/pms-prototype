@@ -16,7 +16,7 @@ const feeIcon = (name = ''): [Icon, Tone] =>
   /insurance/i.test(name) ? [ShieldCheck, 'blue'] : /admin|booking/i.test(name) ? [Receipt, 'purple'] : /damage/i.test(name) ? [Shield, 'amber'] : /key|store/i.test(name) ? [Key, 'green'] : [Money, 'grey'];
 
 /* A draft: nothing is stored until Save, so Cancel leaves no orphan row. Shared with the property panel's Add template. */
-export const draftTemplate = (propertyId: string): Template => ({ id: invId('tp'), propertyId, name: '', weeks: 44, rent: 170, deposit: 250, billing: 'Termly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 0, own: 0, status: 'Inactive' });
+export const draftTemplate = (propertyId: string): Template => ({ id: invId('tp'), propertyId, name: '', weeks: 44, rent: 170, deposit: 250, billing: 'Weekly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 0, own: 0, status: 'Inactive' });
 
 export function RentFeesPage() {
   const [tab, setTab] = useTab<TabId>('templates');
@@ -38,13 +38,14 @@ export function RentFeesPage() {
 
   return (
     <>
-      <PageHeader icon={CurrencyGbp} title="Tenancy pricing" crumbs={['Inventory']}>
+      <PageHeader icon={CurrencyGbp} title="Custom pricing" crumbs={['Properties']}>
         {tab === 'templates' ? <Button variant="primary" icon={Plus} onClick={() => newTemplate()}>New template</Button> : (
-          <><Button icon={TagIcon} onClick={() => setTypesOpen(true)}>Fee types</Button><Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add fee</Button></>
+          <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add fee</Button>
         )}
       </PageHeader>
-      {/* One toolbar row: tabs on the left, the property picker on the right. */}
-      <Toolbar right={tab === 'templates' && <div className="w-64"><Picker value={pid} onChange={setPid} icon={Buildings} options={props.map((x) => ({ id: x.id, label: x.name }))} /></div>}>
+      {/* One toolbar row: tabs on the left; on the right the property picker (Templates) or Fee types (Fees, 2026-11-23). */}
+      <Toolbar right={tab === 'templates' ? <div className="w-64"><Picker value={pid} onChange={setPid} icon={Buildings} options={props.map((x) => ({ id: x.id, label: x.name }))} /></div>
+        : <Button icon={TagIcon} onClick={() => setTypesOpen(true)}>Fee types</Button>}>
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'templates', label: 'Tenancy templates', count: tpls.length }, { id: 'fees', label: 'Fees', count: fees.length }]} />
       </Toolbar>
       {tab === 'templates' ? (
@@ -162,7 +163,7 @@ export function TemplateDialog({ t, open, onClose, isNew, siblings }: { t: Templ
         <div className="grid grid-cols-2 gap-3">
           <Field label="Rent"><MoneyInput value={v.rent} onChange={(r) => setV({ ...v, rent: r })} suffix="/ wk" />{errs.rent ? <FieldErr>{errs.rent}</FieldErr> : rentChanged && <span className="block text-xs text-[#737373] mt-1">Was {money(t.rent)}</span>}</Field>
           <Field label="Deposit"><MoneyInput value={v.deposit} onChange={(r) => setV({ ...v, deposit: r })} /><FieldErr>{errs.deposit}</FieldErr></Field>
-          <Field label="Billing"><Picker value={v.billing} onChange={(b) => setV({ ...v, billing: b })} options={[{ id: 'Termly', label: 'Termly' }, { id: 'Monthly', label: 'Monthly' }, { id: 'Upfront', label: 'Upfront' }]} /></Field>
+          <Field label="Billing"><Picker value={v.billing} onChange={(b) => setV({ ...v, billing: b })} options={[{ id: 'Weekly', label: 'Weekly' }, { id: 'Monthly', label: 'Monthly' }, { id: 'Upfront', label: 'Upfront' }]} /></Field>
         </div>
         <p className="mt-3 text-sm leading-5 text-[#737373]">Sold tenancies never change.</p>
         </SheetSection>

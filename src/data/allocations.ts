@@ -31,10 +31,10 @@ export const baseAvail = (hall: string, room: string) => AVAIL_ROOM[`${hall}|${r
 
 /* ---------------- Types ---------------- */
 export type AppStatus = 'review' | 'manual' | 'allocated' | 'rejected' | 'waitlist' | 'declined';
-export type Tag = 'Requirements' | 'No study offer' | 'Manual review';
+export type Tag = 'Requirements' | 'Eligibility' | 'Manual review';
 export type Req = 'Step-free access' | 'Medication fridge' | 'Year-round stay';
 export type App = {
-  id: string; ref: string; name: string; email: string; year: 'First year' | 'Returning' | 'Postgraduate';
+  id: string; ref: string; name: string; email: string; year: 'New' | 'Returning' | 'Long stay';
   hall: string; room: string; prefs: [string, string][]; tag?: Tag; waiting: number; submitted: string;
   status: AppStatus; fee: 'Home' | 'International'; guarantee: boolean; arrival: string; course: string; cycle: string;
   reqs: Req[]; toCheck?: Req[];
@@ -75,7 +75,7 @@ function app(s: Spec, i: number): App {
   const third = s.prefs?.[2] ?? altPref(s.hall, s.room, i, 2);
   return {
     id: 'a' + s.ref, email: s.email ?? `${s.name.toLowerCase().split(' ')[0]}.${s.name.toLowerCase().split(' ').slice(-1)[0][0]}@durham.ac.uk`.normalize('NFD').replace(/[̀-ͯ]/g, ''),
-    year: 'First year', prefs: [[s.hall, s.room], second, third], waiting: 1, submitted: '26 Oct', status: 'review',
+    year: 'New', prefs: [[s.hall, s.room], second, third], waiting: 1, submitted: '26 Oct', status: 'review',
     fee: i % 3 === 0 ? 'International' : 'Home', guarantee: true, arrival: '19 Sep 2027', course: COURSES[i % COURSES.length], cycle: '2027/28', reqs: [],
     ...s,
   } as App;
@@ -87,13 +87,13 @@ function altPref(hall: string, room: string, i: number, k: number): [string, str
 }
 
 const FIRST = ['Ella', 'Jacob', 'Isla', 'Noah', 'Freya', 'Leo', 'Ava', 'Ruby', 'Max', 'Evie', 'Arthur', 'Poppy', 'Theo', 'Lily', 'Finn', 'Maya', 'Rohan', 'Zoe', 'Callum', 'Anya', 'Kai', 'Nia', 'Elliot', 'Hana', 'Owen', 'Ivy', 'Samir', 'Rosa', 'Luca', 'Imogen', 'Dev', 'Esme', 'Ben', 'Layla', 'Jonah', 'Tara', 'Reuben', 'Mina', 'Alfie', 'Priya'];
-const LAST = ['Walker', 'Patel', 'Hughes', 'Ahmed', 'Murphy', 'Clarke', 'Nguyen', 'Bennett', 'Kaur', 'Wilson', 'Okafor', 'Shaw', 'Reid', 'Khan', 'Baker', 'Lewis', 'Rahman', 'Turner', 'Doyle', 'Evans', 'Mensah', 'Price', 'Fraser', 'Begum', 'Hall', 'Young', 'Ali', 'Morgan', 'Foster', 'Silva'];
+const LAST = ['Walker', 'Patel', 'Hughes', 'Ahmed', 'Murphy', 'Clarke', 'Nguyen', 'Bennett', 'Kaur', 'Wilson', 'Okafor', 'Shaw', 'Reid', 'Khan', 'Baker', 'Lewis', 'Rahman', 'Turner', 'Doyle', 'Evans', 'Mensah', 'Price', 'Fraser', 'Begum', 'Property', 'Young', 'Ali', 'Morgan', 'Foster', 'Silva'];
 const COMBOS: [string, string][] = [['Ustinov', 'Standard single'], ['Collingwood', 'Ensuite single'], ['Collingwood', 'Standard single'], ['Hild Bede', 'Standard single'], ['Josephine Butler', 'Ensuite'], ['Josephine Butler', 'Studio'], ['Stephenson', 'Standard single'], ['John Snow', 'Ensuite single'], ['Van Mildert', 'Ensuite'], ['Ustinov', 'Ensuite single'], ['Stephenson', 'Ensuite'], ['Van Mildert', 'Standard single']];
 
 function seedApps(): App[] {
   const design: Spec[] = [
     { name: 'Amira Rahman', ref: '11873', hall: 'Ustinov', room: 'Accessible ensuite', tag: 'Requirements', waiting: 9, submitted: '18 Oct', email: 'amira.r@durham.ac.uk', fee: 'International', course: 'BSc Biosciences', reqs: ['Step-free access', 'Medication fridge'], toCheck: ['Medication fridge'], prefs: [['Ustinov', 'Accessible ensuite'], ['Collingwood', 'Accessible ensuite'], ['Hild Bede', 'Ensuite single']], opened: '27 Oct, Arjun' },
-    { name: 'Leo Brennan', ref: '11901', hall: 'Collingwood', room: 'Studio', tag: 'No study offer', waiting: 8, submitted: '19 Oct', email: 'leo.brennan@outlook.com', fee: 'Home', course: '—', arrival: '20 Sep 2027', prefs: [['Collingwood', 'Studio'], ['Josephine Butler', 'Studio'], ['Ustinov', 'Ensuite single']] },
+    { name: 'Leo Brennan', ref: '11901', hall: 'Collingwood', room: 'Studio', tag: 'Eligibility', waiting: 8, submitted: '19 Oct', email: 'leo.brennan@outlook.com', fee: 'Home', course: '—', arrival: '20 Sep 2027', prefs: [['Collingwood', 'Studio'], ['Josephine Butler', 'Studio'], ['Ustinov', 'Ensuite single']] },
     { name: 'Mei Lin', ref: '11954', hall: 'Hild Bede', room: 'Standard single', tag: 'Manual review', waiting: 7, submitted: '20 Oct', fee: 'International', course: 'BSc Natural Sciences', toCheck: ['Medication fridge'], reqs: ['Medication fridge'] },
     { name: 'Daniel Osei', ref: '12010', hall: 'Josephine Butler', room: 'Ensuite', waiting: 6, submitted: '21 Oct', fee: 'Home', course: 'BA Economics' },
     { name: 'Priyanka Iyer', ref: '12133', hall: 'Ustinov', room: 'Accessible ensuite', tag: 'Requirements', waiting: 4, submitted: '23 Oct', fee: 'Home', course: 'LLB Law', reqs: ['Step-free access'], prefs: [['Ustinov', 'Accessible ensuite'], ['Collingwood', 'Accessible ensuite'], ['Stephenson', 'Ensuite']] },
@@ -113,7 +113,7 @@ function seedApps(): App[] {
     const name = `${FIRST[(i * 7) % FIRST.length]} ${LAST[(i * 11 + 3) % LAST.length]}`;
     const flagged = i % 29 === 7;
     out.push(app({ name, ref: String(12350 + i * 7), hall, room, waiting: i < 60 ? 1 : 0, submitted: i < 60 ? '26 Oct' : '27 Oct',
-      year: i % 9 === 4 ? 'Returning' : i % 13 === 6 ? 'Postgraduate' : 'First year',
+      year: i % 9 === 4 ? 'Returning' : i % 13 === 6 ? 'Long stay' : 'New',
       ...(flagged ? { tag: 'Requirements' as Tag, reqs: ['Step-free access' as Req], hall: 'Ustinov', room: 'Accessible ensuite' } : {}),
       ...(i % 41 === 20 ? { reqs: ['Year-round stay' as Req] } : {}) }, i + 13));
   }
@@ -123,7 +123,7 @@ function seedApps(): App[] {
     { name: 'Aisha Bello', ref: '12011', hall: 'John Snow', room: 'Ensuite single', why: 'Late application', waiting: 4, submitted: '23 Oct' },
     { name: 'Ethan Walsh', ref: '12088', hall: 'Stephenson', room: 'Standard single', why: 'Two applications, different emails', waiting: 3, submitted: '24 Oct' },
     { name: 'Zara Ahmed', ref: '12093', hall: 'Josephine Butler', room: 'Ensuite', why: 'Under 18 at arrival', assignee: 'Tom Okafor', waiting: 3, submitted: '24 Oct' },
-    { name: 'Noah Fischer', ref: '12190', hall: 'Collingwood', room: 'Studio', why: 'Fee status not confirmed', waiting: 2, submitted: '25 Oct' },
+    { name: 'Noah Fischer', ref: '12190', hall: 'Collingwood', room: 'Studio', why: 'Residency not confirmed', waiting: 2, submitted: '25 Oct' },
   ];
   manual.forEach((s, i) => out.push(app({ ...s, status: 'manual' }, i + 3)));
   const alloc: [string, string, string, string, string, string, App['offer']][] = [
@@ -140,8 +140,8 @@ function seedApps(): App[] {
     ['Sam Taylor', '11977', 'Duplicate application', 'Tom Okafor', '26 Oct', 'Collingwood'],
     ['Freya Hughes', '11950', 'Withdrawn by the applicant', 'Self-service', '25 Oct', 'Hild Bede'],
     ['Marcus Bell', '11921', 'Not eligible for this term', ME, '24 Oct', 'Stephenson'],
-    ['Chloe Martin', '12317', 'No offer to study at Durham', 'Tom Okafor', '22 Oct', 'Josephine Butler'],
-    ['Ravi Patel', '11880', 'Other · moved to private halls', ME, '21 Oct', 'Hild Bede'],
+    ['Chloe Martin', '12317', 'Failed the eligibility check', 'Tom Okafor', '22 Oct', 'Josephine Butler'],
+    ['Ravi Patel', '11880', 'Other · moved to private housing', ME, '21 Oct', 'Hild Bede'],
   ];
   rej.forEach(([name, ref, reason, by, on, hall], i) => out.push(app({ name, ref, hall, room: hall === 'Josephine Butler' ? 'Studio' : 'Standard single', reason, rejBy: by, rejOn: on, emailed: true, status: 'rejected', waiting: 0, submitted: '15 Oct' }, i)));
   out.push(...bulk(out));
@@ -155,8 +155,8 @@ function seedApps(): App[] {
 export const APP_TARGETS = { manual: 14, allocated: 2480, rejected: 96, all: 3410 };
 const BULK_FIRST = ['Adam', 'Aisha', 'Alex', 'Amelia', 'Amir', 'Anna', 'Arjun', 'Aryan', 'Bella', 'Caleb', 'Chloe', 'Daisy', 'Daniel', 'Eden', 'Eliza', 'Emily', 'Ethan', 'Fatima', 'Felix', 'Florence', 'Gabriel', 'George', 'Hamza', 'Harper', 'Harry', 'Iris', 'Isaac', 'Jade', 'James', 'Jasmine', 'Joseph', 'Kiara', 'Laila', 'Liam', 'Lucy', 'Mason', 'Matilda', 'Mohammed', 'Nadia', 'Nathan', 'Olivia', 'Oscar', 'Phoebe', 'Rafael', 'Rhys', 'Sana', 'Sebastian', 'Sienna', 'Sofia', 'Thomas', 'Willow', 'Yusuf', 'Zain', 'Aaliyah', 'Beatrice', 'Cyrus', 'Delphine', 'Emeka', 'Farah', 'Hugo'];
 const BULK_LAST = ['Abbott', 'Adeyemi', 'Akhtar', 'Barker', 'Bose', 'Brennan', 'Brooks', 'Campbell', 'Chen', 'Chowdhury', 'Cole', 'Dawson', 'Dixon', 'Edwards', 'Ellis', 'Farouk', 'Fletcher', 'Gallagher', 'Gill', 'Gordon', 'Greene', 'Hassan', 'Hayes', 'Holt', 'Hussain', 'Iqbal', 'Jackson', 'James', 'Jenkins', 'Kelly', 'Kennedy', 'Lam', 'Lawson', 'Lee', 'Lowe', 'Malik', 'Marsh', 'Mitchell', 'Moss', 'Nash', 'Obi', 'Owen', 'Parker', 'Perera', 'Quinn', 'Rana', 'Richards', 'Robinson', 'Saunders', 'Sharma', 'Simmons', 'Stone', 'Sutton', 'Thompson', 'Tran', 'Usman', 'Vaughan', 'Ward', 'Webb', 'Yates'];
-const REJECT_REASONS: [string, number][] = [['No offer to study at Durham', 41], ['Duplicate application', 22], ['Withdrawn by the applicant', 19], ['Not eligible for this term', 9], ['Other · moved to private halls', 5]];
-const MANUAL_WHY = ['Late application', 'Fee status not confirmed', 'Asks to live with a friend', 'Under 18 at arrival', 'Two applications, different emails', 'Medical letter to check', 'Wants a year-round room', 'Course start date unclear'];
+const REJECT_REASONS: [string, number][] = [['Failed the eligibility check', 41], ['Duplicate application', 22], ['Withdrawn by the applicant', 19], ['Not eligible for this term', 9], ['Other · moved to private housing', 5]];
+const MANUAL_WHY = ['Late application', 'Residency not confirmed', 'Asks to live with a friend', 'Under 18 at arrival', 'Two applications, different emails', 'Medical letter to check', 'Wants a year-round room', 'Course start date unclear'];
 const STAFF = [ME, 'Tom Okafor', 'Aisha Khan'];
 
 function bulk(seeded: App[]): App[] {
@@ -194,7 +194,7 @@ function bulk(seeded: App[]): App[] {
   };
   const base = (i: number) => {
     const [hall, room] = COMBOS[h(i, 1) % COMBOS.length];
-    return { name: nextName(), ref: String(ref++), hall, room, year: (i % 9 === 4 ? 'Returning' : i % 13 === 6 ? 'Postgraduate' : 'First year') as App['year'] };
+    return { name: nextName(), ref: String(ref++), hall, room, year: (i % 9 === 4 ? 'Returning' : i % 13 === 6 ? 'Long stay' : 'New') as App['year'] };
   };
   for (let i = 0; i < need.manual; i++) {
     out.push(app({ ...base(i), status: 'manual', why: MANUAL_WHY[i % MANUAL_WHY.length], assignee: i % 3 === 0 ? 'Tom Okafor' : undefined, waiting: 1 + (i % 4), submitted: `${22 + (i % 4)} Oct` }, i));
@@ -226,22 +226,22 @@ function bulk(seeded: App[]): App[] {
 function pastCycles(): App[] {
   const y27 = { cycle: '2026/27', arrival: '11 Jan 2027' };
   const review: Spec[] = [
-    { name: 'Lukas Weber', ref: '10412', hall: 'Ustinov', room: 'Ensuite single', year: 'Postgraduate', course: 'MSc Data Science', fee: 'International', waiting: 23, submitted: '4 Oct' },
+    { name: 'Lukas Weber', ref: '10412', hall: 'Ustinov', room: 'Ensuite single', year: 'Long stay', course: 'MSc Data Science', fee: 'International', waiting: 23, submitted: '4 Oct' },
     { name: 'Camille Dubois', ref: '10418', hall: 'Josephine Butler', room: 'Studio', year: 'Returning', course: 'BA Modern Languages', fee: 'International', waiting: 19, submitted: '8 Oct' },
-    { name: 'Hiro Tanaka', ref: '10431', hall: 'John Snow', room: 'Ensuite single', year: 'Postgraduate', course: 'MSc Physics', fee: 'International', waiting: 15, submitted: '12 Oct' },
-    { name: 'Sophie Grant', ref: '10437', hall: 'Collingwood', room: 'Standard single', year: 'First year', course: 'BA History', fee: 'Home', waiting: 12, submitted: '15 Oct' },
-    { name: 'Mateo Ruiz', ref: '10446', hall: 'Van Mildert', room: 'Ensuite', year: 'Postgraduate', course: 'MBA', fee: 'International', waiting: 10, submitted: '17 Oct', tag: 'No study offer' },
+    { name: 'Hiro Tanaka', ref: '10431', hall: 'John Snow', room: 'Ensuite single', year: 'Long stay', course: 'MSc Physics', fee: 'International', waiting: 15, submitted: '12 Oct' },
+    { name: 'Sophie Grant', ref: '10437', hall: 'Collingwood', room: 'Standard single', year: 'New', course: 'BA History', fee: 'Home', waiting: 12, submitted: '15 Oct' },
+    { name: 'Mateo Ruiz', ref: '10446', hall: 'Van Mildert', room: 'Ensuite', year: 'Long stay', course: 'MBA', fee: 'International', waiting: 10, submitted: '17 Oct', tag: 'Eligibility' },
     { name: 'Grace Okafor', ref: '10452', hall: 'Stephenson', room: 'Standard single', year: 'Returning', course: 'LLB Law', fee: 'Home', waiting: 8, submitted: '19 Oct' },
   ];
   const allocated: [Spec, string, string, string][] = [
-    [{ name: 'Elena Rossi', ref: '10388', hall: 'Hild Bede', room: 'Standard single', year: 'Postgraduate' }, 'Hild Bede · 1.4.A', ME, '2 Oct'],
+    [{ name: 'Elena Rossi', ref: '10388', hall: 'Hild Bede', room: 'Standard single', year: 'Long stay' }, 'Hild Bede · 1.4.A', ME, '2 Oct'],
     [{ name: 'Tom Hardy', ref: '10371', hall: 'Collingwood', room: 'Ensuite single', year: 'Returning' }, 'Collingwood · 2.1.C', 'Tom Okafor', '28 Sep'],
-    [{ name: 'Aiko Mori', ref: '10359', hall: 'Ustinov', room: 'Studio', year: 'Postgraduate' }, 'Ustinov · 3.2.D', 'Auto-allocate', '24 Sep'],
-    [{ name: 'Ben Ashworth', ref: '10340', hall: 'Stephenson', room: 'Ensuite', year: 'First year' }, 'Stephenson · 4.3.B', 'Auto-allocate', '20 Sep'],
+    [{ name: 'Aiko Mori', ref: '10359', hall: 'Ustinov', room: 'Studio', year: 'Long stay' }, 'Ustinov · 3.2.D', 'Auto-allocate', '24 Sep'],
+    [{ name: 'Ben Ashworth', ref: '10340', hall: 'Stephenson', room: 'Ensuite', year: 'New' }, 'Stephenson · 4.3.B', 'Auto-allocate', '20 Sep'],
   ];
   const rejected: [Spec, string, string, string][] = [
     [{ name: 'Daniel Novak', ref: '10395', hall: 'John Snow', room: 'Ensuite single' }, 'Withdrawn by the applicant', 'Self-service', '6 Oct'],
-    [{ name: 'Leah Coombs', ref: '10366', hall: 'Van Mildert', room: 'Standard single' }, 'No offer to study at Durham', ME, '26 Sep'],
+    [{ name: 'Leah Coombs', ref: '10366', hall: 'Van Mildert', room: 'Standard single' }, 'Failed the eligibility check', ME, '26 Sep'],
   ];
   const y26 = { cycle: '2025/26', arrival: '20 Sep 2025', submitted: '14 Mar' };
   const older: [Spec, string, string, string][] = [
@@ -276,7 +276,7 @@ function seedOffers(): Offer[] {
     { id: 'o14', name: 'Ben Carter', hall: 'Hild Bede', room: 'Standard single', unit: '2.2.B', status: 'accepted', sent: '19 Oct', accepted: '23 Oct', deposit: 'Paid £250', reminders: 0 },
     { id: 'o15', name: 'Josh Turner', hall: 'Collingwood', room: 'Standard single', unit: '1.1.C', status: 'declined', sent: '21 Oct', declined: '26 Oct', reason: 'Too expensive', unitNow: 'Offered to Mo Hassan', reminders: 1 },
     { id: 'o16', name: 'Isla Reid', hall: 'Ustinov', room: 'Ensuite single', unit: '2.4.B', status: 'declined', sent: '20 Oct', declined: '25 Oct', reason: 'Living at home', unitNow: 'Back in search', reminders: 0 },
-    { id: 'o17', name: 'Kai Wong', hall: 'Stephenson', room: 'Ensuite', unit: '3.3.A', status: 'declined', sent: '19 Oct', declined: '24 Oct', reason: 'Wanted a different hall', unitNow: 'Offered to Lucy Grant', reminders: 1 },
+    { id: 'o17', name: 'Kai Wong', hall: 'Stephenson', room: 'Ensuite', unit: '3.3.A', status: 'declined', sent: '19 Oct', declined: '24 Oct', reason: 'Wanted a different property', unitNow: 'Offered to Lucy Grant', reminders: 1 },
     { id: 'o18', name: 'Nina Kaur', hall: 'John Snow', room: 'Ensuite single', unit: '1.2.A', status: 'declined', sent: '18 Oct', declined: '22 Oct', reason: 'No reason given', unitNow: 'Back in search', reminders: 2 },
     { id: 'o19', name: 'Ada Clarke', hall: 'Hild Bede', room: 'Standard single', unit: '3.1.A', status: 'lapsed', sent: '21 Oct', lapsed: '26 Oct', reminders: 2, wentTo: 'Ruth Evans · waitlist #1' },
     { id: 'o20', name: 'Felix Moore', hall: 'Collingwood', room: 'Ensuite single', unit: '2.2.D', status: 'lapsed', sent: '20 Oct', lapsed: '25 Oct', reminders: 2, wentTo: 'No one waiting · back in search' },
@@ -290,7 +290,7 @@ function seedWait(): Wait[] {
     { id: 'w1', name: 'Tomás García', hall: 'John Snow', room: 'Ensuite single', note: 'Lapsed 27 Oct · asked to stay on the list', joined: '27 Oct' },
     { id: 'w2', name: 'Aisha Bello', hall: 'John Snow', room: 'Ensuite single', note: 'Late application', joined: '24 Oct' },
     { id: 'w3', name: 'Theo Grant', hall: 'John Snow', room: 'Ensuite single', note: '—', joined: '20 Oct' },
-    { id: 'w4', name: 'Noah Fischer', hall: 'Collingwood', room: 'Studio', note: 'Fee status not confirmed', joined: '22 Oct' },
+    { id: 'w4', name: 'Noah Fischer', hall: 'Collingwood', room: 'Studio', note: 'Residency not confirmed', joined: '22 Oct' },
     { id: 'w5', name: 'Maya Singh', hall: 'Collingwood', room: 'Studio', note: '—', joined: '19 Oct' },
     { id: 'w6', name: 'Priyanka Iyer', hall: 'Ustinov', room: 'Accessible ensuite', note: 'Needs step-free · verified', joined: '23 Oct' },
   ];
@@ -301,8 +301,8 @@ function seedWait(): Wait[] {
    application's Offer column is set to match. Earlier terms' allocations get accepted offers too, so clearing the
    Cycle filter widens the list. The design rows stay first; these follow, newest first. Deterministic. */
 export const OFFER_TARGETS = { open: 42, accepted: 2215, declined: 176, lapsed: 58, waitlist: 63 };
-const DECLINE_REASONS: [string, number][] = [['Chose another operator', 9], ['Too expensive', 5], ['Living at home', 4], ['Wanted a different hall', 3], ['No reason given', 3]];
-const WAIT_NOTES = ['—', '—', '—', 'Late application', 'Fee status not confirmed', 'Lapsed · asked to stay on the list', 'Wants this hall only', 'Declined another hall', 'Needs step-free · verified'];
+const DECLINE_REASONS: [string, number][] = [['Chose another operator', 9], ['Too expensive', 5], ['Living at home', 4], ['Wanted a different property', 3], ['No reason given', 3]];
+const WAIT_NOTES = ['—', '—', '—', 'Late application', 'Residency not confirmed', 'Lapsed · asked to stay on the list', 'Wants this property only', 'Declined another property', 'Needs step-free · verified'];
 const hash = (i: number, salt: number) => {
   let x = Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(salt + 1, 0x85ebca6b);
   x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16;
@@ -397,7 +397,7 @@ function seedBookings(): Booking[] {
     bk('b13', 4610, 'Omar Haddad', 'Collingwood', 'Ensuite single', '4.1.B', 'Draft', '21 Oct', { missing: 'Under 18 · parent must co-sign', deposit: 'Paid £250' }),
     bk('b14', 4588, 'Ruth Evans', 'Hild Bede', 'Standard single', '3.1.A', 'Draft', '20 Oct', { missing: 'Made by hand · lease not sent', deposit: 'Paid £250' }),
     bk('b15', 4377, 'Sam Rees', 'Collingwood', 'Standard single', '3.4.A', 'Signed', '14 Oct', { signedOn: '20 Oct' }),
-    bk('c1', 4011, 'Ravi Patel', 'Hild Bede', 'Standard single', '2.4.A', 'Signed', '12 Oct', { cancelled: { on: '26 Oct', reason: 'Withdrew · private halls', money: 'Deposit refunded £250', cooling: true } }),
+    bk('c1', 4011, 'Ravi Patel', 'Hild Bede', 'Standard single', '2.4.A', 'Signed', '12 Oct', { cancelled: { on: '26 Oct', reason: 'Withdrew · private housing', money: 'Deposit refunded £250', cooling: true } }),
     bk('c2', 3987, 'Freya Hughes', 'Collingwood', 'Ensuite single', '1.4.B', 'Sent', '10 Oct', { cancelled: { on: '24 Oct', reason: 'Didn’t meet study offer', money: 'Deposit refunded £250' } }),
     bk('c3', 3954, 'Will Johnson', 'Ustinov', 'Ensuite single', '3.1.A', 'Draft', '9 Oct', { deposit: 'Nothing paid', cancelled: { on: '20 Oct', reason: 'Duplicate booking', money: 'Nothing paid' } }),
     bk('c4', 3902, 'Sophie Clark', 'Stephenson', 'Standard single', '1.2.D', 'Signed', '8 Oct', { cancelled: { on: '18 Oct', reason: 'Moved to Collingwood · 2.2.A', money: 'Deposit moved' } }),
@@ -454,7 +454,7 @@ export const useAlloc = create<State>()(
       snap: () => pick(get()),
       restore: (d) => set(d),
     }),
-    { name: 'pms-allocations', storage: createJSONStorage(() => sessionStorage), version: 8, migrate: renameFrom(7) as never },
+    { name: 'pms-allocations', storage: createJSONStorage(() => sessionStorage), version: 9, migrate: renameFrom(9) as never },
   ),
 );
 

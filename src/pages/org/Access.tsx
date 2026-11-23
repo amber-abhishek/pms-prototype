@@ -12,7 +12,7 @@ import { HALLS, hallById, hallsLabel, nameFromEmail, oid, roleCan, roleSummary, 
 import { Alert, EmptyState, Header, IconSelect, ODialog, RowMenu } from './parts';
 
 type TabId = 'members' | 'roles' | 'audit';
-const FOOT = 'Members sign in with their operator account; a role sets what they can do, halls set where.';
+const FOOT = 'Members sign in with their operator account; a role sets what they can do, properties set where.';
 
 export function RoleTag({ role }: { role?: Role }) {
   if (!role) return <span className="text-gray-400">—</span>;
@@ -74,14 +74,14 @@ export function AccessPage() {
       <div className="flex items-center gap-2.5"><Avatar name={m.name} size={24} /><div className="leading-tight"><div className="text-sm font-medium">{m.name}</div><div className="text-xs text-[#737373]">{m.email}</div></div></div>
     ) },
     { key: 'r', label: 'Role', className: 'w-[22%]', render: (m) => <RoleTag role={roleOf(m)} /> },
-    { key: 'h', label: 'Halls', className: 'w-[19%]', render: (m) => <span className="text-sm text-gray-700">{roleOf(m)?.scope === 'all' ? 'All halls' : hallsLabel(m.halls)}</span> },
+    { key: 'h', label: 'Properties', className: 'w-[19%]', render: (m) => <span className="text-sm text-gray-700">{roleOf(m)?.scope === 'all' ? 'All properties' : hallsLabel(m.halls)}</span> },
     { key: 'a', label: 'Last active', render: (m) => m.status === 'Invited' ? <Pill tone="amber" icon={EnvelopeSimple}>Invited</Pill>
       : m.status === 'Invite expired' ? <span className="flex items-center gap-2"><Pill tone="orange" icon={Warning}>Invite expired</Pill><Button size="sm" onClick={(e) => { e.stopPropagation(); resend(m); }}>Resend</Button></span>
       : <span className="text-sm text-[#737373]">{m.lastActive}</span> },
     { key: 'x', label: '', className: 'w-12 text-right', render: (m) => (
       <RowMenu items={[
         { label: 'Change role', onClick: () => setAccess({ m }) },
-        { label: 'Change halls', onClick: () => setAccess({ m }) },
+        { label: 'Change properties', onClick: () => setAccess({ m }) },
         ...(m.status !== 'Active' ? [{ label: 'Resend invite', onClick: () => resend(m) }] : []),
         { label: 'Remove from workspace', danger: true, onClick: () => setRemoving(m) },
       ]} />
@@ -112,18 +112,19 @@ export function AccessPage() {
         <Button icon={Plus} onClick={() => nav('/org/people/roles/new')}>New role</Button>
         {!(tab === 'members' && onlyYou) && <Button variant="primary" icon={UserPlus} onClick={() => setInvite({ open: true })}>Invite member</Button>}
       </Header>
-      <Toolbar right={tab === 'members' && !onlyYou ? <FilterButton value={f} onChange={setF} defs={[
-        { id: 'role', label: 'Role', options: roles.map((r) => r.name) },
-        { id: 'hall', label: 'Hall', options: HALLS.map((h) => h.short) },
-        { id: 'status', label: 'Status', options: ['Active', 'Invited', 'Invite expired'] },
-      ]} /> : undefined}>
+      {/* Tabs switch the view, so they lead on the left; the Members filters sit on the right (2026-11-23). */}
+      <Toolbar right={tab === 'members' && !onlyYou && <FilterButton value={f} onChange={setF} defs={[
+          { id: 'role', label: 'Role', options: roles.map((r) => r.name) },
+          { id: 'hall', label: 'Property', options: HALLS.map((h) => h.short) },
+          { id: 'status', label: 'Status', options: ['Active', 'Invited', 'Invite expired'] },
+        ]} />}>
         <Tabs value={tab} onChange={setTab} tabs={[{ id: 'members', label: 'Members', count: members.length }, { id: 'roles', label: 'Roles', count: roles.length }, { id: 'audit', label: 'Audit log' }]} />
       </Toolbar>
 
       {tab === 'members' && (onlyYou ? (
         <div className="flex-1 overflow-auto">
           <div data-inset className="px-[var(--gx,16px)]"><PlainTable cols={memberCols} rows={members} /></div>
-          <EmptyState art="team" icon={User} title="It’s just you so far" sub="Each person gets a role and the halls they cover.">
+          <EmptyState art="team" icon={User} title="It’s just you so far" sub="Each person gets a role and the properties they cover.">
             <Button variant="primary" icon={UserPlus} onClick={() => setInvite({ open: true })}>Invite member</Button>
             <Button icon={Shield} onClick={() => setTab('roles')}>Review roles</Button>
           </EmptyState>
@@ -182,9 +183,9 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
     const before = snap();
     const name = nameFromEmail(e);
     set('members', (ms) => [...ms, { id: oid('m'), name, email: e, roleId: role.id, halls, lastActive: '—', status: 'Invited', since: 'Sep 2026', invitedAgo: 'just now' }]);
-    audit_(`invited ${name} as ${role.name} ${halls === 'all' ? 'in all halls' : `at ${hallsLabel(halls)}`}`, 'Members');
+    audit_(`invited ${name} as ${role.name} ${halls === 'all' ? 'in all properties' : `at ${hallsLabel(halls)}`}`, 'Members');
     onClose();
-    undoable(`Invite sent to ${name} · ${role.name} ${halls === 'all' ? 'in all halls' : `at ${hallsLabel(halls)}`} · expires in 7 days`, before);
+    undoable(`Invite sent to ${name} · ${role.name} ${halls === 'all' ? 'in all properties' : `at ${hallsLabel(halls)}`} · expires in 7 days`, before);
   };
 
   return (
@@ -199,15 +200,15 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@durham.ac.uk" className="pl-8" onKeyDown={(e) => e.key === 'Enter' && !existing && send()} />
           </label>
         </Field>
-        {existing && <div className="mt-3"><Alert tone="amber" icon={Info} title={<>{existing.name} is already a member: {exRole?.name} {existing.halls === 'all' ? 'in all halls' : `at ${hallsLabel(existing.halls).replace(/, ([^,]*)$/, ' and $1')}`}.</>}>Change their access instead; they keep one account.</Alert></div>}
+        {existing && <div className="mt-3"><Alert tone="amber" icon={Info} title={<>{existing.name} is already a member: {exRole?.name} {existing.halls === 'all' ? 'in all properties' : `at ${hallsLabel(existing.halls).replace(/, ([^,]*)$/, ' and $1')}`}.</>}>Change their access instead; they keep one account.</Alert></div>}
       </SheetSection>
       <SheetSection title="Access">
         <div className="grid grid-cols-2 gap-3">
           <div><div className="text-sm font-medium text-[#0A0A0A] mb-1.5">Role</div>
             <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} /></div>
-          <div><div className="text-sm font-medium text-[#0A0A0A] mb-1.5">Halls</div>
-            {role?.scope === 'all' ? <div className="h-8 px-2.5 rounded-lg border border-line bg-gray-50 text-sm text-[#737373] flex items-center gap-2"><Buildings size={14} />All halls</div>
-              : <IconSelect ariaLabel="Halls" icon={Buildings} value={hall} onChange={setHall} options={[...HALLS.map((h) => ({ value: h.id, label: h.name })), { value: 'all', label: 'All halls' }]} />}</div>
+          <div><div className="text-sm font-medium text-[#0A0A0A] mb-1.5">Properties</div>
+            {role?.scope === 'all' ? <div className="h-8 px-2.5 rounded-lg border border-line bg-gray-50 text-sm text-[#737373] flex items-center gap-2"><Buildings size={14} />All properties</div>
+              : <IconSelect ariaLabel="Properties" icon={Buildings} value={hall} onChange={setHall} options={[...HALLS.map((h) => ({ value: h.id, label: h.name })), { value: 'all', label: 'All properties' }]} />}</div>
         </div>
         {role && !existing && <p className="mt-3 text-sm leading-5 text-[#737373]">{role.createdByYou ? 'New role: ' : ''}{role.name} · {roleSummary(role, halls)}</p>}
       </SheetSection>
@@ -233,14 +234,14 @@ function AccessSheet({ m: m0, addHall, onClose, onRemove, nav }: { nav?: SheetNa
   const level = (hid: string) => (curRole?.id === 'admin' || ([...(m.id + hid)].reduce((n, c) => n + c.charCodeAt(0), 0) % 3) ? 'Full access' : 'View only');
   const mine = audit.filter((a) => a.who === m.name || a.what.includes(m.name)).slice(0, 6);
   const activity = mine.length ? mine : [
-    { id: 'd1', who: m.name, what: `sent a notice to ${myHalls[0]?.name ?? 'all halls'}`, when: 'Today' },
+    { id: 'd1', who: m.name, what: `sent a notice to ${myHalls[0]?.name ?? 'all properties'}`, when: 'Today' },
     { id: 'd2', who: m.name, what: 'approved a room swap', when: 'Yesterday' },
-    { id: 'd3', who: 'Arjun Mehta', what: `gave ${first} access to ${myHalls[myHalls.length - 1]?.name ?? 'all halls'}`, when: m.since },
+    { id: 'd3', who: 'Arjun Mehta', what: `gave ${first} access to ${myHalls[myHalls.length - 1]?.name ?? 'all properties'}`, when: m.since },
   ];
   return (
     <Sheet open onClose={onClose} nav={nav} title="Member" onDelete={{ label: 'Remove access', icon: UserMinus, onClick: onRemove }}>
       <SheetHero name={m.name} meta={<><a href={`mailto:${m.email}`} className="text-primary hover:underline">{m.email}</a> · {m.status === 'Active' ? `member since ${m.since}` : m.status.toLowerCase()}</>}
-        facts={[['Role', curRole?.name ?? '—'], ['Halls', curRole?.scope === 'all' || m.halls === 'all' ? 'All' : String(orig.length)], ['Last seen', m.status === 'Active' ? m.lastActive : '—']]}>
+        facts={[['Role', curRole?.name ?? '—'], ['Properties', curRole?.scope === 'all' || m.halls === 'all' ? 'All' : String(orig.length)], ['Last seen', m.status === 'Active' ? m.lastActive : '—']]}>
         <Pill tone={MEMBER_TONE[m.status]}>{m.status}</Pill>
       </SheetHero>
       <div className="-mx-5 mb-5"><LineTabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity' }]} /></div>
@@ -248,7 +249,7 @@ function AccessSheet({ m: m0, addHall, onClose, onRemove, nav }: { nav?: SheetNa
         <SheetSection title="Role" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
           <SheetRow title={curRole?.name ?? 'No role'} sub={curRole ? roleCan(curRole) : undefined} />
         </SheetSection>
-        <SheetSection title={`Halls · ${myHalls.length}`} action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
+        <SheetSection title={`Properties · ${myHalls.length}`} action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}>
           {myHalls.map((h) => <SheetRow key={h.id} title={h.name} sub={`${h.rooms} rooms`} end={<span className="text-sm text-[#737373] shrink-0">{level(h.id)}</span>} />)}
         </SheetSection>
       </>}
@@ -277,14 +278,14 @@ function EditAccessDialog({ m, addHall, open, onClose }: { m: Member; addHall?: 
   const ordered = [...HALLS].sort((a, b) => Number(orig.includes(b.id)) - Number(orig.includes(a.id)));
   const save = () => {
     if (busy.current) return;
-    if (!allScope && !halls.length) { toast.error('Pick at least one hall'); return; }
+    if (!allScope && !halls.length) { toast.error('Pick at least one property'); return; }
     busy.current = true;
     const before = snap();
     const nh: Member['halls'] = allScope || halls.length === HALLS.length ? 'all' : HALLS.map((h) => h.id).filter((id) => halls.includes(id));
     set('members', (ms) => ms.map((x) => (x.id === m.id ? { ...x, roleId, halls: nh } : x)));
     const added = halls.filter((h) => !orig.includes(h));
     if (roleId !== m.roleId) audit_(`changed ${m.name}’s role to ${role?.name}`, 'Members');
-    if (added.length || halls.length !== orig.length) audit_(`changed ${m.name}’s halls to ${hallsLabel(nh)}`, 'Members');
+    if (added.length || halls.length !== orig.length) audit_(`changed ${m.name}’s properties to ${hallsLabel(nh)}`, 'Members');
     onClose();
     if (added.length && roleId === m.roleId) undoable(`${m.name} can now work at ${added.map((h) => hallById(h)?.name).join(' and ')}`, before, { description: `We’ve emailed ${first}.` });
     else undoable(`${m.name}’s access saved`, before);
@@ -296,8 +297,8 @@ function EditAccessDialog({ m, addHall, open, onClose }: { m: Member; addHall?: 
         <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} />
         {role && <p className="text-xs text-[#737373] mt-1.5">{roleCan(role)}</p>}
       </SheetSection>
-      <SheetSection title={allScope ? 'Halls' : `Halls · ${halls.length}`}>
-        {allScope ? <p className="text-sm text-[#737373]">{role?.name} covers every hall.</p> : (
+      <SheetSection title={allScope ? 'Properties' : `Properties · ${halls.length}`}>
+        {allScope ? <p className="text-sm text-[#737373]">{role?.name} covers every property.</p> : (
           <div className="divide-y divide-[#EBEBEB] -my-1">
             {ordered.map((h) => { const on = halls.includes(h.id); const isNew = on && !orig.includes(h.id); return (
               <label key={h.id} className="flex items-center gap-3 h-12 cursor-pointer">

@@ -68,7 +68,7 @@ export function RoleEditor() {
           <div className="max-w-[742px] space-y-5">
             <div className="grid grid-cols-2 gap-3">
               <label className="block"><span className="block text-sm font-medium text-gray-700 mb-1.5">Role name</span>
-                <Input value={name} disabled={locked} onChange={(e) => setName(e.target.value)} placeholder="e.g. Hall warden" /></label>
+                <Input value={name} disabled={locked} onChange={(e) => setName(e.target.value)} placeholder="e.g. Resident manager" /></label>
               <div><span className="block text-sm font-medium text-gray-700 mb-1.5">Start from</span>
                 <IconSelect ariaLabel="Start from" icon={Copy} value={from} onChange={startFrom} options={roles.filter((r) => r.id !== existing?.id).map((r) => ({ value: r.id, label: r.name }))} className={locked ? 'opacity-50 pointer-events-none' : ''} /></div>
             </div>
@@ -100,7 +100,7 @@ export function RoleEditor() {
           <div>
             <div className="text-sm font-medium mb-2">Where</div>
             <div className="space-y-2">
-              {([['given', 'Only the halls they are given', 'Pick halls when you invite someone'], ['all', 'All halls', 'Every hall in the workspace']] as const).map(([v, t, s]) => (
+              {([['given', 'Only the properties they are given', 'Pick properties when you invite someone'], ['all', 'All properties', 'Every property in the workspace']] as const).map(([v, t, s]) => (
                 <label key={v} className={cx('flex gap-3 rounded-xl border p-3.5 cursor-pointer', scope === v ? 'border-primary ring-1 ring-primary/30' : 'border-line hover:border-gray-300')}>
                   <input type="radio" name="scope" checked={scope === v} disabled={locked} onChange={() => setScope(v)} className="size-4 mt-0.5 accent-[#2563EB]" />
                   <span><span className="block text-sm font-medium">{t}</span><span className="block text-xs text-[#737373] mt-0.5">{s}</span></span>

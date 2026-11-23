@@ -5,9 +5,9 @@ import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
 import { Bed, Buildings, Door, DoorOpen, House, Key, Plus, Stack, Tag, Textbox, Trash, TreeStructure, X, type Icon } from '../../components/icons';
 import { Checkbox } from '../../components/shadcn/checkbox';
-import { Button, IconTile, PageHeading, Field, Input, Note, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneDot, SheetHero, SheetRow, SheetSection, listNav, type SheetNav } from '../../components/ui';
+import { Button, IconTile, PageHeading, Field, Input, Note, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneDot, SheetHero, SheetRow, SheetSection, listNav, type SheetNav, avatarFx } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { invId, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
+import { choicesOf, invId, pickOneType, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
 import { EditActions, EditLink, FieldErr, LineTabs, Modal, PanelModal, Picker, PropStatus } from './common';
 
 /* ---------------- Property layouts (code: /cms/structures; Figma 3057:2) ---------------- */
@@ -22,7 +22,7 @@ export function StructuresPage() {
   const rows = structures.filter((s) => !needle || [s.name, ...s.levels.map((l) => l.name)].some((v) => v.toLowerCase().includes(needle)));
   return (
     <>
-      <PageHeader icon={TreeStructure} title="Property layouts" crumbs={['Inventory']}>
+      <PageHeader icon={TreeStructure} title="Property layouts" crumbs={['Properties']}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
         {structures.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search layouts" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New layout</Button>
@@ -76,8 +76,8 @@ function levelTone(name: string): Tone {
   return 'grey';
 }
 const DESC: Record<string, string> = {
-  'Halls with flats': 'Blocks split into floors and flats of shared rooms',
-  'Halls, rooms only': 'Corridors of rooms on each floor, no flats',
+  'Blocks with flats': 'Blocks split into floors and flats of shared rooms',
+  'Rooms only': 'Corridors of rooms on each floor, no flats',
   'Studio block': 'Self-contained studios on each floor',
   'Shared houses': 'Houses let room by room',
 };
@@ -111,7 +111,7 @@ function Levels({ s }: { s: Pick<Structure, 'levels'> }) {
 /** Prototype: properties aren't linked to layouts yet, so which ones use a layout is dummy, stable by layout id. */
 function usedBy(s: Structure, props: Property[]) {
   const h = [...s.id].reduce((n, c) => n + c.charCodeAt(0), 0);
-  const pool = [...props.filter((p) => p.structure === 'College'), ...props.filter((p) => p.structure !== 'College')];
+  const pool = [...props.filter((p) => p.structure === 'Building'), ...props.filter((p) => p.structure !== 'Building')];
   return Array.from({ length: Math.min(s.properties, pool.length) }, (_, i) => pool[(h + i) % pool.length]);
 }
 /** 40px cover photo for a property row; a grey building tile when it has none. */
@@ -199,7 +199,7 @@ function NewLayoutDialog({ open, onClose, onCreated }: { open: boolean; onClose:
   return (
     <PanelModal open={open} onClose={onClose} eyebrow="New layout" title="New property layout" width={560}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!f.valid} onClick={create}>Create layout</Button></>}>
-      <SheetSection title="Layout"><Field label="Name"><Input value={f.name} onChange={(e) => f.setName(e.target.value)} placeholder="e.g. Halls with flats" /></Field></SheetSection>
+      <SheetSection title="Layout"><Field label="Name"><Input value={f.name} onChange={(e) => f.setName(e.target.value)} placeholder="e.g. Blocks with flats" /></Field></SheetSection>
       <SheetSection title="Levels · top first"><LevelsList levels={f.levels} setLevels={f.setLevels} locked={false} /></SheetSection>
       <SheetSection title="Path"><Levels s={{ levels: f.levels.map((l) => ({ name: l.name || '…', bsu: l.bsu })) }} /></SheetSection>
     </PanelModal>
@@ -287,16 +287,38 @@ function EditLayoutDialog({ s, open, onClose }: { s: Structure; open: boolean; o
   };
   return (
     <PanelModal open={open} onClose={onClose} eyebrow="Edit layout" title={s.name} width={560}
+      lead={(() => { const I = levelIcon(s.levels[0]?.name ?? ''); return <span className="size-14 shrink-0 rounded-xl flex items-center justify-center" style={avatarFx(GREY_FG)}><I size={24} strokeWidth={1.75} /></span>; })()}
       meta={locked ? `In use by ${s.properties} ${s.properties === 1 ? 'property' : 'properties'}, so levels can only be renamed.` : undefined}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!f.valid} onClick={save}>Save</Button></>}>
-      <SheetSection title="Layout"><Field label="Name"><Input value={f.name} onChange={(e) => f.setName(e.target.value)} placeholder="e.g. Halls with flats" /></Field></SheetSection>
+      <SheetSection title="Layout"><Field label="Name"><Input value={f.name} onChange={(e) => f.setName(e.target.value)} placeholder="e.g. Blocks with flats" /></Field></SheetSection>
       <SheetSection title="Levels · top first"><LevelsList levels={f.levels} setLevels={f.setLevels} locked={locked} /></SheetSection>
     </PanelModal>
   );
 }
 
 /* ---------------- Custom fields (Settings › Custom fields, 3058:2) ---------------- */
+/* Grey tone ink, the same the panel hero's icon tile uses. */
+const GREY_FG = '#64748B';
 const TYPES = ['Text', 'Number', 'Yes / no', 'Pick one', 'Date'];
+const isPickOne = (f: CField) => f.type.startsWith('Pick one');
+/** Answer type as shown: just "Pick one"; its options are listed under Details, so no count (2026-11-23). */
+const typeLabel = (f: CField) => f.type.split(' · ')[0];
+/** Options under Details: sits on as one more row (same gap as the rows above, no rule), in the same 140px label column. */
+function OptionsBlock({ edit, children }: { edit?: boolean; children: ReactNode }) {
+  return (
+    <div className={cx(edit ? '-mt-[22px]' : '-mt-6', '-mb-2.5 grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 text-sm leading-5')}>
+      <span className={cx('text-[#737373]', edit ? 'py-1' : 'py-1.5')}>Options</span>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+/** Trimmed, blank rows dropped; the error names what's wrong (too few, or the same option twice). */
+function cleanChoices(list: string[]): [string[], string] {
+  const out = list.map((c) => c.trim()).filter(Boolean);
+  const seen = new Set<string>();
+  const dup = out.find((c) => { const k = c.toLowerCase(); if (seen.has(k)) return true; seen.add(k); return false; });
+  return [out, out.length < 2 ? 'Add at least two options.' : dup ? `${dup} is listed twice.` : ''];
+}
 export function CustomFieldsPage() {
   const fields = useInv((s) => s.fields);
   const [q, setQ] = useState('');
@@ -306,19 +328,19 @@ export function CustomFieldsPage() {
   const rows = fields.filter((f) => !q || (f.name + f.key).toLowerCase().includes(q.toLowerCase()));
   return (
     <>
-      <PageHeader icon={Textbox} title="Custom fields" crumbs={['Inventory']}>
+      <PageHeader icon={Textbox} title="Custom fields" crumbs={['Properties']}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
         {fields.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search fields" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New field</Button>
       </PageHeader>
       <PageHeading />
-      <Table rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
+      <Table columns={false} rows={rows} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             empty={fields.length ? <Empty title="No fields match" sub="Try a field name or key." /> : <Empty art="records" title="No custom fields yet" sub="Add your own details to rooms, flats or buildings." />}
             cols={[
               /* Numbered in list order, so a search renumbers what's left. */
               { key: 'no', label: 'S.No.', className: 'w-14', render: (f) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(f) + 1}</span> },
               { key: 'n', label: 'Field', className: 'w-[240px] min-w-[240px]', render: (f) => <span className="font-medium text-[#0A0A0A] whitespace-nowrap">{f.name}</span> },
-              { key: 't', label: 'Answer type', className: 'w-[200px] min-w-[200px]', render: (f) => <span className="text-[#737373] whitespace-nowrap">{f.type.replace(/^(Pick one · \d+)$/, '$1 options')}</span> },
+              { key: 't', label: 'Answer type', className: 'w-[200px] min-w-[200px]', render: (f) => <span className="text-[#737373] whitespace-nowrap">{typeLabel(f)}</span> },
               { key: 'a', label: 'Attached to', render: (f) => <span className="flex flex-wrap gap-1">{f.attached.map((a) => <Pill key={a} tone={lookOf(a.split(' › ').pop() ?? '')[1]}>{a}</Pill>)}</span> },
             ]} />
       <FieldSheet f={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} onClose={() => setOpen(null)} />
@@ -337,7 +359,8 @@ function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | n
   useEffect(() => { setEditing(false); }, [fid]);
   if (!f) return null;
   if (f === 'new') return <FieldDialog f={null} open onClose={onClose} />;
-  const type = f.type.replace(/^(Pick one · \d+)$/, '$1 options');
+  const type = typeLabel(f);
+  const choices = choicesOf(f);
   const del = () => { useInv.getState().set('fields', (l) => l.filter((x) => x.id !== f.id)); setAsking(false); onClose(); toast.success(`${f.name} field deleted`); };
   return (
     <Sheet open onClose={onClose} nav={nav} title="Custom field" width={520} onDelete={{ label: 'Delete field', onClick: () => setAsking(true) }}>
@@ -345,9 +368,20 @@ function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | n
         sub={f.attached.length ? `It’s on ${f.attached.join(', ')}. Every value already entered for it is deleted too.` : 'It isn’t attached to anything yet.'}
         footer={<><Button onClick={() => setAsking(false)}>Keep</Button><Button variant="danger" icon={null} onClick={del}>Delete field</Button></>}>{null}</Modal>
       <SheetHero icon={Textbox} tone="grey" name={f.name} meta={`${type} · on ${f.attached.length} ${f.attached.length === 1 ? 'level' : 'levels'}`} />
+      {/* A pick-one field's options are a Details row (2026-11-23): listed when reading, edited in place with the rest. */}
       {editing ? <FieldDetailsEdit key={f.id} f={f} onDone={() => setEditing(false)} />
         : <SheetSection title="Details" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}
-          rows={[['Name', f.name], ['Answer type', type]]} />}
+          rows={[['Name', f.name], ['Answer type', type]]}>
+          {isPickOne(f) && (
+            <OptionsBlock>
+              {choices.length ? (
+                <ol className="py-1.5 flex flex-col gap-3">
+                  {choices.map((c, i) => <li key={c} className="flex gap-2"><span className="min-w-[1ch] shrink-0 font-mono text-[#737373] tabular-nums">{i + 1}</span><span className="min-w-0 break-words text-[#0A0A0A]">{c}</span></li>)}
+                </ol>
+              ) : <span className="block py-1.5 text-[#A3A3A3]">None yet</span>}
+            </OptionsBlock>
+          )}
+        </SheetSection>}
       <SheetSection title="Attached to"><AttachPicker f={f} structures={structures} /></SheetSection>
       <SheetSection title="Rules">
         <SheetRow title="Required" sub={requiredCopy(f)} end={<Switch checked={!!f.required} onChange={(b) => { useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, required: b } : x))); toast.success(`${f.name} is ${b ? 'required' : 'optional'}`); }} label="Required" />} />
@@ -435,14 +469,19 @@ function FieldDetailsEdit({ f, onDone }: { f: CField; onDone: () => void }) {
   const fields = useInv((s) => s.fields);
   const [name, setName] = useState(f.name);
   const [type, setType] = useState(f.type.split(' · ')[0]);
+  const [list, setList] = useState<string[]>(() => { const c = choicesOf(f); return c.length ? c : ['', '']; });
+  const pick = type === 'Pick one';
+  const [clean, choiceErr] = cleanChoices(list);
+  const [tried, setTried] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   useEffect(() => { nameRef.current?.select(); }, []);
   const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   const nameErr = !name.trim() ? 'Give the field a name.' : !key ? 'Use letters or numbers in the name.' : fields.some((x) => x.id !== f.id && (x.name.trim().toLowerCase() === name.trim().toLowerCase() || x.key === key)) ? `A field called ${name.trim()} already exists.` : '';
   const save = () => {
     if (nameErr) { toast.error(nameErr); return; }
-    const t = type !== 'Pick one' ? type : f.type.startsWith('Pick one') ? f.type : 'Pick one · 3 options';
-    useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, name: name.trim(), key, type: t } : x)));
+    if (pick && choiceErr) { setTried(true); toast.error(choiceErr); return; }
+    const choices = pick ? clean : [];
+    useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, name: name.trim(), key, type: pick ? pickOneType(choices.length) : type, choices } : x)));
     onDone();
     toast.success(`${name.trim()} saved`);
   };
@@ -454,7 +493,45 @@ function FieldDetailsEdit({ f, onDone }: { f: CField; onDone: () => void }) {
         ['Answer type', <span className="block -my-1 -ml-2">
           <Picker value={type} onChange={setType} options={TYPES.map((t) => ({ id: t, label: t }))} className="!h-7 !rounded-md !border-[#E5E5E5] !px-2 text-[#0A0A0A] data-[state=open]:!border-[#2563EB]" />
         </span>],
-      ]} />
+      ]}>
+      {pick && (
+        <OptionsBlock edit>
+          <div className="-ml-2"><ChoicesEditor compact value={list} onChange={setList} onEscape={onDone} /></div>
+          {tried && choiceErr && <FieldErr>{choiceErr}</FieldErr>}
+        </OptionsBlock>
+      )}
+    </SheetSection>
+  );
+}
+
+/** Editable list of pick-one choices, shared by the panel's Options edit and the New / Edit field dialog. */
+function ChoicesEditor({ value, onChange, onEscape, autoFocus, compact }: { value: string[]; onChange: (v: string[]) => void; onEscape?: () => void; autoFocus?: boolean; compact?: boolean }) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  useEffect(() => { if (autoFocus) refs.current[0]?.select(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  /* flushSync so the new row exists before it's focused (jsx-a11y/no-autofocus). */
+  const addAt = (i: number) => { flushSync(() => onChange([...value.slice(0, i), '', ...value.slice(i)])); refs.current[i]?.focus(); };
+  const remove = (i: number) => { onChange(value.filter((_, j) => j !== i)); refs.current[Math.max(0, i - 1)]?.focus(); };
+  return (
+    <div>
+      <ol className={cx('flex flex-col', compact ? 'gap-1' : 'gap-2')}>
+        {value.map((c, i) => (
+          <li key={i} className={cx('flex items-center', compact ? 'gap-2' : 'gap-3')}>
+            {!compact && <span className="w-5 shrink-0 font-mono text-sm text-[#737373] tabular-nums">{i + 1}</span>}
+            <input ref={(el) => { refs.current[i] = el; }} aria-label={`Option ${i + 1}`} value={c} placeholder={`Option ${i + 1}`}
+              onChange={(e) => onChange(value.map((x, j) => (j === i ? e.target.value : x)))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); addAt(i + 1); }
+                else if (e.key === 'Backspace' && !c && value.length > 1) { e.preventDefault(); remove(i); }
+                else if (e.key === 'Escape' && onEscape) { e.stopPropagation(); onEscape(); }
+              }}
+              className={cx('flex-1 min-w-0 rounded-md', compact ? 'h-7 px-2' : 'h-8 px-2.5', 'border border-[#E5E5E5] bg-white text-sm leading-5 text-[#0A0A0A] placeholder:text-[#A3A3A3] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15')} />
+            <button type="button" aria-label={`Remove ${c.trim() || `option ${i + 1}`}`} onClick={() => remove(i)} disabled={value.length === 1}
+              className="size-6 shrink-0 rounded-md grid place-items-center text-[#737373] hover:bg-[#F0F0F0] hover:text-[#0A0A0A] disabled:opacity-40 disabled:pointer-events-none"><X size={14} /></button>
+          </li>
+        ))}
+      </ol>
+      <button type="button" onClick={() => addAt(value.length)} className={cx(compact ? 'mt-2 ml-0.5' : 'mt-3 ml-9', 'h-6 px-1.5 rounded-md text-sm font-medium text-primary hover:bg-[#EFF6FF] inline-flex items-center gap-1')}><Plus size={14} />Add option</button>
+    </div>
   );
 }
 
@@ -464,28 +541,37 @@ function FieldDialog({ f, open, onClose }: { f: CField | null; open: boolean; on
   const [name, setName] = useState(f?.name ?? '');
   const [type, setType] = useState(f ? f.type.split(' · ')[0] : 'Text');
   const [attached, setAttached] = useState<string[]>(f?.attached ?? []);
+  const startChoices = () => { const c = f ? choicesOf(f) : []; return c.length ? c : ['', '']; };
+  const [choices, setChoices] = useState<string[]>(startChoices);
   const busy = useRef(false);
-  useEffect(() => { if (open) { busy.current = false; setName(f?.name ?? ''); setType(f ? f.type.split(' · ')[0] : 'Text'); setAttached(f?.attached ?? []); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (open) { busy.current = false; setName(f?.name ?? ''); setType(f ? f.type.split(' · ')[0] : 'Text'); setAttached(f?.attached ?? []); setChoices(startChoices()); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const pick = type === 'Pick one';
+  const [clean, cErr] = cleanChoices(choices);
+  /* Two blank starter rows aren't an error yet; Create just stays off until there are two options. */
+  const choiceErr = pick ? cErr : '';
+  const showChoiceErr = pick && clean.length >= 2 && cErr;
   const nameErr = !name.trim() ? '' : !key ? 'Use letters or numbers in the name.' : fields.some((x) => (!f || x.id !== f.id) && (x.name.trim().toLowerCase() === name.trim().toLowerCase() || x.key === key)) ? `A field called ${name.trim()} already exists.` : '';
   const save = () => {
-    if (busy.current || !name.trim() || nameErr) return;
+    if (busy.current || !name.trim() || nameErr || choiceErr) return;
     busy.current = true;
-    /* A pick-one field shows how many choices it has; an existing one keeps its count. */
-    const t = type !== 'Pick one' ? type : f && f.type.startsWith('Pick one') ? f.type : 'Pick one · 3 options';
-    useInv.getState().set('fields', (l) => (!f ? [...l, { id: invId('cf'), name: name.trim(), key, type: t, attached }] : l.map((x) => (x.id === f.id ? { ...x, name: name.trim(), key, type: t, attached } : x))));
+    /* A pick-one field's type counts its choices. */
+    const opts = pick ? clean : [];
+    const t = pick ? pickOneType(opts.length) : type;
+    useInv.getState().set('fields', (l) => (!f ? [...l, { id: invId('cf'), name: name.trim(), key, type: t, choices: opts, attached }] : l.map((x) => (x.id === f.id ? { ...x, name: name.trim(), key, type: t, choices: opts, attached } : x))));
     onClose();
     toast.success(!f ? `${name.trim()} field created` : `${name.trim()} saved`);
   };
   return (
     <PanelModal open={open} onClose={onClose} eyebrow={f ? 'Edit field' : 'New field'} title={f ? f.name : 'New custom field'} meta="Pick the levels it appears on in each layout." width={640}
-      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!name.trim() || !!nameErr} onClick={save}>{f ? 'Save' : 'Create field'}</Button></>}>
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!name.trim() || !!nameErr || !!choiceErr} onClick={save}>{f ? 'Save' : 'Create field'}</Button></>}>
       <SheetSection title="Field">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Warden phone" /><FieldErr>{nameErr}</FieldErr></Field>
+          <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Resident manager phone" /><FieldErr>{nameErr}</FieldErr></Field>
           <Field label="Answer type"><Picker value={type} onChange={setType} options={TYPES.map((t) => ({ id: t, label: t }))} /></Field>
         </div>
       </SheetSection>
+      {pick && <SheetSection title={`Options · ${clean.length}`}><ChoicesEditor value={choices} onChange={setChoices} />{showChoiceErr && <FieldErr>{cErr}</FieldErr>}</SheetSection>}
       <SheetSection title="Attached to"><AttachGrid structures={structures} attached={attached} onChange={setAttached} /></SheetSection>
     </PanelModal>
   );
@@ -564,20 +650,19 @@ export function TagsPage() {
   const rows = tags.filter((t) => !q || t.label.toLowerCase().includes(q.toLowerCase()));
   return (
     <>
-      <PageHeader icon={Tag} title="Tags" crumbs={['Inventory']}>
+      <PageHeader icon={Tag} title="Tags" crumbs={['Properties']}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
         {tags.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search tags" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New tag</Button>
       </PageHeader>
       <PageHeading />
-      <Table rows={rows} empty={<Empty art="noResults" title="No tags yet" sub="Tags label properties, like Catered or Postgraduate." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
+      <Table columns={false} rows={rows} empty={<Empty art="noResults" title="No tags yet" sub="Tags label properties, like Catered or Pet friendly." />} onRow={setOpen} selected={open && open !== 'new' ? open.id : undefined}
             cols={[
               { key: 'no', label: 'S.No.', className: 'w-14', render: (t) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(t) + 1}</span> },
               { key: 'n', label: 'Tag', render: (t) => <Pill tone={t.tone} outline>{t.label}</Pill> },
               { key: 'u', label: 'Used on', render: (t) => { const u = used(t); return u.length
                 ? <PropStack props={u} label={<>{u[0].name}{u.length > 1 && <span className="text-[#737373]"> +{u.length - 1}</span>}</>} />
                 : <span className="text-[#A3A3A3]">Not used yet</span>; } },
-              { key: 'r', label: 'Rooms', render: (t) => { const n = used(t).reduce((a, p) => a + p.units, 0); return n ? <span>{n.toLocaleString('en-GB')}</span> : <span className="text-[#A3A3A3]">—</span>; } },
               { key: 'up', label: 'Updated', render: (t) => { const [who, when] = tagUpdated(t, tags); return <span className="inline-flex items-center gap-2 min-w-0"><Avatar name={who} size={24} /><span className="text-[#0A0A0A] truncate">{who}</span><span className="text-[#737373] whitespace-nowrap">· {when}</span></span>; } },
             ]} />
       <TagSheet t={open} nav={open && open !== 'new' ? listNav(rows, (x) => x.id === open.id, (x) => setOpen(x)) : undefined} key={open && open !== 'new' ? open.id : 'new'} usedOn={open && open !== 'new' ? used(open) : []} onClose={() => setOpen(null)} />
@@ -622,15 +707,13 @@ function TagSheet({ t, usedOn, onClose, nav }: { nav?: SheetNav; t: TagDef | 'ne
         {usedOn.length ? usedOn.map((p) => (
           <div key={p.id} className="group py-2.5 first:pt-0 last:pb-0 border-t border-[#EBEBEB] first:border-t-0 flex items-center gap-3">
             <PropThumb id={p.id} />
-            {/* Remove sits right after the name (shown on hover), so the campus stays flush right whether or not it shows. */}
             <span className="flex-1 min-w-0">
-              <span className="flex items-center gap-1 h-5">
-                <span className="min-w-0 truncate text-sm leading-5 text-[#0A0A0A]">{p.name}</span>
-                <button type="button" onClick={() => untag(p)} aria-label={`Remove ${t.label} from ${p.name}`} title="Remove from this property"
-                  className="size-5 shrink-0 rounded-md flex items-center justify-center text-[#A3A3A3] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity"><X size={12} /></button>
-              </span>
+              <span className="block truncate text-sm leading-5 text-[#0A0A0A]">{p.name}</span>
               <span className="block text-[13px] leading-5 text-[#737373] truncate">{p.campus} · {p.units} rooms</span>
             </span>
+            {/* Remove sits at the row's right end, centred on it, shown on hover (2026-11-23). */}
+            <button type="button" onClick={() => untag(p)} aria-label={`Remove ${t.label} from ${p.name}`} title="Remove from this property"
+              className="size-6 shrink-0 rounded-md flex items-center justify-center text-[#A3A3A3] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity"><X size={14} /></button>
           </div>
         )) : <p className="text-sm leading-5 text-[#737373]">Not on any property yet.</p>}
       </SheetSection>

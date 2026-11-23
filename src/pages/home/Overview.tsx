@@ -16,12 +16,12 @@ import { ME, useHome } from '../../data/home';
 function Header() {
   const campuses = useDb((s) => s.campuses);
   const [year, setYear] = useState('2026/27');
-  const [campus, setCampus] = useState('All campuses');
+  const [campus, setCampus] = useState('All locations');
   return (
     <PageHeader icon={SquaresFour} title="Overview" search>
       <ButtonGroup>
         <MenuButton icon={CalendarBlank} value={year} options={['2025/26', '2026/27', '2027/28']} onChange={setYear} />
-        <MenuButton icon={MapPin} value={campus} options={['All campuses', ...campuses.map((c) => c.name)]} onChange={setCampus} />
+        <MenuButton icon={MapPin} value={campus} options={['All locations', ...campuses.map((c) => c.name)]} onChange={setCampus} />
       </ButtonGroup>
     </PageHeader>
   );
@@ -89,7 +89,7 @@ function Today() {
               <DonutStats center={e ? '0' : '163'} centerLabel="open" parts={[
                 { label: 'To review', value: e ? 0 : 128, color: '#2563EB' },
                 { label: 'Waiting 5d+', value: e ? 0 : 31, color: '#DC2626', tone: e ? 'ink' : 'red' },
-                { label: 'With landlord', value: e ? 0 : 4, color: '#8B5CF6' },
+                { label: 'With owner', value: e ? 0 : 4, color: '#8B5CF6' },
               ]} />
             </SummaryCard>
             <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
@@ -115,9 +115,9 @@ function FirstDay() {
   const cycles = useAlloc((s) => s.cycles.length);
   const steps = [
     { id: 's1', title: 'Choose the resident site domain', sub: 'Portals · durham.residents.app', done: true },
-    { id: 's2', title: 'Add campuses', sub: `Organisation · ${campuses} campuses`, done: campuses > 0, cta: 'Add campuses', to: '/org/campuses' },
-    { id: 's3', title: 'Create your first property', sub: 'Inventory · one, many at once, or an import', done: props > 0, cta: 'Create a property', to: '/inventory/properties/new' },
-    { id: 's4', title: 'Invite your team', sub: 'Roles and access · wardens, front desk, estates', done: members > 1, cta: 'Invite', to: '/org/people' },
+    { id: 's2', title: 'Add locations', sub: `Organisation · ${campuses} locations`, done: campuses > 0, cta: 'Add locations', to: '/org/campuses' },
+    { id: 's3', title: 'Create your first property', sub: 'Properties · one, many at once, or an import', done: props > 0, cta: 'Create a property', to: '/inventory/properties/new' },
+    { id: 's4', title: 'Invite your team', sub: 'Roles and access · resident managers, front desk, estates', done: members > 1, cta: 'Invite', to: '/org/people' },
     { id: 's5', title: 'Open an allocation term', sub: 'Allocations · needs at least one active property', done: cycles > 0, cta: 'Open a term', to: '/allocations/cycles' },
   ];
   const done = steps.filter((s) => s.done).length;
@@ -134,7 +134,7 @@ function FirstDay() {
             <PersonPhoto name="Arjun Mehta" size={48} square />
             <div className="min-w-0">
               <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Arjun</h2>
-              <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a term exist.</p>
+              <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once properties and a term exist.</p>
             </div>
           </div>
           <Card className="mt-6 max-w-[640px] pt-4 pb-2 overflow-hidden">

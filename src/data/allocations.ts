@@ -139,7 +139,7 @@ function seedApps(): App[] {
   const rej: [string, string, string, string, string, string][] = [
     ['Sam Taylor', '11977', 'Duplicate application', 'Tom Okafor', '26 Oct', 'Collingwood'],
     ['Freya Hughes', '11950', 'Withdrawn by the applicant', 'Self-service', '25 Oct', 'Hild Bede'],
-    ['Marcus Bell', '11921', 'Not eligible for this cycle', ME, '24 Oct', 'Stephenson'],
+    ['Marcus Bell', '11921', 'Not eligible for this term', ME, '24 Oct', 'Stephenson'],
     ['Chloe Martin', '12317', 'No offer to study at Durham', 'Tom Okafor', '22 Oct', 'Josephine Butler'],
     ['Ravi Patel', '11880', 'Other · moved to private halls', ME, '21 Oct', 'Hild Bede'],
   ];
@@ -155,7 +155,7 @@ function seedApps(): App[] {
 export const APP_TARGETS = { manual: 14, allocated: 2480, rejected: 96, all: 3410 };
 const BULK_FIRST = ['Adam', 'Aisha', 'Alex', 'Amelia', 'Amir', 'Anna', 'Arjun', 'Aryan', 'Bella', 'Caleb', 'Chloe', 'Daisy', 'Daniel', 'Eden', 'Eliza', 'Emily', 'Ethan', 'Fatima', 'Felix', 'Florence', 'Gabriel', 'George', 'Hamza', 'Harper', 'Harry', 'Iris', 'Isaac', 'Jade', 'James', 'Jasmine', 'Joseph', 'Kiara', 'Laila', 'Liam', 'Lucy', 'Mason', 'Matilda', 'Mohammed', 'Nadia', 'Nathan', 'Olivia', 'Oscar', 'Phoebe', 'Rafael', 'Rhys', 'Sana', 'Sebastian', 'Sienna', 'Sofia', 'Thomas', 'Willow', 'Yusuf', 'Zain', 'Aaliyah', 'Beatrice', 'Cyrus', 'Delphine', 'Emeka', 'Farah', 'Hugo'];
 const BULK_LAST = ['Abbott', 'Adeyemi', 'Akhtar', 'Barker', 'Bose', 'Brennan', 'Brooks', 'Campbell', 'Chen', 'Chowdhury', 'Cole', 'Dawson', 'Dixon', 'Edwards', 'Ellis', 'Farouk', 'Fletcher', 'Gallagher', 'Gill', 'Gordon', 'Greene', 'Hassan', 'Hayes', 'Holt', 'Hussain', 'Iqbal', 'Jackson', 'James', 'Jenkins', 'Kelly', 'Kennedy', 'Lam', 'Lawson', 'Lee', 'Lowe', 'Malik', 'Marsh', 'Mitchell', 'Moss', 'Nash', 'Obi', 'Owen', 'Parker', 'Perera', 'Quinn', 'Rana', 'Richards', 'Robinson', 'Saunders', 'Sharma', 'Simmons', 'Stone', 'Sutton', 'Thompson', 'Tran', 'Usman', 'Vaughan', 'Ward', 'Webb', 'Yates'];
-const REJECT_REASONS: [string, number][] = [['No offer to study at Durham', 41], ['Duplicate application', 22], ['Withdrawn by the applicant', 19], ['Not eligible for this cycle', 9], ['Other · moved to private halls', 5]];
+const REJECT_REASONS: [string, number][] = [['No offer to study at Durham', 41], ['Duplicate application', 22], ['Withdrawn by the applicant', 19], ['Not eligible for this term', 9], ['Other · moved to private halls', 5]];
 const MANUAL_WHY = ['Late application', 'Fee status not confirmed', 'Asks to live with a friend', 'Under 18 at arrival', 'Two applications, different emails', 'Medical letter to check', 'Wants a year-round room', 'Course start date unclear'];
 const STAFF = [ME, 'Tom Okafor', 'Aisha Khan'];
 
@@ -298,7 +298,7 @@ function seedWait(): Wait[] {
 
 /* The rest of 2027/28's offers and waitlist, so each tab's number is real rows (Open 42 · Accepted 2,215 ·
    Declined 176 · Lapsed 58 · Waitlist 63). Offers go to applications already allocated in bulk(), and each
-   application's Offer column is set to match. Earlier cycles' allocations get accepted offers too, so clearing the
+   application's Offer column is set to match. Earlier terms' allocations get accepted offers too, so clearing the
    Cycle filter widens the list. The design rows stay first; these follow, newest first. Deterministic. */
 export const OFFER_TARGETS = { open: 42, accepted: 2215, declined: 176, lapsed: 58, waitlist: 63 };
 const DECLINE_REASONS: [string, number][] = [['Chose another operator', 9], ['Too expensive', 5], ['Living at home', 4], ['Wanted a different hall', 3], ['No reason given', 3]];

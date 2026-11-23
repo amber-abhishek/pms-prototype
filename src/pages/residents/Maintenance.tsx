@@ -131,7 +131,7 @@ function LogFault({ open, onClose }: { open: boolean; onClose: () => void }) {
     nav(`/residents/maintenance/${id}`);
   });
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow="New fault" title="New fault" width={560}
+    <PanelModal open={open} onClose={onClose} eyebrow="New fault" width={560}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={submit}>Create fault</Button></>}>
       <SheetSection title="Fault">
         <div className="space-y-4">

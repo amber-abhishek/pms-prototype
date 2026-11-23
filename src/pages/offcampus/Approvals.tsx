@@ -1,7 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { ClipboardText } from '../../components/icons';
-import { PageHeader } from '../../components/ui';
-import { LineTabs } from '../inventory/common';
+import { PageHeader, Tabs } from '../../components/ui';
 import { useOc } from '../../data/offcampus';
 import { Landlords } from './Landlords';
 import { Reviews } from './Reviews';
@@ -19,11 +18,12 @@ export function Approvals() {
   const pick = (k: Kind) => setSp((p) => { const n = new URLSearchParams(p); n.set('kind', k); n.delete('tab'); n.delete('open'); return n; }, { replace: true });
   return (
     <>
-      <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Approvals" />
+      {/* Landlords / Listings is a switch in the header (Figma 4159:17418); the status tabs below are the one row of tabs. */}
+      <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Approvals">
+        <div className="[&_[role=tablist]]:!bg-[#EBEBEB]"><Tabs value={kind} onChange={pick} tabs={[{ id: 'landlords', label: 'Landlords', count: waitingLandlords || undefined }, { id: 'listings', label: 'Listings', count: waitingListings || undefined }]} /></div>
+      </PageHeader>
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Approvals" />
-        <LineTabs value={kind} onChange={pick} className="px-[var(--tx,16px)] shrink-0"
-          tabs={[{ id: 'landlords', label: `Landlords · ${waitingLandlords}` }, { id: 'listings', label: `Listings · ${waitingListings}` }]} />
         {kind === 'listings' ? <Reviews bare /> : <Landlords bare />}
       </div>
     </>

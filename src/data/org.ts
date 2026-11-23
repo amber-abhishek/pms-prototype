@@ -78,7 +78,7 @@ const CAMPUSES: Campus[] = [
 ];
 
 const TEAMS: Team[] = [
-  { id: 't1', name: 'Accommodation office', purpose: 'Allocations, offers and the cycle', leadId: 'm1', memberIds: ['m1', 'm3', 'm6'], halls: 'all' },
+  { id: 't1', name: 'Accommodation office', purpose: 'Allocations, offers and the term', leadId: 'm1', memberIds: ['m1', 'm3', 'm6'], halls: 'all' },
   { id: 't2', name: 'Collingwood', purpose: 'Everyone working in Collingwood', leadId: 'm2', memberIds: ['m2', 'm4'], halls: ['p2'] },
   { id: 't3', name: 'Ustinov', purpose: 'Everyone working in Ustinov', leadId: 'm5', memberIds: ['m5', 'm4'], halls: ['p1'] },
   { id: 't4', name: 'Estates', purpose: 'Repairs and planned maintenance', leadId: 'm4', memberIds: ['m4'], halls: 'all' },

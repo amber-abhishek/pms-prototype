@@ -46,7 +46,7 @@ function NewTaskButton({ scope }: { scope: 'main' | CaseId }) {
     <>
       <Button variant="primary" icon={Plus} onClick={() => setOpen(true)}>New task</Button>
       {/* Creating opens a centred modal (2026-11-19), never a side sheet. */}
-      <PanelModal open={open} onClose={() => setOpen(false)} eyebrow="New task" title="New task" width={520}
+      <PanelModal open={open} onClose={() => setOpen(false)} eyebrow="New task" width={520}
         right={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" icon={null} type="submit" form="new-task" disabled={!title.trim()}>Create task</Button></>}>
         <form id="new-task" onSubmit={create}>
           <SheetSection title="Task">

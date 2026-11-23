@@ -75,7 +75,7 @@ function NewRequest({ open, onClose, onCreate }: { open: boolean; onClose: () =>
     setWho(''); setDetail('');
   });
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow="New request" title="New request" width={560}
+    <PanelModal open={open} onClose={onClose} eyebrow="New request" width={560}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={submit}>Create request</Button></>}>
       <SheetSection title="Request">
         <div className="space-y-4">

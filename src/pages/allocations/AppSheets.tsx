@@ -93,7 +93,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
 
 const REASONS = [
   { r: 'No offer to study at Durham', sub: 'They can apply again if they get one', tpl: 'no study offer' },
-  { r: 'Not eligible for this cycle', tpl: 'not eligible' },
+  { r: 'Not eligible for this term', tpl: 'not eligible' },
   { r: 'Duplicate application', tpl: 'duplicate' },
   { r: 'Withdrawn by the applicant', tpl: 'withdrawn' },
   { r: 'Other', sub: 'Needs a note', tpl: 'other' },

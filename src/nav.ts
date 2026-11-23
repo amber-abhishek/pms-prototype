@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, CircleCheck, History, Inbox, Wrench, UserCheck, Building, Grid3x3, ChartColumn, Network, TextCursorInput, Wallet,
+  LayoutDashboard, CircleCheck, Inbox, Wrench, UserCheck, Building, Grid3x3, ChartColumn, Network, TextCursorInput, Wallet,
   FileText, Send, CalendarCheck, Users, ArrowsLeftRight, Megaphone, House, Hotel, MessageSquare, Settings,
   Globe, Monitor, Landmark, MapPin, Shield, Mail, Bell, Plug, Palette, Tag,
   Warehouse, Gauge, Library, CalendarClock, Repeat, BedDouble, BookUser, ScrollText, Settings2, AppWindow, ChartLine, FileArrowUp,
@@ -66,11 +66,6 @@ export const modules: Module[] = [
     sections: [{ items: [{ label: 'My tasks', to: '/tasks', icon: CircleCheck, count: (c) => c.tasks }] }],
   },
   {
-    id: 'activity', label: 'Activity', icon: History, home: '/activity', group: 'top', roles: ['admin', 'offcampus'],
-    match: starts('/activity'),
-    sections: [{ items: [{ label: 'Activity', to: '/activity', icon: History }] }],
-  },
-  {
     id: 'inventory', label: 'Inventory', icon: Warehouse, home: '/inventory/properties', group: 'modules', roles: ['admin'], subtitle: 'CMS',
     match: starts('/inventory'),
     sections: [
@@ -95,7 +90,7 @@ export const modules: Module[] = [
       { label: 'Applications', to: '/allocations/applications', icon: Inbox, count: (c) => c.toReview },
       { label: 'Offers & waitlist', to: '/allocations/offers', icon: Send, count: (c) => c.offers },
       { label: 'Bookings', to: '/allocations/bookings', icon: BedDouble },
-      { label: 'Cycles', to: '/allocations/cycles', icon: Repeat },
+      { label: 'Terms', to: '/allocations/cycles', icon: Repeat },
     ] }],
   },
   {

@@ -112,7 +112,7 @@ function CampusDialog({ existing, onClose }: { existing?: Campus; onClose: () =>
   };
 
   return (
-    <PanelModal open onClose={onClose} width={600} eyebrow={existing ? 'Edit campus' : 'New campus'} title={existing ? existing.name : 'New campus'}
+    <PanelModal open onClose={onClose} width={600} eyebrow={existing ? 'Edit campus' : 'New campus'} title={existing?.name}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{existing ? 'Save' : 'Create campus'}</Button></>}>
       <SheetSection title="Campus">
         <div className="grid grid-cols-[1fr_168px] gap-3">

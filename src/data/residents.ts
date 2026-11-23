@@ -67,7 +67,7 @@ const mk = (id: string, name: string, hall: string, room: string, roomType: stri
     deposit: 'Paid', depositNote: '£250 · card · 2 Aug', lease: 'Signed', leaseNote: 'Signed online · 2 Aug',
     year: 'Second year', rent: roomType.includes('Ensuite') ? 218 : 206,
     studentId: `00${1900000 + (n * 7919) % 99999}`, phone: `+44 7700 9${String(n * 37).padStart(5, '0').slice(-5)}`,
-    course: 'BA History · Year 2', emergency: 'On file', application: `APP-27-0${1000 + (n % 900)} · from 2026/27 cycle`,
+    course: 'BA History · Year 2', emergency: 'On file', application: `APP-27-0${1000 + (n % 900)} · from 2026/27 term`,
     ...rest,
   };
 };
@@ -75,7 +75,7 @@ const mk = (id: string, name: string, hall: string, room: string, roomType: stri
 const baseResidents = (): Resident[] => [
   mk('r1', 'Amira Rahman', 'Ustinov College', 'G.04.A', 'Accessible ensuite', 'Arriving', {
     arrivingThisWeek: true, arrives: 'Sat 19 Sep', slot: '10:00–12:00', year: 'First year', plan: 'With Disability Support · carer room G.04.B next door',
-    studentId: '001942871', phone: '+44 7700 900412', course: 'BSc Biosciences · Year 1', emergency: 'Nadia Rahman (mother)', application: 'APP-27-01842 · from 2026/27 cycle',
+    studentId: '001942871', phone: '+44 7700 900412', course: 'BSc Biosciences · Year 1', emergency: 'Nadia Rahman (mother)', application: 'APP-27-01842 · from 2026/27 term',
   }),
   mk('r2', 'Ella Morgan', 'Collingwood', 'B.1.07', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Today', deposit: 'Not paid', depositNote: '£250 due', year: 'Third year', course: 'BA English · Year 3' }),
   mk('r3', 'Josh Patel', 'Collingwood', 'D.3.02', 'Ensuite single', 'In residence', { arrivingThisWeek: true, arrives: 'Today', checkedIn: 'Today, 09:40 by James Ward', course: 'MEng Engineering · Year 3' }),

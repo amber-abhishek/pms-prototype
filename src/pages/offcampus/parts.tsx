@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '../../components/shadcn/command';
 import type { Tone } from '../../data/seed';
 import { PHOTO } from '../inventory/photos';
+import { LineTabs } from '../inventory/common';
 
 /** Big title + description used at the top of every off-campus page. */
 export function Title({ title, sub, children }: { title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
@@ -140,3 +141,14 @@ export function EmptyArt({ art }: { art: Illo }) {
 }
 
 /** Small segmented buttons (Enquiries source): selected is a white bordered button, the rest are ghost. */
+
+/** Approvals queues (Figma 4159:17418, 2026-11-23): one row of underline status tabs, each with its count, and search on the right. */
+export function StatusTabsBar<T extends string>({ value, onChange, tabs, search }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string; count: number }[]; search: ReactNode }) {
+  return (
+    /* 56px row: tab labels and search share the centre line; the tab underline sits on the bottom rule. */
+    <div {...PIN} className="shrink-0 h-14 px-[var(--tx,16px)] flex items-stretch gap-3 border-b border-[#E5E5E5]">
+      <div className="min-w-0"><LineTabs value={value} onChange={onChange} className="!px-0 !border-b-0 h-full [&>button]:!h-[55px]" tabs={tabs.map((t) => ({ id: t.id, label: `${t.label} · ${t.count}` }))} /></div>
+      <div className="ml-auto self-center w-[240px] min-w-[140px] shrink [&>label]:!w-full">{search}</div>
+    </div>
+  );
+}

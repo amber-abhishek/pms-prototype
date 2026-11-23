@@ -8,7 +8,7 @@ import { renameMe } from './rename';
 export type ReportDef = { id: string; name: string; area: 'Inventory' | 'Allocations' | 'Finance' | 'Maintenance' | 'Residents'; desc: string; to: string };
 export const REPORTS: ReportDef[] = [
   { id: 'occupancy', name: 'Occupancy', area: 'Inventory', desc: 'Beds in residence, arriving and vacant, by hall and week', to: '/reports' },
-  { id: 'applications', name: 'Applications funnel', area: 'Allocations', desc: 'Applied, offered, accepted and booked, by cycle', to: '/reports/applications' },
+  { id: 'applications', name: 'Applications funnel', area: 'Allocations', desc: 'Applied, offered, accepted and booked, by term', to: '/reports/applications' },
   { id: 'rent', name: 'Rent and arrears', area: 'Finance', desc: 'Billed, collected and overdue, by hall', to: '/reports/rent' },
   { id: 'sla', name: 'Maintenance deadlines', area: 'Maintenance', desc: 'Jobs fixed on time and cost, by hall and category', to: '/reports/maintenance-sla' },
   { id: 'requests', name: 'Requests', area: 'Residents', desc: 'What residents ask for and how fast it’s answered', to: '/reports/requests' },
@@ -68,9 +68,9 @@ export const useWorkspace = create<WsState>()(
       notifs: NOTIFS,
       general: { name: 'Durham Residences', short: 'Durham', timezone: 'Europe/London (GMT+1)', currency: 'GBP · £', weekStarts: 'Monday', quietFrom: '21:00', quietTo: '08:00' },
       years: [
-        { id: 'y28', name: '2027/28', starts: '18 Sep 2027', ends: '16 Jun 2028', cycle: '2027/28 cycle · open', status: 'Upcoming' },
-        { id: 'y27', name: '2026/27', starts: '19 Sep 2026', ends: '18 Jun 2027', cycle: '2026/27 cycle · closed', status: 'Current' },
-        { id: 'y26', name: '2025/26', starts: '20 Sep 2025', ends: '19 Jun 2026', cycle: '2025/26 cycle · archived', status: 'Ended' },
+        { id: 'y28', name: '2027/28', starts: '18 Sep 2027', ends: '16 Jun 2028', cycle: '2027/28 term · open', status: 'Upcoming' },
+        { id: 'y27', name: '2026/27', starts: '19 Sep 2026', ends: '18 Jun 2027', cycle: '2026/27 term · closed', status: 'Current' },
+        { id: 'y26', name: '2025/26', starts: '20 Sep 2025', ends: '19 Jun 2026', cycle: '2025/26 term · archived', status: 'Ended' },
       ],
       terms: [
         { id: 't1', name: 'Michaelmas', starts: '5 Oct 2026', ends: '11 Dec 2026', weeks: 10, due: '1 Oct' },

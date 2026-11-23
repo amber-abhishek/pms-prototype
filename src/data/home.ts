@@ -75,7 +75,7 @@ const mine: HTask[] = [
       activity: [{ icon: 'plus', text: 'Draft saved by you · Fri 11 Sep' }] } },
   { id: 'k5', title: 'Review 31 applications waiting more than 5 days', from: { icon: 'applications', label: 'Applications · 2027/28' }, due: 'week', dueLabel: 'Wed 16 Sep', dueTone: 'amber', owner: ME, done: false, to: '/allocations/applications?tab=To%20review', openLabel: 'Open applications',
     detail: { short: 'Application review', sub: 'Task from Applications · 2027/28', pills: [{ label: 'Wed 16 Sep', tone: 'amber', icon: 'calendar' }],
-      facts: [['Applications', '31 waiting more than 5 days'], ['Cycle', '2027/28'], ['Oldest', '9 days']],
+      facts: [['Applications', '31 waiting more than 5 days'], ['Term', '2027/28'], ['Oldest', '9 days']],
       decide: { title: 'Review them in Applications', sub: 'The task closes itself when none has waited more than 5 days.' } } },
   { id: 'k6', title: 'Check fire-door survey for St Mary’s College', from: { icon: 'properties', label: 'Properties' }, due: 'week', dueLabel: 'Thu 17 Sep', dueTone: 'amber', owner: ME, done: false, to: '/inventory/properties?open=p3', openLabel: 'Open property',
     detail: { short: 'Fire-door check', sub: 'Task from Properties', facts: [['Property', 'St Mary’s College'], ['Survey', 'Fire doors · due before move-in']] } },
@@ -108,7 +108,7 @@ const team: HTask[] = [
 const d = (id: string, title: string, icon: FromIcon, label: string, doneLabel: string): HTask => ({ id, title, from: { icon, label }, due: 'week', dueLabel: doneLabel, dueTone: 'grey', owner: ME, done: true, doneBy: ME, doneLabel });
 const doneSeed: HTask[] = [
   d('dn1', 'Approve 3 listings on the off-campus site', 'applications', 'Off-campus · listings', 'Mon 14 Sep'),
-  d('dn2', 'Publish the 2027/28 allocation cycle', 'applications', 'Applications · 2027/28', 'Fri 11 Sep'),
+  d('dn2', 'Publish the 2027/28 allocation term', 'applications', 'Applications · 2027/28', 'Fri 11 Sep'),
   d('dn3', 'Add custom field “Floor area (m²)”', 'properties', 'Properties', 'Fri 11 Sep'),
   d('dn4', 'Send arrival times to Collingwood porters', 'notices', 'Notices', 'Thu 10 Sep'),
   d('dn5', 'Sign off the Ustinov fire-risk assessment', 'properties', 'Properties', 'Wed 9 Sep'),

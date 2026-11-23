@@ -118,7 +118,7 @@ function FirstDay() {
     { id: 's2', title: 'Add campuses', sub: `Organisation · ${campuses} campuses`, done: campuses > 0, cta: 'Add campuses', to: '/org/campuses' },
     { id: 's3', title: 'Create your first property', sub: 'Inventory · one, many at once, or an import', done: props > 0, cta: 'Create a property', to: '/inventory/properties/new' },
     { id: 's4', title: 'Invite your team', sub: 'Roles and access · wardens, front desk, estates', done: members > 1, cta: 'Invite', to: '/org/people' },
-    { id: 's5', title: 'Open an allocation cycle', sub: 'Allocations · needs at least one active property', done: cycles > 0, cta: 'Open a cycle', to: '/allocations/cycles' },
+    { id: 's5', title: 'Open an allocation term', sub: 'Allocations · needs at least one active property', done: cycles > 0, cta: 'Open a term', to: '/allocations/cycles' },
   ];
   const done = steps.filter((s) => s.done).length;
   const pct = Math.round((done / steps.length) * 100);
@@ -134,7 +134,7 @@ function FirstDay() {
             <PersonPhoto name="Arjun Mehta" size={48} square />
             <div className="min-w-0">
               <h2 className="text-xl leading-7 font-medium text-ink">Welcome, Arjun</h2>
-              <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a cycle exist.</p>
+              <p className="text-sm text-[#737373] mt-0.5">Durham’s workspace is new. The numbers fill in once halls and a term exist.</p>
             </div>
           </div>
           <Card className="mt-6 max-w-[640px] pt-4 pb-2 overflow-hidden">

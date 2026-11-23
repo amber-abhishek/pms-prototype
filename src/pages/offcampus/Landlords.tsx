@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChatCenteredText, CheckCircle, ClipboardText, Eye, Hourglass, Info, LinkSimple, XCircle } from '../../components/icons';
+import { ArrowCounterClockwise, ChatCenteredText, CheckCircle, ClipboardText, Eye, Hourglass, Info, LinkSimple, Pause, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Avatar, Button, listNav, Empty, Note, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, Status, Table, Tabs, PIN } from '../../components/ui';
+import { Avatar, Button, listNav, Empty, Note, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, Status, Table } from '../../components/ui';
 import { LineTabs } from '../inventory/common';
 import { useOpen, useTab } from '../hooks';
 import { SIGNUP_LINK, stamp, useOc, type LandlordApp, type LandlordStatus } from '../../data/offcampus';
 import { Checkbox } from '../../components/shadcn/checkbox';
-import { BulkAction, BulkBar, EmptyArt, NoteDialog, ODialog, Tag, Title } from './parts';
+import { BulkAction, BulkBar, EmptyArt, NoteDialog, ODialog, StatusTabsBar, Tag, Title } from './parts';
 
 type TabId = 'all' | 'submitted' | 'awaiting' | 'approved' | 'rejected' | 'suspended';
 const TABS: { id: TabId; label: string; status?: LandlordStatus }[] = [
-  { id: 'all', label: 'All' }, { id: 'submitted', label: 'In review', status: 'Submitted' }, { id: 'awaiting', label: 'Awaiting info', status: 'Awaiting info' },
+  { id: 'all', label: 'All' }, { id: 'submitted', label: 'To review', status: 'Submitted' }, { id: 'awaiting', label: 'Waiting on landlord', status: 'Awaiting info' },
   { id: 'approved', label: 'Approved', status: 'Approved' }, { id: 'rejected', label: 'Rejected', status: 'Rejected' }, { id: 'suspended', label: 'Inactive', status: 'Suspended' },
 ];
 
@@ -25,7 +25,7 @@ export function Landlords({ bare }: { bare?: boolean } = {}) {
   const [tab, setTab] = useTab<TabId>('submitted');
   const [open, setOpen] = useOpen();
   const [q, setQ] = useState('');
-  const [dlg, setDlg] = useState<'info' | 'approve' | 'reject' | null>(null);
+  const [dlg, setDlg] = useState<'info' | 'approve' | 'reject' | 'deactivate' | null>(null);
   const busy = useRef(false);
   const sel = all.find((l) => l.id === open);
   /* Ticked rows; a new tab or search starts a fresh selection. */
@@ -56,6 +56,22 @@ export function Landlords({ bare }: { bare?: boolean } = {}) {
     setDlg(null); setOpen(null); setTab('rejected');
     toast.success('Application rejected', { description: 'Your reason is emailed to the landlord when this closes.', duration: 8000, action: { label: 'Undo', onClick: undoFor(l) } });
   });
+  /* An approved landlord can be switched off (their houses leave the resident site) and back on; both undo. */
+  const deactivate = (l: LandlordApp, note: string) => guard(() => {
+    const before = useOc.getState().hmos;
+    patch(l.id, { status: 'Suspended', lastNote: note, reviewed: stamp() });
+    /* Their live houses go inactive with the landlord ("Inactive · landlord is inactive" on Landlord listings). */
+    set('hmos', (hs) => hs.map((h) => (h.landlord === l.name && h.status === 'Active' ? { ...h, status: 'Paused' as const, pausedBy: 'revoked' as const } : h)));
+    setDlg(null); setOpen(null); setTab('suspended');
+    toast.success('Landlord made inactive', { description: 'Their houses are off the resident site until you reactivate them.', duration: 8000, action: { label: 'Undo', onClick: () => { undoFor(l)(); set('hmos', () => before); } } });
+  });
+  const reactivate = (l: LandlordApp) => guard(() => {
+    const before = useOc.getState().hmos;
+    patch(l.id, { status: 'Approved', lastNote: undefined, reviewed: stamp() });
+    set('hmos', (hs) => hs.map((h) => (h.landlord === l.name && h.pausedBy === 'revoked' ? { ...h, status: 'Active' as const, pausedBy: undefined } : h)));
+    setOpen(null); setTab('approved');
+    toast.success('Landlord reactivated', { description: 'Their houses are back on the resident site.', duration: 8000, action: { label: 'Undo', onClick: () => { undoFor(l)(); set('hmos', () => before); } } });
+  });
   const simulateReply = (l: LandlordApp) => {
     patch(l.id, { portfolio: 5, areas: [...l.areas.filter((a) => a !== 'Claypath'), 'Claypath'], updated: true });
     toast.success(`${l.name} updated their application`, { description: 'Portfolio is now 5 properties.' });
@@ -84,11 +100,8 @@ export function Landlords({ bare }: { bare?: boolean } = {}) {
       {!bare && <PageHeader icon={ClipboardText} crumbs={['Off-campus']} title="Landlord applications" />}
       <div className="flex-1 min-h-0 flex flex-col relative">
         {!bare && <Title title="Landlord applications" />}
-        {rows0.length > 0 && (<div {...PIN} className="px-[var(--tx,16px)] py-4 flex items-center gap-3">
-                    {/* Every off-campus list: search on the left, status tabs at the right edge. */}
-                    <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or email" /></div>
-                    <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: counted(x.id) }))} /></div>
-        </div>)}
+        {rows0.length > 0 && <StatusTabsBar value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: counted(x.id) }))}
+          search={<SearchInput value={q} onChange={setQ} placeholder="Search name or email" />} />}
         {!rows0.length ? <NoLandlords /> : (
           <Table fill rows={rows} onRow={(l) => setOpen(l.id)} selected={open ?? undefined}
             footer={false}
@@ -111,7 +124,9 @@ export function Landlords({ bare }: { bare?: boolean } = {}) {
 
       <Sheet open={!!sel} onClose={() => setOpen(null)} width={520} title="Landlord application" nav={listNav(rows, (l) => l.id === open, (l) => setOpen(l.id))}
         onDelete={sel && (sel.status === 'Submitted' || sel.status === 'Awaiting info') ? { label: 'Reject application', icon: XCircle, onClick: () => setDlg('reject') } : undefined}
-        footer={sel && (sel.status === 'Submitted' || sel.status === 'Awaiting info') && (
+        footer={sel?.status === 'Approved' ? <Button icon={Pause} className="ml-auto" onClick={() => setDlg('deactivate')}>Make inactive</Button>
+          : sel?.status === 'Suspended' ? <Button variant="primary" icon={ArrowCounterClockwise} className="ml-auto" onClick={() => reactivate(sel)}>Reactivate</Button>
+          : sel && (sel.status === 'Submitted' || sel.status === 'Awaiting info') && (
           <>
             {sel.status === 'Submitted' && <Button icon={ChatCenteredText} className="ml-auto" onClick={() => setDlg('info')}>Request info</Button>}
             <Button variant="primary" icon={CheckCircle} className={sel.status === 'Submitted' ? undefined : 'ml-auto'} onClick={() => setDlg('approve')}>Approve</Button>
@@ -127,6 +142,9 @@ export function Landlords({ bare }: { bare?: boolean } = {}) {
       <NoteDialog open={dlg === 'reject' && !!sel} onClose={() => setDlg(null)} icon={XCircle} danger title="Reject this application"
         sub="Your reason is emailed to the landlord. They can apply again later." label="Why are you rejecting it?" placeholder="e.g. None of the properties are in Durham."
         submit="Reject" onSubmit={(n) => sel && reject(sel, n)} />
+      <NoteDialog open={dlg === 'deactivate' && !!sel} onClose={() => setDlg(null)} icon={Pause} title="Make this landlord inactive"
+        sub="Their houses come off the resident site and they can’t submit new ones. You can reactivate them later." label="Why? (emailed to the landlord)" placeholder="e.g. Gas safety certificate has lapsed."
+        submit="Make inactive" onSubmit={(n) => sel && deactivate(sel, n)} />
       <ODialog confirm open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title="Approve this landlord"
         sub="They will be invited to the landlord portal and can submit properties to you."
         footer={<><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => sel && approve(sel)}>Approve</Button></>} />
@@ -206,8 +224,9 @@ function LandlordDetail({ l, onSimulateReply }: { l: LandlordApp; onSimulateRepl
 
 export function LStatus({ s }: { s: LandlordStatus }) {
   if (s === 'Approved') return <Tag tone="green">Approved</Tag>;
-  /* Shared wording (2026-11-19): In review = waiting on you; Inactive = switched off, can come back; Archived = removed. */
-  if (s === 'Submitted') return <Tag tone="blue">In review</Tag>;
+  /* Shared wording (2026-11-23): To review = your move; Waiting on landlord = their move; Inactive = switched off, can come back. */
+  if (s === 'Submitted') return <Tag tone="blue">To review</Tag>;
+  if (s === 'Awaiting info') return <Tag tone="amber">Waiting on landlord</Tag>;
   if (s === 'Suspended') return <Status s="Inactive" />;
   return <Status s={s} />;
 }

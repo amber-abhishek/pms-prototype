@@ -36,21 +36,21 @@ export function Cycles() {
   );
   return (
     <>
-      <PageHeader icon={CalendarDots} title="Cycles" crumbs={['Allocations']}>{d.cycles.length > 0 && <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New cycle</Button>}</PageHeader>
+      <PageHeader icon={CalendarDots} title="Terms" crumbs={['Allocations']}>{d.cycles.length > 0 && <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New term</Button>}</PageHeader>
       {d.cycles.length > 0 && (
         <Toolbar>
           <Tabs value={tab} onChange={setTab} tabs={[{ id: 'All', label: 'All', count: d.cycles.length }, { id: 'Live', label: 'Live', count: d.cycles.filter(isLive).length }, { id: 'Closed', label: 'Closed', count: d.cycles.filter((c) => !isLive(c)).length }]} />
         </Toolbar>
       )}
       {!d.cycles.length ? (
-        <EmptyArea art="cycles" icon={CalendarCheck} title="No cycles yet" sub="A cycle is one academic year of allocations.">
-          <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New cycle</Button>
+        <EmptyArea art="cycles" icon={CalendarCheck} title="No terms yet" sub="A term is one academic year of allocations.">
+          <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New term</Button>
         </EmptyArea>
       ) : tab === 'All' ? (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
             <Grid fill rows={cycles} onRow={(c) => setTab(isLive(c) ? 'Live' : 'Closed')} cols={[
-              { key: 'n', label: 'Cycle', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
+              { key: 'n', label: 'Term', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
               { key: 'w', label: 'Window', render: (c) => <span className="text-gray-500">{c.opens} – {c.ends}</span> },
               { key: 'a', label: 'Applications', render: (c) => fmtN(c.apps) },
               { key: 'b', label: 'Beds allocated', render: bar },
@@ -61,13 +61,13 @@ export function Cycles() {
       ) : tab === 'Live' ? (
         <div className="flex-1 overflow-auto px-[var(--tx,16px)] pt-2 pb-5 space-y-4">
           {live.map((c) => <LiveCard key={c.id} c={c} onEdit={() => setEditing(c)} onClose={() => setClosing(c)} onOpenApps={() => { filterToCycle(c.name); nav('/allocations/applications?tab=To%20review'); }} />)}
-          {!live.length && <EmptyArea art="cycles" icon={CalendarCheck} title="No live cycle" sub="Create next year’s cycle to open applications."><Button icon={Plus} onClick={() => setCreating(true)}>New cycle</Button></EmptyArea>}
+          {!live.length && <EmptyArea art="cycles" icon={CalendarCheck} title="No live term" sub="Create next year’s term to open applications."><Button icon={Plus} onClick={() => setCreating(true)}>New term</Button></EmptyArea>}
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
             <Grid fill rows={closed} cols={[
-              { key: 'n', label: 'Cycle', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
+              { key: 'n', label: 'Term', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
               { key: 'w', label: 'Window', render: (c) => <span className="text-gray-500">{c.opens} – {c.ends}</span> },
               { key: 'a', label: 'Applications', render: (c) => fmtN(c.apps) },
               { key: 'b', label: 'Beds allocated', render: (c) => `${fmtN(c.allocated)} of ${fmtN(c.beds)}` },
@@ -75,7 +75,7 @@ export function Cycles() {
               { key: 'c', label: 'Closed', render: (c) => <span className="text-gray-500">{c.closedOn}</span> },
             ]} />
           </div>
-          <Foot>Closed cycles are read-only · their bookings stay in residents’ history</Foot>
+          <Foot>Closed terms are read-only · their bookings stay in residents’ history</Foot>
         </div>
       )}
       {creating && <NewCycleSheet onClose={() => setCreating(false)} onCreated={() => { setCreating(false); setTab('Live'); }} />}
@@ -108,7 +108,7 @@ function LiveCard({ c, onEdit, onClose, onOpenApps }: { c: Cycle; onEdit: () => 
           <div className="text-xs text-gray-500 mt-0.5">{c.opens} – {c.ends} · {ten ? 'residents in their rooms' : c.from ? `duplicated from ${c.from}` : 'set up by hand'}</div>
         </div>
         <div className="flex gap-2">
-          {open && <Button size="sm" variant="ghost" onClick={onClose}>Close cycle</Button>}
+          {open && <Button size="sm" variant="ghost" onClick={onClose}>Close term</Button>}
           {!ten && <Button size="sm" variant="ghost" icon={Calendar} onClick={onEdit}>Edit dates</Button>}
           {ten ? <Button size="sm" onClick={() => nav('/allocations/bookings')}>Open bookings</Button> : <Button size="sm" onClick={onOpenApps}>Open applications</Button>}
         </div>
@@ -138,16 +138,16 @@ function NewCycleSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
     busy.current = true;
     const n = name.trim();
     d.up((x) => ({ cycles: [{ id: `cy${Date.now()}`, name: n, opens: dates.opens, ends: dates.starts, closes: dates.closes, offersFrom: dates.offers, starts: dates.starts, apps: 0, allocated: 0, beds: latest?.beds ?? 2893, status: 'upcoming', from: from === 'dup' ? latest?.name : undefined }, ...x.cycles] }));
-    toast.success(`Cycle ${n} created`, { description: from === 'dup' ? `Copied properties, room types, rules, offer emails and the form from ${latest?.name}` : 'Empty · set up the form and rules next' });
+    toast.success(`Term ${n} created`, { description: from === 'dup' ? `Copied properties, room types, rules, offer emails and the form from ${latest?.name}` : 'Empty · set up the form and rules next' });
     onCreated();
   };
   const bars: [string, number, number, string][] = [['Applications', 0, 6, '#2563EB'], ['Review & allocate', 0.6, 7.5, '#7C3AED'], ['Offers open', 0.65, 10, '#F59E0B'], ['Move-in', 11.4, 12, '#0B8A4C']];
   return (
     /* Creating something opens a centred modal; side sheets are for reading and editing a record. */
-    <PanelModal open onClose={onClose} eyebrow="New cycle" title="New cycle" width={600}
-      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!valid} onClick={create}>Create cycle</Button></>}>
-        <SheetSection title="Cycle">
-        <Field label="Name" hint={!valid && name.trim() ? (d.cycles.some((c) => c.name === name.trim()) ? 'That cycle already exists' : 'Use the form 2028/29') : undefined}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+    <PanelModal open onClose={onClose} eyebrow="New term" width={600}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!valid} onClick={create}>Create term</Button></>}>
+        <SheetSection title="Term">
+        <Field label="Name" hint={!valid && name.trim() ? (d.cycles.some((c) => c.name === name.trim()) ? 'That term already exists' : 'Use the form 2028/29') : undefined}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
         </SheetSection>
         <SheetSection title="Start from">
           <div role="radiogroup" aria-label="Start from">
@@ -216,26 +216,26 @@ function CloseCycle({ c, onClose }: { c: Cycle; onClose: () => void }) {
     const ids = new Set(left.map((a) => a.id));
     d.up((x) => ({
       cycles: x.cycles.map((y) => (y.id === c.id ? { ...y, status: 'closed', closedOn: `${TODAY} 2026`, occupancy: `${((y.allocated / y.beds) * 100).toFixed(1)}%` } : y)),
-      apps: x.apps.map((a) => (ids.has(a.id) ? (choice === 'wait' ? { ...a, status: 'waitlist' as const } : { ...a, status: 'rejected' as const, reason: 'Cycle closed · standard email', rejBy: 'Arjun Mehta', rejOn: TODAY, emailed: true }) : a)),
-      waitlist: choice === 'wait' ? [...x.waitlist, ...left.map((a) => ({ id: `w${Date.now()}${a.ref}`, name: a.name, appId: a.id, hall: a.hall, room: a.room, note: `Cycle ${c.name} closed`, joined: TODAY }))] : x.waitlist,
+      apps: x.apps.map((a) => (ids.has(a.id) ? (choice === 'wait' ? { ...a, status: 'waitlist' as const } : { ...a, status: 'rejected' as const, reason: 'Term closed · standard email', rejBy: 'Arjun Mehta', rejOn: TODAY, emailed: true }) : a)),
+      waitlist: choice === 'wait' ? [...x.waitlist, ...left.map((a) => ({ id: `w${Date.now()}${a.ref}`, name: a.name, appId: a.id, hall: a.hall, room: a.room, note: `Term ${c.name} closed`, joined: TODAY }))] : x.waitlist,
     }));
-    toast.success(`Cycle closed · ${left.length} residents ${choice === 'wait' ? 'moved to the waitlist' : 'declined'} and emailed`, { action: undo });
+    toast.success(`Term closed · ${left.length} residents ${choice === 'wait' ? 'moved to the waitlist' : 'declined'} and emailed`, { action: undo });
     onClose();
   };
   if (!left.length) {
     return (
-      <Modal open onClose={onClose} tone="blue" icon={CalendarCheck} title={`Close the ${c.name} cycle?`} sub="Closing stops new offers; bookings carry on." footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={close}>Close cycle</Button></>}>
-        <div className="text-sm text-gray-500">Closed cycles are read-only.</div>
+      <Modal open onClose={onClose} tone="blue" icon={CalendarCheck} title={`Close the ${c.name} term?`} sub="Closing stops new offers; bookings carry on." footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={close}>Close term</Button></>}>
+        <div className="text-sm text-gray-500">Closed terms are read-only.</div>
       </Modal>
     );
   }
   return (
-    <Modal open onClose={onClose} tone="amber" icon={Warning} title={`${left.length} applications aren’t reviewed`} sub={`Closing the ${c.name} cycle stops new offers.`}
+    <Modal open onClose={onClose} tone="amber" icon={Warning} title={`${left.length} applications aren’t reviewed`} sub={`Closing the ${c.name} term stops new offers.`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant={choice === 'decline' ? 'danger' : 'primary'} icon={null} onClick={close}>{choice === 'wait' ? `Close and waitlist ${left.length}` : choice === 'decline' ? `Close and decline ${left.length}` : 'Keep it open'}</Button></>}>
       <div className="space-y-2">
       <Radio checked={choice === 'wait'} onChange={() => setChoice('wait')} title="Move them to the waitlist" sub="In the order they applied; they get an email saying so." />
       <Radio checked={choice === 'decline'} onChange={() => setChoice('decline')} title="Decline with the standard email" sub="They can apply to off-campus housing from the resident site." />
-      <Radio checked={choice === 'keep'} onChange={() => setChoice('keep')} title="Keep the cycle open" sub="Review them first." />
+      <Radio checked={choice === 'keep'} onChange={() => setChoice('keep')} title="Keep the term open" sub="Review them first." />
       </div>
     </Modal>
   );

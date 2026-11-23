@@ -3,19 +3,17 @@ import { Illustration } from '../../components/Illustration';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Archive, ArrowCounterClockwise, CaretDown, Stack, ArrowsDownUp, Buildings, DotsThree, FileCsv, PauseCircle, PencilSimple, SlidersHorizontal, UploadSimple, X, CheckCircle,
+  Archive, ArrowCounterClockwise, CaretDown, Stack, ArrowsDownUp, Buildings, DotsThree, FileCsv, PauseCircle, PencilSimple, UploadSimple, X, CheckCircle,
 } from '../../components/icons';
-import { Button, Check, Empty, MultiFilter, PageHeader, Pill, SearchInput, SheetRow, SheetSection, Table, cx, PIN } from '../../components/ui';
+import { Button, Empty, MultiFilter, PageHeader, Pill, SearchInput, SheetRow, SheetSection, Table, cx, PIN } from '../../components/ui';
 import { PHOTO } from './photos';
 import { EditSheet } from './PropertyDetail';
-import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
 import { useOrg } from '../../data/org';
 import { EditLink, LayoutRadios, Menu, Modal, PanelModal, PropStatus, RadioCard, Stepper, Tags } from './common';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Dropdown, Input } from '../../components/ui';
 
-const COLS = ['Campus', 'Layout', 'Tags', 'Units', 'Status'] as const;
 
 /** The Properties rows in their on-screen order (search, filters, sort), so the property modal's ↑ ↓ steps through what the list shows. */
 export const shownOrder: { ids: string[] } = { ids: [] };
@@ -26,7 +24,6 @@ export function PropertiesPage() {
   const props = useInv((s) => s.properties);
   const patchProp = useInv((s) => s.patchProp);
   const [q, setQ] = useState('');
-  const [hidden, setHidden] = useState<string[]>([]);
   const [archiving, setArchiving] = useState<Property | null>(null);
   /* Edit in the row menu opens the edit sheet straight away, not the property sheet first (2026-11-18). */
   const [editing, setEditing] = useState<Property | null>(null);
@@ -112,7 +109,7 @@ export function PropertiesPage() {
           items={p.status === 'Archived' ? [{ label: 'Restore', icon: ArrowCounterClockwise, onClick: () => restore(p) }] : [{ label: 'Edit', icon: PencilSimple, onClick: () => setEditing(p) }, 'sep', { label: 'Archive', icon: Archive, danger: true, onClick: () => archive(p) }]} />
       ),
     },
-  ].filter((c) => !hidden.includes(c.key));
+  ];
 
   return (
     <>
@@ -141,7 +138,6 @@ export function PropertiesPage() {
               <MultiFilter label="Campus" value={campusF} onChange={setCampusF} options={[{ value: 'Durham City' }, { value: 'Queen’s Campus' }]} />
               <MultiFilter label="Layout" value={layoutF} onChange={setLayoutF} options={[{ value: 'College' }, { value: 'House' }]} />
               <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={240} options={[{ value: 'Active', tone: 'green' }, { value: 'Draft', tone: 'amber' }, { value: 'Inactive', tone: 'grey' }, { value: 'Closed to allocations', tone: 'amber' }, { value: 'Archived', tone: 'red' }]} />
-              <Display hidden={hidden} setHidden={setHidden} />
             </div>
           </div>
           <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)}
@@ -163,19 +159,6 @@ export const PRE_LET: Record<string, number> = { col: 88, jb: 83, ust: 94, ste: 
 const KICKER: Record<string, string> = Object.fromEntries(Object.entries(PRE_LET).map(([k, v]) => [k, `${v}% pre-let`]));
 /** "South Road, Durham DH1 3DF" → "South Road · DH1 3DF". */
 const shortAddress = (a: string) => { const parts = a.split(', '); const pc = parts[parts.length - 1].split(' ').slice(-2).join(' '); return parts.length > 1 ? `${parts[0]} · ${pc}` : a; };
-
-function Display({ hidden, setHidden }: { hidden: string[]; setHidden: (h: string[]) => void }) {
-  /* shadcn Popover. */
-  return (
-    <Popover>
-      <PopoverTrigger asChild><Button variant="control" icon={SlidersHorizontal}>Display</Button></PopoverTrigger>
-      <PopoverContent align="end" className="w-56 space-y-2">
-        <div className="text-xs font-semibold text-[#737373] uppercase tracking-wide">Columns</div>
-        {COLS.map((c) => <div key={c}><Check label={c} checked={!hidden.includes(c)} onChange={(v) => setHidden(v ? hidden.filter((h) => h !== c) : [...hidden, c])} /></div>)}
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 /* Figma empty-state illustrations (Inventory · Empty states): properties for a new tenant, rooms for a property with none. */
 export function EmptyArt({ kind = 'building' }: { kind?: 'building' | 'clipboard' }) {
@@ -247,7 +230,7 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
     );
   }
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow="Bulk create" title="Bulk create properties"
+    <PanelModal open={open} onClose={onClose} eyebrow="Bulk create properties"
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!valid} onClick={create}>Create {count} properties</Button></>}>
       {/* The side panels' language: r16 section cards with a 48px grey strip. Plain divs for the labels, not <label>: a
           label around a stepper would press its − button when the label text is clicked. */}
@@ -266,7 +249,7 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
           <div>
             <div className="text-sm leading-5 text-[#525252] mb-1.5">How many</div>
-            <Stepper value={count} onChange={setCount} min={2} max={50} />
+            <Stepper value={count} onChange={setCount} min={2} max={50} fill />
           </div>
         </div>
       </SheetSection>
@@ -278,13 +261,15 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
           <div>
             <div className="text-sm leading-5 text-[#525252] mb-1.5">In each</div>
-            <Stepper value={roomsEach} onChange={setRoomsEach} min={1} max={40} />
+            <Stepper value={roomsEach} onChange={setRoomsEach} min={1} max={40} fill />
           </div>
         </div>
       </SheetSection>
       {/* Every name is listed (up to 50); the body scrolls. */}
       <SheetSection title={`Preview · ${count} properties · ${count * roomsEach} rooms`}>
-        {names.map((n, i) => <SheetRow key={i} title={n || 'Untitled'} end={<span className="shrink-0 text-sm leading-5 text-[#737373]">{roomsEach} × {roomType.toLowerCase()}</span>} />)}
+        {/* A long pattern truncates before the number, so each row still shows which one it is. */}
+        {names.map((n, i) => { const [head, tail] = pattern.includes('{n}') ? [pattern.split('{n}')[0], `${i + 1}${pattern.split('{n}').slice(1).join('{n}')}`] : [`${pattern} `, String(i + 1)];
+          return <SheetRow key={i} title={n ? <span className="flex min-w-0" title={n}><span className="truncate">{head.trimEnd()}</span><span className={cx('shrink-0 whitespace-pre', /\s$/.test(head) && 'pl-1')}>{tail}</span></span> : 'Untitled'} end={<span className="shrink-0 text-sm leading-5 text-[#737373]">{roomsEach} × {roomType.toLowerCase()}</span>} />; })}
       </SheetSection>
     </PanelModal>
   );
@@ -370,7 +355,7 @@ function LiveTenanciesDialog({ p, onClose }: { p: Property | null; onClose: () =
     const prev = p.status;
     if (choice === 'stop') {
       patchProp(p.id, (x) => ({ status: 'Closed to allocations', archiveOn: '19 Jun 2027', activity: logAct(x, 'Closed to allocations · archive booked for 19 Jun 2027') }));
-      toast.success(`${short} is out of the 2027/28 cycle · archives on 19 Jun 2027`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: prev, archiveOn: undefined })) } });
+      toast.success(`${short} is out of the 2027/28 term · archives on 19 Jun 2027`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: prev, archiveOn: undefined })) } });
     } else {
       patchProp(p.id, (x) => ({ archiveOn: '19 Jun 2027', activity: logAct(x, 'Scheduled the archive for 19 Jun 2027') }));
       toast.success(`${short} archives on 19 Jun 2027`);
@@ -382,7 +367,7 @@ function LiveTenanciesDialog({ p, onClose }: { p: Property | null; onClose: () =
       sub="It can’t be archived while residents live there."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={choice === 'stop' ? PauseCircle : Archive} onClick={go}>{choice === 'stop' ? 'Stop allocations' : 'Schedule archive'}</Button></>}>
       <div className="space-y-2.5">
-        <RadioCard checked={choice === 'stop'} onClick={() => setChoice('stop')} title="Stop new allocations now" sub={`${short} leaves the 2027/28 cycle; current residents stay until 18 Jun 2027.`} />
+        <RadioCard checked={choice === 'stop'} onClick={() => setChoice('stop')} title="Stop new allocations now" sub={`${short} leaves the 2027/28 term; current residents stay until 18 Jun 2027.`} />
         <RadioCard checked={choice === 'schedule'} onClick={() => setChoice('schedule')} title="Archive on 19 Jun 2027" sub="Scheduled for the day after the last tenancy ends." />
       </div>
     </Modal>

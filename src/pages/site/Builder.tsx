@@ -217,12 +217,12 @@ function SectionOptions({ id }: { id: SecId }) {
         </div>
       )}
       <Check checked={s.live} onChange={(v) => s.set({ live: v })} label="Show live availability" />
-      <Check checked={s.prices} onChange={(v) => s.set({ prices: v })} label="Show prices from cycle" />
+      <Check checked={s.prices} onChange={(v) => s.set({ prices: v })} label="Show prices from term" />
       <Check checked={s.floor} onChange={(v) => s.set({ floor: v })} label="Show floor plans" />
-      <Note tone="blue" icon={Info} title="Kept in sync">Rooms, prices and availability come from Inventory and Cycles.</Note>
+      <Note tone="blue" icon={Info} title="Kept in sync">Rooms, prices and availability come from Inventory and Terms.</Note>
     </div>
   );
-  if (id === 'apply') return <Note tone="blue" icon={Info} title={`Opens the ${s.cycle} cycle`}>Change the cycle in Settings.</Note>;
+  if (id === 'apply') return <Note tone="blue" icon={Info} title={`Opens the ${s.cycle} term`}>Change the term in Settings.</Note>;
   return <p className="text-sm text-[#737373]">Content for this section is edited in the preview in the real product.</p>;
 }
 

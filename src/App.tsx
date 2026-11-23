@@ -1,7 +1,7 @@
-import { Route, RouterProvider, Routes, createHashRouter } from 'react-router-dom';
+import { Navigate, Route, RouterProvider, Routes, createHashRouter } from 'react-router-dom';
 import { Toaster } from './components/shadcn/sonner';
 import { Shell } from './shell/Shell';
-import { ActivityFeed, Overview, Tasks } from './pages/Home';
+import { Overview, Tasks } from './pages/Home';
 import { InventoryRoutes } from './pages/Inventory';
 import { AllocationsRoutes } from './pages/Allocations';
 import { ResidentsRoutes } from './pages/Residents';
@@ -31,7 +31,7 @@ function AppRoutes() {
         <Route element={<Shell />}>
           <Route index element={<Overview />} />
           <Route path="tasks/*" element={<Tasks />} />
-          <Route path="activity" element={<ActivityFeed />} />
+          <Route path="activity" element={<Navigate to="/org/activity" replace />} />
           <Route path="inventory/*" element={<InventoryRoutes />} />
           <Route path="allocations/*" element={<AllocationsRoutes />} />
           <Route path="residents/*" element={<ResidentsRoutes />} />

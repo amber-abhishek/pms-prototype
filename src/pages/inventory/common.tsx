@@ -113,7 +113,7 @@ export function InvModal({ open, onClose, title, width = 600, left, right, child
  *  flow in mono caps (+ an optional "STEP 1 OF 5"), then the ✕; a hero (20px Medium title, one grey line); the body as
  *  SheetSection cards; a 64px footer with `left` (Cancel) and `right` (the action). */
 export function PanelModal({ open, onClose, eyebrow, pos, title, meta, width = 640, left, right, children }: {
-  open: boolean; onClose: () => void; eyebrow: string; pos?: string; title: ReactNode; meta?: ReactNode; width?: number; left?: ReactNode; right?: ReactNode; children: ReactNode;
+  open: boolean; onClose: () => void; eyebrow: string; pos?: string; title?: ReactNode; meta?: ReactNode; width?: number; left?: ReactNode; right?: ReactNode; children: ReactNode;
 }) {
   const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
   return (
@@ -127,10 +127,13 @@ export function PanelModal({ open, onClose, eyebrow, pos, title, meta, width = 6
         </div>
         {/* 20px under the header rule, like every other dialog body (2026-11-20). */}
         <div className="flex-1 min-h-0 overflow-auto px-6 pt-5 pb-6">
-          <div className="mb-4">
-            <div className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</div>
-            {meta && <p className="text-sm leading-5 text-[#737373]">{meta}</p>}
-          </div>
+          {/* No headline when it would only repeat the eyebrow (create modals, 2026-11-20). */}
+          {title && (
+            <div className="mb-4">
+              <div className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</div>
+              {meta && <p className="text-sm leading-5 text-[#737373]">{meta}</p>}
+            </div>
+          )}
           {children}
         </div>
         <FooterZone.Provider value><div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center gap-2">{left}<div className="ml-auto flex items-center gap-2">{right}</div></div></FooterZone.Provider>
@@ -226,9 +229,10 @@ export function Menu({ trigger, items, align = 'right', width = 200 }: { trigger
 }
 
 /* Stepper −  n  + */
-export function Stepper({ value, onChange, min = 1, max = 99 }: { value: number; onChange: (n: number) => void; min?: number; max?: number }) {
+/** `fill`: takes its column's width and the field height, so it lines up with the inputs beside it (bulk create, 2026-11-23). */
+export function Stepper({ value, onChange, min = 1, max = 99, fill }: { value: number; onChange: (n: number) => void; min?: number; max?: number; fill?: boolean }) {
   return (
-    <div className="inline-flex h-8 rounded-lg border border-input bg-white overflow-hidden">
+    <div className={fill ? 'flex w-full h-input rounded-lg border border-input bg-white overflow-hidden [&>input]:flex-1 [&>input]:min-w-0' : 'inline-flex h-8 rounded-lg border border-input bg-white overflow-hidden'}>
       <button type="button" aria-label="Fewer" onClick={() => onChange(Math.max(min, value - 1))} className="w-8 flex items-center justify-center text-[#737373] hover:bg-gray-50 border-r border-gray-200"><Minus size={13} /></button>
       <input aria-label="Count" value={value} onChange={(e) => { const n = parseInt(e.target.value, 10); if (!Number.isNaN(n)) onChange(Math.min(max, Math.max(min, n))); }} className="w-12 text-center text-sm outline-none" />
       <button type="button" aria-label="More" onClick={() => onChange(Math.min(max, value + 1))} className="w-8 flex items-center justify-center text-[#737373] hover:bg-gray-50 border-l border-gray-200"><Plus size={13} /></button>

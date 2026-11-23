@@ -661,7 +661,7 @@ function TagDialog({ t, open, onClose }: { t: TagDef | null; open: boolean; onCl
     toast.success(!t ? `${name} tag created` : `${name} saved`);
   };
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow={t ? 'Edit tag' : 'New tag'} title={t ? t.label : 'New tag'} width={520}
+    <PanelModal open={open} onClose={onClose} eyebrow={t ? 'Edit tag' : 'New tag'} title={t?.label} width={520}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!name || clash} onClick={save}>{t ? 'Save' : 'Create tag'}</Button></>}>
       <SheetSection title="Tag" action={name ? <Pill tone={tone}>{name}</Pill> : undefined}>
         <div className="space-y-4">

@@ -112,7 +112,7 @@ export function Bookings() {
         <Toolbar right={<>
           <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as typeof tab)} width={240}
             options={[{ value: 'All', meta: fmtN(c.all) }, { value: 'Awaiting signature', meta: fmtN(c.sent) }, { value: 'Lease not sent', meta: fmtN(c.drafts) }, { value: 'Conflicts', meta: fmtN(c.conflicts) }, { value: 'Cancelled', meta: fmtN(c.cancelled) }]} />
-          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} />
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Term', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} />
         </>}>
           <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search bookings" /></div>
         </Toolbar>
@@ -375,7 +375,7 @@ function NewBooking({ onClose, onMade }: { onClose: () => void; onMade: (id: str
   const ok = !!who && !!code;
   return (
     /* Creating opens a centred modal (2026-11-19): sections as cards, Cancel + Create on the right. */
-    <PanelModal open onClose={onClose} eyebrow="New booking" title="New booking" width={560}
+    <PanelModal open onClose={onClose} eyebrow="New booking" width={560}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!ok} onClick={() => {
       if (busy.current || !who) return; busy.current = true;
       const id = `b${Date.now()}`;
@@ -398,7 +398,7 @@ function NewBooking({ onClose, onMade }: { onClose: () => void; onMade: (id: str
         </div>
       </SheetSection>
       {/* What the draft will carry, read-only: it follows the cycle and the room type. */}
-      <SheetSection title="Draft" rows={[['Cycle', '2027/28'], ['Term', '19 Sep 2027 – 9 Sep 2028'], ['Rent', `£${terms.rate} a week`], ['Lease', 'Draft · not sent']]} />
+      <SheetSection title="Draft" rows={[['Term', '2027/28 · 19 Sep 2027 – 9 Sep 2028'], ['Rent', `£${terms.rate} a week`], ['Lease', 'Draft · not sent']]} />
     </PanelModal>
   );
 }

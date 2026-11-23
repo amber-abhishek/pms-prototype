@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarPlus, Clock, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
+import { CalendarPlus, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, SelectFilter, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, Pager, SearchInput, Select, Sheet, SheetHero, SheetRow, SheetSection, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, roomTerms, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
@@ -17,8 +17,6 @@ const unitOf = (o: { hall: string; unit: string }) => `${o.hall} · ${o.unit}`;
 const PAGE = 25;
 /** Generated rows have ids starting with g; the design's rows stay on top. */
 const isGen = (o: Offer) => o.id.startsWith('g');
-const leftCls = (h?: number) => (h === undefined ? '' : h <= 24 ? 'font-semibold text-[#E5530C]' : 'text-ink');
-const Left = ({ h, text }: { h?: number; text: string }) => <span className={cx('inline-flex items-center gap-1', leftCls(h))}>{h !== undefined && h <= 24 && <Clock size={14} />}{text}</span>;
 
 /** Next on the waitlist for a room type, and the data with them taken off and offered the unit. */
 function offerToWaitlist(d: Data, hall: string, room: string, unit: string): { name: string; patch: Partial<Data> } | null {
@@ -113,7 +111,6 @@ export function Offers() {
       { key: 'n', label: 'Applicant', render: (o) => <Person name={o.name} /> },
       { key: 'u', label: 'Unit', render: (o) => unitOf(o) },
       { key: 's', label: 'Status', render: (o) => <St s={ST[o.status]} /> },
-      { key: 't', label: 'Time left', render: (o) => o.status === 'open' && o.leftH !== undefined ? <Left h={o.leftH} text={fmtLeft(o.leftH)} /> : <span className="text-gray-500">—</span> },
       { key: 'x', label: 'What happened next', render: (o) => <span className="text-gray-500">{o.next ?? '—'}</span> },
     ],
     Open: [
@@ -121,7 +118,8 @@ export function Offers() {
       { key: 'u', label: 'Unit', render: (o) => unitOf(o) },
       { key: 's', label: 'Sent', render: (o) => <span className="text-gray-500">{o.sent}</span> },
       { key: 'e', label: 'Expires', render: (o) => <span className="text-gray-500">{o.expires}</span> },
-      { key: 't', label: 'Time left', render: (o) => <Left h={o.leftH ?? 0} text={fmtLeft(o.leftH ?? 0)} /> },
+      /* Status, not a live countdown (2026-11-23): the row reads only what the list API returns; time left is in the side panel. */
+      { key: 'st', label: 'Status', render: (o) => <St s={ST[o.status]} /> },
       { key: 'r', label: 'Reminders', render: (o) => <span className="text-gray-500">{o.reminders ? `${o.reminders} sent` : 'None yet'}</span> },
       { key: 'a', label: '', className: 'text-right', render: (o) => <Button size="sm" variant="ghost" icon={CalendarPlus} onClick={(e) => { e.stopPropagation(); extend(o); }}>Extend</Button> },
     ],
@@ -165,7 +163,7 @@ export function Offers() {
         <Toolbar right={<>
           <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as TabId)} width={220}
             options={[{ value: 'Recent' }, { value: 'Open', meta: fmtN(c.open) }, { value: 'Accepted', meta: fmtN(c.accepted) }, { value: 'Declined', meta: fmtN(c.declined) }, { value: 'Lapsed', meta: fmtN(c.lapsed) }, { value: 'Waitlist', meta: fmtN(c.waitlist) }]} />
-          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Cycle', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }]} />
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Term', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }]} />
         </>}>
           <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search offers" /></div>
         </Toolbar>

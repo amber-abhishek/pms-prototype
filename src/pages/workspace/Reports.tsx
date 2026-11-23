@@ -559,13 +559,13 @@ export function ApplicationsReport() {
         <Button icon={ShareNetwork} onClick={() => { void navigator.clipboard?.writeText(location.href).catch(() => {}); toast.success('Link copied', { description: 'People see only the halls they have access to.' }); }}>Share</Button>
       </RHeader>
       <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
-        <Chip label="Cycle" value={cycle} onChange={setCycle} options={['2027/28', '2026/27']} />
+        <Chip label="Term" value={cycle} onChange={setCycle} options={['2027/28', '2026/27']} />
       </Toolbar>
       <div className="flex-1 overflow-auto px-[var(--tx,16px)] pb-6 space-y-4">
         {/* Each stage keeps its chart colour on the bar. £182 a week is the seed average rent (Collingwood's Standard single). */}
         <StatStrip bleed items={[...stages.map(([l, n, c]) => ({ label: l, value: fmt(n), meter: { kind: 'progress' as const, value: n, max: f.applied, color: c, tip: `${Math.round((n / f.applied) * 100)}% of applied` } })), { label: 'Rent booked', value: gbpM(f.accepted * 182 * 44), sub: 'accepted × 44 weeks' }]} />
         <div className="rounded-xl border border-line bg-white p-5">
-          <h2 className="text-sm font-semibold mb-4">From application to booking · {cycle} cycle</h2>
+          <h2 className="text-sm font-semibold mb-4">From application to booking · {cycle} term</h2>
           <div className="space-y-3">
             {stages.map(([label, n, c]) => (
               <div key={label} className="grid grid-cols-[110px_1fr_60px] items-center gap-4 text-sm">

@@ -222,3 +222,14 @@ thead tr, thead th { border-top-width: 0 !important; border-bottom-width: 0 !imp
 /* v2 (Figma 3966:17265): the page header inside the card is #FAFAFA, a step lighter than the #F5F5F5 chrome around the
    card, so the two don't read as one surface. Light only: dark keeps the header's own dark grey. */
 html:not(.dark) .shell-chrome [data-page-head] { background-color: #FAFAFA; }
+
+/* Theme colour (src/data/accent.ts): the shadcn --primary / --ring follow the picked accent; the hard-coded blues are
+   recoloured by postcss-accent.js. Dark values are the same hue softened, like the dark brand blue above. */
+body[data-accent="purple"] { --primary: 262 83% 58%; --primary-hover: 263 70% 50%; --ring: 262 83% 58%; }
+body[data-accent="pink"] { --primary: 333 71% 51%; --primary-hover: 336 74% 42%; --ring: 333 71% 51%; }
+body[data-accent="green"] { --primary: 151 85% 29%; --primary-hover: 160 94% 24%; --ring: 151 85% 29%; }
+body[data-accent="orange"] { --primary: 21 90% 48%; --primary-hover: 17 88% 40%; --ring: 21 90% 48%; }
+.dark body[data-accent="purple"] { --primary: 262 60% 66%; --primary-hover: 262 65% 72%; --ring: 262 60% 66%; }
+.dark body[data-accent="pink"] { --primary: 333 60% 62%; --primary-hover: 333 65% 70%; --ring: 333 60% 62%; }
+.dark body[data-accent="green"] { --primary: 151 50% 44%; --primary-hover: 151 55% 52%; --ring: 151 50% 44%; }
+.dark body[data-accent="orange"] { --primary: 21 75% 56%; --primary-hover: 21 80% 63%; --ring: 21 75% 56%; }

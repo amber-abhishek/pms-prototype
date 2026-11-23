@@ -121,7 +121,7 @@ function TeamDialog({ team, open, onClose }: { team?: Team; open: boolean; onClo
     onClose();
   };
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow={team ? 'Edit team' : 'New team'} title={team ? team.name : 'New team'} width={600}
+    <PanelModal open={open} onClose={onClose} eyebrow={team ? 'Edit team' : 'New team'} title={team?.name} width={600}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{team ? 'Save' : 'Create team'}</Button></>}>
       <SheetSection title="Team">
         <div className="space-y-4">

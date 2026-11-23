@@ -1,28 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert } from '../org/parts';
-import { PersonName, Empty, Note, PIN } from '../../components/ui';
+import { PersonName, Empty, Note } from '../../components/ui';
 import { Bike, Car, ChatCenteredText, Check, CheckCircle, Dumbbell, LampDesk, Sofa, Trees, Utensils, WashingMachine, Wifi, FileMagnifyingGlass, Image as ImageIcon, Warning, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, listNav, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, Tabs, cx } from '../../components/ui';
+import { Button, listNav, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx } from '../../components/ui';
 import { LineTabs } from '../inventory/common';
 import type { Tone } from '../../data/seed';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useOpen, useTab } from '../hooks';
 import { useOc, type Review, type ReviewStatus } from '../../data/offcampus';
-import { BulkAction, BulkBar, NoteDialog, ODialog, Tag, Thumb, Title, listingPhoto } from './parts';
+import { BulkAction, BulkBar, NoteDialog, ODialog, StatusTabsBar, Tag, Thumb, Title, listingPhoto } from './parts';
 import { LStatus } from './Landlords';
 import { revertList } from '../../data/revert';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 
 type TabId = 'all' | 'review' | 'changes' | 'rejected';
 const TABS: { id: TabId; label: string; status?: ReviewStatus }[] = [
-  { id: 'all', label: 'All' }, { id: 'review', label: 'In review', status: 'Under review' },
+  { id: 'all', label: 'All' }, { id: 'review', label: 'To review', status: 'Under review' },
   { id: 'changes', label: 'Changes requested', status: 'Changes requested' }, { id: 'rejected', label: 'Rejected', status: 'Rejected' },
 ];
 
 export function RStatus({ s }: { s: ReviewStatus }) {
-  if (s === 'Under review') return <Tag tone="blue">In review</Tag>;
+  if (s === 'Under review') return <Tag tone="blue">To review</Tag>;
   if (s === 'Changes requested') return <Tag tone="amber" icon={Warning}>Changes requested</Tag>;
   if (s === 'Rejected') return <Tag tone="red" icon={XCircle}>Rejected</Tag>;
   return <Tag tone="green" icon={CheckCircle}>Approved</Tag>;
@@ -118,11 +118,8 @@ export function Reviews({ bare }: { bare?: boolean } = {}) {
       {!bare && <PageHeader icon={FileMagnifyingGlass} crumbs={['Off-campus']} title="Listing reviews" />}
       <div className="flex-1 min-h-0 flex flex-col relative">
         {!bare && <Title title="Listing reviews" />}
-        <div {...PIN} className="px-[var(--tx,16px)] py-4 flex items-center gap-3">
-          {/* Every off-campus list: search on the left, status tabs at the right edge. */}
-          <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search landlord or property" /></div>
-          <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: queue.filter((r) => !x.status || r.status === x.status).length }))} /></div>
-        </div>
+        <StatusTabsBar value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: queue.filter((r) => !x.status || r.status === x.status).length }))}
+          search={<SearchInput value={q} onChange={setQ} placeholder="Search landlord or property" />} />
         <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
           {!rows.length ? (
             qt ? <Empty art="noResults" title="No listing matches that search" sub="Try another landlord or property." /> : (tab === 'review' ? <Empty art="queueClear" title="Nothing to review" sub="New landlord listings land here for checking." /> : <Empty art="nothingToShow" title={`No listings under ${TABS.find((x) => x.id === tab)?.label}`} />)

@@ -17,6 +17,7 @@ import { Palette } from './Palette';
 import { useNavOpen } from '../data/navOpen';
 import { Switch } from '../components/shadcn/switch';
 import { useTheme, type ThemeMode } from '../data/theme';
+import { ACCENTS, useAccent } from '../data/accent';
 import { useEmpty } from '../data/empty';
 import { NoAccess } from '../pages/Misc';
 import { SHELL_VERSIONS, useShellVersion } from '../data/shellVersion';
@@ -478,6 +479,7 @@ function UserMenu({ collapsed = false, rail }: { collapsed?: boolean; /** v2: ju
   const me = useAuth((s) => s.remembered) ?? { name: 'Arjun Mehta', email: 'arjun.mehta@durham.ac.uk' };
   const [leaving, setLeaving] = useState<'pending' | 'done'>();
   const { mode, setMode } = useTheme();
+  const { accent, setAccent } = useAccent();
   const { on: emptyOn, setOn: setEmpty } = useEmpty();
   const { version, setVersion } = useShellVersion();
   const signOut = () => {
@@ -543,6 +545,19 @@ function UserMenu({ collapsed = false, rail }: { collapsed?: boolean; /** v2: ju
                   <DropdownMenuItem key={id} aria-label={label} title={label} aria-pressed={mode === id} onSelect={(e) => { e.preventDefault(); setMode(id); }}
                     className={cx('h-6 w-7 p-0 justify-center rounded-md cursor-pointer focus:bg-transparent', mode === id ? 'bg-white text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.08)] focus:bg-white' : 'text-[#737373] focus:text-[#0A0A0A]')}>
                     <Icon size={16} strokeWidth={1.5} />
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </div>
+            {/* Theme colour: the brand accent, as five swatches; the picked one has a ring. Stays open so the app recolours behind it. */}
+            <div className="h-5 flex items-center gap-2 text-sm leading-5 text-[#404040]">
+              <span aria-hidden className="size-4 shrink-0 rounded-full" style={{ background: ACCENTS.find((a) => a.id === accent)?.swatch }} /><span className="flex-1">Colour</span>
+              <div role="group" aria-label="Theme colour" className="flex items-center gap-1">
+                {ACCENTS.map((a) => (
+                  <DropdownMenuItem key={a.id} aria-label={a.label} title={a.label} aria-pressed={accent === a.id} onSelect={(e) => { e.preventDefault(); setAccent(a.id); }}
+                    className={cx('size-5 p-0 justify-center rounded-full cursor-pointer focus:bg-transparent ring-offset-1 ring-offset-white', accent === a.id ? 'ring-2' : 'hover:ring-1')}
+                    style={{ ['--tw-ring-color' as string]: a.swatch }}>
+                    <span className="size-3.5 rounded-full" style={{ background: a.swatch }} />
                   </DropdownMenuItem>
                 ))}
               </div>

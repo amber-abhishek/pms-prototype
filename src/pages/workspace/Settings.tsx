@@ -365,8 +365,8 @@ export function SettingsAcademicYear() {
       set('years', (ys) => ys.map((y) => (y.id === editingYear.id ? { ...y, ...v } : y)));
       toast.success(`${v.name} updated`, { action: { label: 'Undo', onClick: () => restore({ years: before }) } });
     } else {
-      set('years', (ys) => [{ id: `y${Date.now()}`, ...v, cycle: 'No cycle yet', status: 'Upcoming' }, ...ys]);
-      toast.success(`${v.name} added`, { description: 'Set its terms, then open its allocation cycle.', action: { label: 'Undo', onClick: () => restore({ years: before }) } });
+      set('years', (ys) => [{ id: `y${Date.now()}`, ...v, cycle: 'No term yet', status: 'Upcoming' }, ...ys]);
+      toast.success(`${v.name} added`, { description: 'Set its dates, then open its allocation term.', action: { label: 'Undo', onClick: () => restore({ years: before }) } });
     }
     setYearDlg(null);
   };
@@ -376,7 +376,7 @@ export function SettingsAcademicYear() {
     toast.success(`${y.name} deleted`, { duration: 8000, action: { label: 'Undo', onClick: () => restore({ years: before }) } });
   };
   /* Only an upcoming year with no allocation cycle can go; the others carry bookings and reports. */
-  const whyKeep = (y: Year) => (y.status !== 'Upcoming' ? `${y.status} years stay for reports` : y.cycle !== 'No cycle yet' ? 'It has an allocation cycle' : null);
+  const whyKeep = (y: Year) => (y.status !== 'Upcoming' ? `${y.status} years stay for reports` : y.cycle !== 'No term yet' ? 'It has an allocation term' : null);
   /* 3055:2: Upcoming blue + calendar, Current green + check, Ended grey + archive. */
   const tone = { Upcoming: 'blue', Current: 'green', Ended: 'grey' } as const;
   const yIcon = { Upcoming: CalendarBlank, Current: Check, Ended: Archive } as const;
@@ -386,7 +386,7 @@ export function SettingsAcademicYear() {
       actions={<Button variant="primary" icon={Plus} onClick={() => openYear()}>New year</Button>}>
       <div className="rounded-xl border border-line overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation cycle', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation term', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
           <tbody ref={bodyRef}>{yearRows.map(({ row: y, motion }) => (
             <tr key={y.id} {...rowAttrs(y.id, motion)} className="border-b border-[#F5F5F5] last:border-0 text-[#404040]">
               <td className="h-10 pl-5 font-medium text-[#0A0A0A]">{y.name}</td><td className="px-3">{y.starts}</td><td className="px-3">{y.ends}</td>
@@ -418,7 +418,7 @@ export function SettingsAcademicYear() {
         </div>
         {editing && termTried && termMsgs.length > 0 && <div role="alert" className="mt-2 space-y-1">{termMsgs.map((m) => <p key={m} className="text-xs leading-4 text-[#E0243A]">{m}</p>)}</div>}
       </Section>
-      <Alert tone="blue" icon={Info} title="2027/28 becomes current on 1 Sep 2027">Until then it is used only by the 2027/28 allocation cycle.</Alert>
+      <Alert tone="blue" icon={Info} title="2027/28 becomes current on 1 Sep 2027">Until then it is used only by the 2027/28 allocation term.</Alert>
       <ODialog open={yearDlg !== null} onClose={() => setYearDlg(null)} title={editingYear ? `Edit ${editingYear.name}` : 'New academic year'} sub={editingYear ? 'Reports and Occupancy use the new dates.' : 'It becomes current on its start date.'}
         footer={<><Button onClick={() => setYearDlg(null)}>Cancel</Button><Button variant="primary" onClick={saveYear}>{editingYear ? 'Save year' : 'Add year'}</Button></>}>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); saveYear(); }}>

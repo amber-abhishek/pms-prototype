@@ -16,7 +16,7 @@ export function fieldsFor(cycles: string[]): Field[] {
   return [
     { id: 'wait', label: 'Waiting time', group: 'Application', kind: 'number', icon: Clock },
     { id: 'year', label: 'Year of study', group: 'Application', kind: 'single', icon: GraduationCap, options: ['First year', 'Returning', 'Postgraduate'], get: (a) => a.year },
-    { id: 'cycle', label: 'Cycle', group: 'Application', kind: 'single', icon: CalendarBlank, options: cycles, get: (a) => a.cycle },
+    { id: 'cycle', label: 'Term', group: 'Application', kind: 'single', icon: CalendarBlank, options: cycles, get: (a) => a.cycle },
     { id: 'fee', label: 'Fee status', group: 'Applicant', kind: 'single', icon: Wallet, options: ['Home', 'International'], get: (a) => a.fee },
     { id: 'guarantee', label: 'Guarantee', group: 'Applicant', kind: 'single', icon: ShieldCheck, options: ['Guaranteed', 'Not guaranteed'], get: (a) => (a.guarantee ? 'Guaranteed' : 'Not guaranteed') },
     { id: 'arrival', label: 'Arrival date', group: 'Applicant', kind: 'single', icon: AirplaneLanding, options: ['19 Sep 2027', '20 Sep 2027'], get: (a) => a.arrival },
@@ -69,7 +69,7 @@ function Panel({ rows, fs, setFs, fields, close }: { rows: App[]; fs: Filters; s
   return (
     <div className="py-2 max-h-[520px] overflow-auto">
       <div className="px-3 pb-1 text-[11px] font-medium text-gray-400">Active filters</div>
-      {fs.order.length === 0 && <div className="px-3 py-1.5 text-sm text-gray-400">None · showing every cycle</div>}
+      {fs.order.length === 0 && <div className="px-3 py-1.5 text-sm text-gray-400">None · showing every term</div>}
       {fs.order.map((id) => {
         const f = fields.find((x) => x.id === id)!;
         return (

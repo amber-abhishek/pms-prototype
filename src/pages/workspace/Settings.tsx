@@ -3,7 +3,7 @@ import { Children, isValidElement, useEffect, useRef, useState, type ReactNode }
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 import { Link, useBeforeUnload, useBlocker, useSearchParams } from 'react-router-dom';
 import {
-  Archive, EnvelopeSimple, PencilSimple, ArrowUpRight, Calculator, ChatCenteredText, Key, SlidersHorizontal, ArrowsLeftRight, DeviceMobile, Bank, Bell, CalendarBlank, Check, Globe, Money, Moon, Sun, CreditCard, DoorOpen, Gear, GraduationCap, Info, Plug, Plus, Textbox, TreeStructure,
+  Archive, EnvelopeSimple, PencilSimple, ArrowUpRight, Calculator, ChatCenteredText, Key, SlidersHorizontal, ArrowsLeftRight, DeviceMobile, Bank, Bell, CalendarBlank, Check, Globe, Money, Moon, Sun, CreditCard, DoorOpen, Gear, UserCircle, Info, Plug, Plus, Textbox, TreeStructure,
   UploadSimple, Warning, WarningCircle, WebhooksLogo, type Icon,
 } from '../../components/icons';
 import { toast } from 'sonner';
@@ -16,7 +16,7 @@ import { Alert, Header, IconSelect, ODialog, RowMenu } from '../org/parts';
 
 const TABS: { id: string; label: string; to: string; icon: Icon; external?: boolean }[] = [
   { id: 'general', label: 'General', to: '/settings', icon: Gear },
-  { id: 'academic-year', label: 'Academic year', to: '/settings/academic-year', icon: GraduationCap },
+  { id: 'academic-year', label: 'Letting year', to: '/settings/academic-year', icon: CalendarBlank },
   { id: 'notifications', label: 'Notifications', to: '/settings/notifications', icon: Bell },
   { id: 'structures', label: 'Structures', to: '/inventory/structures', icon: TreeStructure, external: true },
   { id: 'custom-fields', label: 'Custom fields', to: '/inventory/custom-fields', icon: Textbox, external: true },
@@ -283,7 +283,7 @@ export function SettingsGeneral() {
         </div>
       </Section>
       {cur && (
-        <Section title="Current academic year" sub="Default for Overview, Occupancy and Reports" action={<Link to="/settings/academic-year" className="inline-flex items-center h-6 text-sm text-primary hover:underline">Manage years</Link>}>
+        <Section title="Current letting year" sub="Default for Overview, Occupancy and Reports" action={<Link to="/settings/academic-year" className="inline-flex items-center h-6 text-sm text-primary hover:underline">Manage years</Link>}>
           <div className="grid grid-cols-3 gap-3">{([['Year', cur.name], ['Starts', cur.starts], ['Ends', cur.ends]] as const).map(([k, v]) => <div key={k}><Lbl>{k}</Lbl><div className="h-8 px-2.5 rounded-lg border border-line bg-gray-50 text-sm flex items-center">{v}</div></div>)}</div>
         </Section>
       )}
@@ -338,7 +338,7 @@ export function SettingsAcademicYear() {
     if (termMsgs.length) { setTermTried(true); toast.error(termMsgs.length === 1 ? 'Fix this before saving' : `Fix ${termMsgs.length} things before saving`, { description: termMsgs[0] }); return; }
     const before = terms;
     set('terms', draft.map((t) => ({ ...t, weeks: +t.weeks }))); setEditing(false); setTermTried(false);
-    toast.success('Terms saved', { description: 'Termly rent and term notices use the new dates.', action: { label: 'Undo', onClick: () => restore({ terms: before }) } });
+    toast.success('Rent periods saved', { description: 'Rent and notices use the new dates.', action: { label: 'Undo', onClick: () => restore({ terms: before }) } });
   };
 
   /* The year dialog's problems: a name, real dates in order, and no overlap with another year. */
@@ -382,7 +382,7 @@ export function SettingsAcademicYear() {
   const yIcon = { Upcoming: CalendarBlank, Current: Check, Ended: Archive } as const;
   const { items: yearRows, bodyRef } = useRowMotion(years);
   return (
-    <Layout tab="academic-year" title="Academic year"
+    <Layout tab="academic-year" title="Letting year"
       actions={<Button variant="primary" icon={Plus} onClick={() => openYear()}>New year</Button>}>
       <div className="rounded-xl border border-line overflow-hidden">
         <table className="w-full text-sm">
@@ -400,12 +400,12 @@ export function SettingsAcademicYear() {
           ))}</tbody>
         </table>
       </div>
-      <Section title="Terms in 2026/27"
+      <Section title="Rent periods in 2026/27"
         action={editing ? <div className="flex gap-2"><Button size="sm" onClick={() => { setDraft(toDraft(terms)); setEditing(false); setTermTried(false); }}>Cancel</Button><Button size="sm" variant="primary" onClick={saveTerms}>Save terms</Button></div>
-          : <Button size="sm" icon={PencilSimple} onClick={() => { setDraft(toDraft(terms)); setEditing(true); }}>Edit terms</Button>}>
+          : <Button size="sm" icon={PencilSimple} onClick={() => { setDraft(toDraft(terms)); setEditing(true); }}>Edit periods</Button>}>
         <div className="rounded-xl border border-line overflow-hidden -mt-1">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Term', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-5', 'text-left')}>{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Period', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-5', 'text-left')}>{h}</th>)}</tr></thead>
           <tbody>{(editing ? draft : toDraft(terms)).map((t, i) => { const te = editing && termTried ? termErrs(t) : undefined; return (
             <tr key={t.id} className="border-b border-[#F5F5F5] last:border-0 text-[#404040]">
               <td className="h-10 pl-5 pr-3 font-medium text-[#0A0A0A]">{t.name}</td>
@@ -419,7 +419,7 @@ export function SettingsAcademicYear() {
         {editing && termTried && termMsgs.length > 0 && <div role="alert" className="mt-2 space-y-1">{termMsgs.map((m) => <p key={m} className="text-xs leading-4 text-[#E0243A]">{m}</p>)}</div>}
       </Section>
       <Alert tone="blue" icon={Info} title="2027/28 becomes current on 1 Sep 2027">Until then it is used only by the 2027/28 allocation term.</Alert>
-      <ODialog open={yearDlg !== null} onClose={() => setYearDlg(null)} title={editingYear ? `Edit ${editingYear.name}` : 'New academic year'} sub={editingYear ? 'Reports and Occupancy use the new dates.' : 'It becomes current on its start date.'}
+      <ODialog open={yearDlg !== null} onClose={() => setYearDlg(null)} title={editingYear ? `Edit ${editingYear.name}` : 'New letting year'} sub={editingYear ? 'Reports and Occupancy use the new dates.' : 'It becomes current on its start date.'}
         footer={<><Button onClick={() => setYearDlg(null)}>Cancel</Button><Button variant="primary" onClick={saveYear}>{editingYear ? 'Save year' : 'Add year'}</Button></>}>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); saveYear(); }}>
           <label className="block"><Lbl>Year</Lbl><Input aria-invalid={!!yShow.name} className={bad(yShow.name)} value={ny.name} onChange={(e) => setNy({ ...ny, name: e.target.value })} /><Err>{yShow.name}</Err></label>
@@ -495,8 +495,8 @@ export function SettingsPayments() {
       </Section>
       <Section title="Rent" sub="A room type can override these">
         <div className="grid grid-cols-3 gap-3">
-          <div><Lbl>Billed</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Billed" value={d.billed} onChange={(v) => up({ billed: v })} options={opts(['Termly, in advance', 'Monthly', 'Weekly', 'Whole year up front'])} /></div>
-          <div><Lbl>Due</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Due" value={d.due} onChange={(v) => up({ due: v })} options={opts(['Before each term starts', 'On the 1st', 'On move-in'])} /></div>
+          <div><Lbl>Billed</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Billed" value={d.billed} onChange={(v) => up({ billed: v })} options={opts(['Each rent period, in advance', 'Monthly', 'Weekly', 'Whole year up front'])} /></div>
+          <div><Lbl>Due</Lbl><IconSelect icon={CalendarBlank} ariaLabel="Due" value={d.due} onChange={(v) => up({ due: v })} options={opts(['Before each period starts', 'On the 1st', 'On move-in'])} /></div>
           <label><Lbl>Deposit</Lbl><span className="relative flex items-center"><Money size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><span className="absolute left-8 text-sm text-[#0A0A0A] pointer-events-none">£</span><Input aria-invalid={!!err.deposit} className={cx('pl-[42px]', bad(err.deposit))} inputMode="numeric" value={String(d.deposit)} onChange={(e) => up({ deposit: Number(e.target.value.replace(/\D/g, '').slice(0, 9)) || 0 })} /></span><Err>{err.deposit}</Err></label>
         </div>
       </Section>
@@ -515,7 +515,7 @@ export function SettingsPayments() {
 }
 
 /* ---------------- Integrations (3060, E3 3233–3234) ---------------- */
-const INT_ICON: Record<string, Icon> = { sits: GraduationCap, entra: Key, salto: DoorOpen, xero: Calculator, slack: ChatCenteredText, webhooks: WebhooksLogo };
+const INT_ICON: Record<string, Icon> = { sits: UserCircle, entra: Key, salto: DoorOpen, xero: Calculator, slack: ChatCenteredText, webhooks: WebhooksLogo };
 /** 3060:2 icon tiles: [ground, icon]. */
 const INT_TINT: Record<string, [string, string]> = { sits: ['#F3EEFF', '#6E3BD8'], entra: ['#EFF6FF', '#2563EB'], salto: ['#E6F6F6', '#0E7A80'], xero: ['#E8F7EE', '#0B8A4C'], slack: ['#FDECF4', '#C0266D'], webhooks: ['#F5F5F5', '#737373'] };
 const SKIPPED = [['Leo Grant', '000412883'], ['Amara Okafor', '000413207'], ['Finn Walker', '000415560']];
@@ -548,7 +548,7 @@ export function SettingsIntegrations() {
     window.setTimeout(() => {
       set('integrations', (xs) => xs.map((x) => (x.id === 'sits' ? { ...x, state: 'connected' as const, meta: 'Synced just now · 41 new residents' } : x)));
       setBusy(false); setReconnect(false); guard.current = false;
-      toast.success('SITS reconnected · 41 residents synced · 6 applications matched', { action: { label: 'Undo', onClick: () => restore({ integrations: before }) } });
+      toast.success('Records reconnected · 41 residents synced · 6 applications matched', { action: { label: 'Undo', onClick: () => restore({ integrations: before }) } });
     }, 1200);
   };
   const connect = (x: Integration) => {
@@ -558,7 +558,7 @@ export function SettingsIntegrations() {
   return (
     <Layout wide tab="integrations" title="Integrations">
       {failing && (
-        <Alert tone="red" icon={WarningCircle} title="Resident records (SITS) stopped syncing" action={<Button variant="primary" size="sm" onClick={() => setReconnect(true)}>Reconnect</Button>}>
+        <Alert tone="red" icon={WarningCircle} title="Resident records stopped syncing" action={<Button variant="primary" size="sm" onClick={() => setReconnect(true)}>Reconnect</Button>}>
           The connection token expired on 30 Oct. 3 syncs failed; 41 new residents aren’t in Applications yet.
         </Alert>
       )}
@@ -578,18 +578,18 @@ export function SettingsIntegrations() {
         ); })}
       </div>
       {!failing && sits?.meta === 'Synced 12 min ago' && (
-        <Alert tone="amber" icon={Warning} title="SITS sync skipped 3 residents last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their course record has no term address. Open the sync log to see who.</Alert>
+        <Alert tone="amber" icon={Warning} title="Records sync skipped 3 residents last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their record has no term address. Open the sync log to see who.</Alert>
       )}
 
-      <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Resident records (SITS)" sub="Sign in with a SITS admin account to run the missed syncs."
+      <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Resident records" sub="Sign in with a records admin account to run the missed syncs."
         footer={<><Button disabled={busy} onClick={() => setReconnect(false)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={doReconnect}>{busy ? 'Syncing…' : 'Sign in to SITS'}</Button></>}>
         <DL rows={[['Failed since', '30 Oct, 02:00'], ['Failed syncs', '3'], ['Affects', '41 new residents aren’t in Applications']]} />
       </ODialog>
-      <ODialog open={log} onClose={() => setLog(false)} title="SITS sync log · last night" sub="02:00 · 2,412 residents checked · 3 skipped" footer={<Button variant="primary" onClick={() => setLog(false)}>Done</Button>}>
+      <ODialog open={log} onClose={() => setLog(false)} title="Records sync log · last night" sub="02:00 · 2,412 residents checked · 3 skipped" footer={<Button variant="primary" onClick={() => setLog(false)}>Done</Button>}>
         <div className="rounded-lg border border-line divide-y divide-line">{SKIPPED.map(([n, id]) => (
           <div key={id} className="h-11 px-3 flex items-center gap-3 text-sm"><span className="font-medium flex-1">{n}</span><span className="text-[#737373] tabular-nums">{id}</span><Pill tone="amber">No term address</Pill></div>
         ))}</div>
-        <p className="text-xs text-[#737373] mt-3">Fix the address in SITS; tonight’s sync picks them up.</p>
+        <p className="text-xs text-[#737373] mt-3">Fix the address in the records system; tonight’s sync picks them up.</p>
       </ODialog>
       <ODialog open={!!open} onClose={() => setOpen(null)} title={open?.name ?? ''} sub={open?.desc}
         footer={open?.state === 'available'
@@ -633,7 +633,7 @@ export function SettingsEmails() {
           <div className="rounded-lg bg-white border border-line overflow-hidden">
             <div className="h-12 px-3.5 flex items-center gap-2.5" style={{ background: c }}><span className="size-5 rounded bg-white text-[11px] font-semibold flex items-center justify-center" style={{ color: c }}>D</span><span className="text-xs font-semibold text-white">{d.sender || general.name}</span></div>
             <div className="p-3.5">
-              <div className="text-sm font-semibold text-[#0A0A0A]">Your rent for Epiphany term is due</div>
+              <div className="text-sm font-semibold text-[#0A0A0A]">Your rent for the Spring period is due</div>
               <p className="text-xs text-[#404040] mt-2 leading-[17px]">Hi Amira, £2,180 is due on 5 January. Pay in the resident portal by card or bank transfer.</p>
               <span className="inline-flex mt-3 h-7 px-3 rounded-md text-xs font-medium text-white items-center" style={{ background: c }}>Pay now</span>
             </div>

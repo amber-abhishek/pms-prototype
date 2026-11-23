@@ -76,7 +76,7 @@ export function MaintenanceList() {
             ...(view === 'table' ? [{ id: 'status', label: 'Status', options: STATUSES, tones: { New: 'blue', 'In progress': 'amber', 'Waiting on parts': 'purple', Fixed: 'green' } as const }] : []),
             { id: 'priority', label: 'Priority', options: ['Urgent', 'High', 'Normal'], tones: { Urgent: 'red', High: 'orange', Normal: 'grey' } },
             { id: 'sla', label: 'Deadline', options: ['Overdue', 'On time'], tones: { Overdue: 'red', 'On time': 'green' } },
-            { id: 'hall', label: 'Hall', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
+            { id: 'hall', label: 'Property', options: ['Ustinov', 'Collingwood', 'Van Mildert', 'St Mary’s', 'Josephine Butler'] },
             { id: 'assignee', label: 'Assignee', options: ['Not assigned', ...[...new Set(faults.map((x) => x.assignee).filter((a): a is string => !!a))].sort()] },
           ]} />
           <UITabs value={view} onValueChange={setView}>
@@ -156,7 +156,7 @@ function ContractorsSheet({ open, onClose }: { open: boolean; onClose: () => voi
   return (
     <Sheet open={open} onClose={onClose} title="Contractors">
       <SheetSection title="In-house and contract · 5">
-      {[['Dave Hughes', 'In-house plumber · 2 jobs today', 'In-house'], ['Kim Lowe', 'In-house electrician · off today', 'In-house'], ['Northern Heating Ltd', 'Heating and plumbing · £85 call-out · £120 out of hours', 'Contract'], ['Estates helpdesk', 'Operator estates team · 3–5 days', 'Operator'], ['Campus IT', 'Wi-Fi and network', 'Operator']].map(([n, s, t]) => (
+      {[['Dave Hughes', 'In-house plumber · 2 jobs today', 'In-house'], ['Kim Lowe', 'In-house electrician · off today', 'In-house'], ['Northern Heating Ltd', 'Heating and plumbing · £85 call-out · £120 out of hours', 'Contract'], ['Estates helpdesk', 'Operator estates team · 3–5 days', 'Operator'], ['IT team', 'Wi-Fi and network', 'Operator']].map(([n, s, t]) => (
         <SheetRow key={n} lead={<Avatar name={n} size={24} />} title={n} sub={s} end={<Pill tone="grey">{t}</Pill>} />
       ))}
       </SheetSection>
@@ -210,7 +210,7 @@ function useFaultView(f: Fault) {
   const markFixed = () => once(() => {
     const undo = update('faults', f.id, { status: 'Fixed', stage: 6, fixedIn: isRad ? '19h 08m' : '1d 2h' });
     log(`marked ${f.ref} fixed · ${f.title}`, 'Residents');
-    undoToast(isRad ? `${f.ref} fixed on time · Leo confirmed · £42 charged to Ustinov repairs` : `${f.ref} fixed · ${f.reporter ? `${first} asked to confirm` : 'logged against the hall'}`, undo);
+    undoToast(isRad ? `${f.ref} fixed on time · Leo confirmed · £42 charged to Ustinov repairs` : `${f.ref} fixed · ${f.reporter ? `${first} asked to confirm` : 'logged against the property'}`, undo);
   });
   const logUpdate = () => {
     const s = f.stage ?? 2;
@@ -473,7 +473,7 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
       </SheetSection>
       {breached ? (
         <SheetSection title="Approval">
-          <Select aria-label="Approver" defaultValue="Aisha Khan · Hall manager"><option>Aisha Khan · Hall manager</option><option>Mark Dunn · Deputy hall manager</option></Select>
+          <Select aria-label="Approver" defaultValue="Aisha Khan · Property manager"><option>Aisha Khan · Property manager</option><option>Mark Dunn · Deputy property manager</option></Select>
         </SheetSection>
       ) : (
         <>

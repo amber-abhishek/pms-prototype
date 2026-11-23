@@ -28,7 +28,7 @@ function useImportTicker(jobs: ImportJob[]) {
       finished.forEach((j) => {
         if (j.name === 'st-marys-rooms.csv' && !useInv.getState().properties.some((p) => p.id === 'stm')) {
           const p: Property = {
-            id: 'stm', name: 'St Mary’s College', campus: 'Durham City', structure: 'College', tags: [], units: 144, status: 'Draft', address: 'Elvet Hill Road, Durham DH1 3LR', zone: 'Elvet', invNo: 'SMC-001', letting: 'Weekly',
+            id: 'stm', name: 'St Mary’s College', campus: 'Durham City', structure: 'Building', tags: [], units: 144, status: 'Draft', address: 'Elvet Hill Road, Durham DH1 3LR', zone: 'Elvet', invNo: 'SMC-001', letting: 'Weekly',
             blocks: [{ name: 'Main House', floors: 4, flats: 4, rooms: 96, roomType: 'Ensuite single', size: 14 }, { name: 'Fenwick Block', floors: 2, flats: 4, rooms: 48, roomType: 'Standard single', size: 12 }],
             build: null, photos: 0, description: '', amenities: [], wardenPhone: '', createdBy: 'Arjun Mehta', created: 'Today', activity: [{ who: 'Arjun Mehta', what: 'Imported from st-marys-rooms.csv', when: 'Just now' }],
             roomTypes: [{ name: 'Ensuite single', rooms: 96, rent: null }, { name: 'Standard single', rooms: 48, rent: null }], liveTenancies: 0, fees: 1, tenancies: false,
@@ -54,7 +54,7 @@ export function ImportsPage() {
   const cnt = (s: ImportJob['status']) => jobs.filter((j) => j.status === s).length;
   return (
     <>
-      <PageHeader icon={FileArrowUp} title="Imports" crumbs={['Inventory']}>
+      <PageHeader icon={FileArrowUp} title="Imports" crumbs={['Properties']}>
         <Button icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
       </PageHeader>
       <PageHeading />

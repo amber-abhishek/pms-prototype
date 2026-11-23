@@ -171,7 +171,7 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
               className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F5F5F5] border-l-2', sel?.id === a.id ? 'bg-[#EFF6FF] border-l-primary' : 'border-l-transparent hover:bg-[#FAFAFA]')}>
               <Ini name={a.name} size={24} />
               <div className="min-w-0 flex-1">
-                <div className="text-sm truncate"><span className="font-semibold">{a.name}</span>{a.tag && <span className={cx('text-xs font-medium', a.tag === 'No study offer' ? 'text-[#9A5B00]' : 'text-[#8B2CF5]')}> · {a.tag}</span>}</div>
+                <div className="text-sm truncate"><span className="font-semibold">{a.name}</span>{a.tag && <span className={cx('text-xs font-medium', a.tag === 'Eligibility' ? 'text-[#9A5B00]' : 'text-[#8B2CF5]')}> · {a.tag}</span>}</div>
                 <div className="text-xs text-gray-500 truncate">{a.hall} · {a.room}</div>
               </div>
               <div className="text-right shrink-0">
@@ -252,7 +252,7 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
     { key: 'emailed', label: 'Emailed', render: (a) => (a.emailed ? <span className="flex items-center gap-1.5"><Check size={14} className="text-[#0B8A4C]" />Yes</span> : <span className="text-gray-400">No</span>) },
   ];
   /* Row number first, counted through the whole list, so page 2 carries on from 26. */
-  const numbered: C<App>[] = [{ key: 'no', label: 'S.No.', className: 'w-[56px]', render: (a) => <span className="font-mono text-xs text-[#737373] tabular-nums">{order.indexOf(a) + 1}</span> }, ...cols];
+  const numbered: C<App>[] = [{ key: 'no', label: 'S.No.', className: 'w-[56px]', render: (a) => <span className="font-mono text-[#737373] tabular-nums">{order.indexOf(a) + 1}</span> }, ...cols];
   /* The foot counts the rows in the list (all filters applied), so it always matches what you can page through. */
   return (
     <div className="flex-1 min-h-0 flex flex-col">

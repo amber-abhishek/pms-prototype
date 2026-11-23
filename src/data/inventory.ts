@@ -12,7 +12,7 @@ export type RoomType = { name: string; rooms: number; rent: number | null; next?
 export type ActivityRow = { who: string; what: string; when: string };
 export type Counts = { all: number; active: number; draft: number; inactive: number; archived: number };
 export type Property = {
-  id: string; name: string; campus: string; structure: 'College' | 'House'; tags: Tag[]; units: number; status: PStatus;
+  id: string; name: string; campus: string; structure: 'Building' | 'House'; tags: Tag[]; units: number; status: PStatus;
   address: string; zone: string; invNo: string; letting: 'Weekly' | 'Monthly';
   blocks: Block[]; build: { done: number; total: number } | null;
   photos: number; description: string; amenities: string[]; wardenPhone: string;
@@ -23,7 +23,7 @@ export type Property = {
   /** false when the rooms came from a spreadsheet: they have no tenancies yet. */ tenancies?: boolean;
 };
 export type Template = {
-  id: string; propertyId: string; name: string; weeks: number; rent: number; deposit: number; billing: 'Termly' | 'Upfront' | 'Monthly';
+  id: string; propertyId: string; name: string; weeks: number; rent: number; deposit: number; billing: 'Weekly' | 'Upfront' | 'Monthly';
   from: string; to: string; linked: number; own: number; ownNote?: string; status: 'Active' | 'Inactive';
 };
 export type FeeType = { id: string; name: string; calc: 'Flat' | 'Percentage' | 'Per unit'; mandatory: boolean; refundable: boolean };
@@ -35,7 +35,12 @@ export type ArchivedRow = { id: string; name: string; type: string; flat?: boole
 export type Structure = { id: string; name: string; levels: { name: string; bsu: boolean }[]; properties: number; updated: string };
 export type TagDef = { id: string; label: string; tone: Tone };
 /** `required`: every record on an attached level must fill it before going active. */
-export type Field = { id: string; name: string; key: string; type: string; attached: string[]; required?: boolean };
+export type Field = { id: string; name: string; key: string; type: string; attached: string[]; required?: boolean; choices?: string[] };
+/* A pick-one field's choices. Sessions saved before choices existed fall back to the seed's list for that key. */
+const SEED_CHOICES: Record<string, string[]> = { ensuite_type: ['Shower room', 'Bathroom', 'Wet room'], bed_size: ['Single', 'Small double', 'Double'] };
+export const choicesOf = (f: Field): string[] => f.choices ?? (f.type.startsWith('Pick one') ? SEED_CHOICES[f.key] ?? [] : []);
+/** "Pick one · 3 options", counted from the choices. */
+export const pickOneType = (n: number) => `Pick one · ${n} ${n === 1 ? 'option' : 'options'}`;
 
 /* ---------------- Seed ---------------- */
 const T = (label: string, tone: Tone): Tag => ({ label, tone });
@@ -50,7 +55,7 @@ const base = {
 };
 function prop(p: Partial<Property> & Pick<Property, 'id' | 'name' | 'campus' | 'tags' | 'units' | 'status' | 'address'>): Property {
   return {
-    ...base, structure: 'College', blocks: blocks3(p.units, 'Standard single'), description: `${p.name} is a Durham college with ${p.units} rooms.`,
+    ...base, structure: 'Building', blocks: blocks3(p.units, 'Standard single'), description: `${p.name} has ${p.units} rooms.`,
     activity: [{ who: 'Tom Okafor', what: `Created ${p.name}`, when: '2 Sep 2024' }], liveTenancies: p.status === 'Active' ? p.units : 0,
     counts: counts(p.units, p.status), ...p,
   } as Property;
@@ -59,23 +64,23 @@ function prop(p: Partial<Property> & Pick<Property, 'id' | 'name' | 'campus' | '
 export function makeInventorySeed() {
   const properties: Property[] = [
     prop({
-      id: 'col', name: 'Collingwood College', campus: 'Durham City', tags: [T('Catered', 'orange'), T('Hill colleges', 'purple'), T('Undergraduate', 'blue'), T('Sports', 'amber')], units: 412, status: 'Active',
+      id: 'col', name: 'Collingwood College', campus: 'Durham City', tags: [T('Catered', 'orange'), T('Hillside', 'purple'), T('Short stay', 'blue'), T('Sports', 'amber')], units: 412, status: 'Active',
       address: 'South Road, Durham DH1 3LT', zone: 'Hill', invNo: 'COL-001', photos: 18, wardenPhone: '0191 334 5010',
       blocks: [{ name: 'Block A', floors: 4, flats: 4, rooms: 128, roomType: 'Ensuite single', size: 13 }, { name: 'Block B', floors: 4, flats: 4, rooms: 144, roomType: 'Standard single', size: 11 }, { name: 'Block C', floors: 4, flats: 4, rooms: 140, roomType: 'Standard single', size: 11 }],
       roomTypes: [{ name: 'Standard single', rooms: 186, rent: 182 }, { name: 'Ensuite single', rooms: 140, rent: 204 }, { name: 'Ensuite double', rooms: 52, rent: 214 }, { name: 'Studio', rooms: 34, rent: 246 }],
       counts: { all: 412, active: 398, draft: 6, inactive: 5, archived: 3 },
     }),
-    prop({ id: 'jb', name: 'Josephine Butler', campus: 'Durham City', tags: [T('Self-catered', 'green'), T('Postgraduate', 'blue')], units: 386, status: 'Active', address: 'South Road, Durham DH1 3DF', zone: 'Hill', invNo: 'JB-001' }),
-    prop({ id: 'ust', name: 'Ustinov College', campus: 'Durham City', tags: [T('Postgraduate', 'blue'), T('Self-catered', 'green'), T('Accessible', 'purple')], units: 540, status: 'Active', address: 'Howlands Farm, Durham DH1 3DZ', zone: 'Howlands', invNo: 'UST-001' }),
-    prop({ id: 'ste', name: 'Stephenson College', campus: 'Queen’s Campus', tags: [T('Catered', 'orange'), T('Common room', 'red')], units: 610, status: 'Active', address: 'University Boulevard, Stockton TS17 6BH', zone: 'Stockton', invNo: 'STE-001' }),
+    prop({ id: 'jb', name: 'Josephine Butler', campus: 'Durham City', tags: [T('Self-catered', 'green'), T('Long stay', 'blue')], units: 386, status: 'Active', address: 'South Road, Durham DH1 3DF', zone: 'Hill', invNo: 'JB-001' }),
+    prop({ id: 'ust', name: 'Ustinov College', campus: 'Durham City', tags: [T('Long stay', 'blue'), T('Self-catered', 'green'), T('Accessible', 'purple')], units: 540, status: 'Active', address: 'Howlands Farm, Durham DH1 3DZ', zone: 'Howlands', invNo: 'UST-001' }),
+    prop({ id: 'ste', name: 'Stephenson College', campus: 'Queen’s Campus', tags: [T('Catered', 'orange'), T('Shared lounge', 'red')], units: 610, status: 'Active', address: 'University Boulevard, Stockton TS17 6BH', zone: 'Stockton', invNo: 'STE-001' }),
     prop({ id: 'hb', name: 'Hild Bede', campus: 'Durham City', tags: [T('Catered', 'orange'), T('Riverside', 'green'), T('Chapel', 'grey')], units: 298, status: 'Active', address: 'Leazes Road, Durham DH1 1SZ', zone: 'Elvet', invNo: 'HB-001' }),
     prop({ id: 'js', name: 'John Snow College', campus: 'Queen’s Campus', tags: [T('Self-catered', 'green')], units: 455, status: 'Active', address: 'Ebsworth Building, Stockton TS17 6BH', zone: 'Stockton', invNo: 'JS-001' }),
     prop({ id: 'erh', name: 'Elvet Riverside Houses', campus: 'Durham City', structure: 'House', tags: [], units: 48, status: 'Inactive', address: 'New Elvet, Durham DH1 3JT', zone: 'Elvet', invNo: 'ERH-001', blocks: [{ name: 'Houses', floors: 1, flats: 8, rooms: 48, roomType: 'Standard single', size: 10 }] }),
   ];
   const templates: Template[] = [
-    { id: 'tp1', propertyId: 'col', name: 'Ensuite single', weeks: 51, rent: 212, deposit: 250, billing: 'Termly', from: '19 Sep 2027', to: '8 Sep 2028', linked: 96, own: 2, ownNote: '2.3.C £205 · 4.2.B £205', status: 'Active' },
-    { id: 'tp2', propertyId: 'col', name: 'Standard single', weeks: 44, rent: 168, deposit: 250, billing: 'Termly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 128, own: 1, ownNote: '1.4.D £160', status: 'Active' },
-    { id: 'tp3', propertyId: 'col', name: 'Studio', weeks: 51, rent: 246, deposit: 300, billing: 'Termly', from: '19 Sep 2027', to: '8 Sep 2028', linked: 48, own: 0, status: 'Active' },
+    { id: 'tp1', propertyId: 'col', name: 'Ensuite single', weeks: 51, rent: 212, deposit: 250, billing: 'Weekly', from: '19 Sep 2027', to: '8 Sep 2028', linked: 96, own: 2, ownNote: '2.3.C £205 · 4.2.B £205', status: 'Active' },
+    { id: 'tp2', propertyId: 'col', name: 'Standard single', weeks: 44, rent: 168, deposit: 250, billing: 'Weekly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 128, own: 1, ownNote: '1.4.D £160', status: 'Active' },
+    { id: 'tp3', propertyId: 'col', name: 'Studio', weeks: 51, rent: 246, deposit: 300, billing: 'Weekly', from: '19 Sep 2027', to: '8 Sep 2028', linked: 48, own: 0, status: 'Active' },
     { id: 'tp4', propertyId: 'col', name: 'Summer let', weeks: 10, rent: 190, deposit: 0, billing: 'Upfront', from: '29 Jun 2027', to: '6 Sep 2027', linked: 0, own: 0, status: 'Inactive' },
   ];
   const feeTypes: FeeType[] = [
@@ -91,10 +96,10 @@ export function makeInventorySeed() {
     { id: 'fe4', typeId: 'ft4', amount: '£10 each', appliesTo: 'ust', chargedOn: 'Each room' },
   ];
   const imports: ImportJob[] = [
-    { id: 'im2', name: 'ustinov-annex.csv', kind: 'Spreadsheet', status: 'Queued', done: 0, total: 60, by: 'Tom Reid', started: 'Today 11:44', structure: 'College', creates: '60 rooms' },
-    { id: 'im3', name: 'Fenwick Block · 48 rooms', kind: 'Bulk create', status: 'Succeeded', done: 48, total: 48, by: 'Arjun Mehta', started: 'Today 10:05', structure: 'College', creates: '1 block · 63 entities' },
-    { id: 'im4', name: 'hild-bede-flats.csv', kind: 'Spreadsheet', status: 'Failed', done: 0, total: 72, errors: 2, by: 'Tom Reid', started: 'Yesterday 16:20', structure: 'College', creates: '72 rooms' },
-    { id: 'im5', name: 'John Snow · Block D', kind: 'Bulk create', status: 'Succeeded', done: 120, total: 120, by: 'Arjun Mehta', started: '24 Oct', structure: 'College', creates: '1 block · 145 entities' },
+    { id: 'im2', name: 'ustinov-annex.csv', kind: 'Spreadsheet', status: 'Queued', done: 0, total: 60, by: 'Tom Reid', started: 'Today 11:44', structure: 'Building', creates: '60 rooms' },
+    { id: 'im3', name: 'Fenwick Block · 48 rooms', kind: 'Bulk create', status: 'Succeeded', done: 48, total: 48, by: 'Arjun Mehta', started: 'Today 10:05', structure: 'Building', creates: '1 block · 63 entities' },
+    { id: 'im4', name: 'hild-bede-flats.csv', kind: 'Spreadsheet', status: 'Failed', done: 0, total: 72, errors: 2, by: 'Tom Reid', started: 'Yesterday 16:20', structure: 'Building', creates: '72 rooms' },
+    { id: 'im5', name: 'John Snow · Block D', kind: 'Bulk create', status: 'Succeeded', done: 120, total: 120, by: 'Arjun Mehta', started: '24 Oct', structure: 'Building', creates: '1 block · 145 entities' },
   ];
   const archived: Record<string, ArchivedRow[]> = {
     col: [
@@ -104,20 +109,20 @@ export function makeInventorySeed() {
     ],
   };
   const structures: Structure[] = [
-    { id: 'st1', name: 'Halls with flats', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Flat', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 6, updated: 'Arjun Mehta · 2 Sep' },
-    { id: 'st2', name: 'Halls, rooms only', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 9, updated: 'Arjun Mehta · 2 Sep' },
+    { id: 'st1', name: 'Blocks with flats', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Flat', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 6, updated: 'Arjun Mehta · 2 Sep' },
+    { id: 'st2', name: 'Rooms only', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 9, updated: 'Arjun Mehta · 2 Sep' },
     { id: 'st3', name: 'Studio block', levels: [{ name: 'Building', bsu: false }, { name: 'Floor', bsu: false }, { name: 'Studio', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 2, updated: 'Tom Baker · 14 Sep' },
     { id: 'st4', name: 'Shared houses', levels: [{ name: 'House', bsu: false }, { name: 'Room', bsu: true }, { name: 'Tenancy', bsu: true }], properties: 0, updated: 'Arjun Mehta · 20 Sep' },
   ];
   const fields: Field[] = [
-    { id: 'cf1', name: 'Accessible room', key: 'accessible_room', type: 'Yes / no', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'], required: true },
-    { id: 'cf2', name: 'Ensuite type', key: 'ensuite_type', type: 'Pick one · 3 options', attached: ['Halls with flats › Room', 'Halls, rooms only › Room'] },
+    { id: 'cf1', name: 'Accessible room', key: 'accessible_room', type: 'Yes / no', attached: ['Blocks with flats › Room', 'Rooms only › Room'], required: true },
+    { id: 'cf2', name: 'Ensuite type', key: 'ensuite_type', type: 'Pick one · 3 options', choices: ['Shower room', 'Bathroom', 'Wet room'], attached: ['Blocks with flats › Room', 'Rooms only › Room'] },
     { id: 'cf3', name: 'Floor area (m²)', key: 'floor_area_m2', type: 'Number', attached: ['Studio block › Studio'] },
-    { id: 'cf4', name: 'Bed size', key: 'bed_size', type: 'Pick one · 3 options', attached: ['Halls with flats › Room', 'Studio block › Studio'] },
-    { id: 'cf5', name: 'Kitchen shared with', key: 'kitchen_shared_with', type: 'Number', attached: ['Halls with flats › Flat'] },
-    { id: 'cf7', name: 'Fire assembly point', key: 'fire_assembly_point', type: 'Text', attached: ['Halls with flats › Floor'], required: true },
-    { id: 'cf8', name: 'Quiet floor', key: 'quiet_floor', type: 'Yes / no', attached: ['Halls with flats › Floor'] },
-    { id: 'cf6', name: 'Lift access', key: 'lift_access', type: 'Yes / no', attached: ['Halls with flats › Building', 'Halls, rooms only › Building'] },
+    { id: 'cf4', name: 'Bed size', key: 'bed_size', type: 'Pick one · 3 options', choices: ['Single', 'Small double', 'Double'], attached: ['Blocks with flats › Room', 'Studio block › Studio'] },
+    { id: 'cf5', name: 'Kitchen shared with', key: 'kitchen_shared_with', type: 'Number', attached: ['Blocks with flats › Flat'] },
+    { id: 'cf7', name: 'Fire assembly point', key: 'fire_assembly_point', type: 'Text', attached: ['Blocks with flats › Floor'], required: true },
+    { id: 'cf8', name: 'Quiet floor', key: 'quiet_floor', type: 'Yes / no', attached: ['Blocks with flats › Floor'] },
+    { id: 'cf6', name: 'Lift access', key: 'lift_access', type: 'Yes / no', attached: ['Blocks with flats › Building', 'Rooms only › Building'] },
   ];
   const tags: TagDef[] = [];
   for (const p of properties) for (const t of p.tags) if (!tags.some((x) => x.label === t.label)) tags.push({ id: 'tg' + (tags.length + 1), ...t });
@@ -140,10 +145,12 @@ export const useInv = create<InvState>()(
       patchProp: (id, fn) => set((st) => ({ properties: st.properties.map((p) => (p.id === id ? { ...p, ...fn(p) } : p)) })),
       editUnit: (id, e) => set((st) => ({ unitEdits: { ...st.unitEdits, [id]: { ...st.unitEdits[id], ...e } } })),
     }),
-    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 2, migrate: renameFrom(2) },
+    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 4, migrate: (st, v) => (v < 4 ? {} : termlyToWeekly(renameFrom(4)(st, v))) },
   ),
 );
 
+/* Rent templates bill Weekly, not Termly (2026-11-23); a tab saved before that gets its templates switched once. */
+function termlyToWeekly<T>(st: T): T { return JSON.parse(JSON.stringify(st).split('"billing":"Termly"').join('"billing":"Weekly"')) as T; }
 export const invId = (p: string) => `${p}${Math.random().toString(36).slice(2, 8)}`;
 export const logAct = (p: Property, what: string): ActivityRow[] => [{ who: 'Arjun Mehta', what, when: 'Just now' }, ...p.activity];
 

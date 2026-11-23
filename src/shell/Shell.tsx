@@ -223,8 +223,16 @@ function ModuleRow({ m, on, counts, collapsed, onExpand, chevron }: { m: Module;
     if (e.key === 'ArrowLeft' && isOpen) { e.preventDefault(); useNavOpen.getState().set(m.id, false); }
   };
   const hasChev = !single && chevron;
+  /* Module rows swap their icon for the chevron on hover or keyboard focus (2026-11-23): right when closed, turned down
+     when open. No chevron at the row's right end. */
   const label = (<>
-    <I size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />
+    {hasChev ? (
+      <span className="relative size-4 shrink-0">
+        <I size={16} strokeWidth={1.5} absoluteStrokeWidth className="absolute inset-0 transition-opacity duration-100 group-hover/mod:opacity-0 group-focus-visible/mod:opacity-0" />
+        <ChevronRight size={16} strokeWidth={1.5} absoluteStrokeWidth aria-hidden
+          className={cx('absolute inset-0 text-[#525252] opacity-0 transition-[opacity,transform] duration-150 group-hover/mod:opacity-100 group-focus-visible/mod:opacity-100', isOpen && 'rotate-90')} />
+      </span>
+    ) : <I size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />}
     <span className="flex-1 truncate">{m.label}</span>
     {n !== undefined && n > 0 && <span className="font-mono text-xs font-normal tabular-nums text-[#737373]">{n}</span>}
     {m.locked && <Lock size={14} strokeWidth={1.5} absoluteStrokeWidth className="text-[#737373]" />}
@@ -242,9 +250,6 @@ function ModuleRow({ m, on, counts, collapsed, onExpand, chevron }: { m: Module;
       <button type="button" onClick={toggle} onKeyDown={keys} aria-expanded={isOpen} title="⌥-click to close the others"
         className={cx(ROW, 'group/mod h-9 shrink-0 px-2 font-medium text-left', on || isOpen ? OPEN : IDLE)}>
         {label}
-        {hasChev && (isOpen
-          ? <ChevronDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3] group-hover/mod:text-[#0A0A0A]" />
-          : <ChevronRight size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3] group-hover/mod:text-[#0A0A0A]" />)}
       </button>
       {isOpen && <ModulePages mod={m} counts={counts} />}
     </>
@@ -265,7 +270,7 @@ function ModulePages({ mod, counts }: { mod: Module; counts: NavCounts }) {
       {mod.locked && (
         <div className="mt-2 rounded-lg border border-[#E5E5E5] bg-white p-4">
           <div className="text-sm font-semibold text-[#171717]">Not in your plan</div>
-          <div className="text-xs text-[#737373] mt-1">Listing site (LMS) lets you publish your halls on your own website.</div>
+          <div className="text-xs text-[#737373] mt-1">Listing site (LMS) lets you publish your properties on your own website.</div>
         </div>
       )}
     </div>
@@ -321,7 +326,7 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
       {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>}
-      {/* A page with views (Listings: Landlord, Partner halls) gets the module rows' chevron: right when closed, down when open. */}
+      {/* A page with views (Listings: Owner, Partners) gets the module rows' chevron: right when closed, down when open. */}
       {it.sub && !disabled && (open
         ? <ChevronDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />
         : <ChevronRight size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />)}

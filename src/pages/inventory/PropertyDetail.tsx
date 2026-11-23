@@ -3,9 +3,9 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   ArrowRight, ArrowsLeftRight, Bed, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
-  DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, UploadSimple, Warning, WarningCircle, X,
+  DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Avatar, Button, barBtn, Card, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
+import { Avatar, Button, barBtn, Card, DL, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
 import { allUnits, invId, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
@@ -36,14 +36,8 @@ export function PropertyDetail() {
     patchProp(id, (x) => ({ tags: x.tags.filter((y) => y.label !== t.label), activity: logAct(x, `Untagged ${t.label}`) }));
     toast.success(`${t.label} removed`, { action: { label: 'Undo', onClick: () => patchProp(id, (x) => ({ tags: x.tags.some((y) => y.label === t.label) ? x.tags : [...x.tags, t] })) } });
   };
-  /* A tag on the record with a remove × on hover or keyboard focus, a small white disc on its top-right corner (2026-11-18). */
-  const TagX = ({ t }: { t: Tag }) => (
-    <span className="group relative inline-flex">
-      <Tags tags={[t]} />
-      <button type="button" aria-label={`Remove ${t.label}`} onClick={() => removeTag(t)}
-        className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-white border border-[#E5E5E5] shadow-[0_1px_2px_rgba(0,0,0,0.08)] text-[#525252] hover:text-[#0A0A0A] flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity"><X size={10} strokeWidth={2} /></button>
-    </span>
-  );
+  /* A tag on the record. No remove × on the tag (2026-11-23): tags come off from the Add tag picker, where ticked ones click off. */
+  const TagX = ({ t }: { t: Tag }) => <Tags tags={[t]} />;
   const addTag = (t: Tag, created: boolean) => { if (!id) return; patchProp(id, (x) => ({ tags: [...x.tags, t], activity: logAct(x, `Tagged ${t.label}`) })); toast.success(created ? `${t.label} created and added` : `Tagged ${t.label}`); };
   const nav = useNavigate();
   const loc = useLocation();
@@ -113,7 +107,7 @@ export function PropertyDetail() {
     toast.success(`${p.name} archived`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: was })) } });
   };
   const setupRows = [
-    { k: 'Name, campus and layout', v: `${p.campus} · ${p.structure}`, ok: true, cta: 'Edit', go: () => setEditOpen('basics') },
+    { k: 'Name, location and layout', v: `${p.campus} · ${p.structure}`, ok: true, cta: 'Edit', go: () => setEditOpen('basics') },
     { k: 'Address', v: p.address || 'Not set', ok: !!p.address, cta: 'Add address', go: () => setEditOpen('address') },
     { k: 'Units', v: building ? `Building ${p.build!.done} of ${p.build!.total}` : p.units ? `${p.units} rooms in ${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No rooms yet', ok: hasRooms, cta: building ? 'View' : 'Add rooms', go: () => setTab('units') },
     { k: 'Tenancies', v: p.tenancies === false ? 'Rooms have no tenancy yet' : !templates.length ? 'No tenancy templates yet' : rentless.length ? `${rentless.map((r) => r.name).join(', ')} has no rent` : `${templates.length} ${templates.length === 1 ? 'template' : 'templates'}${!hasRooms ? ' · waiting for rooms' : ''}`, ok: tenanciesOk,
@@ -122,6 +116,9 @@ export function PropertyDetail() {
     { k: 'Photos and description', v: p.photos ? `${p.photos} photos${p.description ? ' · description' : ''}${p.amenities.length ? ` · ${p.amenities.length} amenities` : ''}` : 'Not added', ok: p.photos > 0 && !!p.description, cta: !p.photos ? 'Add photos' : 'Add description', go: () => setTab('photos') },
   ];
   const doneCount = setupRows.filter((r) => r.ok).length;
+  /* Set-up is a to-do list: once all five are done it goes (2026-11-23). Campus and address stay in the hero; units,
+     tenancies and photos have their own tabs, so nothing it showed is lost. */
+  const setupDone = doneCount === setupRows.length;
   /* A checklist, not a form: done steps carry no link (their details are edited in Details or on their tab); a step
      still to do gets one action that names what's missing (2026-11-20). */
   const setupAction = (r: typeof setupRows[number]) => (r.ok || !r.cta ? null : <EditLink onClick={r.go}>{r.cta}</EditLink>);
@@ -129,8 +126,8 @@ export function PropertyDetail() {
   const extras = (
     <>
       <Modal open={archiveAsk} onClose={() => setArchiveAsk(false)} icon={Archive} width={440} title={`Archive ${p.name}?`}
-        sub={p.liveTenancies > 0 ? `${p.liveTenancies} tenancies are live, so it can’t be archived yet. Close it to allocations first, from the Properties list.` : 'It leaves Inventory and can’t be booked. You can undo straight after.'}
-        footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations…</Button></>
+        sub={p.liveTenancies > 0 ? `${p.liveTenancies} tenancies are live, so it can’t be archived yet. Close it to allocations first, from the Properties list.` : 'It leaves your properties and can’t be booked. You can undo straight after.'}
+        footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations</Button></>
           : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
       {/* E2: not ready to go active */}
       <Modal open={checks} onClose={() => setChecks(false)} title={`${short} can’t go active yet`} width={520}
@@ -158,11 +155,11 @@ export function PropertyDetail() {
       <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={576} nav={stepper}
         onDelete={{ label: 'Archive property', icon: Archive, onClick: () => setArchiveAsk(true) }}
         more={<Menu width={220} trigger={(o) => <button type="button" onClick={o} aria-label="More actions" title="More actions" className={barBtn}><DotsThree size={16} /></button>} items={[
-          { label: 'Change letting period…', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
+          { label: 'Change letting period', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
         ]} />}
-        footer={p.status === 'Draft' ? <Button variant="primary" icon={null} onClick={activate}>Make active…</Button> : undefined}>
+        footer={p.status === 'Draft' ? <Button variant="primary" icon={null} onClick={activate}>Make active</Button> : undefined}>
         {/* Tags sit in the hero, visible on every tab: the status first, then the tags, with Add tag at the end of the row. */}
-        <SheetHero name={p.name} meta={`${p.campus} campus · ${p.address || 'No address'}`}
+        <SheetHero name={p.name} meta={`${p.campus} location · ${p.address || 'No address'}`}
           lead={photoOf(p.id)
             ? <img src={photoOf(p.id, photoOrder(p)[0] ?? 0)} alt="" className="size-14 shrink-0 rounded-xl object-cover bg-[#F5F5F5]" />
             : <div className="size-14 shrink-0 rounded-xl bg-[#F5F5F5] flex items-center justify-center"><Image size={24} className="text-[#A3A3A3]" /></div>}
@@ -190,20 +187,30 @@ export function PropertyDetail() {
               </div>
             )}
             {p.pendingRows ? <div className="mb-5"><Note tone="amber" icon={Warning} title={`${p.pendingRows} rows still to add`}>Fix them and import again from the Units tab.</Note></div> : null}
+{!setupDone && (
             <SheetSection title={`Set-up · ${doneCount} of 5`}>
               {setupRows.map((r) => (
                 <SheetRow key={r.k} title={r.k} sub={r.v} end={setupAction(r)}
                   lead={r.ok ? <span className="size-5 rounded-full bg-[#0B8A4C] flex items-center justify-center shrink-0"><Check size={12} weight="bold" className="text-white" /></span> : <span className="size-5 rounded-full border border-dashed border-gray-400 shrink-0" />} />
               ))}
             </SheetSection>
-            <SheetSection title="Details" action={<EditLink onClick={() => setEditOpen('basics')} />} rows={[
-              ['Letting period', p.letting],
-              ['Layout', `${p.structure} · ${p.structure === 'College' ? 5 : 2} levels`],
-              ['Inventory no.', p.invNo || '—'],
-              ['Zone', p.zone || '—'],
-              ['Units', String(p.units)],
-              ['Created', `${p.createdBy} · ${p.created}`],
-            ]} />
+            )}
+            {/* Hierarchy (2026-11-23): what the property is (reference, layout, zone), then how it lets (period, units),
+                a gap between the two; who created it is record history, so it closes the card as one quiet line. */}
+            <SheetSection title="Details" action={<EditLink onClick={() => setEditOpen('basics')} />}>
+              <div className="-my-2.5">
+                <DL rows={[
+                  ['Inventory no.', p.invNo ? <span className="font-mono">{p.invNo}</span> : '—'],
+                  ['Layout', `${p.structure} · ${p.structure === 'Building' ? 5 : 2} levels`],
+                  ['Zone', p.zone || '—'],
+                ]} />
+                <div className="mt-3"><DL rows={[
+                  ['Letting period', p.letting],
+                  ['Units', String(p.units)],
+                ]} /></div>
+                <p className="mt-3 pb-2.5 pt-1 text-xs leading-4 text-[#737373]">Created by {p.createdBy} on {p.created}</p>
+              </div>
+            </SheetSection>
           </div>
         )}
         {tab === 'units' && (
@@ -216,7 +223,7 @@ export function PropertyDetail() {
                     end={<span className="shrink-0 text-sm text-[#737373] tabular-nums">{p.tenancies === false ? 'No tenancy' : t ? `${money(t.rent)} / ${per(p)} · ${t.weeks} wk` : '—'}</span>} />;
                 })}
               </SheetSection>
-              <SheetSection title={`Rooms · ${p.units}`} action={<EditLink onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</EditLink>}>
+              <SheetSection title={`Rooms · ${p.units}`} action={<EditLink onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Units</EditLink>}>
                 {allUnits(p, unitEdits).slice(0, 12).map((u) => (
                   <SheetRow key={u.id} title={<span className="font-mono text-[13px]">{u.code}</span>} sub={`${u.block} · ${u.type}`} end={<PropStatus s={u.status} />}
                     onClick={() => nav(`/inventory/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)} />
@@ -272,13 +279,13 @@ export function PropertyDetail() {
         <Menu width={200} trigger={(o) => <button type="button" onClick={o} aria-label="More" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><DotsThree size={16} /></button>} items={[
           { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
           { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
-          { label: 'Tenancy pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
-          { label: 'Change letting period…', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
+          { label: 'Custom pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
+          { label: 'Change letting period', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
           'sep',
           { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
         ]} />
-        <Button icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Inventory</Button>
-        {p.status === 'Draft' && <Button variant="primary" icon={CheckCircle} onClick={activate}>Make active…</Button>}
+        <Button icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Units</Button>
+        {p.status === 'Draft' && <Button variant="primary" icon={CheckCircle} onClick={activate}>Make active</Button>}
         <DialogCloseButton />
       </DialogHeader>
 
@@ -316,6 +323,7 @@ export function PropertyDetail() {
                 </Card>
               )}
               {p.pendingRows ? <Note tone="amber" icon={Warning} title={`${p.pendingRows} rows still to add`}>Fix them and import again from the Units tab.</Note> : null}
+              {!setupDone && (
               <Card>
                 <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Set-up</span><span className="ml-auto text-xs text-[#737373]">{doneCount} of 5 done</span><Progress value={doneCount * 20} className="w-24 ml-2" /></div>
                 {/* 2822:71: 56px rows, 20px green circle with a white tick (dashed grey circle when not done), two-line label. */}
@@ -327,6 +335,7 @@ export function PropertyDetail() {
                   </div>
                 ))}
               </Card>
+              )}
               <Card>
                 <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Units</span></div>
                 {p.blocks.length ? (
@@ -352,8 +361,8 @@ export function PropertyDetail() {
               <dl className="px-4 py-2 grid grid-cols-[120px_1fr] text-sm leading-5 items-center [&>dt]:py-[7px] [&>dd]:py-[6px] [&>dd]:min-w-0">
                 <dt className="text-[#737373]">Status</dt><dd><PropStatus s={p.status} /></dd>
                 <dt className="text-[#737373]">Letting period</dt><dd>{p.letting}</dd>
-                <dt className="text-[#737373]">Campus</dt><dd>{p.campus}</dd>
-                <dt className="text-[#737373]">Structure</dt><dd>{p.structure} · {p.structure === 'College' ? 5 : 2} levels</dd>
+                <dt className="text-[#737373]">Location</dt><dd>{p.campus}</dd>
+                <dt className="text-[#737373]">Structure</dt><dd>{p.structure} · {p.structure === 'Building' ? 5 : 2} levels</dd>
                 <dt className="text-[#737373]">Inventory no.</dt><dd className="font-mono">{p.invNo || '—'}</dd>
                 <dt className="text-[#737373]">Zone</dt><dd>{p.zone || '—'}</dd>
                 <dt className="text-[#737373]">Units</dt><dd>{p.units}</dd>
@@ -390,7 +399,7 @@ export function PropertyDetail() {
               </table>
             </Card>
             <Card className="overflow-hidden">
-              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Tenancy pricing</button></div>
+              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Custom pricing</button></div>
               {templates.length ? templates.map((t) => (
                 <div key={t.id} className="h-12 px-4 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0 text-sm">
                   <span className="text-sm font-medium w-44">{t.name}</span><span className="text-[#737373] flex-1">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.billing}</span>
@@ -470,7 +479,7 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
             </tr>
           ))}</tbody>
         </table>
-        {p.units > units.length && <div className="h-10 px-4 flex items-center border-t border-line text-sm text-[#737373]">Showing {units.length} of {p.units} · <button type="button" className="text-primary ml-1" onClick={() => nav(`/inventory/units?p=${p.id}`)}>see them all in Inventory</button></div>}
+        {p.units > units.length && <div className="h-10 px-4 flex items-center border-t border-line text-sm text-[#737373]">Showing {units.length} of {p.units} · <button type="button" className="text-primary ml-1" onClick={() => nav(`/inventory/units?p=${p.id}`)}>see them all in Units</button></div>}
       </Card>
     </div>
   );
@@ -616,9 +625,9 @@ function WardenPhoneDialog({ p, open, onClose, onDone }: { p: Property; open: bo
     onDone();
   };
   return (
-    <Modal open={open} onClose={onClose} title={`${p.name} can’t be active yet`} sub="Warden phone is a required field." width={520}
+    <Modal open={open} onClose={onClose} title={`${p.name} can’t be active yet`} sub="Resident manager phone is a required field." width={520}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!v.trim()} onClick={save}>Save and make active</Button></>}>
-      <Field label="Warden phone"><Input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></Field>
+      <Field label="Resident manager phone"><Input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} /></Field>
     </Modal>
   );
 }
@@ -826,14 +835,14 @@ export function EditSheet({ p, which, onClose }: { p: Property; which: null | 'b
       <div className="space-y-4">
         <Field label="Property name"><Input value={name} onChange={(e) => setName(e.target.value)} /><FieldErr>{nameErr}</FieldErr></Field>
         <Field label="Inventory number" hint="Optional"><Input className="font-mono" value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
-        <Field label="Campus"><Input value={p.campus} disabled /></Field>
+        <Field label="Location"><Input value={p.campus} disabled /></Field>
         {/* Read-only like Campus, so it sits with it as a field rather than a label/value row in its own card. */}
         <Field label="Layout" hint="Can’t change once rooms are built"><Input value={p.structure} disabled /></Field>
       </div>
     </SheetSection>
   );
   const location = (
-    <SheetSection key="location" title="Location">
+    <SheetSection key="location" title="Address">
       <div className="space-y-4">
         <Field label="Address"><Input value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
         <Field label="Zone" hint="Optional"><Input value={zone} onChange={(e) => setZone(e.target.value)} /></Field>
@@ -843,9 +852,11 @@ export function EditSheet({ p, which, onClose }: { p: Property; which: null | 'b
   return (
     <PanelModal open={!!which} onClose={onClose} width={576} eyebrow="Edit property" title={p.name}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!nameErr} onClick={save}>{switching ? `Save and switch to ${letting.toLowerCase()}` : 'Save'}</Button></>}>
-      {which === 'address' ? [location, details] : [details, location]}
-      {/* Letting period is part of Edit (2026-11-20); picking the other period shows what switching converts, and Save says so. */}
-      <LettingChoice section p={p} pick={letting} setPick={setLetting} />
+      {/* Letting period is part of Edit (2026-11-20); picking the other period shows what switching converts, and Save says so.
+          It sits second, straight after the section that was opened (2026-11-23). */}
+      {which === 'address' ? location : details}
+      <LettingChoice key="letting" section p={p} pick={letting} setPick={setLetting} />
+      {which === 'address' ? details : location}
     </PanelModal>
   );
 }

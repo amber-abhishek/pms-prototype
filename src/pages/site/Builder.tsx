@@ -48,7 +48,7 @@ const labelOf = (x: Section, cycle: string) => (x.id === 'apply' ? `Apply now ·
 const draft: Content = {
   sections: [
     { id: 'hero', label: 'Hero & intro', on: true },
-    { id: 'halls', label: 'Halls & room types', on: true },
+    { id: 'halls', label: 'Properties & room types', on: true },
     { id: 'prices', label: 'Prices & terms', on: true },
     { id: 'apply', label: 'Apply now', on: true },
     { id: 'faqs', label: 'FAQs', on: true },
@@ -83,7 +83,7 @@ export function publishProblems(s: Content) {
     !s.sections.some((x) => x.on) && 'Turn on at least one section',
     s.sections.some((x) => x.on) && !on('apply') && 'Turn on Apply now: it’s how residents apply',
     on('hero') && !s.headline.trim() && 'Add a headline',
-    on('halls') && s.hallsMode === 'pick' && !s.picked.length && 'Pick at least one hall',
+    on('halls') && s.hallsMode === 'pick' && !s.picked.length && 'Pick at least one property',
     s.password && s.pw.trim().length < 8 && 'Set a password of 8 characters or more',
   ].filter(Boolean) as string[];
 }
@@ -205,7 +205,7 @@ function SectionOptions({ id }: { id: SecId }) {
           {(['all', 'pick'] as const).map((m) => (
             <label key={m} className="h-6 flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
               <input type="radio" name="hallsMode" checked={s.hallsMode === m} onChange={() => s.set({ hallsMode: m })} className="size-4 accent-[#2563EB]" />
-              {m === 'all' ? 'All bookable' : 'Pick halls'}
+              {m === 'all' ? 'All bookable' : 'Pick properties'}
             </label>
           ))}
         </div>
@@ -219,7 +219,7 @@ function SectionOptions({ id }: { id: SecId }) {
       <Check checked={s.live} onChange={(v) => s.set({ live: v })} label="Show live availability" />
       <Check checked={s.prices} onChange={(v) => s.set({ prices: v })} label="Show prices from term" />
       <Check checked={s.floor} onChange={(v) => s.set({ floor: v })} label="Show floor plans" />
-      <Note tone="blue" icon={Info} title="Kept in sync">Rooms, prices and availability come from Inventory and Terms.</Note>
+      <Note tone="blue" icon={Info} title="Kept in sync">Rooms, prices and availability come from Properties and Terms.</Note>
     </div>
   );
   if (id === 'apply') return <Note tone="blue" icon={Info} title={`Opens the ${s.cycle} term`}>Change the term in Settings.</Note>;
@@ -303,7 +303,7 @@ function Preview() {
     ),
     halls: (
       <>
-        <h3 className="text-base font-semibold mb-3">Halls & room types</h3>
+        <h3 className="text-base font-semibold mb-3">Properties & room types</h3>
         <div className={cx('grid gap-3', mobile ? 'grid-cols-1' : 'grid-cols-3')}>
           {HALLS.filter((h) => s.hallsMode === 'all' || s.picked.includes(h.name)).map((h) => (
             <div key={h.name} className={cx('border border-line overflow-hidden bg-white', r)}>
@@ -345,7 +345,7 @@ function Preview() {
         <header className="h-14 px-6 border-b border-line flex items-center gap-3">
           <span className={cx('size-7 text-white text-sm font-semibold flex items-center justify-center shrink-0', r)} style={{ background: brand }}>D</span>
           <span className="text-sm font-semibold truncate">{s.name}</span>
-          {!mobile && <nav className="ml-auto flex items-center gap-4 text-sm text-[#737373]"><span>Halls</span><span>Prices</span><span>FAQs</span>
+          {!mobile && <nav className="ml-auto flex items-center gap-4 text-sm text-[#737373]"><span>Properties</span><span>Prices</span><span>FAQs</span>
             {on('apply') && <span className={cx('h-8 px-3 text-white font-medium flex items-center', r)} style={{ background: brand }}>Apply now</span>}</nav>}
         </header>
         <div className="pb-4" style={{ background: `linear-gradient(180deg, ${brand}0D 0, transparent 160px)` }}>

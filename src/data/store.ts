@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { makeSeed, type Seed } from './seed';
-import { renameMe } from './rename';
+import { renameFrom } from './rename';
 
 export type Role = 'admin' | 'offcampus';
 
@@ -25,7 +25,7 @@ export const useDb = create<State>()(
       patch: (key, fn) => set((st) => ({ [key]: fn(st[key]) }) as Partial<State>),
       log: (what, area) => set((st) => ({ activity: [{ id: `ac${Date.now()}`, who: 'You', what, when: 'Just now', area }, ...st.activity] })),
     }),
-    { name: 'pms-prototype-v1', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
+    { name: 'pms-prototype-v1', storage: createJSONStorage(() => sessionStorage), version: 2, migrate: renameFrom(2) as never },
   ),
 );
 

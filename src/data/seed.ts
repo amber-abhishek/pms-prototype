@@ -22,7 +22,7 @@ export type Property = { id: string; name: string; campusId: string; structureId
 export type Unit = { id: string; code: string; propertyId: string; type: string; status: 'Occupied' | 'Available' | 'Held' | 'Maintenance'; rent: number };
 export type Cycle = { id: string; name: string; status: 'Open' | 'Upcoming' | 'Closed'; opens: string; closes: string; applications: number };
 export type AppStatus = 'New' | 'In review' | 'Offered' | 'Accepted' | 'Waitlisted' | 'Declined';
-export type Application = { id: string; ref: string; student: string; email: string; cycleId: string; year: 'First year' | 'Returning' | 'Postgraduate'; pref: string; roomType: string; submitted: string; status: AppStatus; waitingDays: number };
+export type Application = { id: string; ref: string; student: string; email: string; cycleId: string; year: 'New' | 'Returning' | 'Long stay'; pref: string; roomType: string; submitted: string; status: AppStatus; waitingDays: number };
 export type Offer = { id: string; appId: string; student: string; propertyId: string; roomType: string; sent: string; expires: string; status: 'Sent' | 'Accepted' | 'Declined' | 'Expired' };
 export type Booking = { id: string; ref: string; student: string; propertyId: string; room: string; start: string; end: string; status: 'Confirmed' | 'Lease unsigned' | 'Checked in' | 'Cancelled' };
 export type Resident = { id: string; name: string; email: string; propertyId: string; room: string; year: string; status: 'In residence' | 'Arriving' | 'Leaving' };
@@ -43,7 +43,7 @@ export function makeSeed() {
     { id: 'c2', name: "Queen's Campus", city: 'Stockton-on-Tees' },
   ];
   const structures: Structure[] = [
-    { id: 'st1', name: 'College', levels: [{ name: 'Block', bsu: false, sellable: false }, { name: 'Floor', bsu: false, sellable: false }, { name: 'Flat', bsu: false, sellable: false }, { name: 'Room', bsu: true, sellable: true }] },
+    { id: 'st1', name: 'Building', levels: [{ name: 'Block', bsu: false, sellable: false }, { name: 'Floor', bsu: false, sellable: false }, { name: 'Flat', bsu: false, sellable: false }, { name: 'Room', bsu: true, sellable: true }] },
     { id: 'st2', name: 'Townhouse', levels: [{ name: 'House', bsu: false, sellable: true }, { name: 'Room', bsu: true, sellable: true }] },
     { id: 'st3', name: 'Studio block', levels: [{ name: 'Block', bsu: false, sellable: false }, { name: 'Studio', bsu: true, sellable: true }] },
   ];
@@ -51,7 +51,7 @@ export function makeSeed() {
     { id: 'cf1', name: 'Accessible room', type: 'Yes/No', appliesTo: 'Unit', required: false },
     { id: 'cf2', name: 'Bathroom', type: 'Select', appliesTo: 'Unit', required: true, options: ['En-suite', 'Shared', 'Private'] },
     { id: 'cf3', name: 'Catering', type: 'Select', appliesTo: 'Property', required: true, options: ['Catered', 'Self-catered'] },
-    { id: 'cf4', name: 'Warden on site', type: 'Yes/No', appliesTo: 'Property', required: false },
+    { id: 'cf4', name: 'Resident manager on site', type: 'Yes/No', appliesTo: 'Property', required: false },
     { id: 'cf5', name: 'Floor area (m²)', type: 'Number', appliesTo: 'Unit', required: false },
   ];
   const properties: Property[] = [
@@ -79,7 +79,7 @@ export function makeSeed() {
   const applications: Application[] = Array.from({ length: 128 }, (_, i) => {
     const n = name();
     const w = int(0, 14);
-    return { id: `a${i}`, ref: `APP-${4100 + i}`, student: n, email: email(n), cycleId: 'cy1', year: pick(['First year', 'First year', 'Returning', 'Postgraduate'] as const), pref: pick(properties).name, roomType: pick(roomTypes), submitted: daysAgo(w), status: pick(statuses), waitingDays: w };
+    return { id: `a${i}`, ref: `APP-${4100 + i}`, student: n, email: email(n), cycleId: 'cy1', year: pick(['New', 'New', 'Returning', 'Long stay'] as const), pref: pick(properties).name, roomType: pick(roomTypes), submitted: daysAgo(w), status: pick(statuses), waitingDays: w };
   });
   const offers: Offer[] = applications
     .filter((a) => a.status === 'Offered' || a.status === 'Accepted')
@@ -89,7 +89,7 @@ export function makeSeed() {
     .map((o, i) => ({ id: `b${i}`, ref: `BK-${7300 + i}`, student: o.student, propertyId: o.propertyId, room: room(), start: '2027-09-25', end: '2028-06-24', status: i % 3 === 0 ? 'Lease unsigned' : 'Confirmed' }));
   const residents: Resident[] = Array.from({ length: 64 }, (_, i) => {
     const n = name();
-    return { id: `r${i}`, name: n, email: email(n), propertyId: pick(properties).id, room: room(), year: pick(['First year', 'Second year', 'Final year', 'Postgraduate']), status: i % 9 === 0 ? 'Arriving' : i % 13 === 0 ? 'Leaving' : 'In residence' };
+    return { id: `r${i}`, name: n, email: email(n), propertyId: pick(properties).id, room: room(), year: pick(['New', 'Returning', 'Returning', 'Long stay']), status: i % 9 === 0 ? 'Arriving' : i % 13 === 0 ? 'Leaving' : 'In residence' };
   });
   const maintenance: Maintenance[] = [
     { id: 'm1', ref: 'MT-2214', title: 'Leaking radiator', propertyId: 'p1', room: 'C.2.14', priority: 'Urgent', status: 'Open', reported: daysAgo(0), assignee: null },
@@ -111,16 +111,16 @@ export function makeSeed() {
   const notices: Notice[] = [
     { id: 'n1', title: 'Move-in notice to Ustinov residents', audience: 'Ustinov College · 582 residents', status: 'Draft', when: 'Wed 16 Sep, 09:00', body: 'Welcome to Ustinov! Collect your keys from reception between 10:00 and 18:00 on Saturday. Bring photo ID and your booking reference.' },
     { id: 'n2', title: 'Fire alarm test — Collingwood', audience: 'Collingwood · 438 residents', status: 'Scheduled', when: 'Mon 21 Sep, 10:00', body: 'The weekly fire alarm test will take place at 10:00. You do not need to leave the building.' },
-    { id: 'n3', title: 'Wi-Fi maintenance window', audience: 'All halls · 1,901 residents', status: 'Sent', when: 'Fri 11 Sep, 18:00', body: 'Wi-Fi will be unavailable for 30 minutes from 23:00.' },
+    { id: 'n3', title: 'Wi-Fi maintenance window', audience: 'All properties · 1,901 residents', status: 'Sent', when: 'Fri 11 Sep, 18:00', body: 'Wi-Fi will be unavailable for 30 minutes from 23:00.' },
   ];
-  const docs = (h: boolean, g: boolean) => [{ name: 'Landlord licence', ok: h }, { name: 'Gas safety certificate', ok: g }, { name: 'Proof of ownership', ok: true }];
+  const docs = (h: boolean, g: boolean) => [{ name: 'Property licence', ok: h }, { name: 'Gas safety certificate', ok: g }, { name: 'Proof of ownership', ok: true }];
   const landlordApps: LandlordApp[] = [
     { id: 'la1', landlord: 'Rachel Hughes', company: 'Wearside Lettings', email: 'rachel@wearside-lettings.co.uk', phone: '0191 555 0142', properties: 6, submitted: daysAgo(1), status: 'Pending', docs: docs(true, true) },
     { id: 'la2', landlord: 'David Okafor', company: 'Okafor Homes', email: 'david@okaforhomes.com', phone: '07700 900321', properties: 2, submitted: daysAgo(2), status: 'Pending', docs: docs(true, false) },
     { id: 'la3', landlord: 'Sarah Clarke', company: 'Cathedral View Property', email: 'sarah@cathedralview.co.uk', phone: '0191 555 0177', properties: 11, submitted: daysAgo(4), status: 'Pending', docs: docs(true, true) },
     { id: 'la4', landlord: 'Imran Ahmed', company: 'Viaduct Resident Homes', email: 'imran@viaducthomes.co.uk', phone: '07700 900654', properties: 4, submitted: daysAgo(6), status: 'Pending', docs: docs(false, true) },
     { id: 'la5', landlord: 'Helen Walker', company: 'Walker & Co', email: 'helen@walkerco.co.uk', phone: '0191 555 0199', properties: 3, submitted: daysAgo(12), status: 'Approved', docs: docs(true, true) },
-    { id: 'la6', landlord: 'Mark Taylor', company: 'Independent', email: 'mark.taylor@gmail.com', phone: '07700 900111', properties: 1, submitted: daysAgo(15), status: 'Rejected', reason: 'No landlord licence for a 5-bed house.', docs: docs(false, true) },
+    { id: 'la6', landlord: 'Mark Taylor', company: 'Independent', email: 'mark.taylor@gmail.com', phone: '07700 900111', properties: 1, submitted: daysAgo(15), status: 'Rejected', reason: 'No property licence for a 5-bed house.', docs: docs(false, true) },
   ];
   const areas = ['Viaduct', 'Gilesgate', 'Claypath', 'Elvet', "Neville's Cross", 'Sherburn Road'];
   const listings: Listing[] = [
@@ -140,7 +140,7 @@ export function makeSeed() {
     const st: Enquiry['status'] = i < 12 ? 'New' : i < 15 ? 'Replied' : 'Closed';
     const at = `${daysAgo(int(0, 4))} ${int(8, 21)}:${String(int(0, 59)).padStart(2, '0')}`;
     const thread: Enquiry['thread'] = [{ from: 'student', text: pick([`Hi, is ${l.title} still available for 2027/28? I'm looking with ${int(2, 4)} friends.`, `Are bills included for ${l.title}? And is there a deposit?`, `Could we book a viewing for ${l.title} next week?`, `Is ${l.title} close to the Science Site? Thanks!`]), at }];
-    if (st !== 'New') thread.push({ from: 'us', text: "Thanks for your enquiry — it's still available. I've passed your details to the landlord, who will be in touch to arrange a viewing.", at });
+    if (st !== 'New') thread.push({ from: 'us', text: "Thanks for your enquiry — it's still available. I've passed your details to the owner, who will be in touch to arrange a viewing.", at });
     return { id: `e${i}`, student: n, email: email(n), listingId: l.id, received: at, status: st, thread };
   });
   const tasks: Task[] = [
@@ -149,11 +149,11 @@ export function makeSeed() {
     { id: 't3', icon: 'lease', title: '14 leases not signed', sub: 'Move-in on Saturday · lease needed to collect keys', badge: { label: '5 days', tone: 'amber' }, to: '/allocations/bookings?tab=Awaiting%20signature', done: false },
     { id: 't4', icon: 'inbox', title: '31 applications waiting more than 5 days', sub: '2027/28 · To review', badge: { label: 'Behind', tone: 'orange' }, to: '/allocations/applications?tab=New', done: false },
     { id: 't5', icon: 'notice', title: 'Move-in notice to Ustinov residents', sub: 'Draft · scheduled for Wednesday 09:00', badge: { label: 'Draft', tone: 'grey' }, to: '/residents/notices?open=n1', done: false },
-    { id: 't6', icon: 'landlord', title: 'Review 4 landlord applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange' }, to: '/offcampus/landlords', done: false },
+    { id: 't6', icon: 'landlord', title: 'Review 4 owner applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange' }, to: '/offcampus/landlords', done: false },
   ];
   const people: Person[] = [
     { id: 'u1', name: 'Priya Shah', email: 'priya.shah@durham.ac.uk', role: 'Super admin', teams: ['Accommodation office'], lastActive: 'Now' },
-    { id: 'u2', name: 'Tom Baker', email: 'tom.baker@durham.ac.uk', role: 'Hall manager', teams: ['Collingwood', 'Ustinov'], lastActive: '09:12' },
+    { id: 'u2', name: 'Tom Baker', email: 'tom.baker@durham.ac.uk', role: 'Property manager', teams: ['Collingwood', 'Ustinov'], lastActive: '09:12' },
     { id: 'u3', name: 'Aisha Khan', email: 'aisha.khan@durham.ac.uk', role: 'Allocations officer', teams: ['Accommodation office'], lastActive: '08:47' },
     { id: 'u4', name: 'Ravi Singh', email: 'ravi.singh@durham.ac.uk', role: 'Off-campus reviewer', teams: ['Off-campus'], lastActive: 'Yesterday' },
     { id: 'u5', name: 'Grace Evans', email: 'grace.evans@durham.ac.uk', role: 'Maintenance', teams: ['Estates'], lastActive: '2 days ago' },
@@ -163,9 +163,9 @@ export function makeSeed() {
     { id: 'ac1', who: 'Tom Baker', what: 'checked in 26 residents at Collingwood', when: '09:12', area: 'Residents' },
     { id: 'ac2', who: 'Aisha Khan', what: 'allocated 18 applications for 2027/28', when: '08:47', area: 'Allocations' },
     { id: 'ac3', who: 'You', what: 'approved 3 listings on the off-campus site', when: '08:30', area: 'Off-campus' },
-    { id: 'ac4', who: 'Ravi Singh', what: 'rejected a landlord application (Mark Taylor)', when: 'Yesterday', area: 'Off-campus' },
+    { id: 'ac4', who: 'Ravi Singh', what: 'rejected an owner application (Mark Taylor)', when: 'Yesterday', area: 'Off-campus' },
     { id: 'ac5', who: 'Grace Evans', what: 'resolved MT-2184 · Mould in shower', when: 'Yesterday', area: 'Residents' },
-    { id: 'ac6', who: 'You', what: 'added custom field “Floor area (m²)”', when: '2 days ago', area: 'Inventory' },
+    { id: 'ac6', who: 'You', what: 'added custom field “Floor area (m²)”', when: '2 days ago', area: 'Properties' },
   ];
   const portal = { host: 'durham-homes.ac.uk', verified: true, autoPublishTrusted: false, requireDocs: true, enquiriesEnabled: true, showRent: true, brandColor: '#2563EB', siteName: 'Durham Resident Homes', tagline: 'Find a safe, approved home in Durham' };
   return { campuses, structures, customFields, properties, units, cycles, applications, offers, bookings, residents, maintenance, requests, notices, landlordApps, listings, enquiries, tasks, people, activity, portal };

@@ -98,7 +98,7 @@ export function PropertiesPage() {
         </span>
       );
     } },
-    { key: 'Campus', label: 'Campus', render: (p: Property) => <span className="text-[#404040]">{p.campus}</span> },
+    { key: 'Location', label: 'Location', render: (p: Property) => <span className="text-[#404040]">{p.campus}</span> },
     { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#404040]">{p.structure}</span> },
     { key: 'Tags', label: 'Tags', render: (p: Property) => <Tags tags={p.tags} /> },
     { key: 'Units', label: head('Units', 'units'), render: (p: Property) => <span className="font-medium tabular-nums">{p.units.toLocaleString('en-GB')}</span> },
@@ -113,7 +113,7 @@ export function PropertiesPage() {
 
   return (
     <>
-      <PageHeader icon={Buildings} title="Properties" crumbs={['Inventory']}>
+      <PageHeader icon={Buildings} title="All properties" crumbs={['Properties']}>
         {/* While empty, the empty state carries the create choices; the header doesn't repeat them. */}
         {anyProps && <CreateButton onSingle={() => nav('/inventory/properties/new')} onBulk={() => setBulk(true)} onImport={() => setImport(true)} />}
       </PageHeader>
@@ -135,13 +135,13 @@ export function PropertiesPage() {
           <div {...PIN} className="shrink-0 px-6 py-4 flex items-center gap-3">
             <div className="[&>label]:w-[280px] [&>label]:h-9"><SearchInput value={q} onChange={setQ} placeholder="Search properties" /></div>
             <div className="ml-auto flex items-center gap-3">
-              <MultiFilter label="Campus" value={campusF} onChange={setCampusF} options={[{ value: 'Durham City' }, { value: 'Queen’s Campus' }]} />
-              <MultiFilter label="Layout" value={layoutF} onChange={setLayoutF} options={[{ value: 'College' }, { value: 'House' }]} />
+              <MultiFilter label="Location" value={campusF} onChange={setCampusF} options={[{ value: 'Durham City' }, { value: 'Queen’s Campus' }]} />
+              <MultiFilter label="Layout" value={layoutF} onChange={setLayoutF} options={[{ value: 'Building' }, { value: 'House' }]} />
               <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={240} options={[{ value: 'Active', tone: 'green' }, { value: 'Draft', tone: 'amber' }, { value: 'Inactive', tone: 'grey' }, { value: 'Closed to allocations', tone: 'amber' }, { value: 'Archived', tone: 'red' }]} />
             </div>
           </div>
           <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)}
-            empty={<Empty title="No properties match" sub="Try another campus or clear the search." />}
+            empty={<Empty title="No properties match" sub="Try another location or clear the search." />}
             footer="always" summary={archivedShown ? `${rows.length} ${rows.length === 1 ? 'property' : 'properties'}` : rows.length === list.length ? `${list.length} ${list.length === 1 ? 'property' : 'properties'}` : `${rows.length} of ${list.length} properties`} />
         </>
       )}
@@ -195,7 +195,7 @@ function CreateButton({ onSingle, onBulk, onImport }: { onSingle: () => void; on
 /* ---------------- Bulk create: several similar properties from one layout ---------------- */
 const BULK_TYPES = ['Ensuite single', 'Standard single', 'Studio'] as const;
 function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [structure, setStructure] = useState<'College' | 'House'>('House');
+  const [structure, setStructure] = useState<'Building' | 'House'>('House');
   const orgCampuses = useOrg((o) => o.campuses);
   const campusNames = orgCampuses.length ? orgCampuses.filter((c) => c.status !== 'Inactive').map((c) => c.name) : ['Durham City', 'Queen’s Campus'];
   const [campus, setCampus] = useState(campusNames[0] ?? '');
@@ -239,8 +239,8 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
         {/* Campus is a dropdown, not a segmented control: an organisation can have any number of campuses. */}
         <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-x-3 gap-y-4">
           <div className="col-span-2">
-            <div className="text-sm leading-5 text-[#525252] mb-1.5">Campus</div>
-            <Dropdown ariaLabel="Campus" value={campus} onChange={setCampus} options={campusNames.map((c) => ({ value: c, label: c }))} />
+            <div className="text-sm leading-5 text-[#525252] mb-1.5">Location</div>
+            <Dropdown ariaLabel="Location" value={campus} onChange={setCampus} options={campusNames.map((c) => ({ value: c, label: c }))} />
           </div>
           <div>
             <div className="text-sm leading-5 text-[#525252] mb-1.5">Name</div>
@@ -280,11 +280,11 @@ type ImpStage = 'pick' | 'problems' | 'ok' | 'queued';
 export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const nav = useNavigate();
   const [stage, setStage] = useState<ImpStage>('pick');
-  const [structure, setStructure] = useState<'College' | 'House'>('College');
+  const [structure, setStructure] = useState<'Building' | 'House'>('Building');
   const tries = useRef(0);
   const busy = useRef(false);
   useEffect(() => { if (open) { setStage('pick'); tries.current = 0; } }, [open]);
-  const cols = structure === 'College' ? ['Property', 'Block', 'Floor', 'Flat', 'Room', 'Room.roomSize*', 'Room.accessible'] : ['Property', 'Room', 'Room.roomSize*', 'Room.accessible'];
+  const cols = structure === 'Building' ? ['Property', 'Block', 'Floor', 'Flat', 'Room', 'Room.roomSize*', 'Room.accessible'] : ['Property', 'Room', 'Room.roomSize*', 'Room.accessible'];
   const choose = () => { tries.current += 1; setStage(tries.current === 1 ? 'problems' : 'ok'); };
   const upload = () => {
     if (busy.current) return;
@@ -312,7 +312,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
         {/* The template's header row and one example room; * marks a required column. */}
         <div className="-mx-4 -my-3.5 overflow-x-auto font-mono text-[11px] leading-4 whitespace-nowrap grid" style={{ gridTemplateColumns: cols.map((c) => `minmax(max-content, ${c.length}fr)`).join(' ') }}>
           {cols.map((c, k) => <span key={c} className={cx('h-8 px-3 flex items-center border-b border-[#E5E5E5] text-[#0A0A0A] font-medium', k < cols.length - 1 && 'border-r')}>{c}</span>)}
-          {(structure === 'College' ? ['St Mary’s', 'A', '1', 'A1', 'A1-01', '12.5', 'no'] : ['Mill Lane', '1', '11.0', 'yes']).map((v, k) => <span key={k} className={cx('h-8 px-3 flex items-center border-[#E5E5E5] text-[#A3A3A3]', k < cols.length - 1 && 'border-r')}>{v}</span>)}
+          {(structure === 'Building' ? ['St Mary’s', 'A', '1', 'A1', 'A1-01', '12.5', 'no'] : ['Mill Lane', '1', '11.0', 'yes']).map((v, k) => <span key={k} className={cx('h-8 px-3 flex items-center border-[#E5E5E5] text-[#A3A3A3]', k < cols.length - 1 && 'border-r')}>{v}</span>)}
         </div>
       </SheetSection>
       <SheetSection title="CSV file">

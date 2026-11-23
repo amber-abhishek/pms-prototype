@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Buildings, Check, Door, MagnifyingGlass, Plus, Stack, X, type Icon } from '../../components/icons';
+import { Buildings, Door, MagnifyingGlass, Plus, Stack, X, type Icon } from '../../components/icons';
 import { Confirm, Dropdown, Input, Sheet, SheetHero, SheetSection, Switch, cx, type SheetNav } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
-import { invId, useInv, type Field, type Property } from '../../data/inventory';
+import { choicesOf, invId, useInv, type Field, type Property } from '../../data/inventory';
 
 /* Side panel for a level above the unit (Block, Floor, Flat), in the record-panel language (2026-11-19). Its job: fill in the
    custom fields attached to that level, and attach or create a field inline (the Add tag pattern). Values are prototype
@@ -13,12 +13,11 @@ export type LevelKind = 'Block' | 'Floor' | 'Flat';
 type FieldLevel = LevelKind | 'Room';
 const ICON: Record<LevelKind, Icon> = { Block: Buildings, Floor: Stack, Flat: Door };
 /** The layout a property uses and the level name inside it, as custom fields store their attachment ("Halls with flats › Floor"). */
-export const layoutOf = (p: Property) => (p.structure === 'House' ? 'Shared houses' : 'Halls with flats');
+export const layoutOf = (p: Property) => (p.structure === 'House' ? 'Shared houses' : 'Blocks with flats');
 const levelName = (p: Property, k: FieldLevel) => (k === 'Block' ? (p.structure === 'House' ? 'House' : 'Building') : k);
 export const attachKey = (p: Property, k: FieldLevel) => `${layoutOf(p)} › ${levelName(p, k)}`;
 
 const NEW_TYPES = ['Text', 'Number', 'Yes / no', 'Date'] as const;
-const OPTS: Record<string, string[]> = { ensuite_type: ['Shower', 'Bath', 'Wet room'], bed_size: ['Single', 'Small double', 'Double'] };
 
 export function LevelSheet({ p, kind, id, name, meta, facts, onClose, nav }: {
   p: Property; kind: LevelKind; id: string; name: string; meta: string; facts: [string, string][]; onClose: () => void; nav?: SheetNav;
@@ -84,7 +83,7 @@ function FieldInput({ f, value, onChange }: { f: Field; value: string; onChange:
   const slot = (c: ReactNode, end?: boolean) => <span className={cx('w-[220px] justify-self-end h-input flex items-center', end && 'justify-end')}>{c}</span>;
   if (f.type === 'Yes / no') return slot(<Switch checked={value === 'yes'} onChange={(b) => onChange(b ? 'yes' : 'no')} label={f.name} />, true);
   if (f.type.startsWith('Pick one')) {
-    const opts = OPTS[f.key] ?? ['Option A', 'Option B', 'Option C'];
+    const opts = choicesOf(f);
     return slot(<Dropdown ariaLabel={f.name} value={value} placeholder="Choose" onChange={onChange} options={opts.map((o) => ({ value: o, label: o }))} />);
   }
   const num = f.type.startsWith('Number');
@@ -124,7 +123,7 @@ function FieldPicker({ have, onAttach, onCreate }: { have: Field[]; onAttach: (f
             <div className="px-2 pt-1.5 pb-1 text-xs text-[#737373] truncate">Create “{text}” as</div>
             {NEW_TYPES.map((t) => (
               <button key={t} type="button" onClick={() => { onCreate(text, t); close(); }} className="w-full h-8 shrink-0 px-2 rounded-lg flex items-center gap-2 text-left text-sm text-[#0A0A0A] hover:bg-[#F5F5F5]">
-                <Check size={14} className="opacity-0" />{t}
+                {t}
               </button>
             ))}
           </>}

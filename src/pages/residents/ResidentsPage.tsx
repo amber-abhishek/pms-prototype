@@ -53,7 +53,7 @@ export function ResidentsList() {
         <Toolbar right={<>
           <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as Tab)} width={220}
             options={(['All', 'In residence', 'Arriving', 'Leaving'] as Tab[]).map((t) => ({ value: t, meta: scoped.filter((r) => inTab(r, t)).length }))} />
-          <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Hall', options: [...new Set(residents.map((r) => r.hall))] }, { id: 'deposit', label: 'Deposit', options: ['Paid', 'Not paid'] }, { id: 'week', label: 'This week', chips: true, options: ['Arriving today', 'Arriving this week', 'Leaving'] }]} />
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Property', options: [...new Set(residents.map((r) => r.hall))] }, { id: 'deposit', label: 'Deposit', options: ['Paid', 'Not paid'] }, { id: 'week', label: 'This week', chips: true, options: ['Arriving today', 'Arriving this week', 'Leaving'] }]} />
         </>}>
           <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name or room" /></div>
         </Toolbar>
@@ -63,7 +63,7 @@ export function ResidentsList() {
         empty={residents.length ? <Empty art="noResults" icon={Users} title="No residents match" sub="Try clearing the search or the filters." /> : <Empty art="records" icon={Users} title="No residents yet" sub="Residents show here once their bookings are confirmed." />}
         cols={[
           /* Row number: the resident's place in the filtered list, so it carries on across pages. */
-          { key: 'no', label: 'S.No.', className: 'w-[56px]', render: (r) => <span className="font-mono text-xs text-[#737373] tabular-nums">{rows.indexOf(r) + 1}</span> },
+          { key: 'no', label: 'S.No.', className: 'w-[56px]', render: (r) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(r) + 1}</span> },
           { key: 'n', label: 'Resident', render: (r) => <span className="flex items-center gap-2.5 min-w-0"><Avatar name={r.name} size={28} /><span className="font-medium truncate">{r.name}</span></span> },
           { key: 'rm', label: 'Room', render: (r) => <span className="text-gray-500">{hallShort(r.hall)} {r.room}</span> },
           { key: 'a', label: tab === 'Leaving' ? 'Leaves' : 'Arrives', render: (r) => <span className="text-gray-500">{r.status === 'Leaving' ? r.leaves : r.arrivingThisWeek ? r.arrives : 'In since Sep'}</span> },
@@ -157,11 +157,7 @@ export function ResidentDetail() {
             {arriving ? <Pill tone="blue">Arriving {r.arrives}</Pill> : <ResStatusPill r={r} />}
             {r.plan && <Pill tone="purple">Accessibility plan</Pill>}
             {tags.map((t) => (
-              <span key={t.label} className="group relative inline-flex">
-                <Tags tags={[t]} />
-                <button type="button" aria-label={`Remove ${t.label}`} onClick={() => removeTag(t)}
-                  className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-white border border-[#E5E5E5] shadow-[0_1px_2px_rgba(0,0,0,0.08)] text-[#525252] hover:text-[#0A0A0A] flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 outline-none transition-opacity text-[10px] leading-none">×</button>
-              </span>
+              <Tags key={t.label} tags={[t]} />
             ))}
             <TagPicker have={tags} onPick={addTag} onRemove={removeTag} trigger={addTagChip()} />
           </>}
@@ -174,7 +170,7 @@ export function ResidentDetail() {
             {items.map((i) => <SheetRow key={i.t} lead={<Tick ok={i.ok} />} title={i.t} sub={i.s}
               end={!i.ok && (i.t === 'ID checked' ? <Pill tone="amber">At the desk</Pill> : <Pill tone="red">Outstanding</Pill>)} />)}
           </SheetSection>
-          <SheetSection title="Details" rows={[['Resident ID', r.studentId], ['Email', r.email], ['Phone', r.phone], ['Course', r.course], ['Emergency', r.emergency], ['Application', r.application]]} />
+          <SheetSection title="Details" rows={[['Resident ID', r.studentId], ['Email', r.email], ['Phone', r.phone], ['Emergency', r.emergency], ['Application', r.application]]} />
         </>}
         {sTab === 'Payments' && <>
           <SheetSection title="Balance" rows={[['Balance', <span className={owes ? 'text-[#DC2626]' : 'text-[#0B8A4C]'}>{gbp(owes)}{owes ? '' : '.00'}</span>], ['Paid so far', gbp(paidSoFar)], ['Next due', arriving ? `Instalment 1 · ${gbp(inst)} · 19 Sep` : `Instalment 2 · ${gbp(inst)} · 6 Jan`]]} />
@@ -304,16 +300,16 @@ function DepositDialog({ r, onClose }: { r: Resident; onClose: () => void }) {
       setTimeout(() => finish('payment', { deposit: 'Paid', depositNote: '£250 · card · today', status: 'In residence', checkedIn: 'Today, 11:24 by Arjun Mehta', checkInNote: 'Deposit paid by link at the desk · keys handed over' }, `${r.name} paid £250 and is checked in to ${r.room}`), 3000);
     } else {
       useRms.getState().update('residents', r.id, { pending: 'override' });
-      toast(`Asked Aisha Khan to override`, { description: 'Hall managers can check a resident in with the deposit unpaid.' });
+      toast(`Asked Aisha Khan to override`, { description: 'Property managers can check a resident in with the deposit unpaid.' });
       setTimeout(() => finish('override', { depositNote: '£250 · now arrears', status: 'In residence', checkedIn: 'Today, 11:24 by Arjun Mehta', checkInNote: 'Checked in by Aisha Khan’s override · the £250 deposit is now arrears' }, `${r.name} checked in · the £250 deposit is now arrears`), 2200);
     }
   });
   return (
     <Modal open onClose={onClose} title={`${first} can’t be checked in yet`} sub={`${first}’s £250 deposit isn’t paid. Keys are handed over only once it is.`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={choice === 'pay' ? DeviceMobile : ShieldCheck} onClick={submit}>{choice === 'pay' ? 'Send payment link' : 'Ask a hall manager'}</Button></>}>
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={choice === 'pay' ? DeviceMobile : ShieldCheck} onClick={submit}>{choice === 'pay' ? 'Send payment link' : 'Ask a property manager'}</Button></>}>
       <div role="radiogroup" className="space-y-2">
         <RadioCard checked={choice === 'pay'} onClick={() => setChoice('pay')} title="Take payment now" sub={`Card at the desk or a payment link to ${first}’s phone.`} />
-        <RadioCard checked={choice === 'override'} onClick={() => setChoice('override')} title="Check in anyway" sub="Needs a hall manager; the deposit becomes arrears." />
+        <RadioCard checked={choice === 'override'} onClick={() => setChoice('override')} title="Check in anyway" sub="Needs a property manager; the deposit becomes arrears." />
       </div>
     </Modal>
   );

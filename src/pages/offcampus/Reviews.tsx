@@ -4,21 +4,20 @@ import { Alert } from '../org/parts';
 import { PersonName, Empty, Note } from '../../components/ui';
 import { Bike, Car, ChatCenteredText, Check, CheckCircle, Dumbbell, LampDesk, Sofa, Trees, Utensils, WashingMachine, Wifi, FileMagnifyingGlass, Image as ImageIcon, Warning, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, listNav, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx } from '../../components/ui';
+import { Button, listNav, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx } from '../../components/ui';
 import { LineTabs } from '../inventory/common';
 import type { Tone } from '../../data/seed';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { useOpen, useTab } from '../hooks';
 import { useOc, type Review, type ReviewStatus } from '../../data/offcampus';
-import { BulkAction, BulkBar, NoteDialog, ODialog, StatusTabsBar, Tag, Thumb, Title, listingPhoto } from './parts';
+import { BulkAction, BulkBar, NoteDialog, ODialog, QueueToolbar, Tag, Thumb, Title, WHEN, listingPhoto, whenOf } from './parts';
 import { LStatus } from './Landlords';
 import { revertList } from '../../data/revert';
 import { rowAttrs, useRowMotion } from '../../components/rowMotion';
 
-type TabId = 'all' | 'review' | 'changes' | 'rejected';
-const TABS: { id: TabId; label: string; status?: ReviewStatus }[] = [
-  { id: 'all', label: 'All' }, { id: 'review', label: 'To review', status: 'Under review' },
-  { id: 'changes', label: 'Changes requested', status: 'Changes requested' }, { id: 'rejected', label: 'Rejected', status: 'Rejected' },
+/* Approvals V3 (Figma 4159:17532, 2026-11-23): Needs action (to review) / All, plus Status and Submitted filters. */
+const STATUSES: { value: ReviewStatus; label: string; tone: Tone }[] = [
+  { value: 'Under review', label: 'To review', tone: 'blue' }, { value: 'Changes requested', label: 'Changes requested', tone: 'amber' }, { value: 'Rejected', label: 'Rejected', tone: 'red' },
 ];
 
 export function RStatus({ s }: { s: ReviewStatus }) {
@@ -28,24 +27,28 @@ export function RStatus({ s }: { s: ReviewStatus }) {
   return <Tag tone="green" icon={CheckCircle}>Approved</Tag>;
 }
 
-/** `bare`: rendered inside Approvals, which owns the page header. */
+/** `bare`: rendered inside Approvals, which owns the page header and the Owners / Listings tabs. */
 export function Reviews({ bare }: { bare?: boolean } = {}) {
   const all = useOc((s) => s.reviews);
   const set = useOc((s) => s.set);
-  const [tab, setTab] = useTab<TabId>('review');
+  const [tabParam, setTabParam] = useTab<string>('needs');
+  const view: 'needs' | 'all' = tabParam === 'all' ? 'all' : 'needs';
+  const [statusF, setStatusF] = useState<string[]>([]);
+  const [whenF, setWhenF] = useState<string[]>([]);
+  const showAll = () => { setTabParam('all'); setStatusF([]); setWhenF([]); };
   const [open, setOpen] = useOpen();
   const [ticked, setTicked] = useState<string[]>([]);
   const [dlg, setDlg] = useState<'changes' | 'reject' | 'approve' | null>(null);
   const busy = useRef(false);
   const queue = all.filter((r) => r.status !== 'Approved');
-  const st = TABS.find((t) => t.id === tab)?.status;
   const [q, setQ] = useState('');
   const qt = q.trim().toLowerCase();
-  const rows = queue.filter((r) => (!st || r.status === st) && (!qt || `${r.title} ${r.landlord} ${r.town}`.toLowerCase().includes(qt)));
+  const rows = queue.filter((r) => (view === 'all' || r.status === 'Under review') && (!statusF.length || statusF.includes(r.status))
+    && (!whenF.length || whenF.includes(whenOf(r.received))) && (!qt || `${r.title} ${r.landlord} ${r.town}`.toLowerCase().includes(qt)));
   const { items, bodyRef } = useRowMotion(rows);
   const sel = all.find((r) => r.id === open);
-  const canTick = tab === 'review';
-  useEffect(() => setTicked([]), [tab, q]);
+  const canTick = view === 'needs';
+  useEffect(() => setTicked([]), [view, statusF, whenF, q]);
 
   const guard = (fn: () => void) => { if (busy.current) return; busy.current = true; fn(); setTimeout(() => { busy.current = false; }, 400); };
   const nav = useNavigate();
@@ -75,7 +78,7 @@ export function Reviews({ bare }: { bare?: boolean } = {}) {
     const held = picked.filter((r) => whyNot(r));
     const count = (k: string) => held.filter((r) => whyNot(r) === k).length;
     const reasons = [
-      count('landlord') && `${count('landlord')} ${count('landlord') === 1 ? 'needs' : 'need'} an approved landlord`,
+      count('landlord') && `${count('landlord')} ${count('landlord') === 1 ? 'needs' : 'need'} an approved owner`,
       count('duplicate') && `${count('duplicate')} ${count('duplicate') === 1 ? 'is a duplicate address' : 'are duplicate addresses'}`,
       count('photos') && `${count('photos')} ${count('photos') === 1 ? 'has rooms' : 'have rooms'} without photos`,
     ].filter(Boolean).join(' · ');
@@ -94,23 +97,24 @@ export function Reviews({ bare }: { bare?: boolean } = {}) {
   });
   const requestChanges = (r: Review, note: string) => guard(() => {
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Changes requested' as const, note } : x)));
-    setDlg(null); setOpen(null); setTab('changes');
+    setDlg(null); setOpen(null); showAll();
     toast.success('Changes requested', { description: `${r.landlord} was emailed your note.` });
   });
   const reject = (r: Review, note: string) => guard(() => {
     const before = snap();
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Rejected' as const, note } : x)));
-    setDlg(null); setOpen(null); setTab('rejected');
+    setDlg(null); setOpen(null); showAll();
     const undo = undoSince(before);
-    toast.success('Listing rejected', { description: 'Your reason is emailed to the landlord when this closes.', duration: 8000, action: { label: 'Undo', onClick: () => { undo(); setTab('review'); } } });
+    toast.success('Listing rejected', { description: 'Your reason is emailed to the owner when this closes.', duration: 8000, action: { label: 'Undo', onClick: () => { undo(); setTabParam('needs'); } } });
   });
   const resubmit = (r: Review) => {
     set('reviews', (rs) => rs.map((x) => (x.id === r.id ? { ...x, status: 'Under review' as const, received: '5 min ago', resubmission: true, rooms: x.rooms.map((rm) => ({ ...rm, photos: true })) } : x)));
-    setOpen(null); setTab('review');
+    setOpen(null); setTabParam('needs');
     toast.success(`${r.landlord} resubmitted ${r.title}`, { description: 'It is back in the In review queue.' });
   };
 
   const tick = (id: string, on: boolean) => setTicked((t) => (on ? [...t, id] : t.filter((x) => x !== id)));
+  const search = <SearchInput value={q} onChange={setQ} placeholder="Search owner or property" />;
   const allTicked = rows.length > 0 && rows.every((r) => ticked.includes(r.id));
 
   return (
@@ -118,17 +122,21 @@ export function Reviews({ bare }: { bare?: boolean } = {}) {
       {!bare && <PageHeader icon={FileMagnifyingGlass} crumbs={['Off-campus']} title="Listing reviews" />}
       <div className="flex-1 min-h-0 flex flex-col relative">
         {!bare && <Title title="Listing reviews" />}
-        <StatusTabsBar value={tab} onChange={setTab} tabs={TABS.map((x) => ({ id: x.id, label: x.label, count: queue.filter((r) => !x.status || r.status === x.status).length }))}
-          search={<SearchInput value={q} onChange={setQ} placeholder="Search landlord or property" />} />
+        <QueueToolbar search={search} view={view} onView={(v) => setTabParam(v)}
+          needs={queue.filter((r) => r.status === 'Under review').length} all={queue.length}
+          filters={<>
+            <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={220} options={STATUSES} />
+            <MultiFilter label="Submitted" value={whenF} onChange={setWhenF} options={WHEN.map((w) => ({ value: w }))} />
+          </>} />
         <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
           {!rows.length ? (
-            qt ? <Empty art="noResults" title="No listing matches that search" sub="Try another landlord or property." /> : (tab === 'review' ? <Empty art="queueClear" title="Nothing to review" sub="New landlord listings land here for checking." /> : <Empty art="nothingToShow" title={`No listings under ${TABS.find((x) => x.id === tab)?.label}`} />)
+            qt ? <Empty art="noResults" title="No listing matches that search" sub="Try another owner or property." /> : (view === 'needs' && !statusF.length && !whenF.length ? <Empty art="queueClear" title="Nothing to review" sub="New owner listings land here for checking." /> : <Empty art="nothingToShow" title="No listings match these filters" sub="Clear a filter to see more." />)
           ) : (
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white z-[1]">
                 <tr className="text-left text-xs text-gray-500 [&>th]:font-medium [&>th]:h-9 [&>th]:border-b [&>th]:border-line [&>th]:px-3">
                   {canTick && <th className="!pl-[var(--cx,12px)] w-12"><Checkbox aria-label="Select all" checked={allTicked} onCheckedChange={(v) => setTicked((v === true) ? rows.map((r) => r.id) : [])} /></th>}
-                  <th className={cx(!canTick && '!pl-[var(--cx,12px)]')}>Property</th><th>Landlord</th><th>Submitted</th><th className="!pr-[var(--cx,12px)]">Status</th>
+                  <th className={cx(!canTick && '!pl-[var(--cx,12px)]')}>Property</th><th>Owner</th><th>Submitted</th><th className="!pr-[var(--cx,12px)]">Status</th>
                 </tr>
               </thead>
               <tbody ref={bodyRef}>
@@ -164,18 +172,18 @@ export function Reviews({ bare }: { bare?: boolean } = {}) {
             <Button variant="primary" icon={CheckCircle} onClick={() => setDlg('approve')}>Approve</Button>
           </>
         ) : sel.status === 'Changes requested' ? (
-          <Button variant="primary" icon={null} className="ml-auto" onClick={() => resubmit(sel)}>Simulate landlord resubmission</Button>
+          <Button variant="primary" icon={null} className="ml-auto" onClick={() => resubmit(sel)}>Simulate owner resubmission</Button>
         ) : null)}>
         {sel && <ListingDetail r={sel} />}
       </Sheet>
 
       <NoteDialog open={dlg === 'changes' && !!sel} onClose={() => setDlg(null)} icon={ChatCenteredText} title="Request changes"
-        sub="Your note is emailed to the landlord. Their edits are the reply." label="What needs to change?"
+        sub="Your note is emailed to the owner. Their edits are the reply." label="What needs to change?"
         initial={sel?.rooms.some((x) => !x.photos) ? `${sel.rooms.find((x) => !x.photos)?.name} has no photos. Add at least one photo of it before this goes live.` : ''}
         submit="Request changes" onSubmit={(n) => sel && requestChanges(sel, n)} />
       <NoteDialog open={dlg === 'reject' && !!sel} onClose={() => setDlg(null)} icon={XCircle} danger title="Reject this listing"
-        sub="Your reason is emailed to the landlord. The listing won't go live." label="Why are you rejecting it?" placeholder="e.g. The property is outside the area we cover."
-        initial={block?.kind === 'duplicate' ? 'This address is already listed on the site by another landlord.' : ''}
+        sub="Your reason is emailed to the owner. The listing won't go live." label="Why are you rejecting it?" placeholder="e.g. The property is outside the area we cover."
+        initial={block?.kind === 'duplicate' ? 'This address is already listed on the site by another owner.' : ''}
         submit="Reject" onSubmit={(n) => sel && reject(sel, n)} />
       <ODialog confirm width={480} open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title={block ? 'This listing can’t go live yet' : 'Approve this listing'}
         sub={block ? undefined : 'It goes live on your off-campus site straight away.'}
@@ -236,8 +244,8 @@ function ListingDetail({ r }: { r: Review }) {
           <div className="mb-3"><Note tone={r.status === 'Rejected' ? 'red' : 'amber'} title="Your note">{r.note}</Note></div>
         )}
         <SheetSection title="Property" rows={[['Type', `${r.type} · ${r.beds} bed`], ['Let as', r.letAs], ['Size', `${r.size} m²`], ['From', `£${r.from} per week`]]} />
-        <SheetSection title="Landlord">
-          <SheetRow title={r.landlord} sub={ll ? (ll.company ?? ll.entity) : 'No landlord account'} end={ll ? <LStatus s={ll.status} /> : <Tag tone="grey">Not registered</Tag>} />
+        <SheetSection title="Owner">
+          <SheetRow title={r.landlord} sub={ll ? (ll.company ?? ll.entity) : 'No owner account'} end={ll ? <LStatus s={ll.status} /> : <Tag tone="grey">Not registered</Tag>} />
         </SheetSection>
         <SheetSection title="Terms" rows={[['Bills', r.bills], ['House rules', r.rules]]} />
         <SheetSection title={`Amenities · ${r.amenities.length}`}>
@@ -264,14 +272,14 @@ function ListingDetail({ r }: { r: Review }) {
   );
 }
 
-/** Why a listing can't go live: its landlord isn't approved, or another landlord already lists the address. */
+/** Why a listing can't go live: its owner isn't approved, or another owner already lists the address. */
 function blockFor(r: Review, st: { landlords: { id: string; name: string; status: string }[]; hmos: { title: string; landlord: string; status: string }[] }):
   { kind: 'landlord' | 'duplicate'; id?: string; title: string; sub: string } | null {
   const l = st.landlords.find((x) => x.name === r.landlord);
-  if (!l) return { kind: 'landlord', title: `${r.landlord} isn’t an approved landlord`, sub: 'Only approved landlords can list here.' };
-  if (l.status !== 'Approved') return { kind: 'landlord', id: l.id, title: `${r.landlord} ${({ Submitted: 'isn’t approved yet', 'Awaiting info': 'owes you more information', Rejected: 'was rejected', Suspended: 'is inactive' } as Record<string, string>)[l.status] ?? 'isn’t approved'}`, sub: 'Approve the landlord first, then their listings.' };
+  if (!l) return { kind: 'landlord', title: `${r.landlord} isn’t an approved owner`, sub: 'Only approved owners can list here.' };
+  if (l.status !== 'Approved') return { kind: 'landlord', id: l.id, title: `${r.landlord} ${({ Submitted: 'isn’t approved yet', 'Awaiting info': 'owes you more information', Rejected: 'was rejected', Suspended: 'is inactive' } as Record<string, string>)[l.status] ?? 'isn’t approved'}`, sub: 'Approve the owner first, then their listings.' };
   const key = (t: string) => t.trim().toLowerCase().replace(/\s+/g, ' ');
-  const twin = st.hmos.find((h) => key(h.title) === key(r.title) && h.landlord !== r.landlord && h.status !== 'Archived');
-  if (twin) return { kind: 'duplicate', title: `${twin.title} is already listed by ${twin.landlord}`, sub: 'Two landlords can’t list the same address.' };
+  const twin = st.hmos.find((h) => key(h.title) === key(r.title) && h.landlord !== r.landlord);
+  if (twin) return { kind: 'duplicate', title: `${twin.title} is already listed by ${twin.landlord}`, sub: 'Two owners can’t list the same address.' };
   return null;
 }

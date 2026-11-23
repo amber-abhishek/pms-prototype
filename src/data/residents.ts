@@ -65,7 +65,7 @@ const mk = (id: string, name: string, hall: string, room: string, roomType: stri
   return {
     id, name, hall, room, roomType, status, email: `${first}.${last}@durham.ac.uk`,
     deposit: 'Paid', depositNote: '£250 · card · 2 Aug', lease: 'Signed', leaseNote: 'Signed online · 2 Aug',
-    year: 'Second year', rent: roomType.includes('Ensuite') ? 218 : 206,
+    year: 'Returning', rent: roomType.includes('Ensuite') ? 218 : 206,
     studentId: `00${1900000 + (n * 7919) % 99999}`, phone: `+44 7700 9${String(n * 37).padStart(5, '0').slice(-5)}`,
     course: 'BA History · Year 2', emergency: 'On file', application: `APP-27-0${1000 + (n % 900)} · from 2026/27 term`,
     ...rest,
@@ -74,35 +74,35 @@ const mk = (id: string, name: string, hall: string, room: string, roomType: stri
 
 const baseResidents = (): Resident[] => [
   mk('r1', 'Amira Rahman', 'Ustinov College', 'G.04.A', 'Accessible ensuite', 'Arriving', {
-    arrivingThisWeek: true, arrives: 'Sat 19 Sep', slot: '10:00–12:00', year: 'First year', plan: 'With Disability Support · carer room G.04.B next door',
+    arrivingThisWeek: true, arrives: 'Sat 19 Sep', slot: '10:00–12:00', year: 'New', plan: 'With Disability Support · carer room G.04.B next door',
     studentId: '001942871', phone: '+44 7700 900412', course: 'BSc Biosciences · Year 1', emergency: 'Nadia Rahman (mother)', application: 'APP-27-01842 · from 2026/27 term',
   }),
-  mk('r2', 'Ella Morgan', 'Collingwood', 'B.1.07', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Today', deposit: 'Not paid', depositNote: '£250 due', year: 'Third year', course: 'BA English · Year 3' }),
+  mk('r2', 'Ella Morgan', 'Collingwood', 'B.1.07', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Today', deposit: 'Not paid', depositNote: '£250 due', year: 'Returning', course: 'BA English · Year 3' }),
   mk('r3', 'Josh Patel', 'Collingwood', 'D.3.02', 'Ensuite single', 'In residence', { arrivingThisWeek: true, arrives: 'Today', checkedIn: 'Today, 09:40 by James Ward', course: 'MEng Engineering · Year 3' }),
-  mk('r4', 'Amir Haddad', 'Josephine Butler', '2.14', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Today', year: 'First year', course: 'BSc Physics · Year 1' }),
-  mk('r5', 'Leo Grant', 'Ustinov College', 'C.2.14', 'Standard single', 'In residence', { year: 'Postgraduate', course: 'MA Archaeology' }),
-  mk('r6', 'Hana Sato', 'Ustinov College', 'G.05.A', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sat 19 Sep', slot: '12:00–14:00', year: 'First year' }),
-  mk('r7', 'Ravi Mehta', 'Ustinov College', 'F.01.A', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sat 19 Sep', slot: '14:00–16:00', year: 'First year' }),
-  mk('r8', 'Chloé Martin', 'Ustinov College', 'F.03.B', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sun 20 Sep', slot: '10:00–12:00', year: 'First year' }),
-  mk('r9', 'Tunde Bello', 'Ustinov College', 'S.04.A', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sun 20 Sep', slot: '12:00–14:00', year: 'First year', lease: 'Not signed', leaseNote: 'Sent 1 Sep · not signed yet' }),
-  mk('r10', 'Mia Chen', 'Collingwood', 'A.1.12', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Tue 15 Sep', year: 'First year' }),
+  mk('r4', 'Amir Haddad', 'Josephine Butler', '2.14', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Today', year: 'New', course: 'BSc Physics · Year 1' }),
+  mk('r5', 'Leo Grant', 'Ustinov College', 'C.2.14', 'Standard single', 'In residence', { year: 'Long stay', course: 'MA Archaeology' }),
+  mk('r6', 'Hana Sato', 'Ustinov College', 'G.05.A', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sat 19 Sep', slot: '12:00–14:00', year: 'New' }),
+  mk('r7', 'Ravi Mehta', 'Ustinov College', 'F.01.A', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sat 19 Sep', slot: '14:00–16:00', year: 'New' }),
+  mk('r8', 'Chloé Martin', 'Ustinov College', 'F.03.B', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sun 20 Sep', slot: '10:00–12:00', year: 'New' }),
+  mk('r9', 'Tunde Bello', 'Ustinov College', 'S.04.A', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sun 20 Sep', slot: '12:00–14:00', year: 'New', lease: 'Not signed', leaseNote: 'Sent 1 Sep · not signed yet' }),
+  mk('r10', 'Mia Chen', 'Collingwood', 'A.1.12', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Tue 15 Sep', year: 'New' }),
   mk('r11', 'Sam Whitfield', 'Collingwood', 'C.2.11', 'Standard single', 'Leaving', { leaves: '31 Jan' }),
   mk('r12', 'Priyanka Rao', 'Collingwood', 'A.0.03', 'Ensuite single', 'In residence'),
   mk('r13', 'Owen Hughes', 'Collingwood', 'B.3.01', 'Accessible ensuite', 'In residence', { plan: 'Blue badge · ground floor access' }),
-  mk('r14', 'Lily Zhang', 'Collingwood', 'D.1.04', 'Standard single', 'In residence', { year: 'Third year' }),
+  mk('r14', 'Lily Zhang', 'Collingwood', 'D.1.04', 'Standard single', 'In residence', { year: 'Returning' }),
   mk('r15', 'Ben Carter', 'Collingwood', 'B.2.09', 'Standard single', 'In residence'),
   mk('r16', 'Kai Nowak', 'Collingwood', 'C.3.05', 'Standard single', 'In residence'),
-  mk('r17', 'Isla Thompson', 'Collingwood', 'A.2.04', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Thu 17 Sep', year: 'First year' }),
+  mk('r17', 'Isla Thompson', 'Collingwood', 'A.2.04', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Thu 17 Sep', year: 'New' }),
   mk('r18', 'Noah Evans', 'Van Mildert', 'A.1.05', 'Standard single', 'In residence'),
-  mk('r19', 'Ruby Clarke', 'Van Mildert', 'B.2.11', 'Ensuite single', 'In residence', { year: 'Third year' }),
+  mk('r19', 'Ruby Clarke', 'Van Mildert', 'B.2.11', 'Ensuite single', 'In residence', { year: 'Returning' }),
   mk('r20', 'Oliver Brown', "St Mary's College", '2.08', 'Standard single', 'In residence'),
-  mk('r21', 'Freya Wilson', "St Mary's College", '1.12', 'Ensuite single', 'Leaving', { leaves: '19 Dec', year: 'Postgraduate' }),
+  mk('r21', 'Freya Wilson', "St Mary's College", '1.12', 'Ensuite single', 'Leaving', { leaves: '19 Dec', year: 'Long stay' }),
   mk('r22', 'Harry Taylor', 'Josephine Butler', '3.06', 'Ensuite single', 'In residence'),
-  mk('r23', 'Grace Lee', 'Josephine Butler', '1.09', 'Studio', 'Arriving', { arrivingThisWeek: true, arrives: 'Wed 16 Sep', year: 'Postgraduate' }),
-  mk('r24', 'Daniel Okafor', 'Van Mildert', 'C.0.02', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Fri 18 Sep', year: 'First year', deposit: 'Not paid', depositNote: '£250 due' }),
-  mk('r25', 'Sofia Rossi', 'Ustinov College', 'G.03.A', 'Ensuite single', 'In residence', { year: 'Postgraduate' }),
+  mk('r23', 'Grace Lee', 'Josephine Butler', '1.09', 'Studio', 'Arriving', { arrivingThisWeek: true, arrives: 'Wed 16 Sep', year: 'Long stay' }),
+  mk('r24', 'Daniel Okafor', 'Van Mildert', 'C.0.02', 'Standard single', 'Arriving', { arrivingThisWeek: true, arrives: 'Fri 18 Sep', year: 'New', deposit: 'Not paid', depositNote: '£250 due' }),
+  mk('r25', 'Sofia Rossi', 'Ustinov College', 'G.03.A', 'Ensuite single', 'In residence', { year: 'Long stay' }),
   mk('r26', 'Ethan Wright', 'Collingwood', 'B.1.03', 'Standard single', 'In residence'),
-  mk('r27', 'Zara Ahmed', "St Mary's College", '3.01', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sat 19 Sep', year: 'First year' }),
+  mk('r27', 'Zara Ahmed', "St Mary's College", '3.01', 'Ensuite single', 'Arriving', { arrivingThisWeek: true, arrives: 'Sat 19 Sep', year: 'New' }),
   mk('r28', 'Lucas Martin', 'Josephine Butler', '2.03', 'Standard single', 'Leaving', { leaves: '18 Jun 2027' }),
 ];
 /** Everyone already in has a fob; arriving residents get theirs at check-in. */
@@ -117,7 +117,7 @@ const swapChecks = (arrears?: string): CheckItem[] => [
 ];
 
 const names = ['Ruby Clarke', 'Noah Evans', 'Oliver Brown', 'Harry Taylor', 'Sofia Rossi', 'Ethan Wright', 'Zara Ahmed', 'Grace Lee', 'Daniel Okafor', 'Freya Wilson', 'Lucas Martin', 'Ava Walker', 'Jack Green', 'Maya Patel', 'Finn Murphy', 'Chloe King', 'Adam Scott', 'Erin Hall', 'Tom Ellis', 'Nina Kowalski'];
-const doneKinds: [ReqKind, string][] = [['Overnight guest', '· 2 nights'], ['Furniture', '· extra shelf'], ['Parking permit', '· term permit'], ['Early arrival', '· from 12 Sep'], ['Room move', '→ quieter floor'], ['Room swap', '↔ same floor']];
+const doneKinds: [ReqKind, string][] = [['Overnight guest', '· 2 nights'], ['Furniture', '· extra shelf'], ['Parking permit', '· 3-month permit'], ['Early arrival', '· from 12 Sep'], ['Room move', '→ quieter floor'], ['Room swap', '↔ same floor']];
 
 export const seedRequests = (): ResRequest[] => {
   const rows: ResRequest[] = [
@@ -138,7 +138,7 @@ export const seedRequests = (): ResRequest[] => {
       history: [['Sam Whitfield asked', '13 Sep']] },
     { id: 'rq3', ref: 'RQ-119', kind: 'Overnight guest', who: 'Priyanka Rao', hall: 'Collingwood', detail: 'Collingwood A.0.03 · 25–27 Sep', check: { label: 'Within the limit', tone: 'green' }, waiting: '2 days', waitDays: 2, status: 'Open',
       sub: 'Collingwood · requested by Priyanka Rao on Sat 12 Sep · 2 nights, 25–27 September',
-      checks: [{ label: 'Within the guest limit', sub: '2 of 6 nights this term', ok: true }, { label: 'Guest named', sub: 'Meera Rao (sister)', ok: true }],
+      checks: [{ label: 'Within the guest limit', sub: '2 of 6 nights this period', ok: true }, { label: 'Guest named', sub: 'Meera Rao (sister)', ok: true }],
       history: [['Priyanka Rao asked', '12 Sep']] },
     { id: 'rq4', ref: 'RQ-117', kind: 'Parking permit', who: 'Owen Hughes', hall: 'Collingwood', detail: 'Collingwood · Blue badge', check: { label: 'Document missing', tone: 'orange' }, waiting: '4 days', waitDays: 4, status: 'Open',
       sub: 'Collingwood · requested by Owen Hughes on Thu 10 Sep · accessible bay',
@@ -169,7 +169,7 @@ export const seedRequests = (): ResRequest[] => {
       history: [['Asked Isla for her flight time', '10 Sep'], ['Isla Thompson asked', '9 Sep']] },
     { id: 'rq9', ref: 'RQ-122', kind: 'Overnight guest', who: 'Leo Grant', hall: 'Ustinov College', detail: 'Ustinov C.2.14 · 18–19 Sep', check: { label: 'Within the limit', tone: 'green' }, waiting: '5 hours', waitDays: 0, status: 'Open',
       sub: 'Ustinov College · requested by Leo Grant today · 1 night',
-      checks: [{ label: 'Within the guest limit', sub: '1 of 6 nights this term', ok: true }],
+      checks: [{ label: 'Within the guest limit', sub: '1 of 6 nights this period', ok: true }],
       history: [['Leo Grant asked', '14 Sep, 06:10']] },
   ];
   for (let i = 0; i < 35; i++) {
@@ -180,7 +180,7 @@ export const seedRequests = (): ResRequest[] => {
       id: `rqh${i}`, ref: `RQ-${113 - i}`, kind, who, hall: 'Collingwood', detail: `Collingwood ${['A', 'B', 'C', 'D'][i % 4]}.${(i % 3) + 1}.${String((i % 12) + 1).padStart(2, '0')} ${tail}`,
       check: declined ? { label: 'Rules not met', tone: 'red' } : { label: 'All checks passed', tone: 'green' },
       waiting: `${(i % 4) + 1} days`, waitDays: (i % 4) + 1, status: declined ? 'Declined' : 'Approved', decidedBy: i % 3 ? 'Tom Baker' : 'Arjun Mehta',
-      sub: `Collingwood · requested by ${who} in August`, checks: [{ label: 'Checks', sub: declined ? 'Did not meet the hall rules' : 'All passed', ok: !declined }],
+      sub: `Collingwood · requested by ${who} in August`, checks: [{ label: 'Checks', sub: declined ? 'Did not meet the property rules' : 'All passed', ok: !declined }],
       history: [[declined ? 'Declined' : 'Approved', `${20 + (i % 10)} Aug`], [`${who} asked`, `${18 + (i % 10)} Aug`]],
     });
   }
@@ -192,33 +192,33 @@ const ch = (sms = false): Channels => ({ email: true, portal: true, sms });
 export const MOVE_IN_BODY = 'Hi {first name},\n\nYour arrival slot is {arrival slot} on Saturday 19 September. Come to the Ustinov reception with your passport or BRP; we’ll check you in and hand over your key fob.\n\nBring bedding, or order a bedding pack in the portal by Thursday.';
 export const seedNotices = (): Notice[] => [
   { id: 'nt1', title: 'Fire alarm test, Wednesday 10:00', audience: 'Van Mildert · all residents', hall: 'Van Mildert', group: 'All residents', count: 557, status: 'Sent', opened: 88, when: 'Mon 14 Sep, 09:00', channels: ch(), body: 'The fire alarm will be tested at 10:00 on Wednesday. You do not need to leave the building.' },
-  { id: 'nt2', title: 'Welcome week: what’s on', audience: 'All halls · arriving this week', hall: 'All halls', group: 'Arriving this week', count: 612, status: 'Sent', opened: 71, when: 'Fri 11 Sep, 12:00', channels: ch(), body: 'Freshers’ fair, college formal and the welcome barbecue: here is everything happening in your first week.' },
+  { id: 'nt2', title: 'Move-in week: what’s on', audience: 'All properties · arriving this week', hall: 'All properties', group: 'Arriving this week', count: 612, status: 'Sent', opened: 71, when: 'Fri 11 Sep, 12:00', channels: ch(), body: 'Freshers’ fair, college formal and the welcome barbecue: here is everything happening in your first week.' },
   { id: 'nt3', title: 'Water off in Block C, Thursday 9–11', audience: 'Collingwood · Block C', hall: 'Collingwood', group: 'Block C', count: 96, status: 'Scheduled', when: 'Wed 16 Sep, 18:00', channels: ch(), body: 'Estates are replacing a valve. Water will be off in Block C from 09:00 to 11:00 on Thursday.' },
   { id: 'nt4', title: 'Laundry cards now on sale', audience: 'St Mary’s College', hall: 'St Mary’s College', group: 'All residents', count: 118, status: 'Draft', channels: ch(), body: 'Laundry cards are on sale at reception, £10 for 6 washes.' },
   { id: 'n1', title: 'Move-in weekend: your arrival slot and what to bring', audience: 'Ustinov College · arriving this week', hall: 'Ustinov College', group: 'Arriving this week', count: 211, status: 'Draft', channels: ch(), body: MOVE_IN_BODY },
-  { id: 'nt5', title: 'Wi-Fi maintenance window', audience: 'All halls · all residents', hall: 'All halls', group: 'All residents', count: 2893, status: 'Sent', opened: 64, when: 'Fri 11 Sep, 18:00', channels: ch(), body: 'Wi-Fi will be unavailable for 30 minutes from 23:00.' },
+  { id: 'nt5', title: 'Wi-Fi maintenance window', audience: 'All properties · all residents', hall: 'All properties', group: 'All residents', count: 2893, status: 'Sent', opened: 64, when: 'Fri 11 Sep, 18:00', channels: ch(), body: 'Wi-Fi will be unavailable for 30 minutes from 23:00.' },
   { id: 'nt6', title: 'Bin collection moves to Tuesdays', audience: 'Collingwood · all residents', hall: 'Collingwood', group: 'All residents', count: 412, status: 'Sent', opened: 59, when: 'Thu 10 Sep, 10:00', channels: ch(), body: 'From next week bins are collected on Tuesdays.' },
   { id: 'nt7', title: 'Gym induction slots open', audience: 'Ustinov College · all residents', hall: 'Ustinov College', group: 'All residents', count: 582, status: 'Sent', opened: 47, when: 'Wed 9 Sep, 12:00', channels: ch(), body: 'Book a gym induction in the portal.' },
   { id: 'nt8', title: 'Lost property amnesty', audience: 'St Mary’s College · all residents', hall: 'St Mary’s College', group: 'All residents', count: 118, status: 'Sent', opened: 52, when: 'Tue 8 Sep, 09:30', channels: ch(), body: 'Collect anything you have lost from reception by Friday.' },
   { id: 'nt9', title: 'Bike store access codes changed', audience: 'Josephine Butler · all residents', hall: 'Josephine Butler', group: 'All residents', count: 450, status: 'Sent', opened: 76, when: 'Mon 7 Sep, 09:00', channels: ch(), body: 'The bike store code has changed. Find the new one in the portal.' },
-  { id: 'nt10', title: 'Formal dinner booking opens', audience: 'Van Mildert · first years', hall: 'Van Mildert', group: 'First years', count: 210, status: 'Sent', opened: 83, when: 'Fri 4 Sep, 12:00', channels: ch(), body: 'Book your place at the first formal of term.' },
-  { id: 'nt11', title: 'Parcel room hours this term', audience: 'Ustinov College · all residents', hall: 'Ustinov College', group: 'All residents', count: 582, status: 'Sent', opened: 69, when: 'Thu 3 Sep, 10:00', channels: ch(), body: 'The parcel room is open 08:00–20:00 every day.' },
-  { id: 'nt12', title: 'Heating on for the term', audience: 'All halls · all residents', hall: 'All halls', group: 'All residents', count: 2893, status: 'Sent', opened: 58, when: 'Tue 1 Sep, 09:00', channels: ch(), body: 'Heating is on from today.' },
-  { id: 'nt13', title: 'Library late opening this term', audience: 'All halls · all residents', hall: 'All halls', group: 'All residents', count: 2893, status: 'Sent', opened: 41, when: 'Mon 31 Aug, 12:00', channels: ch(), body: 'The Bill Bryson Library is open until midnight from this week.' },
+  { id: 'nt10', title: 'Community dinner booking opens', audience: 'Van Mildert · new residents', hall: 'Van Mildert', group: 'New residents', count: 210, status: 'Sent', opened: 83, when: 'Fri 4 Sep, 12:00', channels: ch(), body: 'Book your place at the first formal of term.' },
+  { id: 'nt11', title: 'New parcel room hours', audience: 'Ustinov College · all residents', hall: 'Ustinov College', group: 'All residents', count: 582, status: 'Sent', opened: 69, when: 'Thu 3 Sep, 10:00', channels: ch(), body: 'The parcel room is open 08:00–20:00 every day.' },
+  { id: 'nt12', title: 'Heating on for winter', audience: 'All properties · all residents', hall: 'All properties', group: 'All residents', count: 2893, status: 'Sent', opened: 58, when: 'Tue 1 Sep, 09:00', channels: ch(), body: 'Heating is on from today.' },
+  { id: 'nt13', title: 'Study room late opening', audience: 'All properties · all residents', hall: 'All properties', group: 'All residents', count: 2893, status: 'Sent', opened: 41, when: 'Mon 31 Aug, 12:00', channels: ch(), body: 'The Bill Bryson Library is open until midnight from this week.' },
 ];
 
 /** How many residents match a hall and a status, for the audience builder. */
-export const HALLS = ['All halls', 'Ustinov College', 'Collingwood', 'Van Mildert', 'St Mary’s College', 'Josephine Butler'];
-export const GROUPS = ['All residents', 'Arriving this week', 'In residence', 'First years', 'Block C', 'Block D'];
-const hallTotals: Record<string, number> = { 'All halls': 2893, 'Ustinov College': 582, Collingwood: 412, 'Van Mildert': 557, 'St Mary’s College': 118, 'Josephine Butler': 450 };
+export const HALLS = ['All properties', 'Ustinov College', 'Collingwood', 'Van Mildert', 'St Mary’s College', 'Josephine Butler'];
+export const GROUPS = ['All residents', 'Arriving this week', 'In residence', 'New residents', 'Block C', 'Block D'];
+const hallTotals: Record<string, number> = { 'All properties': 2893, 'Ustinov College': 582, Collingwood: 412, 'Van Mildert': 557, 'St Mary’s College': 118, 'Josephine Butler': 450 };
 export function audienceCount(hall: string, group: string) {
   const total = hallTotals[hall] ?? 0;
   if (group === 'All residents') return total;
   if (hall === 'Ustinov College' && group === 'Arriving this week') return 211;
-  if (hall === 'All halls' && group === 'Arriving this week') return 612;
+  if (hall === 'All properties' && group === 'Arriving this week') return 612;
   if (group === 'Arriving this week') return Math.round(total * 0.34);
   if (group === 'In residence') return Math.round(total * 0.64);
-  if (group === 'First years') return Math.round(total * 0.38);
+  if (group === 'New residents') return Math.round(total * 0.38);
   return hall === 'Collingwood' && group === 'Block C' ? 96 : Math.round(total * 0.2);
 }
 
@@ -245,7 +245,7 @@ export const seedFaults = (): Fault[] => {
     f('m3', 'MT-201', 'Door fob not opening the room', 'lock', 'Van Mildert · A.1.05', 'High', 'Access', 28 * 60, 'In progress', 'Front desk'),
     f('m4', 'MT-199', 'Shower drains slowly', 'shower', 'St Mary’s · 2.08', 'Normal', 'Plumbing', 3 * 1440, 'New', 'Dave Hughes'),
     f('m5', 'MT-198', 'Desk lamp broken', 'lamp', 'Collingwood · B.2.09', 'Normal', 'Furniture', 4 * 1440, 'New'),
-    f('m6', 'MT-196', 'Wi-Fi drops in the evening', 'wifi', 'Josephine Butler · Block 3', 'High', 'IT', 0, 'Waiting on parts', 'Campus IT'),
+    f('m6', 'MT-196', 'Wi-Fi drops in the evening', 'wifi', 'Josephine Butler · Block 3', 'High', 'IT', 0, 'Waiting on parts', 'IT team'),
     f('m7', 'MT-195', 'Room too cold at night', 'cold', 'Ustinov · F.03.B', 'Normal', 'Heating', 5 * 1440, 'In progress', 'Northern Heating'),
     f('m8', 'MT-194', 'Window won’t close fully', 'window', 'Van Mildert · B.2.11', 'Normal', 'Windows', 5 * 1440 + 360, 'New'),
     f('m9', 'MT-193', 'Kitchen extractor fan noisy', 'fan', 'St Mary’s · kitchen 1', 'Normal', 'Ventilation', 6 * 1440, 'In progress', 'Estates helpdesk'),
@@ -312,6 +312,6 @@ export const useRms: UseBoundStore<StoreApi<RmsState>> = create<RmsState>()(
         return revertOnly(key, prev as Rec[], get()[key] as Rec[]);
       },
     }),
-    { name: 'pms-residents', version: 2, migrate: renameFrom(1) as never, storage: createJSONStorage(() => sessionStorage), partialize: (s) => ({ residents: s.residents, requests: s.requests, notices: s.notices, faults: s.faults }) },
+    { name: 'pms-residents', version: 3, migrate: renameFrom(3) as never, storage: createJSONStorage(() => sessionStorage), partialize: (s) => ({ residents: s.residents, requests: s.requests, notices: s.notices, faults: s.faults }) },
   ),
 );

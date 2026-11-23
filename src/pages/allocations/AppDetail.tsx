@@ -34,7 +34,7 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
   const best = bestPref(ps);
   const canAct = a.status === 'review' || a.status === 'manual';
   const [tab, setTab] = useState<DetailTab>('Overview');
-  const allocateBest = () => (best ? onAllocate(best) : toast.error(`No free unit in any of ${firstName(a.name)}’s choices`, { description: 'Pick a unit from another hall, or add them to the waitlist.' }));
+  const allocateBest = () => (best ? onAllocate(best) : toast.error(`No free unit in any of ${firstName(a.name)}’s choices`, { description: 'Pick a unit from another property, or add them to the waitlist.' }));
   /* Five tabs instead of one long scroll: the hero stays put, the tab's content scrolls under it. */
   return (
     <div className="flex-1 min-w-0 flex flex-col">
@@ -52,7 +52,7 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
           <Preferences ps={ps} />
           {canAct && best && <MatchingUnits a={a} best={best} onAllocate={onAllocate} />}
           {(a.reqs.length > 0 || !!a.toCheck?.length || a.why === 'Under 18 at arrival') && <Requirements a={a} onVerify={(r) => act.verify(a, r)} />}
-          <SheetSection title="Applicant" rows={[['Course', a.course], ['Fee status', a.fee], ['Arrival', a.arrival], ['Email', <span className="break-all">{a.email}</span>], ['Guarantee', a.guarantee ? 'Guaranteed' : 'Not guaranteed']]} />
+          <SheetSection title="Applicant" rows={[['Resident type', a.year], ['Residency', a.fee], ['Arrival', a.arrival], ['Email', <span className="break-all">{a.email}</span>], ['Guarantee', a.guarantee ? 'Guaranteed' : 'Not guaranteed']]} />
           <RoomAndContract a={a} />
         </>}
         {tab === 'Documents' && <Documents a={a} onVerify={(r) => act.verify(a, r)} />}
@@ -93,7 +93,7 @@ export function AppDetail({ a, onAllocate, onReject, onAfter }: { a: App; onAllo
 /* ---------- pieces ---------- */
 function AppNote({ a }: { a: App }) {
   if (stepFree(a)) return <Callout icon={Wheelchair} title="Needs a ground-floor or lift-access room" sub="Verified by Disability Support, 20 Oct" />;
-  if (a.tag === 'No study offer') return <Callout icon={Warning} title="No offer to study at Durham" sub="UCAS checked 27 Oct" />;
+  if (a.tag === 'Eligibility') return <Callout icon={Warning} title="Failed the eligibility check" sub="Checked 27 Oct" />;
   if (a.toCheck?.length) return <Callout icon={FirstAid} title="Medical evidence to check" sub="GP note uploaded" />;
   if (a.why) return <Callout icon={Warning} title={a.why} sub="Left out of auto-allocate" />;
   return null;
@@ -132,11 +132,11 @@ function MatchingUnits({ a, best, onAllocate }: { a: App; best: Pref; onAllocate
 function RoomAndContract({ a }: { a: App }) {
   const t = roomTerms(a.hall, a.room);
   const words = a.ref === '11873' ? '“I use a wheelchair on some days, so a lift or a ground-floor room matters more to me than which college.”'
-    : a.tag === 'No study offer' ? '“I’m waiting on my clearing place and hope to hear this week.”' : a.why ? `“${a.why}.”` : null;
+    : a.tag === 'Eligibility' ? '“I’m waiting on my clearing place and hope to hear this week.”' : a.why ? `“${a.why}.”` : null;
   return (
     <SheetSection title="Room and contract" rows={[
       ['Room type', a.room === 'Accessible ensuite' ? 'Ensuite or better' : a.room],
-      ['Contract', t.weeks === 51 ? '51 weeks' : '44 weeks, term time'],
+      ['Contract', t.weeks === 51 ? '51 weeks' : '44 weeks'],
       ['Budget', `Up to £${t.rate + 8}/wk`],
       ['Catering', a.hall === 'Hild Bede' ? 'Catered' : 'Self-catered'],
       ['Living with', a.why === 'Asks to live with a sibling' ? 'A sibling' : 'No request'],
@@ -175,7 +175,7 @@ function docsOf(a: App): Doc[] {
   if (stepFree(a)) out.push({ name: 'Disability Support letter', meta: `PDF · 182 KB · ${a.submitted}`, s: 'ok' });
   if (a.reqs.includes('Medication fridge')) out.push({ name: 'GP note — medication fridge', meta: 'PDF · 96 KB · 19 Oct', s: a.toCheck?.includes('Medication fridge') ? 'check' : 'ok', req: 'Medication fridge' });
   out.push({ name: 'Passport', meta: `JPG · 1.2 MB · ${a.submitted}`, s: 'ok' });
-  out.push(a.tag === 'No study offer' ? { name: 'Offer letter', meta: 'Not uploaded', s: 'missing' } : { name: `Offer letter · ${a.course === '—' ? 'course' : a.course}`, meta: `PDF · 240 KB · ${a.submitted}`, s: 'ok' });
+  out.push(a.tag === 'Eligibility' ? { name: 'Proof of eligibility', meta: 'Not uploaded', s: 'missing' } : { name: 'Proof of eligibility', meta: `PDF · 240 KB · ${a.submitted}`, s: 'ok' });
   return out;
 }
 function Documents({ a, onVerify }: { a: App; onVerify: (r: Req) => void }) {
@@ -219,7 +219,7 @@ function Activity({ a }: { a: App }) {
   const items: E[] = [
     ...(a.log ?? []).map((l) => ({ who: l.t.match(/\bby ([A-Z][a-z]+ [A-Z][a-z]+)/)?.[1] ?? 'System', t: l.t, when: l.when, sub: l.sub })),
     ...(a.opened ? [{ who: 'Arjun Mehta', t: 'Arjun Mehta opened the application', when: '27 Oct, 10:42' }] : []),
-    ...(a.tag ? [{ who: 'System', t: `Auto-allocate skipped ${firstName(a.name)}`, when: '22 Oct, 02:00', sub: a.tag === 'Requirements' ? 'Step-free requirement' : a.tag === 'No study offer' ? 'No study offer' : 'Flagged' }] : []),
+    ...(a.tag ? [{ who: 'System', t: `Auto-allocate skipped ${firstName(a.name)}`, when: '22 Oct, 02:00', sub: a.tag === 'Requirements' ? 'Step-free requirement' : a.tag === 'Eligibility' ? 'Eligibility' : 'Flagged' }] : []),
     ...(stepFree(a) ? [{ who: 'Disability Support', t: 'Disability Support verified step-free access', when: '20 Oct, 15:18' }] : []),
     ...(a.reqs.includes('Medication fridge') ? [{ who: a.name, t: `${a.name} uploaded a GP note`, when: '19 Oct, 09:05' }] : []),
     { who: a.name, t: `${a.name} applied with ${a.prefs.length} ${a.prefs.length === 1 ? 'choice' : 'choices'}`, when: `${a.submitted}, 21:37` },

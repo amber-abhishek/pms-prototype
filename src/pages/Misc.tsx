@@ -13,7 +13,7 @@ export function Locked() {
         <div className="max-w-md text-center">
           <img src={listingSiteArt} width={204} height={160} alt="" className="mx-auto mb-6" />
           <h2 className="text-lg font-semibold">Listing site isn't in your plan</h2>
-          <p className="text-sm text-gray-500 mt-1.5">Your own branded booking site for your halls.</p>
+          <p className="text-sm text-gray-500 mt-1.5">Your own branded booking site for your properties.</p>
           <div className="mt-5 flex justify-center gap-2"><Button onClick={() => toast('Brochure opens in the real product')}>Learn more</Button><Button variant="primary" onClick={() => toast.success('Request sent to your account manager')}>Request access</Button></div>
         </div>
       </Page>

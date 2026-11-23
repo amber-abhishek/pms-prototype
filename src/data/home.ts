@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Tone } from './seed';
-import { renameMe } from './rename';
+import { renameFrom } from './rename';
 
 /* ---------- Types ---------- */
 export type Due = 'overdue' | 'today' | 'week';
@@ -61,7 +61,7 @@ const mine: HTask[] = [
       facts: [['Fault', 'Leaking radiator · urgent'], ['Room', 'Ustinov C.2.14'], ['Reported', 'Today 07:40 by the resident'], ['Deadline', 'Assign within 1 hour']],
       decide: { title: 'Assign it in Maintenance', sub: 'The task closes itself when someone is assigned to the fault.' },
       activity: [{ icon: 'plus', text: 'Created from MT-2291 · Mon 14 Sep' }, { icon: 'user', text: 'Assigned to you because nobody is on call at Ustinov · Mon 14 Sep' }],
-      picker: { title: 'Can assign faults at Ustinov', can: [{ name: 'Tom Baker', load: '3 tasks today' }, { name: 'Grace Evans', load: '5 tasks today' }], cant: [{ name: 'Aisha Khan', reason: 'Other hall' }, { name: 'James Reed', reason: 'No permission' }] } } },
+      picker: { title: 'Can assign faults at Ustinov', can: [{ name: 'Tom Baker', load: '3 tasks today' }, { name: 'Grace Evans', load: '5 tasks today' }], cant: [{ name: 'Aisha Khan', reason: 'Other property' }, { name: 'James Reed', reason: 'No permission' }] } } },
   { id: 'k2', title: 'Approve room swap: Ella Morgan ↔ Josh Patel', from: { icon: 'requests', label: 'Requests · RQ-118' }, due: 'today', dueLabel: 'Today', dueTone: 'orange', owner: ME, done: false, to: '/residents/requests?open=rq1', openLabel: 'Open request', detail: swapDetail },
   { id: 'k3', title: 'Chase 14 unsigned leases before move-in', from: { icon: 'bookings', label: 'Bookings · 2026/27' }, due: 'today', dueLabel: 'Today', dueTone: 'orange', owner: ME, done: false, to: '/allocations/bookings?tab=Awaiting%20signature', openLabel: 'Open bookings',
     detail: { short: 'Lease chase', sub: 'Task from Bookings · 2026/27', pills: [{ label: 'Due today', tone: 'orange', icon: 'calendar' }],
@@ -80,9 +80,9 @@ const mine: HTask[] = [
   { id: 'k6', title: 'Check fire-door survey for St Mary’s College', from: { icon: 'properties', label: 'Properties' }, due: 'week', dueLabel: 'Thu 17 Sep', dueTone: 'amber', owner: ME, done: false, to: '/inventory/properties?open=p3', openLabel: 'Open property',
     detail: { short: 'Fire-door check', sub: 'Task from Properties', facts: [['Property', 'St Mary’s College'], ['Survey', 'Fire doors · due before move-in']] } },
   { id: 'k7', title: 'Give Tom access to Josephine Butler', from: { icon: 'roles', label: 'Roles and access' }, due: 'week', dueLabel: 'Fri 18 Sep', dueTone: 'grey', owner: ME, done: false, to: '/org/people', openLabel: 'Open Roles and access',
-    detail: { short: 'Access request', sub: 'Task from Roles and access', facts: [['Person', 'Tom Baker · Hall manager'], ['Asks for', 'Josephine Butler']] } },
+    detail: { short: 'Access request', sub: 'Task from Roles and access', facts: [['Person', 'Tom Baker · Property manager'], ['Asks for', 'Josephine Butler']] } },
   { id: 'k8', title: 'Send weekly occupancy report to Estates', from: { icon: 'reports', label: 'Reports · scheduled' }, due: 'week', dueLabel: 'Fri 18 Sep', dueTone: 'grey', owner: ME, done: false, to: '/reports', openLabel: 'Open report',
-    detail: { short: 'Occupancy report', sub: 'Task from Reports · scheduled', facts: [['Report', 'Occupancy by hall'], ['Send to', 'Estates']] } },
+    detail: { short: 'Occupancy report', sub: 'Task from Reports · scheduled', facts: [['Report', 'Occupancy by property'], ['Send to', 'Estates']] } },
   { id: 'k9', title: 'Renew contractor list for 2026/27', from: { icon: 'settings', label: 'Settings' }, due: 'week', dueLabel: 'Fri 18 Sep', dueTone: 'grey', owner: ME, done: false, to: '/settings', openLabel: 'Open settings',
     detail: { short: 'Contractor list', sub: 'Task from Settings', facts: [['List', 'Approved contractors'], ['Year', '2026/27']] } },
 ];
@@ -95,7 +95,7 @@ const team: HTask[] = [
   t('tm4', 'Allocate 18 rooms for returning residents', 'applications', 'Applications · 2027/28', 'today', 'Today', 'orange', 'Aisha Khan'),
   t('tm5', 'Collect keys from Collingwood leavers', 'bookings', 'Bookings · 2026/27', 'today', 'Today', 'orange', 'Tom Baker'),
   t('tm6', 'Replace smoke alarm batteries, Ustinov B block', 'maintenance', 'Maintenance · MT-2288', 'today', 'Today', 'orange', 'Grace Evans'),
-  t('tm7', 'Review 4 landlord applications', 'applications', 'Off-campus · landlords', 'today', 'Today', 'orange', 'Ravi Singh'),
+  t('tm7', 'Review 4 owner applications', 'applications', 'Off-campus · owners', 'today', 'Today', 'orange', 'Ravi Singh'),
   t('tm8', 'Send the fire-drill notice', 'notices', 'Notices · draft', 'week', 'Thu 17 Sep', 'amber', 'James Reed'),
   t('tm9', 'Confirm catering numbers for move-in', 'properties', 'Properties · Collingwood', 'week', 'Wed 16 Sep', 'amber', 'Tom Baker'),
   t('tm10', 'Chase 4 unsigned bookings', 'bookings', 'Bookings · Ustinov', 'week', 'Wed 16 Sep', 'amber', 'Tom Baker'),
@@ -137,7 +137,7 @@ const ex = (id: string, title: string, sub: string, due: Due, owner: string, hal
 });
 const mt203 = ex('x4', 'Assign MT-203 · no power in kitchen', 'Collingwood · D kitchen', 'today', ME, 'Collingwood');
 const late = ex('x5', 'Check in 12 late arrivals', 'Van Mildert front desk', 'today', 'Aisha Khan', 'Van Mildert');
-const drill = ex('x6', 'Send the fire-drill notice', 'All halls · Thu 10:00', 'week', ME);
+const drill = ex('x6', 'Send the fire-drill notice', 'All properties · Thu 10:00', 'week', ME);
 const tomRows = (): HTask[] => [
   { ...ex('x1', 'Approve a room swap', 'Collingwood · Ella Morgan ↔ Josh Patel', 'overdue', 'Tom Baker', 'Collingwood'), dueLabel: 'Overdue 2d', to: '/residents/requests?open=rq1',
     detail: { hall: 'Collingwood', short: 'Room swap', facts: [['Residents', 'Ella Morgan and Josh Patel'], ['Swap', 'Collingwood B.1.07 ↔ D.3.02'], ['Approved by', 'Tom Baker · 09:41'], ['From', 'Monday 21 September']] } },
@@ -150,7 +150,7 @@ const caseSeed = (): Record<CaseId, HTask[]> => ({
       detail: { hall: 'Josephine Butler', short: 'Swap', primary: 'approve',
         pills: [{ label: 'Due today', tone: 'orange', icon: 'calendar' }, { label: 'Both agreed', tone: 'green', icon: 'check' }],
         facts: [['Residents', 'Amir Haddad and Leah Cole'], ['Swap', 'Josephine Butler 2.14 ↔ 3.06'], ['Rent change', 'None · same room type'], ['From', 'Monday 21 September']],
-        picker: { title: 'Can approve requests at Josephine Butler', can: [], cant: [{ name: 'Tom Baker', role: 'Collingwood only', reason: 'Other hall' }, { name: 'Aisha Khan', role: 'Van Mildert', reason: 'Other hall' }, { name: 'James Reed', role: 'Front desk', reason: 'No permission' }] } } },
+        picker: { title: 'Can approve requests at Josephine Butler', can: [], cant: [{ name: 'Tom Baker', role: 'Collingwood only', reason: 'Other property' }, { name: 'Aisha Khan', role: 'Van Mildert', reason: 'Other property' }, { name: 'James Reed', role: 'Front desk', reason: 'No permission' }] } } },
     { ...mt203 }, { ...late }, { ...drill },
   ],
   e2: [...tomRows().map((r) => (r.id === 'x1' ? { ...r, elsewhere: { by: 'Tom Baker', at: '09:41', ago: '2 minutes ago' } } : r)), { ...mt203 }, { ...late }, { ...drill }],
@@ -173,8 +173,8 @@ export const HALLS = [
 /* ---------- People ---------- */
 export const PEOPLE: Record<string, { color: string; role: string; pronoun: 'he' | 'she' }> = {
   'Arjun Mehta': { color: '#E5530C', role: 'Accommodation manager', pronoun: 'he' },
-  'Tom Baker': { color: '#0E7A80', role: 'Hall manager', pronoun: 'he' },
-  'Aisha Khan': { color: '#6E3BD8', role: 'Hall manager', pronoun: 'she' },
+  'Tom Baker': { color: '#0E7A80', role: 'Property manager', pronoun: 'he' },
+  'Aisha Khan': { color: '#6E3BD8', role: 'Property manager', pronoun: 'she' },
   'James Reed': { color: '#64748B', role: 'Front desk', pronoun: 'he' },
   'Grace Evans': { color: '#DB2777', role: 'Maintenance', pronoun: 'she' },
   'Ravi Singh': { color: '#2563EB', role: 'Off-campus reviewer', pronoun: 'he' },
@@ -191,7 +191,7 @@ export const NEEDS: Need[] = [
   { id: 'n5', icon: 'notice', title: 'Move-in notice to Ustinov residents', sub: 'Draft · scheduled for Wednesday 09:00', badge: { label: 'Draft', tone: 'grey', icon: 'pencil' }, to: '/residents/notices?open=n1', taskId: 'k4', when: 'week', action: 'Send', mine: true },
   { id: 'n7', icon: 'conflict', title: '2 double-booked units', sub: 'Collingwood 3.2.C · Stephenson 4.2.C · overlapping bookings', badge: { label: 'Due today', tone: 'orange', icon: 'calendar' }, to: '/allocations/bookings?tab=Conflicts', when: 'today', action: 'Resolve', mine: false },
   { id: 'n8', icon: 'import', title: 'Room import failed: hild-bede-flats.csv', sub: 'Hild Bede · 72 rooms · 2 rows need fixing', badge: { label: 'Failed', tone: 'red', icon: 'failed' }, to: '/inventory/imports', when: 'week', action: 'Fix', mine: false },
-  { id: 'n6', icon: 'landlord', title: 'Review 4 landlord applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange', icon: 'trend' }, to: '/offcampus/landlords', when: 'week', action: 'Review', mine: false },
+  { id: 'n6', icon: 'landlord', title: 'Review 4 owner applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange', icon: 'trend' }, to: '/offcampus/landlords', when: 'week', action: 'Review', mine: false },
 ];
 
 /* ---------- Store ---------- */
@@ -208,7 +208,7 @@ export const useHome = create<State>()(
       rows: seedRows(),
       patch: (scope, fn) => set((s) => ({ rows: { ...s.rows, [scope]: fn(s.rows[scope]) } })),
     }),
-    { name: 'pms-home', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
+    { name: 'pms-home', storage: createJSONStorage(() => sessionStorage), version: 2, migrate: renameFrom(2) as never },
   ),
 );
 

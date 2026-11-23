@@ -19,7 +19,8 @@ export type Review = {
   address: string; letAs: string; size: number; from: number; amenities: string[]; bills: string; rules: string; rooms: Room[];
 };
 
-export type HmoStatus = 'Active' | 'Paused' | 'Archived';
+/* Active / Inactive only (2026-11-23): 'Paused' is what the screens call Inactive; there is no separate Archived. */
+export type HmoStatus = 'Active' | 'Paused';
 export type Hmo = { id: string; title: string; town: string; type: 'House' | 'Apartment'; beds: number; landlord: string; tint: string; status: HmoStatus; pausedBy?: 'you' | 'landlord' | 'revoked'; reason?: string };
 
 export type Pbsa = { id: string; ref: string; name: string; region: string; from: number };
@@ -46,20 +47,20 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export const stamp = () => { const d = new Date(); return `28 Oct 2026, ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 export const AMBER_REGIONS = ['Durham', 'Newcastle upon Tyne', 'Middlesbrough', 'Sunderland', 'Darlington', 'York', 'Leeds'];
 export const TAKEN_DOMAINS = ['housing.ncl.ac.uk', 'homes.york.ac.uk'];
-export const SIGNUP_LINK = 'https://durham.pmsoffcampushousing.com/landlords/apply';
+export const SIGNUP_LINK = 'https://durham.pmsoffcampushousing.com/owners/apply';
 const tints = ['#E8EEF6', '#EFEBE3', '#E6EEE8', '#ECE6EE', '#EAECEF'];
 
 /* ---------- Seed ---------- */
 function landlords(): LandlordApp[] {
   const base: LandlordApp[] = [
-    { id: 'll-callum', name: 'Callum Reid', email: 'callum@elvetlettings.co.uk', phone: '07700 900418', entity: 'Company', company: 'Elvet Lettings Ltd', portfolio: 3, areas: ['Elvet', 'Gilesgate'], website: 'elvetlettings.co.uk', heard: 'Another landlord', submitted: '28 Oct 2026, 14:12', applied: '2 hours ago', status: 'Submitted', otherPortals: 1 },
+    { id: 'll-callum', name: 'Callum Reid', email: 'callum@elvetlettings.co.uk', phone: '07700 900418', entity: 'Company', company: 'Elvet Lettings Ltd', portfolio: 3, areas: ['Elvet', 'Gilesgate'], website: 'elvetlettings.co.uk', heard: 'Another owner', submitted: '28 Oct 2026, 14:12', applied: '2 hours ago', status: 'Submitted', otherPortals: 1 },
     { id: 'll-hannah', name: 'Hannah Moss', email: 'hannah.moss@gmail.com', phone: '07700 900233', entity: 'Individual', portfolio: 1, areas: ["Neville's Cross"], heard: 'Operator website', submitted: '28 Oct 2026, 11:40', applied: '5 hours ago', status: 'Submitted', otherPortals: 0 },
     { id: 'll-joanne', name: 'Joanne Pike', email: 'lettings@viewleyhomes.co.uk', phone: '07700 900571', entity: 'Company', company: 'Viewley Homes', portfolio: 12, areas: ['Claypath', 'Viaduct'], website: 'viewleyhomes.co.uk', heard: 'Search engine', submitted: '27 Oct 2026, 16:05', applied: 'Yesterday', status: 'Submitted', otherPortals: 2 },
-    { id: 'll-daniel', name: 'Daniel Ashworth', email: 'd.ashworth@outlook.com', phone: '07700 900662', entity: 'Individual', portfolio: 2, areas: ['Sherburn Road'], heard: 'Another landlord', submitted: '25 Oct 2026, 09:31', applied: '3 days ago', status: 'Submitted', otherPortals: 0 },
+    { id: 'll-daniel', name: 'Daniel Ashworth', email: 'd.ashworth@outlook.com', phone: '07700 900662', entity: 'Individual', portfolio: 2, areas: ['Sherburn Road'], heard: 'Another owner', submitted: '25 Oct 2026, 09:31', applied: '3 days ago', status: 'Submitted', otherPortals: 0 },
     { id: 'll-sophie', name: 'Sophie Grant', email: 'sophie@grantlets.co.uk', phone: '07700 900310', entity: 'Company', company: 'Grant Lets', portfolio: 4, areas: ['Gilesgate'], website: 'grantlets.co.uk', heard: 'Operator website', submitted: '26 Oct 2026, 10:02', reviewed: '26 Oct 2026, 15:20', applied: '2 days ago', status: 'Approved', otherPortals: 0 },
-    { id: 'll-mark', name: 'Mark Little', email: 'mark.little@btinternet.com', phone: '07700 900144', entity: 'Individual', portfolio: 1, areas: ['Crossgate'], heard: 'Another landlord', submitted: '24 Oct 2026, 13:47', reviewed: '24 Oct 2026, 16:10', applied: '4 days ago', status: 'Approved', otherPortals: 1 },
+    { id: 'll-mark', name: 'Mark Little', email: 'mark.little@btinternet.com', phone: '07700 900144', entity: 'Individual', portfolio: 1, areas: ['Crossgate'], heard: 'Another owner', submitted: '24 Oct 2026, 13:47', reviewed: '24 Oct 2026, 16:10', applied: '4 days ago', status: 'Approved', otherPortals: 1 },
     { id: 'll-ruth', name: 'Ruth Ellison', email: 'ruth@ellisonproperty.co.uk', phone: '07700 900729', entity: 'Company', company: 'Ellison Property', portfolio: 7, areas: ['Elvet', 'Whinney Hill'], website: 'ellisonproperty.co.uk', heard: 'Search engine', submitted: '21 Oct 2026, 08:55', reviewed: '21 Oct 2026, 12:30', applied: '1 week ago', status: 'Approved', otherPortals: 3 },
-    { id: 'll-peter', name: 'Peter Wade', email: 'peter.wade@gmail.com', phone: '07700 900802', entity: 'Individual', portfolio: 1, areas: ['Gilesgate'], heard: 'Another landlord', submitted: '12 Sep 2026, 10:15', reviewed: '20 Oct 2026, 09:00', applied: '6 weeks ago', status: 'Suspended', otherPortals: 0, lastNote: 'Gas safety certificate lapsed and was not renewed.' },
+    { id: 'll-peter', name: 'Peter Wade', email: 'peter.wade@gmail.com', phone: '07700 900802', entity: 'Individual', portfolio: 1, areas: ['Gilesgate'], heard: 'Another owner', submitted: '12 Sep 2026, 10:15', reviewed: '20 Oct 2026, 09:00', applied: '6 weeks ago', status: 'Suspended', otherPortals: 0, lastNote: 'Gas safety certificate lapsed and was not renewed.' },
     { id: 'll-gary', name: 'Gary Holt', email: 'gary@holtlets.com', phone: '07700 900915', entity: 'Company', company: 'Holt Lets', portfolio: 9, areas: ['Newcastle'], website: 'holtlets.com', heard: 'Search engine', submitted: '19 Oct 2026, 17:22', reviewed: '20 Oct 2026, 10:45', applied: '9 days ago', status: 'Rejected', otherPortals: 0, lastNote: 'None of the properties are in Durham.' },
     { id: 'll-amy', name: 'Amy Forster', email: 'amy.forster@yahoo.co.uk', phone: '07700 900388', entity: 'Individual', portfolio: 1, areas: ['Framwellgate Moor'], heard: 'Operator website', submitted: '15 Oct 2026, 12:00', reviewed: '16 Oct 2026, 09:30', applied: '2 weeks ago', status: 'Rejected', otherPortals: 0, lastNote: 'Could not verify ownership of the property.' },
   ];
@@ -70,7 +71,7 @@ function landlords(): LandlordApp[] {
   first.forEach((f, i) => {
     const n = `${f} ${last[i % last.length]}`;
     const p = 1 + ((i * 7) % 8);
-    base.push({ id: `ll-x${i}`, name: n, email: `${f.toLowerCase()}.${last[i % last.length].toLowerCase()}@${i % 2 ? 'gmail.com' : 'outlook.com'}`, phone: `07700 9${String(100000 + i * 137).slice(1)}`, entity: i % 3 ? 'Individual' : 'Company', portfolio: p, areas: [areas[i % areas.length]], heard: 'Another landlord', submitted: `${Math.max(1, 20 - (i % 19))} Oct 2026, 10:00`, reviewed: `${Math.max(1, 20 - (i % 19))} Oct 2026, 15:00`, applied: `${2 + Math.floor(i / 4)} weeks ago`, status: 'Approved', otherPortals: i % 3 });
+    base.push({ id: `ll-x${i}`, name: n, email: `${f.toLowerCase()}.${last[i % last.length].toLowerCase()}@${i % 2 ? 'gmail.com' : 'outlook.com'}`, phone: `07700 9${String(100000 + i * 137).slice(1)}`, entity: i % 3 ? 'Individual' : 'Company', portfolio: p, areas: [areas[i % areas.length]], heard: 'Another owner', submitted: `${Math.max(1, 20 - (i % 19))} Oct 2026, 10:00`, reviewed: `${Math.max(1, 20 - (i % 19))} Oct 2026, 15:00`, applied: `${2 + Math.floor(i / 4)} weeks ago`, status: 'Approved', otherPortals: i % 3 });
   });
   return base;
 }
@@ -94,7 +95,7 @@ function reviews(): Review[] {
     { id: 'rv-oldelvet', title: 'Flat 2, 31 Old Elvet', town: 'Durham', type: 'Apartment', beds: 2, landlord: 'Hannah Moss', tint: tints[1], received: '1 hour ago', submittedAt: '28 Oct 2026, 15:31', status: 'Under review', address: 'Flat 2, 31 Old Elvet, DH1 3HN', letAs: 'Whole property', size: 58, from: 165, amenities: ['Wi-Fi', 'Washing machine', 'Dishwasher'], bills: 'All bills included in rent', rules: 'No pets · No smoking · Residents only · Max occupancy 2', rooms: roomsFor(2, 165) },
     { id: 'rv-mistletoe', title: '7 Mistletoe Street', town: 'Durham', type: 'House', beds: 5, landlord: 'Ruth Ellison', tint: tints[2], received: 'Yesterday', submittedAt: '27 Oct 2026, 11:08', status: 'Under review', address: '7 Mistletoe Street, DH1 4EP', letAs: 'By the room', size: 112, from: 129, amenities: ['Wi-Fi', 'Washing machine', 'Garden', 'Bike storage'], bills: 'Water included in rent · Electricity, Gas, Internet not included · Estimated bills £55 per month', rules: 'No pets · No smoking · Residents only · Max occupancy 5', rooms: roomsFor(5, 129) },
     { id: 'rv-sutton', title: '22 Sutton Street', town: 'Durham', type: 'House', beds: 3, landlord: 'Sophie Grant', tint: tints[3], received: '2 days ago', submittedAt: '26 Oct 2026, 09:47', status: 'Under review', address: '22 Sutton Street, DH1 4BW', letAs: 'Whole property', size: 84, from: 138, amenities: ['Wi-Fi', 'Washing machine', 'Desk in every room'], bills: 'All bills included in rent', rules: 'No pets · Residents only · Max occupancy 3', rooms: roomsFor(3, 138) },
-    { id: 'rv-gilesgate', title: '41 Gilesgate', town: 'Durham', type: 'House', beds: 6, landlord: 'Gary Holt', tint: tints[4], received: '1 week ago', submittedAt: '20 Oct 2026, 14:02', status: 'Rejected', note: 'The landlord is not approved for this portal.', address: '41 Gilesgate, DH1 1QW', letAs: 'By the room', size: 130, from: 120, amenities: ['Wi-Fi'], bills: 'No bills included', rules: 'Residents only', rooms: roomsFor(6, 120) },
+    { id: 'rv-gilesgate', title: '41 Gilesgate', town: 'Durham', type: 'House', beds: 6, landlord: 'Gary Holt', tint: tints[4], received: '1 week ago', submittedAt: '20 Oct 2026, 14:02', status: 'Rejected', note: 'The owner is not approved for this portal.', address: '41 Gilesgate, DH1 1QW', letAs: 'By the room', size: 130, from: 120, amenities: ['Wi-Fi'], bills: 'No bills included', rules: 'Residents only', rooms: roomsFor(6, 120) },
   ];
 }
 
@@ -108,8 +109,8 @@ function hmos(): Hmo[] {
     hmo('hm-mowbray', '18 Mowbray Street', 'House', 5, 'Ruth Ellison', 4),
     hmo('hm-hawthorn', '5 Hawthorn Terrace', 'House', 3, 'Sophie Grant', 1, 'Paused', { pausedBy: 'landlord', reason: 'Refurbishing the kitchen' }),
     hmo('hm-john', '3 John Street', 'House', 4, 'Peter Wade', 2, 'Paused', { pausedBy: 'revoked' }),
-    hmo('hm-allergate', '12 Allergate', 'House', 4, 'Ruth Ellison', 3, 'Archived'),
-    hmo('hm-ainsley', '6 Ainsley Street', 'House', 3, 'Sophie Grant', 4, 'Archived'),
+    hmo('hm-allergate', '12 Allergate', 'House', 4, 'Ruth Ellison', 3, 'Paused', { pausedBy: 'you', reason: 'No longer let to students' }),
+    hmo('hm-ainsley', '6 Ainsley Street', 'House', 3, 'Sophie Grant', 4, 'Paused', { pausedBy: 'you', reason: 'Sold by the owner' }),
   ];
 }
 
@@ -169,7 +170,11 @@ export const useOc = create<State>()(
       set: (key, fn) => set((st) => ({ [key]: fn(st[key]) }) as Partial<State>),
       setPortal: (p) => set((st) => ({ portal: { ...st.portal, ...p } })),
     }),
-    { name: 'pms-offcampus', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
+    { name: 'pms-offcampus', storage: createJSONStorage(() => sessionStorage), version: 2, migrate: (s) => {
+      /* v2: Archived owner listings became Inactive (made inactive by you). */
+      const st = renameMe(s) as Data;
+      return { ...st, hmos: (st.hmos ?? []).map((h) => ((h.status as string) === 'Archived' ? { ...h, status: 'Paused' as const, pausedBy: 'you' as const } : h)) };
+    } },
   ),
 );
 

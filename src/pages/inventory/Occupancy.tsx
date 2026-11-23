@@ -105,7 +105,7 @@ export function OccupancyPage() {
   /* Empty-states demo: no halls yet, so no plan to show. */
   if (empty) return (
     <>
-      <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Inventory']} />
+      <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Properties']} />
       <EmptyArea art="noData" icon={Grid3x3} title="No rooms to show yet" sub="Add properties and rooms to see who lives where.">
         <Button variant="primary" onClick={() => nav('/inventory/properties')}>Create a property</Button>
       </EmptyArea>
@@ -113,7 +113,7 @@ export function OccupancyPage() {
   );
   return (
     <>
-      <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Inventory']}>
+      <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Properties']}>
         <SelectFilter icon={CalendarRange} width={160} value={year} onChange={setYear} options={['2025/26', '2026/27', '2027/28'].map((y) => ({ value: y }))} />
         <Button icon={DownloadSimple} onClick={() => toast.success(`${h.name.toLowerCase().replace(/\W+/g, '-')}-occupancy-${year.replace('/', '-')}.csv exported`)}>Export</Button>
       </PageHeader>

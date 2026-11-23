@@ -1,9 +1,9 @@
 import {
   LayoutDashboard, CircleCheck, Inbox, Wrench, UserCheck, Building, Grid3x3, ChartColumn, Network, TextCursorInput, Wallet,
-  FileText, Send, CalendarCheck, Users, ArrowsLeftRight, Megaphone, House, Hotel, MessageSquare, Settings,
+  FileText, Send, CalendarCheck, Users, ArrowsLeftRight, Megaphone, House, MessageSquare, Settings,
   Globe, Monitor, Landmark, MapPin, Shield, Mail, Bell, Plug, Palette, Tag,
   Warehouse, Gauge, Library, CalendarClock, Repeat, BedDouble, BookUser, ScrollText, Settings2, AppWindow, ChartLine, FileArrowUp,
-  GraduationCap, SlidersHorizontal, CreditCard, Stack, ShareNetwork, type Icon,
+  CalendarBlank, SlidersHorizontal, CreditCard, Stack, ShareNetwork, type Icon,
 } from './components/icons';
 import type { Role } from './data/store';
 import { useHome, myOpenCount } from './data/home';
@@ -66,11 +66,11 @@ export const modules: Module[] = [
     sections: [{ items: [{ label: 'My tasks', to: '/tasks', icon: CircleCheck, count: (c) => c.tasks }] }],
   },
   {
-    id: 'inventory', label: 'Inventory', icon: Warehouse, home: '/inventory/properties', group: 'modules', roles: ['admin'], subtitle: 'CMS',
+    id: 'inventory', label: 'Properties', icon: Warehouse, home: '/inventory/properties', group: 'modules', roles: ['admin'], subtitle: 'CMS',
     match: starts('/inventory'),
     sections: [
       { items: [
-        { label: 'Properties', to: '/inventory/properties', icon: Building, count: (c) => c.properties, total: true },
+        { label: 'All properties', to: '/inventory/properties', icon: Building, count: (c) => c.properties, total: true },
         { label: 'Units', to: '/inventory/units', icon: Grid3x3 },
         { label: 'Occupancy', to: '/inventory/occupancy', icon: Gauge },
       ] },
@@ -78,7 +78,7 @@ export const modules: Module[] = [
         { label: 'Property layouts', to: '/inventory/structures', icon: Stack },
         { label: 'Custom fields', to: '/inventory/custom-fields', icon: TextCursorInput },
         { label: 'Tags', to: '/inventory/tags', icon: Tag },
-        { label: 'Tenancy pricing', to: '/inventory/rent-fees', icon: Wallet },
+        { label: 'Custom pricing', to: '/inventory/rent-fees', icon: Wallet },
         { label: 'Imports', to: '/inventory/imports', icon: FileArrowUp },
       ] },
     ],
@@ -107,14 +107,11 @@ export const modules: Module[] = [
     id: 'offcampus', label: 'Off-campus', icon: Globe, home: '/offcampus/approvals', group: 'modules', roles: ['admin', 'offcampus'], subtitle: 'durham-homes.ac.uk',
     match: starts('/offcampus'),
     sections: [
-      /* One Approvals page for landlord and listing approvals (2026-11-19); its count is everything waiting on you. */
+      /* One Approvals page for owner and listing approvals (2026-11-19); its count is everything waiting on you.
+         One Listings page for owner and partner listings (2026-11-23); Owners / Partners is a switch in its header. */
       { items: [
         { label: 'Approvals', to: '/offcampus/approvals', icon: UserCheck, count: (c) => c.landlords + c.reviews },
-      ] },
-      /* Landlord and Partner halls sit straight under the Listings label, each with its own icon (2026-11-13). */
-      { label: 'Listings', items: [
-        { label: 'Landlord', to: '/offcampus/listings', icon: House },
-        { label: 'Partner halls', to: '/offcampus/listings?tab=pbsa', icon: Hotel },
+        { label: 'Listings', to: '/offcampus/listings', icon: House },
       ] },
       { label: 'Portal', items: [
         { label: 'Enquiries', to: '/offcampus/enquiries', icon: MessageSquare, count: (c) => c.enquiries },
@@ -145,7 +142,7 @@ export const modules: Module[] = [
     id: 'org', label: 'Organisation', icon: Landmark, home: '/org/campuses', group: 'bottom', roles: ['admin'],
     match: starts('/org'),
     sections: [{ items: [
-      { label: 'Campuses', to: '/org/campuses', icon: MapPin, count: (c) => c.campuses, total: true },
+      { label: 'Locations', to: '/org/campuses', icon: MapPin, count: (c) => c.campuses, total: true },
       { label: 'Roles and access', to: '/org/people', icon: Shield, count: (c) => c.members, total: true },
       { label: 'Teams', to: '/org/teams', icon: Network },
       { label: 'Activity log', to: '/org/activity', icon: ScrollText },
@@ -156,7 +153,7 @@ export const modules: Module[] = [
     match: starts('/settings'),
     sections: [{ items: [
       { label: 'General', to: '/settings', icon: SlidersHorizontal },
-      { label: 'Academic year', to: '/settings/academic-year', icon: GraduationCap },
+      { label: 'Letting year', to: '/settings/academic-year', icon: CalendarBlank },
       { label: 'Notifications', to: '/settings/notifications', icon: Bell },
       { label: 'Payments', to: '/settings/payments', icon: CreditCard },
       { label: 'Integrations', to: '/settings/integrations', icon: Plug },

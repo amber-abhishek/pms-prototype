@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowsClockwise, CheckCircle, Clock, Copy, EnvelopeSimple, Eye, Gear, Globe, MapPin, SquaresFour, UploadSimple, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, PageHeader, Select, Switch, Tabs, cx } from '../../components/ui';
+import { Button, Input, PageHeader, Select, Switch, Tabs, cx } from '../../components/ui';
+import { Section, Lbl as SLbl } from '../workspace/Settings';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { AMBER_REGIONS, TAKEN_DOMAINS, regionOf, stamp, useOc, type Campus, type Portal as P } from '../../data/offcampus';
 import { SharedBrand } from '../../components/SharedBrand';
@@ -38,9 +39,6 @@ export function Portal({ sec }: { sec: Sec }) {
 }
 
 const Box = ({ children, className }: { children: ReactNode; className?: string }) => <section className={cx('rounded-xl border border-line bg-white shadow-card', className)}>{children}</section>;
-const Head = ({ title, sub, children }: { title: string; sub?: string; children?: ReactNode }) => (
-  <div className="flex items-center gap-4"><div className="flex-1"><h2 className="text-sm font-semibold">{title}</h2>{sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}</div>{children}</div>
-);
 const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm font-medium text-gray-800 mb-1.5">{children}</div>;
 const inp = 'h-8 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/25';
 
@@ -71,50 +69,63 @@ function Behaviour() {
   const togglePbsa = (on: boolean) => {
     if (on && !portal.campuses.some((c) => c.ticked && regionOf(c))) { toast.error('Tick a campus with a partner region first'); return; }
     setPortal({ showPbsa: on });
-    toast.success('Settings saved', { description: on ? 'Residents now see partner halls.' : 'Partner halls are hidden from your site.' });
+    toast.success('Settings saved', { description: on ? 'Residents now see partners.' : 'Partners are off your site.' });
   };
 
+  const dirty = sender.name !== portal.senderName || sender.reply !== portal.replyTo;
+  const saveSender = () => {
+    if (!sender.name.trim() || !/^\S+@\S+\.\S+$/.test(sender.reply)) { toast.error('Add a sender name and a valid reply-to email'); return; }
+    setPortal({ senderName: sender.name.trim(), replyTo: sender.reply.trim() }); toast.success('Sender identity saved');
+  };
+  /* Settings card language (2026-11-23): one 960px column of Section cards with a grey header strip. The two listing
+     switches share one card as rows; Sender identity saves from its header, and only once something changed. */
+  const row = (title: string, sub: string, control: ReactNode) => (
+    <div className="flex items-center gap-4 py-3 first:pt-0 last:pb-0 border-b border-[#F0F0F0] last:border-0">
+      <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium text-[#0A0A0A]">{title}</div><div className="text-sm leading-5 text-[#737373]">{sub}</div></div>
+      {control}
+    </div>
+  );
   return (
-    <div className="space-y-4 max-w-[1140px]">
-      <Box>
-        <div className="px-4 pt-4 pb-3"><Head title="Campuses on this portal" sub="partner hall listings come from each ticked campus’s region." /></div>
-        <table className="w-full text-sm">
-          <thead><tr className="text-left text-xs text-gray-500 [&>th]:font-medium [&>th]:h-9 [&>th]:border-y [&>th]:border-line [&>th]:px-3">
-            <th className="w-12 !pl-4" /><th>Campus</th><th>Partner region</th><th>Match</th><th>Override</th><th />
-          </tr></thead>
-          <tbody>
-            {portal.campuses.map((c) => (
-              <tr key={c.id} className="border-b border-[#F5F5F5] last:border-0 [&>td]:h-10 [&>td]:px-3 [&>td]:py-1">
-                <td className="!pl-4"><Checkbox aria-label={`Show ${c.name}`} checked={c.ticked} disabled={c.isDefault} onCheckedChange={(v) => tick(c, (v === true))} /></td>
-                <td><div className="leading-tight font-medium">{c.name}{c.isDefault && <div className="text-xs text-gray-500">Default campus</div>}</div></td>
-                <td>{c.ticked && regionOf(c) ? regionOf(c) : <span className="text-[#737373]">—</span>}</td>
-                <td>{c.ticked && c.match === 'Exact' && <Tag tone="green">Exact</Tag>}{c.ticked && c.match === 'Nearest' && <Tag tone="grey" outline>Nearest, {c.km} km</Tag>}{c.ticked && c.match === 'Manual' && <Tag tone="blue">Manual</Tag>}</td>
-                <td><Combo value={c.override} options={AMBER_REGIONS} onPick={(v) => override(c, v)} icon={MapPin} /></td>
-                <td className="text-right !pr-4">{c.ticked && <button type="button" onClick={() => reresolve(c)} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-[#F5F5F5]"><ArrowsClockwise size={16} />Re-resolve</button>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Box>
-      <Box className="p-4"><Head title="Show partner halls" sub="Shown alongside your landlord listings."><Switch checked={portal.showPbsa} onChange={togglePbsa} label="Show partner halls" /></Head></Box>
-      <Box className="p-4">
-        <Head title="Default campus" sub="Sets the listings on the home page.">
-          <Select className="!w-[220px]" value={portal.defaultCampus} onChange={(e) => { setPortal({ defaultCampus: e.target.value }); toast.success('Settings saved'); }}>
-            {portal.campuses.filter((c) => c.ticked).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </Select>
-        </Head>
-      </Box>
-      <Box className="p-4">
-        <h2 className="text-sm font-semibold mb-3">Sender identity</h2>
-        <div className="flex items-end gap-3">
-          <label className="flex-1"><Lbl>Sender name</Lbl><input className={inp} value={sender.name} onChange={(e) => setSender({ ...sender, name: e.target.value })} /></label>
-          <label className="flex-1"><Lbl>Reply-to email</Lbl><input className={inp} type="email" value={sender.reply} onChange={(e) => setSender({ ...sender, reply: e.target.value })} /></label>
-          <Button variant="primary" className="h-9" onClick={() => {
-            if (!sender.name.trim() || !/^\S+@\S+\.\S+$/.test(sender.reply)) { toast.error('Add a sender name and a valid reply-to email'); return; }
-            setPortal({ senderName: sender.name.trim(), replyTo: sender.reply.trim() }); toast.success('Sender identity saved');
-          }}>Save</Button>
+    <div className="flex flex-col gap-4 max-w-[960px]">
+      <Section title="Campuses" sub="Partner listings come from each ticked campus’s region">
+        <div className="-m-4">
+          <table className="w-full text-sm">
+            <thead><tr className="text-left [&>th]:h-10 [&>th]:px-3 [&>th]:font-mono [&>th]:text-xs [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.04em] [&>th]:text-[#737373] [&>th]:!bg-white [&>th]:!shadow-[inset_0_-1px_0_#E5E5E5]">
+              <th className="w-12 !pl-4" aria-label="On this portal" /><th>Campus</th><th>Partner region</th><th>Match</th><th className="w-[220px]">Override</th><th className="w-[136px]" aria-label="Actions" />
+            </tr></thead>
+            <tbody>
+              {portal.campuses.map((c) => (
+                <tr key={c.id} className="group border-b border-[#F0F0F0] last:border-0 [&>td]:h-14 [&>td]:px-3">
+                  <td className="!pl-4"><Checkbox aria-label={`Show ${c.name}`} checked={c.ticked} disabled={c.isDefault} onCheckedChange={(v) => tick(c, (v === true))} /></td>
+                  <td><div className="text-sm leading-5 font-medium text-[#0A0A0A]">{c.name}</div>{c.isDefault && <div className="text-xs leading-4 text-[#737373]">Default campus</div>}</td>
+                  <td>{c.ticked && regionOf(c) ? regionOf(c) : <span className="text-[#A3A3A3]">—</span>}</td>
+                  <td>{c.ticked && c.match === 'Exact' && <Tag tone="green">Exact</Tag>}{c.ticked && c.match === 'Nearest' && <Tag tone="grey" outline>Nearest, {c.km} km</Tag>}{c.ticked && c.match === 'Manual' && <Tag tone="blue">Manual</Tag>}{!c.ticked && <span className="text-[#A3A3A3]">—</span>}</td>
+                  <td><Combo value={c.override} options={AMBER_REGIONS} onPick={(v) => override(c, v)} icon={MapPin} /></td>
+                  {/* Re-resolve is a row action: shown on hover or focus, like the other tables. */}
+                  <td className="!pr-4 text-right row-act">{c.ticked && <button type="button" onClick={() => reresolve(c)} className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md text-sm font-medium text-[#404040] whitespace-nowrap hover:bg-[#F5F5F5]"><ArrowsClockwise size={16} className="shrink-0" />Re-resolve</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </Box>
+      </Section>
+      <Section title="Listings">
+        {row('Show partners', 'Shown alongside your owner listings', <Switch checked={portal.showPbsa} onChange={togglePbsa} label="Show partners" />)}
+        {row('Default campus', 'Sets the listings on the home page',
+          <Select className="!w-[220px]" aria-label="Default campus" value={portal.defaultCampus} onChange={(e) => { setPortal({ defaultCampus: e.target.value }); toast.success('Settings saved'); }}>
+            {portal.campuses.filter((c) => c.ticked).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </Select>)}
+      </Section>
+      <Section title="Sender identity" sub="On every email the portal sends"
+        action={<span className="flex items-center gap-3">
+          {dirty && <button type="button" onClick={() => setSender({ name: portal.senderName, reply: portal.replyTo })} className="h-6 px-1.5 rounded-md text-sm font-medium text-[#525252] hover:bg-[#F0F0F0]">Cancel</button>}
+          <Button size="sm" variant="primary" icon={null} disabled={!dirty} onClick={saveSender}>Save</Button>
+        </span>}>
+        <div className="grid grid-cols-2 gap-3">
+          <label><SLbl>Sender name</SLbl><Input value={sender.name} onChange={(e) => setSender({ ...sender, name: e.target.value })} /></label>
+          <label><SLbl>Reply-to email</SLbl><Input type="email" value={sender.reply} onChange={(e) => setSender({ ...sender, reply: e.target.value })} /></label>
+        </div>
+      </Section>
     </div>
   );
 }
@@ -336,7 +347,7 @@ function Domain() {
         <Radio id="custom" title="Custom domain" sub="An address the operator owns" />
       </div>
       {p.domainMode === 'standard' ? (
-        <Box className="p-4">
+        <div>
           <h2 className="text-sm font-semibold mb-3">Subdomain</h2>
           <div className="flex gap-2">
             <label className={cx('h-8 w-[340px] flex items-center rounded-lg border bg-white pl-3 pr-3 focus-within:ring-2', subErr ? 'border-[#EF4444] focus-within:ring-[#EF4444]/25' : 'border-gray-300 focus-within:border-primary focus-within:ring-primary/25')}>
@@ -346,9 +357,9 @@ function Domain() {
             <Button variant="primary" className="h-9" onClick={saveSub}>Save</Button>
           </div>
           {subErr ? <p role="alert" className="text-xs text-[#E0243A] mt-1.5">{subErr}</p> : <p className="text-xs text-gray-500 mt-2.5">Your site: https://{base}</p>}
-        </Box>
+        </div>
       ) : (
-        <Box className="p-4">
+        <div>
           <h2 className="text-sm font-semibold">Custom domain</h2>
           {p.domainState === 'none' && (
             <>
@@ -392,7 +403,7 @@ function Domain() {
               <Button className="ml-auto text-[#E0243A]" onClick={remove}>Remove custom domain</Button>
             </div>
           )}
-        </Box>
+        </div>
       )}
     </div>
   );

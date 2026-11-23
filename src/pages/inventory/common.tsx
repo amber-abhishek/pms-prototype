@@ -48,8 +48,8 @@ export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; to
 /** Each layout level's tone, used by its pill and tile. */
 export const LV = { Property: 'blue', Block: 'purple', Floor: 'orange', Flat: 'amber', Room: 'green' } as const satisfies Record<string, Tone>;
 export type Level = keyof typeof LV;
-export type Layout = 'College' | 'House';
-const LAYOUTS: [Layout, number, Level[]][] = [['College', 6, ['Property', 'Block', 'Floor', 'Flat', 'Room']], ['House', 2, ['Property', 'Room']]];
+export type Layout = 'Building' | 'House';
+const LAYOUTS: [Layout, number, Level[]][] = [['Building', 6, ['Property', 'Block', 'Floor', 'Flat', 'Room']], ['House', 2, ['Property', 'Room']]];
 
 /** Property layout radio cards: name, "Used by n", then the level pills joined by carets. */
 export function LayoutRadios({ value, onChange }: { value: Layout; onChange: (l: Layout) => void }) {
@@ -112,8 +112,9 @@ export function InvModal({ open, onClose, title, width = 600, left, right, child
 /** A modal in the side panels' language (2026-11-19, memory pms-panel-v2-design-language): a 61px control bar with the
  *  flow in mono caps (+ an optional "STEP 1 OF 5"), then the ✕; a hero (20px Medium title, one grey line); the body as
  *  SheetSection cards; a 64px footer with `left` (Cancel) and `right` (the action). */
-export function PanelModal({ open, onClose, eyebrow, pos, title, meta, width = 640, left, right, children }: {
+export function PanelModal({ open, onClose, eyebrow, pos, title, meta, lead, width = 640, left, right, children }: {
   open: boolean; onClose: () => void; eyebrow: string; pos?: string; title?: ReactNode; meta?: ReactNode; width?: number; left?: ReactNode; right?: ReactNode; children: ReactNode;
+  /** The record's icon tile beside the headline, as in its panel's hero (2026-11-23). */ lead?: ReactNode;
 }) {
   const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
   return (
@@ -129,9 +130,12 @@ export function PanelModal({ open, onClose, eyebrow, pos, title, meta, width = 6
         <div className="flex-1 min-h-0 overflow-auto px-6 pt-5 pb-6">
           {/* No headline when it would only repeat the eyebrow (create modals, 2026-11-20). */}
           {title && (
-            <div className="mb-4">
-              <div className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</div>
-              {meta && <p className="text-sm leading-5 text-[#737373]">{meta}</p>}
+            <div className="mb-4 flex items-center gap-3">
+              {lead}
+              <div className="min-w-0">
+                <div className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</div>
+                {meta && <p className="text-sm leading-5 text-[#737373]">{meta}</p>}
+              </div>
             </div>
           )}
           {children}

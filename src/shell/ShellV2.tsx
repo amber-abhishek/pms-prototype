@@ -126,7 +126,7 @@ function Panel({ mod, counts, collapsed: target, onToggle }: { mod: Module; coun
         {mod.locked && !collapsed && (
           <div className="mt-2 rounded-lg border border-[#E5E5E5] bg-white p-4">
             <div className="text-sm font-semibold text-[#171717]">Not in your plan</div>
-            <div className="text-xs text-[#737373] mt-1">Listing site (LMS) lets you publish your halls on your own website.</div>
+            <div className="text-xs text-[#737373] mt-1">Listing site (LMS) lets you publish your properties on your own website.</div>
           </div>
         )}
       </div>

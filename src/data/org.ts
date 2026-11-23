@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { revertList } from './revert';
-import { renameMe } from './rename';
+import { renameFrom } from './rename';
 
 export type Hall = { id: string; short: string; name: string; rooms: number };
 /** Halls (properties) people can be given access to. Ids match the shared seed's properties. */
@@ -19,7 +19,7 @@ export const hallById = (id: string) => HALLS.find((h) => h.id === id);
 
 export type PermArea = { area: string; perms: { id: string; label: string; hint?: string }[] };
 export const PERMS: PermArea[] = [
-  { area: 'Inventory', perms: [{ id: 'inv.view', label: 'View' }, { id: 'inv.edit', label: 'Edit' }, { id: 'inv.rent', label: 'Tenancy pricing' }] },
+  { area: 'Properties', perms: [{ id: 'inv.view', label: 'View' }, { id: 'inv.edit', label: 'Edit' }, { id: 'inv.rent', label: 'Custom pricing' }] },
   { area: 'Allocations', perms: [{ id: 'alloc.view', label: 'View' }, { id: 'alloc.offer', label: 'Make offers' }, { id: 'alloc.cancel', label: 'Cancel bookings' }] },
   { area: 'Residents', perms: [{ id: 'res.view', label: 'View' }, { id: 'res.checkin', label: 'Check in and out' }, { id: 'res.requests', label: 'Approve requests' }, { id: 'res.notices', label: 'Send notices' }] },
   { area: 'Maintenance', perms: [{ id: 'maint.view', label: 'View' }, { id: 'maint.log', label: 'Log faults' }, { id: 'maint.assign', label: 'Assign and close' }] },
@@ -34,13 +34,13 @@ export type MemberStatus = 'Active' | 'Invited' | 'Invite expired';
 export type Member = { id: string; name: string; email: string; roleId: string; halls: 'all' | string[]; lastActive: string; status: MemberStatus; since: string; invitedAgo?: string };
 export type Campus = { id: string; name: string; status: 'Active' | 'Draft' | 'Inactive'; address: string; city: string; region: string; postcode: string; country: string; amberRegion: string };
 export type Team = { id: string; name: string; purpose: string; leadId: string; memberIds: string[]; halls: 'all' | string[] };
-export type AuditEntry = { id: string; who: string; what: string; when: string; area: 'Members' | 'Roles' | 'Campuses' | 'Teams' };
+export type AuditEntry = { id: string; who: string; what: string; when: string; area: 'Members' | 'Roles' | 'Locations' | 'Teams' };
 export type Scenario = 'flow' | 'edge' | 'empty';
 
 const P = (...ids: string[]) => ids;
 const FULL_ROLES: Role[] = [
-  { id: 'admin', name: 'Admin', description: 'Everything, in every hall, including members and settings.', scope: 'all', personalData: true, perms: ALL_PERMS, builtIn: true },
-  { id: 'hallmgr', name: 'Hall manager', description: 'Runs a hall day to day.', scope: 'given', personalData: true, perms: P('inv.view', 'inv.edit', 'alloc.view', 'alloc.offer', 'res.view', 'res.checkin', 'res.requests', 'res.notices', 'maint.view', 'maint.log', 'maint.assign') },
+  { id: 'admin', name: 'Admin', description: 'Everything, in every property, including members and settings.', scope: 'all', personalData: true, perms: ALL_PERMS, builtIn: true },
+  { id: 'hallmgr', name: 'Property manager', description: 'Runs a property day to day.', scope: 'given', personalData: true, perms: P('inv.view', 'inv.edit', 'alloc.view', 'alloc.offer', 'res.view', 'res.checkin', 'res.requests', 'res.notices', 'maint.view', 'maint.log', 'maint.assign') },
   { id: 'rescoord', name: 'Residence coordinator', description: 'Looks after residents and their requests.', scope: 'given', personalData: true, perms: P('inv.view', 'alloc.view', 'res.view', 'res.checkin', 'res.requests') },
   { id: 'finance', name: 'Finance', description: 'Rent, deposits and refunds.', scope: 'all', personalData: false, perms: P('inv.view', 'inv.rent', 'alloc.view', 'res.view', 'fin.view', 'fin.refunds') },
   { id: 'maint', name: 'Maintenance', description: 'Estates staff who fix faults.', scope: 'given', personalData: false, perms: P('inv.view', 'maint.view', 'maint.log', 'maint.assign') },
@@ -58,7 +58,7 @@ const FLOW_MEMBERS: Member[] = [
   { id: 'm6', name: 'Mark Owens', email: 'mark.owens@durham.ac.uk', roleId: 'readonly', halls: 'all', lastActive: '2w ago', status: 'Active', since: 'Feb 2025' },
 ];
 
-const wardenRole: Role = { id: 'warden', name: 'Hall warden', description: 'Lives in the hall. Checks residents in, handles requests and faults out of hours.', scope: 'given', personalData: true, perms: P('inv.view', 'alloc.view', 'res.view', 'res.notices'), createdByYou: false };
+const wardenRole: Role = { id: 'warden', name: 'Resident manager', description: 'Lives on site. Checks residents in, handles requests and faults out of hours.', scope: 'given', personalData: true, perms: P('inv.view', 'alloc.view', 'res.view', 'res.notices'), createdByYou: false };
 const estatesRole: Role = { id: 'estates', name: 'Estates', description: 'Estates team.', scope: 'given', personalData: false, perms: P('maint.view', 'maint.log', 'maint.assign') };
 const EDGE_ROLES: Role[] = [role('admin'), { ...role('hallmgr'), perms: P('res.view', 'res.checkin', 'res.requests', 'res.notices', 'maint.view', 'maint.log', 'maint.assign', 'inv.view', 'alloc.view') }, { ...role('rescoord'), perms: P('res.view', 'res.checkin', 'res.requests') }, wardenRole, { ...role('frontdesk'), perms: P('res.view', 'res.checkin') }, estatesRole];
 const EDGE_MEMBERS: Member[] = [
@@ -85,11 +85,11 @@ const TEAMS: Team[] = [
 ];
 
 const AUDIT: AuditEntry[] = [
-  { id: 'a1', who: 'Arjun Mehta', what: 'changed Dave Hughes’s halls to Ustinov, Collingwood', when: 'Today, 09:40', area: 'Members' },
+  { id: 'a1', who: 'Arjun Mehta', what: 'changed Dave Hughes’s properties to Ustinov, Collingwood', when: 'Today, 09:40', area: 'Members' },
   { id: 'a2', who: 'Arjun Mehta', what: 'invited Aisha Khan as Front desk at Ustinov', when: '28 Aug 2025', area: 'Members' },
-  { id: 'a3', who: 'Arjun Mehta', what: 'gave Read only “Inventory: View”', when: '14 Aug 2025', area: 'Roles' },
-  { id: 'a4', who: 'Arjun Mehta', what: 'added the campus Queen’s Campus', when: '2 Aug 2025', area: 'Campuses' },
-  { id: 'a5', who: 'Arjun Mehta', what: 'invited James Reed as Finance in all halls', when: '9 Jan 2025', area: 'Members' },
+  { id: 'a3', who: 'Arjun Mehta', what: 'gave Read only “Properties: View”', when: '14 Aug 2025', area: 'Roles' },
+  { id: 'a4', who: 'Arjun Mehta', what: 'added the location Queen’s Campus', when: '2 Aug 2025', area: 'Locations' },
+  { id: 'a5', who: 'Arjun Mehta', what: 'invited James Reed as Finance in all properties', when: '9 Jan 2025', area: 'Members' },
 ];
 
 function scenario(s: Scenario) {
@@ -118,7 +118,7 @@ export const useOrg = create<OrgState>()(
       restore: (snap) => set(snap),
       audit_: (what, area) => set((st) => ({ audit: [{ id: `a${Date.now()}${Math.random().toString(36).slice(2, 5)}`, who: 'Arjun Mehta', what, when: 'Just now', area }, ...st.audit] })),
     }),
-    { name: 'pms-org', storage: createJSONStorage(() => sessionStorage), version: 1, migrate: renameMe },
+    { name: 'pms-org', storage: createJSONStorage(() => sessionStorage), version: 2, migrate: renameFrom(2) as never },
   ),
 );
 
@@ -143,7 +143,7 @@ export function undoSince(before: Lists, what: string, area: AuditEntry['area'])
 
 /* ---------- helpers ---------- */
 export function hallsLabel(h: Member['halls'], long = false) {
-  if (h === 'all') return 'All halls';
+  if (h === 'all') return 'All properties';
   return h.map((id) => (long ? hallById(id)?.name : hallById(id)?.short) ?? id).join(', ');
 }
 /** "Everything" / "Residents, Requests, Maintenance" style summary for the Roles table. */
@@ -161,7 +161,7 @@ export function roleCan(r: Role) {
 export function roleSummary(r: Role, halls: Member['halls']) {
   const doing = PERMS.filter((a) => a.perms.some((p) => p.label !== 'View' && r.perms.includes(p.id))).map((a) => a.area);
   const what = doing.length ? doing.length === 1 ? doing[0] : `${doing.slice(0, -1).join(', ')} and ${doing.at(-1)}` : 'Read-only access';
-  const where = halls === 'all' ? ' in every hall' : ` at ${hallsLabel(halls)} only`;
+  const where = halls === 'all' ? ' in every property' : ` at ${hallsLabel(halls)} only`;
   const bits = [what + where];
   if (!r.perms.some((p) => p.startsWith('fin.'))) bits.push('no finance');
   if (!r.perms.includes('ws.settings')) bits.push('no settings');

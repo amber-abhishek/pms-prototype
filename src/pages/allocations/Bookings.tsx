@@ -112,7 +112,7 @@ export function Bookings() {
         <Toolbar right={<>
           <SelectFilter prefix="Status" value={tab} onChange={(v) => setTab(v as typeof tab)} width={240}
             options={[{ value: 'All', meta: fmtN(c.all) }, { value: 'Awaiting signature', meta: fmtN(c.sent) }, { value: 'Lease not sent', meta: fmtN(c.drafts) }, { value: 'Conflicts', meta: fmtN(c.conflicts) }, { value: 'Cancelled', meta: fmtN(c.cancelled) }]} />
-          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Term', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Hall', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} />
+          <FilterButton value={f} onChange={setF} defs={[{ id: 'cycle', label: 'Term', named: true, options: d.cycles.map((x) => x.name) }, { id: 'hall', label: 'Property', options: HALLS.map((h) => hallFull[h]) }, { id: 'lease', label: 'Lease', options: ['Signed', 'Sent', 'Draft'] }]} />
         </>}>
           <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search bookings" /></div>
         </Toolbar>
@@ -134,7 +134,7 @@ export function Bookings() {
               <div key={k.id} className="rounded-xl border border-line bg-white">
                 <div className="h-14 px-4 flex items-center gap-2.5 border-b border-[#F5F5F5]">
                   <Warning size={16} className="text-[#E0243A] shrink-0" /><div className="min-w-0"><div className="text-sm font-semibold">{k.unit}</div><div className="text-xs text-gray-500">{k.overlap}</div></div>
-                  <Button size="sm" className="ml-auto" onClick={() => setResolving(k)}>Resolve…</Button>
+                  <Button size="sm" className="ml-auto" onClick={() => setResolving(k)}>Resolve</Button>
                 </div>
                 {[k.a, k.b].map((s, i) => (
                   <div key={s.ref} className={cx('h-[52px] px-4 flex items-center gap-3', i === 0 && 'border-b border-[#F5F5F5]')}>
@@ -248,7 +248,7 @@ function CancelBooking({ b, onClose, onDone, withUndo }: { b: Booking; onClose: 
   const waitlist = useAlloc((s) => s.waitlist);
   const waiting = waitlist.filter((w) => w.hall === b.hall && w.room === b.room);
   const cooling = b.lease === 'Signed' || b.lease === 'Sent';
-  const [reason, setReason] = useState('Withdrew · private halls');
+  const [reason, setReason] = useState('Withdrew · private housing');
   const [step, setStep] = useState<1 | 2>(1);
   const busy = useRef(false);
   const undo = useRef<{ label: string; onClick: () => void } | null>(null);
@@ -279,7 +279,7 @@ function CancelBooking({ b, onClose, onDone, withUndo }: { b: Booking; onClose: 
       sub={`${b.hall} · ${b.unit} · ${b.term}. The lease is voided and ${firstName(b.name)} is emailed.`}
       footer={<><Button onClick={onClose}>Keep booking</Button><Button variant="danger" icon={null} onClick={cancel}>Cancel booking</Button></>}>
       {cooling && <div className="mb-3"><Note tone="green" icon={Check} title="Inside the cooling-off period">Signed or sent less than 14 days ago · the £250 deposit is refunded in full.</Note></div>}
-      <div className="space-y-2">{['Withdrew · private halls', 'Didn’t meet study offer', 'Duplicate booking', 'Moved to another unit', 'Other'].map((r) => <Radio key={r} checked={reason === r} onChange={() => setReason(r)} title={r} />)}</div>
+      <div className="space-y-2">{['Withdrew · private housing', 'Didn’t meet study offer', 'Duplicate booking', 'Moved to another unit', 'Other'].map((r) => <Radio key={r} checked={reason === r} onChange={() => setReason(r)} title={r} />)}</div>
     </Modal>
   );
 }
@@ -390,7 +390,7 @@ function NewBooking({ onClose, onMade }: { onClose: () => void; onMade: (id: str
             <ResidentPicker value={who} options={people} onPick={(a) => { setWho(a); if ((HALLS as readonly string[]).includes(a.hall)) setHall(a.hall); if ((ROOMS as readonly string[]).includes(a.room)) setRoom(a.room); setUnit(''); }} />
           </Field>
           <div className="grid grid-cols-2 gap-x-3 gap-y-4">
-            <Field label="Hall"><Select value={hall} onChange={(e) => { setHall(e.target.value); setUnit(''); }}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
+            <Field label="Property"><Select value={hall} onChange={(e) => { setHall(e.target.value); setUnit(''); }}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
             <Field label="Room type"><Select value={room} onChange={(e) => setRoom(e.target.value)}>{ROOMS.map((r) => <option key={r}>{r}</option>)}</Select></Field>
             <Field label="Unit"><Select value={code} onChange={(e) => setUnit(e.target.value)}>{units.map((u) => <option key={u}>{u}</option>)}</Select></Field>
             <Field label="Deposit"><Select value={deposit} onChange={(e) => setDeposit(e.target.value)}>{['Due £250', 'Paid £250', 'Waived'].map((x) => <option key={x}>{x}</option>)}</Select></Field>

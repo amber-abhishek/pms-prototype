@@ -116,18 +116,16 @@ function MyTasks() {
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <PageHeader icon={CheckCircle} title="My tasks" search><NewTaskButton scope="main" /></PageHeader>
-      {/* One toolbar row: the From and Owner filters, then the tabs at the right edge (2026-11-23). */}
+      {/* One toolbar row: the tabs on the left, the From and Owner filters at the right edge (2026-11-23). */}
       <PageHeading />
       <div {...PIN} className={toolbarCls}>
-        <div className="ml-auto flex items-center gap-2">
-          {rows.length > 0 && <FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} />}
-          <Tabs value={tab} onChange={(v) => { setTab(v); setShowWeek(false); }} tabs={[
-            { id: 'mine', label: 'Mine', count: mineCount },
-            { id: 'team', label: 'Team', count: openRows.length },
-            { id: 'snoozed', label: 'Snoozed', count: snoozedRows.length },
-            { id: 'done', label: 'Done', count: (emptyDemo ? 0 : DONE_EARLIER) + doneRows.length },
-          ]} />
-        </div>
+        <Tabs value={tab} onChange={(v) => { setTab(v); setShowWeek(false); }} tabs={[
+          { id: 'mine', label: 'Mine', count: mineCount },
+          { id: 'team', label: 'Team', count: openRows.length },
+          { id: 'snoozed', label: 'Snoozed', count: snoozedRows.length },
+          { id: 'done', label: 'Done', count: (emptyDemo ? 0 : DONE_EARLIER) + doneRows.length },
+        ]} />
+        {rows.length > 0 && <div className="ml-auto flex items-center gap-2"><FilterButton value={f} onChange={setF} defs={[{ id: 'from', label: 'From', options: areas }, { id: 'owner', label: 'Owner', options: owners }]} /></div>}
       </div>
 
       {caughtUp ? (
@@ -275,7 +273,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
       )}
       <PageHeading />
       <div {...PIN} className={toolbarCls}>
-        <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={[
+        <div><Tabs value={tab} onChange={setTab} tabs={[
           { id: 'overdue', label: 'Overdue', count: n('overdue') },
           { id: 'today', label: 'Today', count: n('today') },
           { id: 'week', label: 'This week', count: n('week') },

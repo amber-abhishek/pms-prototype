@@ -312,7 +312,7 @@ function AddToWaitlist({ onClose }: { onClose: () => void }) {
     }}>Add to waitlist</Button></>}>
       <SheetSection title="Applicant">
         <div className="space-y-4">
-          <Field label="Applicant"><Input list="wl-people" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name or APP- reference" /><datalist id="wl-people">{people.map((p) => <option key={p} value={p} />)}</datalist></Field>
+          <Field label="Name or reference"><Input list="wl-people" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name or APP- reference" /><datalist id="wl-people">{people.map((p) => <option key={p} value={p} />)}</datalist></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Property"><Select value={hall} onChange={(e) => setHall(e.target.value)}>{HALLS.map((h) => <option key={h}>{h}</option>)}</Select></Field>
             <Field label="Room type"><Select value={room} onChange={(e) => setRoom(e.target.value)}>{ROOMS.map((r) => <option key={r}>{r}</option>)}</Select></Field>

@@ -3,9 +3,9 @@ import { Avatar, Empty } from '../../components/ui';
 import { photoOf } from './photos';
 import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
-import { Bed, Buildings, Door, DoorOpen, House, Key, Plus, Stack, Tag, Textbox, Trash, TreeStructure, X, type Icon } from '../../components/icons';
+import { Bed, Info, Buildings, Door, DoorOpen, House, Key, Plus, Stack, Tag, Textbox, Trash, TreeStructure, X, type Icon } from '../../components/icons';
 import { Checkbox } from '../../components/shadcn/checkbox';
-import { Button, IconTile, PageHeading, Field, Input, Note, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneDot, SheetHero, SheetRow, SheetSection, listNav, type SheetNav, avatarFx } from '../../components/ui';
+import { Button, IconTile, PageHeading, Field, Input, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneDot, SheetHero, SheetRow, SheetSection, listNav, type SheetNav, avatarFx } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { choicesOf, invId, pickOneType, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
 import { EditActions, EditLink, FieldErr, LineTabs, Modal, PanelModal, Picker, PropStatus } from './common';
@@ -28,11 +28,9 @@ export function StructuresPage() {
         <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New layout</Button>
       </PageHeader>
       <PageHeading />
-      {/* The levels rule sits above the list as a plain line (no box), so it reads as page context, not an alert. */}
-      <div className="shrink-0 px-[calc(var(--gx,16px)+var(--cx,12px))] py-4">
-        <Note plain tone="blue" title="A layout in use can’t change its levels">Make a new layout instead, or rename a level.</Note>
-      </div>
-      <Table rows={rows} empty={<Empty title="No layouts match" sub="Try a layout or level name." />} onRow={setOpen} selected={open?.id}
+      {/* The levels rule lives in the page footer (2026-11-23): one line, blue title then the grey way out. */}
+      <Table rows={rows} empty={<Empty title="No layouts match" sub="Try a layout or level name." />} footer="always"
+            summary={<span className="flex items-center gap-2 min-w-0"><Info size={16} className="shrink-0 text-[#2563EB]" /><span className="font-medium text-[#2563EB] whitespace-nowrap">A layout in use can’t change its levels</span><span className="text-[#737373] truncate">(Make a new layout instead, or rename a level)</span></span>} onRow={setOpen} selected={open?.id}
             cols={[
               { key: 'n', label: 'Layout', render: (s) => (
                 <span className="flex items-center gap-3 min-w-0 py-1">
@@ -198,6 +196,7 @@ function NewLayoutDialog({ open, onClose, onCreated }: { open: boolean; onClose:
   };
   return (
     <PanelModal open={open} onClose={onClose} eyebrow="New layout" title="New property layout" width={560}
+      lead={<span className="size-10 shrink-0 rounded-[10px] flex items-center justify-center" style={avatarFx(GREY_FG)}><Stack size={20} strokeWidth={1.75} /></span>}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!f.valid} onClick={create}>Create layout</Button></>}>
       <SheetSection title="Layout"><Field label="Name"><Input value={f.name} onChange={(e) => f.setName(e.target.value)} placeholder="e.g. Blocks with flats" /></Field></SheetSection>
       <SheetSection title="Levels · top first"><LevelsList levels={f.levels} setLevels={f.setLevels} locked={false} /></SheetSection>
@@ -287,7 +286,7 @@ function EditLayoutDialog({ s, open, onClose }: { s: Structure; open: boolean; o
   };
   return (
     <PanelModal open={open} onClose={onClose} eyebrow="Edit layout" title={s.name} width={560}
-      lead={(() => { const I = levelIcon(s.levels[0]?.name ?? ''); return <span className="size-14 shrink-0 rounded-xl flex items-center justify-center" style={avatarFx(GREY_FG)}><I size={24} strokeWidth={1.75} /></span>; })()}
+      lead={(() => { const I = levelIcon(s.levels[0]?.name ?? ''); return <span className="size-10 shrink-0 rounded-[10px] flex items-center justify-center" style={avatarFx(GREY_FG)}><I size={20} strokeWidth={1.75} /></span>; })()}
       meta={locked ? `In use by ${s.properties} ${s.properties === 1 ? 'property' : 'properties'}, so levels can only be renamed.` : undefined}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!f.valid} onClick={save}>Save</Button></>}>
       <SheetSection title="Layout"><Field label="Name"><Input value={f.name} onChange={(e) => f.setName(e.target.value)} placeholder="e.g. Blocks with flats" /></Field></SheetSection>

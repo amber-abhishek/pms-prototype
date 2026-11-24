@@ -490,7 +490,7 @@ export function SelectFilter({ label, icon: I, value, options, onChange, width =
 }) {
   const [open, setOpen] = useState(false);
   const sel = options.find((o) => o.value === value);
-  const on = (!!label || !!prefix) && !!sel && sel.value !== 'All'; /* 'All' is the default, not an applied filter */
+  const on = (!!label || !!prefix) && !!sel && sel.value.toLowerCase() !== 'all'; /* 'All' is the default, not an applied filter */
   const row = (v: string, body: ReactNode, chosen: boolean) => (
     <button key={v || '_all'} type="button" role="menuitemradio" aria-checked={chosen} onClick={() => { onChange(v); setOpen(false); }}
       className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F5F5] focus-visible:bg-[#F5F5F5] outline-none transition-colors">
@@ -842,7 +842,8 @@ export function Sheet({ open, onClose, title, sub, children, footer, width = 520
             </div>
           </>
         ) : (
-          <SheetHeader className="items-start">
+          /* A title alone sits in the same 61px bar as record panels and modals, so every panel's top rule lines up. */
+          <SheetHeader className={sub ? 'items-start' : 'h-[61px] py-0 items-center'}>
             <div className="min-w-0 flex-1">
               <SheetTitle className="text-base leading-7 whitespace-normal">{title}</SheetTitle>
               {sub && <SheetDescription className="leading-4">{sub}</SheetDescription>}

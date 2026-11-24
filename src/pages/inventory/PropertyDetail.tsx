@@ -158,17 +158,18 @@ export function PropertyDetail() {
           { label: 'Change letting period', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
         ]} />}
         footer={p.status === 'Draft' ? <Button variant="primary" icon={null} onClick={activate}>Make active</Button> : undefined}>
-        {/* Tags sit in the hero, visible on every tab: the status first, then the tags, with Add tag at the end of the row. */}
-        <SheetHero name={p.name} meta={`${p.campus} location · ${p.address || 'No address'}`}
+        {/* Status is the record's state, so it sits on the name line (2026-11-23); the tag row below holds only tags and Add tag. */}
+        <SheetHero name={p.name} meta={`${p.campus} · ${p.address || 'No address'}`}
           lead={photoOf(p.id)
             ? <img src={photoOf(p.id, photoOrder(p)[0] ?? 0)} alt="" className="size-14 shrink-0 rounded-xl object-cover bg-[#F5F5F5]" />
             : <div className="size-14 shrink-0 rounded-xl bg-[#F5F5F5] flex items-center justify-center"><Image size={24} className="text-[#A3A3A3]" /></div>}
           tags={<>
-            <PropStatus s={p.status} />
             {p.tags.map((t) => <TagX key={t.label} t={t} />)}
             <TagPicker have={p.tags} onPick={addTag} onRemove={removeTag} trigger={addTagChip()} />
           </>}
-          facts={[['Units', String(p.units)], ['Pre-let', PRE_LET[p.id] != null ? `${PRE_LET[p.id]}%` : '—', PRE_LET[p.id] != null ? 'green' : undefined], ['Letting', p.letting]]} />
+          facts={[['Units', String(p.units)], ['Pre-let', PRE_LET[p.id] != null ? `${PRE_LET[p.id]}%` : '—', PRE_LET[p.id] != null ? (PRE_LET[p.id] < 85 ? 'amber' : 'green') : undefined], ['Letting', p.letting]]}>
+          <PropStatus s={p.status} />
+        </SheetHero>
         <div className="-mx-5">
           <LineTabs value={tab} onChange={setTab} tabs={[
             { id: 'overview', label: 'Overview' }, { id: 'units', label: 'Units' }, { id: 'tenancies', label: 'Tenancies' }, { id: 'photos', label: 'Photos' }, { id: 'activity', label: 'Activity' },
@@ -195,8 +196,8 @@ export function PropertyDetail() {
               ))}
             </SheetSection>
             )}
-            {/* Hierarchy (2026-11-23): what the property is (reference, layout, zone), then how it lets (period, units),
-                a gap between the two; who created it is record history, so it closes the card as one quiet line. */}
+            {/* What the property is (reference, layout, zone); units and letting period are in the key facts above, so they
+                aren't said twice (2026-11-23). Who created it is record history, so it closes the card as one quiet line. */}
             <SheetSection title="Details" action={<EditLink onClick={() => setEditOpen('basics')} />}>
               <div className="-my-2.5">
                 <DL rows={[
@@ -204,10 +205,6 @@ export function PropertyDetail() {
                   ['Layout', `${p.structure} · ${p.structure === 'Building' ? 5 : 2} levels`],
                   ['Zone', p.zone || '—'],
                 ]} />
-                <div className="mt-3"><DL rows={[
-                  ['Letting period', p.letting],
-                  ['Units', String(p.units)],
-                ]} /></div>
                 <p className="mt-3 pb-2.5 pt-1 text-xs leading-4 text-[#737373]">Created by {p.createdBy} on {p.created}</p>
               </div>
             </SheetSection>

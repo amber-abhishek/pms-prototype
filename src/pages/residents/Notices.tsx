@@ -44,10 +44,9 @@ export function NoticesList() {
       </RHeader>
       {notices.length > 0 && (
         /* Filters first, the tabs at the right edge (2026-11-23: every toolbar with filters). */
-        <Toolbar right={<>
-          <FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Property', options: HALLS }]} />
+        <Toolbar right={<FilterButton value={f} onChange={setF} defs={[{ id: 'hall', label: 'Property', options: HALLS }]} />}>
           <Tabs value={tab} onChange={setTab} tabs={(['All', 'Sent', 'Scheduled', 'Drafts'] as Tab[]).map((t) => ({ id: t, label: t, count: c(t) }))} />
-        </>} />
+        </Toolbar>
       )}
       <Table fill rows={rows} selected={open ?? undefined} group={{ label: 'Date', get: (n) => (n.status === 'Draft' ? 'Drafts' : n.when?.split(',')[0] ?? '') }} onRow={(n) => (n.status === 'Draft' ? nav(`/residents/notices/${n.id}`) : setOpen(n.id))}
         empty={<Empty art="notices" icon={Megaphone} title={notices.length ? `No ${tab.toLowerCase()} notices` : 'No notices yet'} sub="Tell residents about outages, fire drills and events."

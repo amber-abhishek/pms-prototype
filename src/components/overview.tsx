@@ -96,7 +96,10 @@ const stripNote = 'font-mono text-xs leading-4 uppercase tracking-[0.48px] text-
 /** Connect number band (Amber Connect bookings): one edge-to-edge strip, columns split by dashed rules. Each column is a
  *  14px grey label, a 32px mono figure, a filled caret with the change in green or red plus a grey "vs" line, and a
  *  `meter` along the foot: progress to a target or a breakdown (see Meter). */
-export type Kpi = { label: string; value: string; delta?: string; good?: boolean; vs?: string; to?: string; meter?: MeterSpec };
+export type Kpi = { label: string; value: string; delta?: string; good?: boolean; vs?: string; to?: string; meter?: MeterSpec;
+  /** Grey word after the figure ("to review"). */ unit?: string;
+  /** Replaces the change line: what the figure is made of, the urgent part first in red (2026-11-23, Figma 4192:31036). */ note?: ReactNode;
+  /** Blue link word at the right of the label ("View"); the whole cell is the link. */ link?: string };
 export function KpiCards({ items }: { items: Kpi[] }) {
   return (
     <div className="shrink-0 mt-6 grid border-y border-[#E5E5E5] px-6 py-5" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
@@ -105,10 +108,13 @@ export function KpiCards({ items }: { items: Kpi[] }) {
         const good = k.good ?? up;
         const body = (
           <>
-            <div className="text-sm leading-5 text-[#737373] truncate">{k.label}</div>
-            <div className="mt-1 font-mono text-[32px] leading-10 font-semibold tracking-[-0.02em] tabular-nums text-[#0A0A0A] truncate">{k.value}</div>
-            <div className="mt-4 h-5 flex items-center gap-1 text-sm leading-5 text-[#404040] whitespace-nowrap">
-              {k.delta && <>
+            <div className="flex items-center gap-3 text-sm leading-5 text-[#737373]"><span className="flex-1 min-w-0 truncate">{k.label}</span>{k.link && <span className="shrink-0 font-medium text-[#2563EB] group-hover:underline underline-offset-2">{k.link}</span>}</div>
+            <div className="mt-1 flex items-baseline gap-2 min-w-0">
+              <span className="font-mono text-[32px] leading-10 font-semibold tracking-[-0.02em] tabular-nums text-[#0A0A0A] truncate">{k.value}</span>
+              {k.unit && <span className="text-sm text-[#737373] whitespace-nowrap">{k.unit}</span>}
+            </div>
+            <div className={cx(k.note ? 'mt-2' : 'mt-4', 'h-5 flex items-center gap-1 text-sm leading-5 text-[#404040] whitespace-nowrap min-w-0')}>
+              {k.note ? <span className="truncate text-[#737373]">{k.note}</span> : k.delta && <>
                 <span className={cx('flex items-center gap-1 font-semibold tabular-nums', good ? 'text-[#16A34A]' : 'text-[#DC2626]')}>
                   <svg width="8" height="6" viewBox="0 0 8 6" aria-hidden className={up ? '' : 'rotate-180'}><path d="M4 0 8 6H0z" fill="currentColor" /></svg>
                   {k.delta.replace(/^[−+-]/, '')}
@@ -116,7 +122,7 @@ export function KpiCards({ items }: { items: Kpi[] }) {
                 {k.vs ?? 'vs last 30 days'}
               </>}
             </div>
-            <div className="mt-5 h-1">{k.meter && <Meter m={k.meter} />}</div>
+            <div className={cx(k.note ? 'mt-4' : 'mt-5', 'h-1')}>{k.meter && <Meter m={k.meter} />}</div>
           </>
         );
         const cell = cx('min-w-0 block outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md',
@@ -252,19 +258,21 @@ export function TrendCard({ title, badge, value, of, up, down, kind, points, tic
   );
 }
 
-export type RankRow = { id: string; name: string; value: string; pct: number; warn?: boolean; to: string };
+export type RankRow = { id: string; name: string; value: string; pct: number; warn?: boolean; to: string; /** Not letting this term: grey name and value, no bar. */ muted?: boolean };
 /** Ranked list beside the chart (Figma "Pre-let by property"): grey building, name, 72×4 meter, mono percentage. */
-export function RankCard({ title, note, rows, more, moreLabel, moreTo, empty }: { title: string; note: string; rows: RankRow[]; more: number; moreLabel: string; moreTo: string; /** Shown when there are no rows. */ empty?: ReactNode }) {
+export function RankCard({ title, note, rows, more, moreLabel, moreTo, empty, target, className }: { title: string; note: string; rows: RankRow[]; more: number; moreLabel: string; moreTo: string; /** Shown when there are no rows. */ empty?: ReactNode;
+  /** Draws a 96px bar per row with a tick at this percentage (2026-11-23). */ target?: number; className?: string }) {
   return (
-    <Card className="overflow-hidden flex flex-col min-w-0 h-[349px]">
+    <Card className={cx('overflow-hidden flex flex-col min-w-0', className ?? 'h-[349px]')}>
       <Strip title={title} right={<span className={stripNote}>{note}</span>} />
       {!rows.length && empty ? <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-3 text-sm text-[#737373]">{empty}</div> : <div className="flex-1 min-h-0 p-5 flex flex-col">
         <div className="flex flex-col gap-1">
           {rows.map((r) => (
             <Link key={r.id} to={r.to} className="h-[30px] -mx-2 px-2 rounded-lg flex items-center gap-2.5 text-sm hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA]">
               <Building size={16} strokeWidth={1.5} className="shrink-0 text-[#737373]" />
-              <span className="flex-1 min-w-0 truncate text-[#0A0A0A]">{r.name}</span>
-              <span className={cx('w-9 text-right font-mono text-sm font-medium tabular-nums', r.warn ? 'text-[#D97706]' : 'text-[#0A0A0A]')}>{r.value}</span>
+              <span className={cx('flex-1 min-w-0 truncate', r.muted ? 'text-[#737373]' : 'text-[#0A0A0A]')}>{r.name}</span>
+              {target != null && !r.muted && <span className="w-24 shrink-0"><Meter m={{ kind: 'progress', value: r.pct, max: 100, target, color: r.warn ? '#D97706' : '#2563EB', tip: `${r.pct}% · target ${target}%` }} /></span>}
+              <span className={cx('text-right text-sm tabular-nums whitespace-nowrap', r.muted ? 'font-normal text-[#A3A3A3]' : 'w-9 font-mono font-medium', !r.muted && (r.warn ? 'text-[#D97706]' : 'text-[#0A0A0A]'))}>{r.value}</span>
             </Link>
           ))}
         </div>

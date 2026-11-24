@@ -34,7 +34,7 @@ function Layout({ tab, title, actions, children, wide }: { tab: string; title: s
       {/* The design's in-page tab rail is the sidebar panel's job in this shell, so it isn't repeated here. */}
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 overflow-auto">
-          <div className={cx('px-8 pt-8 pb-16', wide ? 'max-w-[1080px]' : 'max-w-[960px]')}>
+          <div className="px-8 pt-8 pb-16 max-w-[864px] mx-auto">{/* One width on every tab, centred in the pane (800px content, 2026-11-24); `wide` kept for callers. */}{void wide}
             <TitleH1 className="sr-only">{title}</TitleH1>
             <div className="-mt-2 flex flex-col gap-4">
               {/* Anything that isn't a Section (a table, a note, the Emails grid) sits in the stack outside a card.
@@ -52,7 +52,7 @@ export function Section({ title, sub, children, action, tone }: { title: string;
   return (
     /* Connect 2.0 card: r12, 1px #E5E5E5, 0 1 2 at 5%; 44px #FAFAFA header (12/12/12/16) with a 14px medium title. */
     <section data-tone={tone} className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
-      <header className="min-h-11 py-3 pl-4 pr-3 flex items-center gap-3 bg-[#FAFAFA] border-b border-[#E5E5E5] [&:last-child]:border-b-0">
+      <header className="h-11 pl-4 pr-3 flex items-center gap-3 bg-[#FAFAFA] border-b border-[#E5E5E5] [&:last-child]:border-b-0">
         {/* `tone` kept for callers; the Danger zone title stays ink. */}
         <h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">{title}</h2>
         {sub && <p className="text-sm leading-5 text-[#737373] truncate">{sub}</p>}
@@ -62,6 +62,19 @@ export function Section({ title, sub, children, action, tone }: { title: string;
     </section>
   );
 }
+/** Rows straight in a Section card, split by hairlines: no box inside a box (2026-11-23). */
+const Rows = ({ children }: { children: ReactNode }) => <div className="-m-4 divide-y divide-[#F0F0F0]">{children}</div>;
+const Row = ({ title, sub, lead, children }: { title: ReactNode; sub?: ReactNode; lead?: ReactNode; children?: ReactNode }) => (
+  <div className="min-h-[60px] px-4 py-2.5 flex items-center gap-3">{lead}<div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium text-[#0A0A0A]">{title}</div>{sub && <div className="text-xs leading-4 text-[#737373] mt-0.5">{sub}</div>}</div>{children}</div>
+);
+/** A note about a card's content, as the card's footer band instead of a box of its own. */
+const CardNote = ({ icon: I, title, children }: { icon: Icon; title: string; children?: ReactNode }) => (
+  <div className="border-t border-line bg-[#FAFAFA] px-4 py-3 flex items-start gap-2.5 text-sm leading-5">
+    <I size={16} className="mt-0.5 shrink-0 text-[#1F45E0]" />
+    {/* Two lines (2026-11-24): the fact on top, the detail under it in 12px grey, as Note does. */}
+    <div className="min-w-0"><div className="font-medium text-[#0A0A0A]">{title}</div>{children && <div className="mt-0.5 text-xs leading-4 text-[#737373]">{children}</div>}</div>
+  </div>
+);
 export const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm leading-5 font-medium text-[#0A0A0A] mb-1.5">{children}</div>;
 const opts = (xs: string[]) => xs.map((x) => ({ value: x, label: x }));
 /** Inline field error. */
@@ -259,7 +272,7 @@ export function SettingsGeneral() {
           <div><Lbl>Logo</Lbl>
             <div className="flex items-center gap-3">
               <span className="size-12 rounded-lg text-white text-lg font-semibold flex items-center justify-center" style={{ background: c }}>D</span>
-              <span className="flex-1"><span className="block text-sm text-[#0A0A0A]">{d.logo}</span><span className="block text-xs text-[#737373]">SVG or PNG, at least 256px</span></span>
+              <span className="mr-3"><span className="block text-sm text-[#0A0A0A]">{d.logo}</span><span className="block text-xs text-[#737373]">SVG or PNG, at least 256px</span></span>
               <Button size="sm" icon={UploadSimple} onClick={() => { up({ logo: 'durham-crest-2026.svg' }); toast('durham-crest-2026.svg uploaded', { description: 'Save to use it.' }); }}>Replace</Button>
             </div>
           </div>
@@ -295,10 +308,7 @@ export function SettingsGeneral() {
         <Err>{err.quiet}</Err>
       </Section>
       <Section tone="red" title="Danger zone" sub="Only the workspace owner can do these">
-        <div className="flex items-center gap-4 rounded-[10px] border border-line px-3.5 py-3">
-          <div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">Archive the workspace</div><div className="text-xs text-[#737373] mt-0.5">Stops sign-ins and portals; data is kept for 7 years</div></div>
-          <Button variant="danger-outline" icon={Archive} onClick={() => setArchive(true)}>Archive</Button>
-        </div>
+        <Rows><Row title="Archive the workspace" sub="Stops sign-ins and portals; data is kept for 7 years"><Button variant="danger-outline" icon={Archive} onClick={() => setArchive(true)}>Archive</Button></Row></Rows>
       </Section>
       <ODialog open={archive} onClose={() => setArchive(false)} title={`Archive ${general.name}?`} sub="Everyone is signed out and the resident portals go offline. Data is kept for 7 years."
         footer={<><Button onClick={() => setArchive(false)}>Cancel</Button><Button variant="danger" onClick={() => { setArchive(false); toast.error('Only the workspace owner can archive it', { description: 'Ask support to transfer ownership first.' }); }}>Archive workspace</Button></>}>
@@ -386,10 +396,10 @@ export function SettingsAcademicYear() {
       actions={<Button variant="primary" icon={Plus} onClick={() => openYear()}>New year</Button>}>
       <div className="rounded-xl border border-line overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation term', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 py-0 px-3', i === 0 && 'pl-5', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Year', 'Starts', 'Ends', 'Status', 'Allocation term', ''].map((h, i) => <th key={i} className={cx('text-left font-medium h-9 py-0 px-3', i === 0 && 'pl-4', i === 5 && 'w-12')}>{h}</th>)}</tr></thead>
           <tbody ref={bodyRef}>{yearRows.map(({ row: y, motion }) => (
             <tr key={y.id} {...rowAttrs(y.id, motion)} className="border-b border-[#F5F5F5] last:border-0 text-[#404040]">
-              <td className="h-10 pl-5 font-medium text-[#0A0A0A]">{y.name}</td><td className="px-3">{y.starts}</td><td className="px-3">{y.ends}</td>
+              <td className="h-10 pl-4 font-medium text-[#0A0A0A]">{y.name}</td><td className="px-3">{y.starts}</td><td className="px-3">{y.ends}</td>
               <td className="px-3"><Pill tone={tone[y.status]} icon={yIcon[y.status]}>{y.status}</Pill></td>
               <td className="px-3">{y.cycle.includes('open') ? <Link to="/allocations/cycles" className="inline-flex items-center h-6 hover:underline">{y.cycle}</Link> : y.cycle}</td>
               <td className="pr-3 text-right"><RowMenu label={`More for ${y.name}`} items={[
@@ -399,16 +409,19 @@ export function SettingsAcademicYear() {
             </tr>
           ))}</tbody>
         </table>
+        {/* When the next year takes over, said under the years it is about rather than in a box of its own (2026-11-23). */}
+        <CardNote icon={Info} title="2027/28 becomes current on 1 Sep 2027">Until then it is used only by the 2027/28 allocation term.</CardNote>
       </div>
       <Section title="Rent periods in 2026/27"
         action={editing ? <div className="flex gap-2"><Button size="sm" onClick={() => { setDraft(toDraft(terms)); setEditing(false); setTermTried(false); }}>Cancel</Button><Button size="sm" variant="primary" onClick={saveTerms}>Save terms</Button></div>
           : <Button size="sm" icon={PencilSimple} onClick={() => { setDraft(toDraft(terms)); setEditing(true); }}>Edit periods</Button>}>
-        <div className="rounded-xl border border-line overflow-hidden -mt-1">
+        {/* The table's header row drops its top hairline: the card strip above already draws one. */}
+        <div className="-m-4 [&_thead_th]:!shadow-[inset_0_-1px_0_#E5E5E5]">
         <table className="w-full text-sm">
-          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Period', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-5', 'text-left')}>{h}</th>)}</tr></thead>
+          <thead><tr className="text-xs text-[#737373] border-b border-line">{['Period', 'Starts', 'Ends', 'Weeks', 'Rent due'].map((h, i) => <th key={h} className={cx('font-medium h-9 py-0 px-3', i === 0 && 'pl-4', 'text-left')}>{h}</th>)}</tr></thead>
           <tbody>{(editing ? draft : toDraft(terms)).map((t, i) => { const te = editing && termTried ? termErrs(t) : undefined; return (
             <tr key={t.id} className="border-b border-[#F5F5F5] last:border-0 text-[#404040]">
-              <td className="h-10 pl-5 pr-3 font-medium text-[#0A0A0A]">{t.name}</td>
+              <td className="h-10 pl-4 pr-3 font-medium text-[#0A0A0A]">{t.name}</td>
               {(['starts', 'ends', 'weeks', 'due'] as const).map((k) => (
                 <td key={k} className={cx('px-3', k === 'weeks' && 'tabular-nums')}>{editing ? <Input aria-label={`${t.name} ${k}`} aria-invalid={!!te?.[k]} className={cx('h-8 w-32', bad(te?.[k]))} value={t[k]} onChange={(e) => setDraft(draft.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))} /> : t[k]}</td>
               ))}
@@ -416,9 +429,8 @@ export function SettingsAcademicYear() {
           ); })}</tbody>
         </table>
         </div>
-        {editing && termTried && termMsgs.length > 0 && <div role="alert" className="mt-2 space-y-1">{termMsgs.map((m) => <p key={m} className="text-xs leading-4 text-[#E0243A]">{m}</p>)}</div>}
+        {editing && termTried && termMsgs.length > 0 && <div role="alert" className="mt-6 space-y-1">{termMsgs.map((m) => <p key={m} className="text-xs leading-4 text-[#E0243A]">{m}</p>)}</div>}
       </Section>
-      <Alert tone="blue" icon={Info} title="2027/28 becomes current on 1 Sep 2027">Until then it is used only by the 2027/28 allocation term.</Alert>
       <ODialog open={yearDlg !== null} onClose={() => setYearDlg(null)} title={editingYear ? `Edit ${editingYear.name}` : 'New letting year'} sub={editingYear ? 'Reports and Occupancy use the new dates.' : 'It becomes current on its start date.'}
         footer={<><Button onClick={() => setYearDlg(null)}>Cancel</Button><Button variant="primary" onClick={saveYear}>{editingYear ? 'Save year' : 'Add year'}</Button></>}>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); saveYear(); }}>
@@ -457,8 +469,8 @@ export function SettingsNotifications() {
             </tr>
           ))}</tbody>
         </table>
+        <CardNote icon={DeviceMobile} title="SMS goes to +44 7700 900118">Only urgent maintenance can send SMS during quiet hours.</CardNote>
       </div>
-      <Alert tone="blue" icon={DeviceMobile} title="SMS goes to +44 7700 900118">Only urgent maintenance can send SMS during quiet hours.</Alert>
       {dialogs}
     </Layout>
   );
@@ -478,20 +490,18 @@ export function SettingsPayments() {
   return (
     <Layout tab="payments" title="Payments" actions={actions}>
       <Section title="Provider">
-        <div className="rounded-[10px] border border-line px-3.5 h-[60px] flex items-center gap-3">
-          <BrandTile id="stripe" />
-          <div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">Stripe</div><div className="text-xs text-[#737373] mt-0.5">Connected 2 Aug 2026 · payouts to Durham Residences ••4410 · weekly</div></div>
+        <Rows><Row lead={<BrandTile id="stripe" />} title="Stripe" sub="Connected 2 Aug 2026 · payouts to Durham Residences ••4410 · weekly">
           <Pill tone="green" icon={Check}>Connected</Pill>
           <Button size="sm" icon={ArrowUpRight} onClick={() => setManage(true)}>Manage</Button>
-        </div>
+        </Row></Rows>
       </Section>
       <Section title="How residents can pay">
-        <div className="grid grid-cols-3 gap-2">{methods.map(([k, l, I]) => (
-          <div key={k} className="h-10 px-3 rounded-[10px] border border-line flex items-center gap-2.5 text-sm text-[#0A0A0A]">
+        <div className="-m-4 grid grid-cols-3 divide-x divide-[#F0F0F0]">{methods.map(([k, l, I]) => (
+          <div key={k} className="h-12 px-4 flex items-center gap-2.5 text-sm font-medium text-[#0A0A0A]">
             <I size={16} className="text-gray-500" /><span className="flex-1">{l}</span><Switch checked={d.methods[k]} onChange={(v) => up({ methods: { ...d.methods, [k]: v } })} label={l} />
           </div>
         ))}</div>
-        <Err>{err.methods}</Err>
+        {err.methods && <div className="mt-6"><Err>{err.methods}</Err></div>}
       </Section>
       <Section title="Rent" sub="A room type can override these">
         <div className="grid grid-cols-3 gap-3">
@@ -501,9 +511,7 @@ export function SettingsPayments() {
         </div>
       </Section>
       <Section title="Reminders and arrears" sub="Sent outside quiet hours">
-        <div className="space-y-2">{rules.map(([k, t, s]) => (
-          <div key={k} className="px-3.5 h-[60px] rounded-[10px] border border-line flex items-center gap-3"><div className="flex-1"><div className="text-sm font-medium text-[#0A0A0A]">{t}</div><div className="text-xs text-[#737373]">{s}</div></div><Switch checked={d[k]} onChange={(v) => up({ [k]: v })} label={t} /></div>
-        ))}</div>
+        <Rows>{rules.map(([k, t, s]) => <Row key={k} title={t} sub={s}><Switch checked={d[k]} onChange={(v) => up({ [k]: v })} label={t} /></Row>)}</Rows>
       </Section>
       <ODialog open={manage} onClose={() => setManage(false)} title="Stripe" sub="Card payments and payouts to the operator account."
         footer={<><Button variant="danger-ghost" className="mr-auto" onClick={() => { setManage(false); toast.error('Disconnecting Stripe stops card payments', { description: 'Ask Finance (James Reed) to do this.' }); }}>Disconnect</Button><Button variant="primary" onClick={() => { setManage(false); toast('Opening the Stripe dashboard', { description: 'It opens in a new tab in the real product.' }); }}>Open Stripe</Button></>}>
@@ -562,6 +570,10 @@ export function SettingsIntegrations() {
           The connection token expired on 30 Oct. 3 syncs failed; 41 new residents aren’t in Applications yet.
         </Alert>
       )}
+      {/* Needs attention, so it comes before the cards it is about (2026-11-23). */}
+      {!failing && sits?.meta === 'Synced 12 min ago' && (
+        <Alert tone="amber" icon={Warning} title="Records sync skipped 3 residents last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their record has no term address. Open the sync log to see who.</Alert>
+      )}
       {/* 3060:2: one grid of six cards (connected first), each with a tinted 32px icon tile, title + meta, Connected pill top right,
           13px description and a sm Manage (sliders) or Connect (plug) button; the amber sync note sits under the grid. */}
       <div className="grid grid-cols-3 gap-4">
@@ -570,16 +582,13 @@ export function SettingsIntegrations() {
             <div className="flex items-start gap-3">
               {BRAND[x.id] ? <BrandTile id={x.id} /> : <span className="size-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t[0] }}><I size={16} style={{ color: t[1] }} /></span>}
               <span className={cx('flex-1 min-w-0', !on && 'self-center')}><span className="block text-sm leading-5 font-medium text-[#0A0A0A]">{x.name}</span>{on && x.meta && <span className="block text-xs leading-4 text-[#737373] mt-0.5">{x.meta}</span>}</span>
-              {on && (x.state === 'failing' ? <Pill tone="red" icon={Warning}>Failing</Pill> : <Pill tone="green" icon={Check}>Connected</Pill>)}
             </div>
             <p className="text-xs leading-4 text-[#737373] mt-3 flex-1">{x.desc}</p>
-            <div className="mt-3">{x.state === 'failing' ? <Button size="sm" variant="primary" className="w-[112px]" onClick={() => setReconnect(true)}>Reconnect</Button> : on ? <Button size="sm" icon={SlidersHorizontal} className="w-[112px]" onClick={() => setOpen(x)}>Manage</Button> : <Button size="sm" icon={Plug} className="w-[112px]" onClick={() => setOpen(x)}>Connect</Button>}</div>
+            {/* The state pill shares the action row, so a long name keeps the title line to itself. */}
+            <div className="mt-3 flex items-center justify-between gap-2">{on && <span className="order-last">{x.state === 'failing' ? <Pill tone="red" icon={Warning}>Failing</Pill> : <Pill tone="green" icon={Check}>Connected</Pill>}</span>}{x.state === 'failing' ? <Button size="sm" variant="primary" className="w-[112px]" onClick={() => setReconnect(true)}>Reconnect</Button> : on ? <Button size="sm" icon={SlidersHorizontal} className="w-[112px]" onClick={() => setOpen(x)}>Manage</Button> : <Button size="sm" icon={Plug} className="w-[112px]" onClick={() => setOpen(x)}>Connect</Button>}</div>
           </div>
         ); })}
       </div>
-      {!failing && sits?.meta === 'Synced 12 min ago' && (
-        <Alert tone="amber" icon={Warning} title="Records sync skipped 3 residents last night" action={<Button size="sm" onClick={() => setLog(true)}>Open log</Button>}>Their record has no term address. Open the sync log to see who.</Alert>
-      )}
 
       <ODialog open={reconnect} onClose={() => !busy && setReconnect(false)} title="Reconnect Resident records" sub="Sign in with a records admin account to run the missed syncs."
         footer={<><Button disabled={busy} onClick={() => setReconnect(false)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={doReconnect}>{busy ? 'Syncing…' : 'Sign in to SITS'}</Button></>}>
@@ -620,16 +629,15 @@ export function SettingsEmails() {
   const c = branding.colour;
   return (
     <Layout wide tab="emails" title="Emails" actions={actions}>
-      <div className="grid grid-cols-[1fr_400px] gap-5 items-start">
-        {/* 3061:2: plain labelled fields (14px medium label, 16px gaps); reply-to with a mail icon. Logo and colour come from General. */}
-        <div className="space-y-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-4 items-start">
+        {/* Fields in the same card as every other tab; logo and colour come from General. */}
+        <Section title="Sender" sub="On every email residents get"><div className="space-y-4">
           <div><Lbl>Logo and brand colour</Lbl><SharedBrand linkLabel="Change in General" /></div>
           <label className="block"><Lbl>Email sender name</Lbl><Input aria-invalid={!!err.sender} className={bad(err.sender)} value={d.sender} onChange={(e) => up({ sender: e.target.value })} /><Err>{err.sender}</Err></label>
           <label className="block"><Lbl>Reply-to</Lbl><span className="relative flex items-center"><EnvelopeSimple size={14} className="absolute left-2.5 text-gray-500 pointer-events-none" /><Input aria-invalid={!!err.replyTo} className={cx('pl-8', bad(err.replyTo))} type="email" value={d.replyTo} onChange={(e) => up({ replyTo: e.target.value })} /></span><Err>{err.replyTo}</Err></label>
           <label className="block"><Lbl>Email footer</Lbl><Textarea value={d.footer} onChange={(e) => up({ footer: e.target.value })} /></label>
-        </div>
-        <div className="rounded-xl border border-line bg-[#FAFAFA] p-4 sticky top-0">
-          <div className="text-xs text-[#737373] mb-3">Email preview</div>
+        </div></Section>
+        <div className="sticky top-0"><Section title="Preview">
           <div className="rounded-lg bg-white border border-line overflow-hidden">
             <div className="h-12 px-3.5 flex items-center gap-2.5" style={{ background: c }}><span className="size-5 rounded bg-white text-[11px] font-semibold flex items-center justify-center" style={{ color: c }}>D</span><span className="text-xs font-semibold text-white">{d.sender || general.name}</span></div>
             <div className="p-3.5">
@@ -639,7 +647,7 @@ export function SettingsEmails() {
             </div>
             <div className="px-3.5 py-3 border-t border-[#F5F5F5] text-xs leading-4 text-[#737373] whitespace-pre-line">{d.footer.split('\n')[0]}</div>
           </div>
-        </div>
+        </Section></div>
       </div>
       {dialogs}
     </Layout>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowsClockwise, CheckCircle, Clock, Copy, EnvelopeSimple, Eye, Gear, Globe, MapPin, SquaresFour, UploadSimple, XCircle } from '../../components/icons';
+import { ArrowRight, ArrowsClockwise, CheckCircle, Clock, Copy, EnvelopeSimple, Eye, Gear, Globe, MapPin, UploadSimple, XCircle } from '../../components/icons';
 import { toast } from 'sonner';
 import { Button, Input, PageHeader, Select, Switch, Tabs, cx } from '../../components/ui';
 import { Section, Lbl as SLbl } from '../workspace/Settings';
@@ -38,11 +38,19 @@ export function Portal({ sec }: { sec: Sec }) {
   );
 }
 
-const Box = ({ children, className }: { children: ReactNode; className?: string }) => <section className={cx('rounded-xl border border-line bg-white shadow-card', className)}>{children}</section>;
 const Lbl = ({ children }: { children: ReactNode }) => <div className="text-sm font-medium text-gray-800 mb-1.5">{children}</div>;
 const inp = 'h-8 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/25';
 
 /* ---------------- Behaviour (flow 5) ---------------- */
+/** A settings group: 240px label column (title + one grey line), controls on the right. */
+function Group({ title, sub, children }: { title: string; sub: string; children: ReactNode }) {
+  return (
+    <section className="grid grid-cols-[240px_minmax(0,1fr)] gap-10 py-8 first:pt-2">
+      <div><h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">{title}</h2><p className="mt-1 text-sm leading-5 text-[#737373]">{sub}</p></div>
+      <div className="min-w-0">{children}</div>
+    </section>
+  );
+}
 // Nearest Partner region within 50 km of each campus, as GET amber-regions would return it.
 const NEAREST: Record<string, { region: string; km: number; exact?: boolean }> = { 'c-durham': { region: 'Durham', km: 0, exact: true }, 'c-queens': { region: 'Newcastle upon Tyne', km: 34 } };
 
@@ -50,6 +58,7 @@ function Behaviour() {
   const portal = useOc((s) => s.portal);
   const setPortal = useOc((s) => s.setPortal);
   const [sender, setSender] = useState({ name: portal.senderName, reply: portal.replyTo });
+  const layout = new URLSearchParams(useLocation().search).get('layout');
   const saveCampuses = (campuses: Campus[], extra: Partial<P> = {}) => setPortal({ campuses, ...extra });
   const upd = (id: string, p: Partial<Campus>) => portal.campuses.map((c) => (c.id === id ? { ...c, ...p } : c));
   const resolve = (c: Campus): Partial<Campus> => { const n = NEAREST[c.id]; return n ? { resolved: n.region, match: n.exact ? 'Exact' : 'Nearest', km: n.km, override: null } : { resolved: null, match: null, override: null }; };
@@ -77,6 +86,54 @@ function Behaviour() {
     if (!sender.name.trim() || !/^\S+@\S+\.\S+$/.test(sender.reply)) { toast.error('Add a sender name and a valid reply-to email'); return; }
     setPortal({ senderName: sender.name.trim(), replyTo: sender.reply.trim() }); toast.success('Sender identity saved');
   };
+  /* Layout trial (2026-11-23): label column + controls, groups split by hairlines. `?layout=cards` keeps the card version. */
+  if (layout !== 'cards') {
+    const cancelSender = () => setSender({ name: portal.senderName, reply: portal.replyTo });
+    return (
+      <div className="max-w-[960px] divide-y divide-[#E5E5E5]">
+        <Group title="Campuses" sub="Partner listings come from each ticked campus’s region.">
+          <div className="rounded-xl border border-[#E5E5E5] divide-y divide-[#F0F0F0]">
+            {portal.campuses.map((c) => {
+              const region = c.ticked ? regionOf(c) : null;
+              return (
+                <div key={c.id} className="group h-16 px-4 flex items-center gap-3">
+                  <Checkbox aria-label={`Show ${c.name}`} title={c.isDefault ? 'The default campus is always on the portal' : undefined} className="disabled:opacity-100 disabled:cursor-default" checked={c.ticked} disabled={c.isDefault} onCheckedChange={(v) => tick(c, v === true)} />
+                  <div className="min-w-0 flex-1">
+                    {/* One pill per row (the match, a status), on the name line; "Default campus" is plain grey text below, so two pills never stack. */}
+                    <div className="flex items-center gap-2"><span className="text-sm leading-5 font-medium text-[#0A0A0A] truncate">{c.name}</span>{region && c.match === 'Exact' && <Tag tone="green">Exact</Tag>}{region && c.match === 'Nearest' && <Tag tone="grey" outline>Nearest, {c.km} km</Tag>}{region && c.match === 'Manual' && <Tag tone="blue">Manual</Tag>}</div>
+                    <div className="text-sm leading-5 text-[#737373] truncate">{region ? `${region} region` : 'Not on the portal'}{c.isDefault && ' · Default campus'}</div>
+                  </div>
+                  {c.ticked && <button type="button" onClick={() => reresolve(c)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity inline-flex items-center gap-1.5 h-7 px-2 rounded-md text-sm font-medium text-[#404040] whitespace-nowrap hover:bg-[#F5F5F5]"><ArrowsClockwise size={16} className="shrink-0" />Re-resolve</button>}
+                  <Combo value={c.override} options={AMBER_REGIONS} onPick={(v) => override(c, v)} icon={MapPin} noneLabel="No override" />
+                </div>
+              );
+            })}
+          </div>
+        </Group>
+        <Group title="Listings" sub="What residents see on the portal.">
+          <div className="rounded-xl border border-[#E5E5E5] divide-y divide-[#F0F0F0]">
+            <div className="h-16 px-4 flex items-center gap-4">
+              <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium text-[#0A0A0A]">Show partners</div><div className="text-sm leading-5 text-[#737373]">Shown alongside your owner listings</div></div>
+              <Switch checked={portal.showPbsa} onChange={togglePbsa} label="Show partners" />
+            </div>
+            <div className="h-16 px-4 flex items-center gap-4">
+              <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium text-[#0A0A0A]">Default campus</div><div className="text-sm leading-5 text-[#737373]">Sets the listings on the home page</div></div>
+              <Select className="!w-[220px]" aria-label="Default campus" value={portal.defaultCampus} onChange={(e) => { setPortal({ defaultCampus: e.target.value }); toast.success('Settings saved'); }}>
+                {portal.campuses.filter((c) => c.ticked).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+            </div>
+          </div>
+        </Group>
+        <Group title="Sender identity" sub="On every email the portal sends.">
+          <div className="flex flex-col gap-4">
+            <label><SLbl>Sender name</SLbl><Input value={sender.name} onChange={(e) => setSender({ ...sender, name: e.target.value })} /></label>
+            <label><SLbl>Reply-to email</SLbl><Input type="email" value={sender.reply} onChange={(e) => setSender({ ...sender, reply: e.target.value })} /></label>
+            {dirty && <div className="flex items-center justify-end gap-2"><Button onClick={cancelSender}>Cancel</Button><Button variant="primary" icon={null} onClick={saveSender}>Save</Button></div>}
+          </div>
+        </Group>
+      </div>
+    );
+  }
   /* Settings card language (2026-11-23): one 960px column of Section cards with a grey header strip. The two listing
      switches share one card as rows; Sender identity saves from its header, and only once something changed. */
   const row = (title: string, sub: string, control: ReactNode) => (
@@ -91,12 +148,12 @@ function Behaviour() {
         <div className="-m-4">
           <table className="w-full text-sm">
             <thead><tr className="text-left [&>th]:h-10 [&>th]:px-3 [&>th]:font-mono [&>th]:text-xs [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.04em] [&>th]:text-[#737373] [&>th]:!bg-white [&>th]:!shadow-[inset_0_-1px_0_#E5E5E5]">
-              <th className="w-12 !pl-4" aria-label="On this portal" /><th>Campus</th><th>Partner region</th><th>Match</th><th className="w-[220px]">Override</th><th className="w-[136px]" aria-label="Actions" />
+              <th className="w-12 !pl-4" aria-label="On this portal" /><th>Campus</th><th>Partner region</th><th>Match</th><th className="w-[236px]">Override</th><th className="w-[120px]" aria-label="Actions" />
             </tr></thead>
             <tbody>
               {portal.campuses.map((c) => (
                 <tr key={c.id} className="group border-b border-[#F0F0F0] last:border-0 [&>td]:h-14 [&>td]:px-3">
-                  <td className="!pl-4"><Checkbox aria-label={`Show ${c.name}`} checked={c.ticked} disabled={c.isDefault} onCheckedChange={(v) => tick(c, (v === true))} /></td>
+                  <td className="!pl-4"><Checkbox aria-label={`Show ${c.name}`} title={c.isDefault ? 'The default campus is always on the portal' : undefined} className="disabled:opacity-100 disabled:cursor-default" checked={c.ticked} disabled={c.isDefault} onCheckedChange={(v) => tick(c, (v === true))} /></td>
                   <td><div className="text-sm leading-5 font-medium text-[#0A0A0A]">{c.name}</div>{c.isDefault && <div className="text-xs leading-4 text-[#737373]">Default campus</div>}</td>
                   <td>{c.ticked && regionOf(c) ? regionOf(c) : <span className="text-[#A3A3A3]">—</span>}</td>
                   <td>{c.ticked && c.match === 'Exact' && <Tag tone="green">Exact</Tag>}{c.ticked && c.match === 'Nearest' && <Tag tone="grey" outline>Nearest, {c.km} km</Tag>}{c.ticked && c.match === 'Manual' && <Tag tone="blue">Manual</Tag>}{!c.ticked && <span className="text-[#A3A3A3]">—</span>}</td>
@@ -117,9 +174,9 @@ function Behaviour() {
           </Select>)}
       </Section>
       <Section title="Sender identity" sub="On every email the portal sends"
-        action={<span className="flex items-center gap-3">
-          {dirty && <button type="button" onClick={() => setSender({ name: portal.senderName, reply: portal.replyTo })} className="h-6 px-1.5 rounded-md text-sm font-medium text-[#525252] hover:bg-[#F0F0F0]">Cancel</button>}
-          <Button size="sm" variant="primary" icon={null} disabled={!dirty} onClick={saveSender}>Save</Button>
+        action={dirty && <span className="flex items-center gap-3">
+          <button type="button" onClick={() => setSender({ name: portal.senderName, reply: portal.replyTo })} className="h-6 px-1.5 rounded-md text-sm font-medium text-[#525252] hover:bg-[#F0F0F0]">Cancel</button>
+          <Button size="sm" variant="primary" icon={null} onClick={saveSender}>Save</Button>
         </span>}>
         <div className="grid grid-cols-2 gap-3">
           <label><SLbl>Sender name</SLbl><Input value={sender.name} onChange={(e) => setSender({ ...sender, name: e.target.value })} /></label>
@@ -189,44 +246,48 @@ function Appearance() {
     toast.success('Site published', { description: 'Residents now see this version. Later edits stay in the draft.' });
   };
   const colour = (label: string, k: 'ctaColour') => <ColourField label={label} value={p[k]} onChange={(v) => edit({ [k]: v })} />;
+  /* What publishing still needs is said once, on the field itself (2026-11-23). */
+  const need = (label: string) => missing.includes(label) && <p className="mt-1.5 text-xs leading-4 font-medium text-[#B45309]">Needed to publish</p>;
+  const row = (title: string, control: ReactNode) => <div className="h-12 px-4 flex items-center gap-4"><span className="flex-1 text-sm leading-5 font-medium text-[#0A0A0A]">{title}</span>{control}</div>;
   return (
-    <div className="max-w-[1140px]">
+    <div className="max-w-[960px]">
       <input ref={file} type="file" accept="image/png,image/jpeg,image/webp,image/x-icon" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-sm text-gray-500">{p.draftSaved ? 'Draft saved' : 'Unsaved changes'} · {p.liveSince ? `Live since ${p.liveSince}` : 'Not published yet'}</span>
+      {/* Publish bar: where the site stands on the left, the two actions on the right. */}
+      <div className="flex items-center gap-3 pb-4 border-b border-[#E5E5E5]">
+        <div className="min-w-0">
+          <div className="text-sm leading-5 font-medium text-[#0A0A0A]">{p.liveSince ? `Live since ${p.liveSince}` : 'Not published yet'}</div>
+          <div className="text-sm leading-5 text-[#737373]">{p.draftSaved ? 'Draft saved' : 'Unsaved changes'}</div>
+        </div>
         <div className="ml-auto flex items-center gap-2">
-          {missing.length > 0 && <span className="text-xs text-gray-500">To publish, add: {missing.join(', ')}</span>}
           <Button onClick={() => { setPortal({ draftSaved: true }); toast.success('Draft saved'); }}>Save draft</Button>
-          <Button variant="primary" disabled={missing.length > 0} onClick={publish}>Publish</Button>
+          <Button variant="primary" disabled={missing.length > 0} title={missing.length ? `Add ${missing.join(', ').toLowerCase()} to publish` : undefined} onClick={publish}>Publish</Button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4 items-start">
-        <div className="space-y-4">
-          <Box className="p-4 space-y-4">
-            <h2 className="text-sm font-semibold">Brand</h2>
+      <div className="divide-y divide-[#E5E5E5] [&>section:first-child]:pt-8">
+        <Group title="Home page" sub="The first thing residents see.">
+          <div className="flex flex-col gap-4">
+            <label className="block"><Lbl>Page title</Lbl><input className={inp} value={p.pageTitle} onChange={(e) => edit({ pageTitle: e.target.value })} />{need('Page title')}</label>
+            <label className="block"><Lbl>Hero text</Lbl><textarea rows={2} className={cx(inp, 'h-auto py-2 resize-none')} value={p.heroText} onChange={(e) => edit({ heroText: e.target.value })} /></label>
+            <div><Lbl>Hero banner</Lbl><ImageRow has={p.heroBanner} onUpload={() => upload('heroBanner')} onRemove={() => edit({ heroBanner: false })} hint="PNG, JPEG, WebP or ICO, up to 25 MB — uploaded as WebP" />{need('Hero banner')}</div>
+          </div>
+        </Group>
+        <Group title="Brand" sub="Shared with your booking site.">
+          <div className="flex flex-col gap-4">
             <div><Lbl>Logo and brand colour</Lbl><SharedBrand /></div>
             {colour('Listing CTA colour', 'ctaColour')}
-          </Box>
-          <Box className="p-4 space-y-4">
-            <h2 className="text-sm font-semibold">Browser tab</h2>
-            <label className="block"><Lbl>Site title</Lbl><input className={inp} value={p.siteTitle} onChange={(e) => edit({ siteTitle: e.target.value })} /></label>
+          </div>
+        </Group>
+        <Group title="Browser tab" sub="Shown in search results and tabs.">
+          <div className="flex flex-col gap-4">
+            <label className="block"><Lbl>Site title</Lbl><input className={inp} value={p.siteTitle} onChange={(e) => edit({ siteTitle: e.target.value })} />{need('Site title')}</label>
             <div><Lbl>Favicon</Lbl><ImageRow has={p.favicon} onUpload={() => upload('favicon')} onRemove={() => edit({ favicon: false })} hint="PNG, JPEG, WebP or ICO, up to 5 MB" /></div>
-          </Box>
-        </div>
-        <div className="space-y-4">
-          <Box className="p-4 space-y-4">
-            <h2 className="text-sm font-semibold">Home page</h2>
-            <label className="block"><Lbl>Page title</Lbl><input className={inp} value={p.pageTitle} onChange={(e) => edit({ pageTitle: e.target.value })} /></label>
-            <label className="block"><Lbl>Hero text</Lbl><textarea rows={2} className={cx(inp, 'h-auto py-2.5 resize-none')} value={p.heroText} onChange={(e) => edit({ heroText: e.target.value })} /></label>
-            <div><Lbl>Hero banner</Lbl><ImageRow has={p.heroBanner} onUpload={() => upload('heroBanner')} onRemove={() => edit({ heroBanner: false })} hint="PNG, JPEG, WebP or ICO, up to 25 MB — uploaded as WebP" /></div>
-          </Box>
-          <Box className="px-4 pt-4 pb-1">
-            <h2 className="text-sm font-semibold mb-1">Links and footer</h2>
-            {([['customLinks', 'Custom links'], ['announcements', 'Announcement banners'], ['footerLinks', 'Footer links']] as const).map(([k, l]) => (
-              <div key={k} className="h-11 flex items-center border-b border-line last:border-0 text-sm"><span className="flex-1">{l}</span><Switch checked={p[k]} onChange={(v) => edit({ [k]: v })} label={l} /></div>
-            ))}
-          </Box>
-        </div>
+          </div>
+        </Group>
+        <Group title="Links and footer" sub="Extra sections on every page.">
+          <div className="rounded-xl border border-[#E5E5E5] divide-y divide-[#F0F0F0]">
+            {([['customLinks', 'Custom links'], ['announcements', 'Announcement banners'], ['footerLinks', 'Footer links']] as const).map(([k, l]) => <div key={k}>{row(l, <Switch checked={p[k]} onChange={(v) => edit({ [k]: v })} label={l} />)}</div>)}
+          </div>
+        </Group>
       </div>
     </div>
   );
@@ -249,7 +310,7 @@ function SiteDetails() {
   const checks = [
     { label: 'Branding', ok: !missing.length, note: missing.length ? `Missing: ${missing.join(', ')}` : 'Crest and colours set', fix: () => nav('/offcampus/portal/appearance'), fixLabel: 'Finish branding' },
     { label: 'Campuses shown', ok: campuses.length > 0, note: campuses.length ? campuses.map((c) => c.name).join(', ') : 'None chosen', fix: () => nav('/offcampus/portal'), fixLabel: 'Choose campuses' },
-    { label: 'Approved listings', ok: live > 0, note: `${live} · ${waiting} waiting for review`, fix: () => nav('/offcampus/approvals?kind=listings'), fixLabel: 'Review listings' },
+    { label: 'Approved listings', ok: live > 0, note: `${live} live · ${waiting} waiting for review`, fix: () => nav('/offcampus/approvals?kind=listings'), fixLabel: 'Review listings' },
     { label: 'Domain', ok: true, note: host, fix: () => nav('/offcampus/portal/domain'), fixLabel: 'Set up domain' },
   ];
   const firstFail = checks.find((c) => !c.ok);
@@ -262,20 +323,45 @@ function SiteDetails() {
     toast.success(`Resident site published · ${campuses.length} ${campuses.length === 1 ? 'campus' : 'campuses'} · ${live} listings`, { action: { label: 'Undo', onClick: () => setPortal({ liveSince: prev }) } });
   };
   return (
-    <div className="max-w-[1140px]">
-      <div className="flex items-center gap-2.5 mb-4">
-        <h2 className="text-sm font-semibold">Resident site</h2>
-        {p.liveSince ? <Tag tone="green">Live</Tag> : <Tag tone="grey">Draft</Tag>}
-        <span className="text-sm text-gray-500 ml-1">{host}</span>
+    <div className="max-w-[960px]">
+      {/* Same publish bar as Appearance: where the site stands on the left, actions on the right. */}
+      <div className="flex items-center gap-3 pb-4 border-b border-[#E5E5E5]">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm leading-5 font-medium text-[#0A0A0A]">Resident site {p.liveSince ? <Tag tone="green">Live</Tag> : <Tag tone="grey">Draft</Tag>}</div>
+          <div className="text-sm leading-5 text-[#737373] truncate">{host}</div>
+        </div>
         <div className="ml-auto flex gap-2">
           <Button icon={Eye} onClick={() => window.open(`https://${host}`, '_blank', 'noopener')}>Preview</Button>
           <Button variant="primary" icon={Globe} onClick={publish}>Publish</Button>
         </div>
       </div>
-      <div className="h-[420px] rounded-xl border border-line bg-gradient-to-b from-[#EEF4FF] via-white to-white flex flex-col items-center justify-center text-center">
-        <SquaresFour size={36} className="text-gray-400" />
-        <div className="text-sm text-gray-500 mt-3">{p.pageTitle}</div>
-        <div className="text-xs text-gray-400 mt-1">{p.liveSince ? `Live since ${p.liveSince}` : 'Preview of your draft site'}</div>
+      <div className="divide-y divide-[#E5E5E5] [&>section:first-child]:pt-8">
+        {/* The publish checks were only visible after a failed Publish; they now sit on the page (2026-11-23). */}
+        <Group title="Before you publish" sub="Residents land on an empty site until these are done.">
+          <div className="rounded-xl border border-[#E5E5E5] divide-y divide-[#F0F0F0]">
+            {checks.map((c) => (
+              <div key={c.label} className="h-14 px-4 flex items-center gap-3">
+                {c.ok ? <CheckCircle size={18} className="text-[#0B8A4C] shrink-0" /> : <XCircle size={18} className="text-[#E0243A] shrink-0" />}
+                <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium text-[#0A0A0A]">{c.label}</div><div className={cx('text-sm leading-5 truncate', c.ok ? 'text-[#737373]' : 'text-[#C8102E]')}>{c.note}</div></div>
+                {!c.ok && <Button size="sm" icon={null} onClick={c.fix}>{c.fixLabel}</Button>}
+              </div>
+            ))}
+          </div>
+        </Group>
+        <Group title="Home page" sub={p.liveSince ? `Live since ${p.liveSince}.` : 'How the draft looks to residents.'}>
+          {/* A small frame of the real home page from Appearance: address bar, crest, title, hero text and the CTA colour. */}
+          <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
+            <div className="h-9 px-3 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#E5E5E5]">
+              <span className="flex gap-1.5">{[0, 1, 2].map((i) => <span key={i} className="size-2.5 rounded-full bg-[#E5E5E5]" />)}</span>
+              <span className="ml-2 flex-1 h-6 rounded-md bg-white border border-[#EBEBEB] px-2.5 flex items-center text-xs text-[#737373] truncate">https://{host}</span>
+            </div>
+            <div className="px-8 py-10 bg-gradient-to-b from-[#F7F8FA] to-white">
+              <div className="text-xl leading-7 font-medium text-[#0A0A0A]">{p.pageTitle}</div>
+              <p className="mt-1.5 max-w-[420px] text-sm leading-5 text-[#525252]">{p.heroText}</p>
+              <span className="mt-4 inline-flex h-8 px-3.5 rounded-lg text-sm font-medium text-white items-center" style={{ background: p.ctaColour }}>See homes</span>
+            </div>
+          </div>
+        </Group>
       </div>
       <ODialog open={checking} onClose={() => setChecking(false)} title="The site can’t be published yet" sub="Residents would land on an empty site."
         footer={<><Button onClick={() => { setPortal({ draftSaved: true }); setChecking(false); toast.success('Draft saved'); }}>Save draft</Button>{firstFail && <Button variant="primary" icon={ArrowRight} onClick={() => { setChecking(false); firstFail.fix(); }}>{firstFail.fixLabel}</Button>}</>}>
@@ -334,40 +420,42 @@ function Domain() {
 
   const Radio = ({ id, title, sub: s }: { id: P['domainMode']; title: string; sub: string }) => (
     <button type="button" role="radio" aria-checked={p.domainMode === id} onClick={() => setPortal({ domainMode: id })}
-      className={cx('text-left rounded-xl border bg-white px-4 py-3 flex items-start gap-3 min-w-[256px]', p.domainMode === id ? 'border-primary' : 'border-line hover:border-gray-300')}>
+      className={cx('text-left rounded-xl border bg-white px-4 py-3 flex items-start gap-3 min-w-0', p.domainMode === id ? 'border-primary' : 'border-line hover:border-gray-300')}>
       <span className={cx('mt-0.5 size-4 rounded-full bg-white shrink-0', p.domainMode === id ? 'border-[5px] border-primary' : 'border border-gray-300')} />
-      <span><span className="block text-sm font-semibold">{title}</span><span className="block text-xs text-gray-500 mt-0.5">{s}</span></span>
+      <span className="min-w-0"><span className="block text-sm font-medium">{title}</span><span className="block text-xs text-gray-500 mt-0.5 truncate">{s}</span></span>
     </button>
   );
 
   return (
-    <div className="max-w-[720px] space-y-4">
-      <div className="flex gap-3" role="radiogroup" aria-label="Site address">
+    <div className="max-w-[960px]">
+    <Group title="Site address" sub="Where residents find the portal.">
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Site address">
         <Radio id="standard" title="Standard subdomain" sub={base} />
         <Radio id="custom" title="Custom domain" sub="An address the operator owns" />
       </div>
       {p.domainMode === 'standard' ? (
         <div>
-          <h2 className="text-sm font-semibold mb-3">Subdomain</h2>
+          <h2 className="text-sm font-medium mb-1.5">Subdomain</h2>
           <div className="flex gap-2">
-            <label className={cx('h-8 w-[340px] flex items-center rounded-lg border bg-white pl-3 pr-3 focus-within:ring-2', subErr ? 'border-[#EF4444] focus-within:ring-[#EF4444]/25' : 'border-gray-300 focus-within:border-primary focus-within:ring-primary/25')}>
+            <label className={cx('h-8 flex-1 min-w-0 flex items-center rounded-lg border bg-white pl-3 pr-3 focus-within:ring-2', subErr ? 'border-[#EF4444] focus-within:ring-[#EF4444]/25' : 'border-gray-300 focus-within:border-primary focus-within:ring-primary/25')}>
               <input aria-label="Subdomain" aria-invalid={!!subErr} value={sub} onChange={(e) => { setSub(e.target.value); setSubErr(''); }} onKeyDown={(e) => e.key === 'Enter' && saveSub()} className="flex-1 min-w-0 outline-none font-mono text-sm" />
               <span className="text-sm text-gray-500">.pmsoffcampushousing.com</span>
             </label>
-            <Button variant="primary" className="h-9" onClick={saveSub}>Save</Button>
+            <Button variant="primary" onClick={saveSub}>Save</Button>
           </div>
           {subErr ? <p role="alert" className="text-xs text-[#E0243A] mt-1.5">{subErr}</p> : <p className="text-xs text-gray-500 mt-2.5">Your site: https://{base}</p>}
         </div>
       ) : (
         <div>
-          <h2 className="text-sm font-semibold">Custom domain</h2>
+          <h2 className="text-sm font-medium">Custom domain</h2>
           {p.domainState === 'none' && (
             <>
               <p className="text-xs text-gray-500 mt-0.5">Your standard address keeps working until the custom domain is verified.</p>
               <div className="flex gap-2 mt-3">
                 <input aria-label="Custom domain" value={dom} onChange={(e) => { setDom(e.target.value); setErr(''); }} onKeyDown={(e) => e.key === 'Enter' && claim()} placeholder="housing.durham.ac.uk"
-                  className={cx(inp, '!w-[340px]', err && 'border-[#EF4444]')} />
-                <Button variant="primary" className="h-9" onClick={claim}>Claim</Button>
+                  className={cx(inp, 'flex-1', err && 'border-[#EF4444]')} />
+                <Button variant="primary" onClick={claim}>Claim</Button>
               </div>
               {err && <p className="text-xs text-[#E0243A] mt-1.5">{err}</p>}
             </>
@@ -405,6 +493,8 @@ function Domain() {
           )}
         </div>
       )}
+    </div>
+    </Group>
     </div>
   );
 }

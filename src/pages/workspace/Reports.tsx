@@ -406,9 +406,9 @@ export function OccupancyReport() {
             </tr></thead>
             <tbody>{voids.map((r) => (
               <tr key={r.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => openHall(r.id)}>
-                <td className="h-10 pl-5 font-medium">{r.hall}</td>
+                <td className="h-10 pl-5 font-medium whitespace-nowrap">{r.hall}</td>
                 <td className="px-3 tabular-nums">{r.vac}</td>
-                <td className="px-3 text-[#737373]">{MONEY[r.id].type}</td>
+                <td className="px-3 text-[#737373] whitespace-nowrap">{MONEY[r.id].type}</td>
                 <td className="px-3 pr-5 font-semibold tabular-nums">{gbp(atRisk(r))}</td>
               </tr>
             ))}</tbody>

@@ -135,7 +135,7 @@ function LogFault({ open, onClose }: { open: boolean; onClose: () => void }) {
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={submit}>Create fault</Button></>}>
       <SheetSection title="Fault">
         <div className="space-y-4">
-          <Field label="Fault"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Shower drains slowly" /></Field>
+          <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Shower drains slowly" /></Field>
           <Field label="What’s wrong"><Textarea rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} /></Field>
         </div>
       </SheetSection>
@@ -479,7 +479,7 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
         <>
           <SheetSection title="Visit">
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Visit"><Select value={visit} onChange={(e) => setVisit(e.target.value)}>{['Today, 14:00–16:00', 'Today, 16:00–18:00', 'Tomorrow, 09:00–11:00'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
+            <Field label="Time slot"><Select value={visit} onChange={(e) => setVisit(e.target.value)}>{['Today, 14:00–16:00', 'Today, 16:00–18:00', 'Tomorrow, 09:00–11:00'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
             <Field label="Deadline"><Select value={sla} onChange={(e) => setSla(e.target.value)}>{['24 hours · urgent', '2 days · high', '5 days · normal'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
           </div>
           </SheetSection>

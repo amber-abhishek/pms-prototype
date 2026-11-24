@@ -94,7 +94,7 @@ export function Combo({ value, options, onPick, noneLabel = 'None', icon: I }: {
   const pick = (v: string | null) => { onPick(v); setOpen(false); };
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger aria-label="Override region" className="w-[200px] h-8 flex items-center rounded-lg border border-gray-300 bg-white px-2.5 text-sm text-left outline-none data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25">
+      <PopoverTrigger aria-label="Override region" className="w-[220px] h-8 flex items-center rounded-lg border border-gray-300 bg-white px-2.5 text-sm text-left outline-none data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25">
         <span className="flex-1 truncate">{value ?? noneLabel}</span>
         <CaretUpDown size={14} className="text-gray-400" />
       </PopoverTrigger>

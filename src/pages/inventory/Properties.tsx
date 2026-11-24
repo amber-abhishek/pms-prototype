@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Archive, ArrowCounterClockwise, CaretDown, Stack, ArrowsDownUp, Buildings, DotsThree, FileCsv, PauseCircle, PencilSimple, UploadSimple, X, CheckCircle,
 } from '../../components/icons';
-import { Button, Empty, MultiFilter, PageHeader, Pill, SearchInput, SheetRow, SheetSection, Table, cx, PIN } from '../../components/ui';
+import { Button, Empty, MultiFilter, PageHeader, Pill, SearchInput, SheetRow, SheetSection, Table, cx, PIN, avatarFx } from '../../components/ui';
 import { PHOTO } from './photos';
 import { EditSheet } from './PropertyDetail';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
@@ -304,6 +304,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   }
   return (
     <PanelModal open={open} onClose={onClose} width={640} eyebrow="Import" title="Import from another PMS" meta="One row per room · up to 5,000 rows"
+      lead={<span className="size-10 shrink-0 rounded-[10px] flex items-center justify-center" style={avatarFx('#64748B')}><UploadSimple size={20} strokeWidth={1.75} /></span>}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={stage !== 'ok'} onClick={upload}>Upload</Button></>}>
       <SheetSection title="Property layout">
         <LayoutRadios value={structure} onChange={(v) => { setStructure(v); setStage('pick'); tries.current = 0; }} />

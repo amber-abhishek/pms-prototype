@@ -73,6 +73,7 @@ function UnitsView({ props }: { props: Property[] }) {
   const all = useMemo(() => allUnits(p, edits), [p, edits]);
   const block = p.blocks[sel.bi];
   const curFlat = sel.flat ? flats.find((f) => f.id.endsWith(`|${sel.flat}`)) ?? null : null;
+  const copyLink = () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); };
   const archRows = archived[p.id] ?? [];
   const archUnitIds = new Set(archivedFlats.filter((f) => f.startsWith(`${p.id}|`)).flatMap((fid) => { const [, bi, fl] = fid.split('|'); return flatsOf(p, +bi, +fl, edits).find((f) => f.id === fid)?.units.map((u) => u.id) ?? []; }));
   const live = all.filter((u) => !archUnitIds.has(u.id) && u.status !== 'Archived');
@@ -134,7 +135,7 @@ function UnitsView({ props }: { props: Property[] }) {
         <Tree props={props} p={p} sel={sel} go={go} archivedFlats={archivedFlats} onInfo={setLevel} />
         <section className="flex-1 min-w-0 flex flex-col">
           {/* Heading band (Figma "Heading", 20/24/4/24): 12px #737373 crumb over the 20px medium title, flat actions on the right. */}
-          <div className="shrink-0 px-6 pt-5 pb-1 flex items-end gap-3">
+          <div className="shrink-0 px-6 pt-5 pb-4 border-b border-[#E5E5E5] flex items-end gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 text-xs leading-4 text-[#737373]">
                 {placeCrumbs.map((c, i) => (
@@ -145,13 +146,16 @@ function UnitsView({ props }: { props: Property[] }) {
               <h1 className="mt-1 text-xl leading-7 font-medium text-[#0A0A0A] truncate">{title}</h1>
             </div>
             <Button icon={null} onClick={() => setLevel(curFlat ? { kind: 'Flat', bi: sel.bi, floor: sel.floor, flat: sel.flat ?? undefined } : { kind: 'Floor', bi: sel.bi, floor: sel.floor })}>Details</Button>
-            <Menu width={200} trigger={(o) => <Button icon={DotsThree} onClick={o} aria-label="More" />} items={[
-              { label: 'Rename', icon: PencilSimple, onClick: () => setRenaming(curFlat), disabled: !curFlat },
-              { label: 'Move', icon: ArrowsOutCardinal, onClick: () => toast('Pick a new floor for the flat in the tree'), disabled: !curFlat },
-              { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
-              'sep',
-              { label: 'Archive flat', icon: Archive, danger: true, disabled: !curFlat, onClick: () => curFlat && setArchiveFlat(curFlat) },
-            ]} />
+            {/* Rename, move and archive act on a flat; on a block or floor the only action is the link, so it shows as its own button. */}
+            {curFlat ? (
+              <Menu width={200} trigger={(o) => <Button icon={DotsThree} onClick={o} aria-label="More" />} items={[
+                { label: 'Rename', icon: PencilSimple, onClick: () => setRenaming(curFlat) },
+                { label: 'Move', icon: ArrowsOutCardinal, onClick: () => toast('Pick a new floor for the flat in the tree') },
+                { label: 'Copy link', icon: LinkSimple, onClick: copyLink },
+                'sep',
+                { label: 'Archive flat', icon: Archive, danger: true, onClick: () => setArchiveFlat(curFlat) },
+              ]} />
+            ) : <Button icon={LinkSimple} onClick={copyLink} aria-label="Copy link" title="Copy link" />}
           </div>
           {/* Toolbar: search on the left; the status (was the tab strip) as a single-choice dropdown and the room-type filter on the right. */}
           <div {...PIN} className="shrink-0 px-6 py-4 flex items-center gap-2">
@@ -191,7 +195,7 @@ function UnitsView({ props }: { props: Property[] }) {
                     <Button size="sm" variant="danger-ghost" icon={null} onClick={() => setChecked([])}>Clear</Button>
                     <Menu align="right" width={160} trigger={(o) => <Button size="sm" onClick={o}>Set status</Button>} items={(['Active', 'Inactive', 'Draft'] as UStatus[]).map((s) => ({ label: s, onClick: () => bulkStatus(s) }))} />
                   </span>
-                </> : <span>Showing {flatList.length} of {shownFlats.reduce((n, f) => n + f.units.length, 0)} units on {title}</span>}
+                </> : (() => { const all = shownFlats.reduce((n, f) => n + f.units.length, 0); return <span>{flatList.length === all ? `${all} units on ${title}` : `Showing ${flatList.length} of ${all} units on ${title}`}</span>; })()}
               </div>
             </>
           )}
@@ -250,7 +254,7 @@ function Tree({ props, p, sel, go, archivedFlats, onInfo }: { props: Property[];
       {/* Every level opens its own panel (custom fields), on hover or when it's the current one. */}
       {info && <button type="button" aria-label={`${label} details`} title="Details" onClick={(e) => { e.stopPropagation(); onInfo(info); }}
         className={cx('size-5 shrink-0 rounded flex items-center justify-center text-[#737373] hover:text-[#0A0A0A] hover:bg-black/[0.05]', active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100')}><Info size={14} strokeWidth={1.5} /></button>}
-      {n != null && <span className={cx('font-mono text-xs tabular-nums', active ? 'text-[#2563EB]' : 'text-[#A3A3A3]')}>{n}</span>}
+      {n != null && <span className={cx('font-mono text-xs tabular-nums', active ? 'text-[#737373]' : 'text-[#A3A3A3]')}>{n}</span>}
     </div>
   );
   return (
@@ -315,15 +319,18 @@ function LevelSheetFor({ p, l, onClose }: { p: Property; l: LevelRef; onClose: (
 function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFlat, onArchive, onRename }: {
   f: Flat; units: Unit[]; cursorId?: string; open: string | null; checked: string[]; setChecked: (fn: (c: string[]) => string[]) => void; onOpen: (id: string) => void; onFlat: () => void; onArchive: () => void; onRename: () => void;
 }) {
-  const active = f.units.filter((u) => u.status === 'Active').length;
+  /* Count line says the total once and names only the exceptions (2 draft · 1 inactive); all-active needs no word. */
+  const odd = (['Draft', 'Inactive'] as UStatus[]).map((st) => [st, f.units.filter((u) => u.status === st).length] as const).filter(([, n]) => n);
+  const meta = [`${f.units.length} unit${f.units.length === 1 ? '' : 's'}`, ...odd.map(([st, n]) => `${n} ${st.toLowerCase()}`)].join(' · ');
   return (
     <>
-      {/* Group row (Figma "Group · Flat 3.1"): 36px #FAFAFA, 24/16 sides; flat name 14 medium, count line 12 #737373. */}
-      <tr className="bg-[#FAFAFA]">
-        <td colSpan={6} className="h-9 pl-6 pr-4 border-b border-[#E5E5E5]">
-          <div className="flex items-center gap-2">
-            <CaretDown size={16} strokeWidth={1.5} className="text-[#737373]" /><button type="button" onClick={onFlat} className="text-sm leading-5 font-medium text-[#0A0A0A] hover:underline underline-offset-2">{f.name}</button><span className="text-xs leading-4 text-[#737373]">{f.units.length} units · {active} active</span>
-            <span className="ml-auto"><Menu width={180} trigger={(o) => <button type="button" aria-label={`More for ${f.name}`} onClick={o} className="size-6 rounded-md hover:bg-black/[0.05] flex items-center justify-center text-[#404040]"><DotsThree size={16} weight="bold" /></button>}
+      {/* Group row: 40px #FAFAFA. The caret sits in the checkbox column and the flat name starts on the Unit column's line. */}
+      <tr className="bg-[#FAFAFA] border-b border-[#E5E5E5]">
+        <td className="h-10 pl-6"><span className="w-5 flex justify-center"><CaretDown size={16} strokeWidth={1.5} className="text-[#737373]" /></span></td>
+        <td colSpan={5} className="pl-3 pr-4">
+          <div className="flex items-baseline gap-2">
+            <button type="button" onClick={onFlat} className="text-sm leading-5 font-medium text-[#0A0A0A] hover:underline underline-offset-2">{f.name}</button><span className="text-xs leading-4 text-[#737373]">{meta}</span>
+            <span className="ml-auto self-center"><Menu width={180} trigger={(o) => <button type="button" aria-label={`More for ${f.name}`} onClick={o} className="size-6 rounded-md hover:bg-black/[0.05] flex items-center justify-center text-[#404040]"><DotsThree size={16} weight="bold" /></button>}
               items={[{ label: 'Open flat', icon: ArrowSquareOut, onClick: onFlat }, { label: 'Rename', icon: PencilSimple, onClick: onRename }, 'sep', { label: 'Archive flat', icon: Archive, danger: true, onClick: onArchive }]} /></span>
           </div>
         </td>
@@ -332,10 +339,10 @@ function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFl
         <tr key={u.id} onClick={() => onOpen(u.id)} aria-selected={open === u.id} className={cx('border-b border-[#E5E5E5] cursor-pointer', open === u.id ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]' : cursorId === u.id ? 'bg-[#FAFAFA]' : 'hover:bg-[#FAFAFA]/70')}>
           <td className="pl-6 h-12" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${u.code}`} checked={checked.includes(u.id)} onCheckedChange={() => setChecked((c) => (c.includes(u.id) ? c.filter((x) => x !== u.id) : [...c, u.id]))} /></td>
           <td className="px-3 font-mono font-medium text-[13px] text-[#0A0A0A]">{u.code}</td>
-          <td className="px-3 text-sm text-[#0A0A0A]">{u.type}</td>
-          <td className="px-3 text-sm text-[#0A0A0A] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#737373]">No tenancy</span>}</td>
-          <td className="px-3 pl-6"><PropStatus s={u.status} /></td>
-          <td className="pl-3 pr-6 text-[#737373]">{u.template ?? <span className="text-[#737373]">—</span>}</td>
+          <td className="px-3 text-sm text-[#404040]">{u.type}</td>
+          <td className="px-3 text-sm text-[#404040] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#737373]">No tenancy</span>}</td>
+          <td className="px-3"><PropStatus s={u.status} /></td>
+          <td className="pl-3 pr-6 text-sm text-[#737373] tabular-nums">{u.template && u.weeks ? `${u.weeks} wk` : '—'}</td>
         </tr>
       ))}
     </>

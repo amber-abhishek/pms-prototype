@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CalendarBlank, Check, MapPin, Plus, SquaresFour } from '../../components/icons';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowsLeftRight, CalendarBlank, CaretRight, Check, FileText, MapPin, Megaphone, Plus, SquaresFour, Tray, UserCheck, Wrench, type Icon } from '../../components/icons';
 import { useDb } from '../../data/store';
 import { useRms } from '../../data/residents';
 import { useInv } from '../../data/inventory';
 import { useOrg } from '../../data/org';
 import { useAlloc } from '../../data/allocations';
 import { Button, ButtonGroup, Card, PageHeader, Pill, cx } from '../../components/ui';
-import { DonutStats, KpiCards, RankCard, Split, SummaryCard, TrendCard, ViewLink } from '../../components/overview';
+import { KpiCards, RankCard, Strip, TrendCard } from '../../components/overview';
 import { HomeBand, MenuButton } from './parts';
 import { useEmpty } from '../../data/empty';
 import { PersonPhoto } from '../../components/Logo';
-import { ME, useHome } from '../../data/home';
+import { ME, NEEDS, useHome, type Need } from '../../data/home';
+import type { Tone } from '../../data/seed';
 
 function Header() {
   const campuses = useDb((s) => s.campuses);
@@ -43,11 +44,75 @@ const OCC_POINTS = DAYS.map((d, i) => {
   const delta = i ? LET[i] - LET[i - 1] : 0;
   return { label: dayLabel(d), value: LET[i], note: `${LET[i].toLocaleString('en-GB')} beds let · ${delta >= 0 ? '+' : ''}${delta}` };
 });
+/* Lowest first, so the property furthest from target leads; Elvet isn't letting this term (Figma 4192:31036). */
 const PRELET = [
-  { id: 'p1', name: 'Ustinov College', pct: 94 }, { id: 'p2', name: 'Collingwood College', pct: 88 }, { id: 'p6', name: 'Hild Bede', pct: 86 },
-  { id: 'p4', name: 'Josephine Butler', pct: 83 }, { id: 'p7', name: 'Stephenson College', pct: 91 }, { id: 'p3', name: "St Mary's College", pct: 97 },
-  { id: 'p5', name: 'Van Mildert', pct: 71 },
+  { id: 'jb', name: 'Josephine Butler', pct: 78 }, { id: 'hb', name: 'Hild Bede', pct: 86 }, { id: 'col', name: 'Collingwood College', pct: 88 },
+  { id: 'js', name: 'John Snow College', pct: 89 }, { id: 'ste', name: 'Stephenson College', pct: 91 }, { id: 'ust', name: 'Ustinov College', pct: 94 },
 ];
+
+/* ---------- 4192:31036 · Overview (2026-11-23): queues strip, what needs you + move-in weekend, occupancy + pre-let ---------- */
+const NEED_ICON: Record<Need['icon'], Icon> = { alert: Wrench, swap: ArrowsLeftRight, lease: FileText, inbox: Tray, notice: Megaphone, landlord: UserCheck, conflict: ArrowsLeftRight, import: FileText };
+const dueOf = (n: Need): [string, Tone] => n.badge.label === 'Overdue' ? ['Overdue', 'red'] : n.when === 'today' ? ['Due today', 'amber'] : ['This week', 'grey'];
+
+function NeedsCard({ open }: { open: number }) {
+  const rows = NEEDS.filter((n) => n.mine).slice(0, 5);
+  return (
+    <Card className="overflow-hidden flex flex-col min-w-0">
+      <Strip title="Needs your action" right={<Link to="/tasks" className="text-sm font-medium text-[#2563EB] hover:underline underline-offset-2 normal-case">All {open} tasks</Link>} />
+      {rows.length ? <div className="px-5 py-1 flex flex-col">
+        {rows.map((n, i) => {
+          const I = NEED_ICON[n.icon]; const [due, tone] = dueOf(n);
+          return (
+            <Link key={n.id} to={n.to} className={cx('group -mx-2 px-2 py-3 flex items-center gap-3 rounded-lg hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA]', i < rows.length - 1 && 'border-b border-[#F0F0F0] rounded-b-none')}>
+              <span className="size-8 shrink-0 rounded-lg bg-[#F5F5F5] flex items-center justify-center text-[#404040]"><I size={16} /></span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm leading-5 font-medium text-[#0A0A0A] truncate">{n.title}</span>
+                <span className="block text-[13px] leading-[18px] text-[#737373] truncate">{n.sub}</span>
+              </span>
+              <Pill tone={tone}>{due}</Pill>
+              <CaretRight size={16} className="shrink-0 text-[#A3A3A3] group-hover:text-[#404040]" />
+            </Link>
+          );
+        })}
+      </div> : <div className="flex-1 flex items-center justify-center p-8 text-sm text-[#737373]">Nothing needs you today</div>}
+    </Card>
+  );
+}
+
+function MoveInCard({ empty }: { empty: boolean }) {
+  const nav = useNavigate();
+  const parts = empty ? [] : [{ label: 'Checked in', value: 208, color: '#16A34A' }, { label: 'To come', value: 398, color: '#D4D4D4' }, { label: 'No-shows', value: 6, color: '#DC2626', red: true }];
+  const total = parts.reduce((a, p) => a + p.value, 0);
+  return (
+    <Card className="overflow-hidden flex flex-col min-w-0">
+      <Strip title="Move-in weekend" right={<span className="font-mono text-xs leading-4 uppercase tracking-[0.48px] text-[#737373]">Sat 19 – Sun 20 Sep</span>} />
+      <div className="flex-1 p-5 flex flex-col gap-3">
+        <div className="flex items-baseline gap-2"><span className="font-mono text-[32px] leading-10 font-semibold tracking-[-0.02em] tabular-nums text-[#0A0A0A]">{total}</span><span className="text-sm text-[#737373]">arrivals</span></div>
+        <div className="flex gap-0.5 h-2 rounded overflow-hidden bg-[#F0F0F0]">
+          {parts.map((p) => <span key={p.label} className="h-full min-w-1" style={{ flexGrow: p.value, background: p.color }} />)}
+        </div>
+        <div className="flex flex-col gap-2 pt-1">
+          {parts.map((p) => (
+            <div key={p.label} className="flex items-center gap-2 text-sm leading-5">
+              <span className="size-2 rounded-full shrink-0" style={{ background: p.color }} />
+              <span className="flex-1 text-[#404040]">{p.label}</span>
+              <span className={cx('font-medium tabular-nums', p.red ? 'text-[#DC2626]' : 'text-[#0A0A0A]')}>{p.value}</span>
+            </div>
+          ))}
+        </div>
+        {/* What stops people collecting keys at the desk: the move-in blockers, not a per-day split (2026-11-23). */}
+        {!empty && <Link to="/allocations/bookings?tab=Awaiting%20signature" className="mt-1 block rounded-lg border border-[#D97706]/30 bg-white px-3 py-2.5 hover:bg-[#FFFBEB] outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <div className="text-sm leading-5 font-medium text-[#B45309]">23 can’t collect keys yet</div>
+          <div className="text-[13px] leading-[18px] text-[#737373]">14 leases not signed · 9 deposits unpaid</div>
+        </Link>}
+        <div className="mt-auto pt-3 border-t border-[#E5E5E5] flex items-center gap-3">
+          <div className="flex-1 min-w-0"><div className="text-[13px] leading-[18px] text-[#737373]">Busiest slot</div><div className="text-sm leading-5 font-medium text-[#0A0A0A]">{empty ? '—' : 'Sat 10:00–12:00'}</div></div>
+          <Button variant="secondary" icon={UserCheck} onClick={() => nav('/residents')}>Check-in</Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function Today() {
   const nav = useNavigate();
@@ -56,49 +121,36 @@ function Today() {
   const e = useEmpty((s) => s.on);
   /* The same open tasks My tasks counts: Arjun's, not done, not snoozed. */
   const mine = useHome((s) => s.rows.main).filter((r) => !r.done && !r.snoozed && r.owner === ME);
-  const due = (['overdue', 'today', 'week'] as const).map((d) => mine.filter((r) => r.due === d).length);
-  const first = mine.find((r) => r.due === 'overdue') ?? mine.find((r) => r.due === 'today');
-  const P = (n: number, l: string) => n > 0 ? <Pill tone="red">{n} {l}</Pill> : undefined;
+  const urgent = open.filter((f) => f.priority === 'Urgent').length;
+  const red = (s: string) => <span className="font-medium text-[#DC2626]">{s}</span>;
   return (
     <>
       <Header />
       <div className="flex-1 overflow-auto flex flex-col">
         <HomeBand />
-        <KpiCards items={e ? [{ label: 'Beds let', value: '0' }, { label: 'Applications', value: '0' }, { label: 'Rent collected', value: '£0' }, { label: 'Open repairs', value: '0' }] : [
-            /* Each bar is a real figure: progress to a target, or what the number is made of. */
-            { label: 'Beds let', value: '2,481', delta: '+4.2%', to: '/reports', meter: { kind: 'progress', value: 2481, max: 2893, target: 90, tip: '86% · target 90%' } },
-            { label: 'Applications', value: '3,410', delta: '+8.1%', to: '/allocations/applications', meter: { kind: 'split', parts: [
-              { label: 'Leased', value: 1968, color: '#16A34A' }, { label: 'In progress', value: 1283, color: '#93C5FD' }, { label: 'To review', value: 128, color: '#F59E0B' }, { label: 'Waiting 5+ days', value: 31, color: '#DC2626' }] } },
-            { label: 'Rent collected', value: '£3.86m', delta: '−1.3%', to: '/reports/rent', meter: { kind: 'progress', value: 3.86, max: 4.1, target: 98, tip: '94% · target 98%' } },
-            { label: 'Open repairs', value: String(open.length), delta: '−12%', good: true, to: '/residents/maintenance', meter: { kind: 'split', parts: [
-              { label: 'Urgent', value: open.filter((f) => f.priority === 'Urgent').length, color: '#DC2626' }, { label: 'High', value: open.filter((f) => f.priority === 'High').length, color: '#F59E0B' }, { label: 'Normal', value: open.filter((f) => f.priority === 'Normal').length, color: '#D4D4D4' }] } },
-          ]} />
-        <div className="px-6 py-5 flex flex-col gap-4">
+        {/* The queues, one figure each: what it is made of underneath, the urgent part first and in red. */}
+        <KpiCards items={[
+          { label: 'Applications', to: '/allocations/applications?tab=To%20review', value: e ? '0' : '128', unit: 'to review',
+            note: e ? 'None waiting' : <>{red('31 waiting 5+ days')} · 4 with owner</>,
+            meter: e ? undefined : { kind: 'split', parts: [{ label: 'To review', value: 93, color: '#2563EB' }, { label: 'Waiting 5+ days', value: 31, color: '#DC2626' }, { label: 'With owner', value: 4, color: '#93C5FD' }] } },
+          { label: 'Rent', to: '/reports/rent', value: e ? '£0' : '£182k', unit: 'due this week',
+            note: e ? 'Nothing due' : <>{red('23 overdue')} · 1,204 paid</>,
+            meter: e ? undefined : { kind: 'split', parts: [{ label: 'Paid', value: 1204, color: '#16A34A' }, { label: 'Due this week', value: 180, color: '#D97706' }, { label: 'Overdue', value: 23, color: '#DC2626' }] } },
+          { label: 'Maintenance', to: '/residents/maintenance', value: String(open.length), unit: 'open',
+            note: urgent ? <>{red(`${urgent} urgent`)} · {open.length - urgent} other</> : 'Nothing urgent',
+            meter: { kind: 'split', parts: [{ label: 'Urgent', value: urgent, color: '#DC2626' }, { label: 'High', value: open.filter((f) => f.priority === 'High').length, color: '#D97706' }, { label: 'Normal', value: open.filter((f) => f.priority === 'Normal').length, color: '#E5E5E5' }] } },
+        ]} />
+        <div className="px-6 py-6 flex flex-col gap-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">
+            <NeedsCard open={mine.length} />
+            <MoveInCard empty={e} />
+          </div>
           <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">
             <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="18 released" kind="line" chartOnly
               points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />
-            <RankCard title="Pre-let by property" note="Target 90%" more={2} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/inventory/properties')}>Create a property</Button></>} moreLabel="View all properties" moreTo="/inventory/properties"
-              rows={e ? [] : PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/inventory/properties?open=${h.id}` }))} />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <SummaryCard title="Needs your action" foot={first?.due === 'overdue' ? 'Overdue' : 'Due first'} footValue={first ? first.title : 'Nothing due today'} footTone={first?.due === 'overdue' ? 'red' : 'ink'} action={<ViewLink to="/tasks" label="Open tasks" />}>
-              <Split value={String(due[0] + due[1] + due[2])} parts={[[`${due[0]} overdue`, due[0], 'red'], [`${due[1]} due today`, due[1], 'amber'], [`${due[2]} this week`, due[2], 'grey']]} />
-              {due[0] > 0 && <div className="mt-3">{P(due[0], 'overdue')}</div>}
-            </SummaryCard>
-            <SummaryCard title="Applications" foot="Funnel · 2027/28" footValue={e ? 'No applications yet' : '3,410 applied · 1,968 leases'} action={<ViewLink to="/allocations/applications" />}>
-              <DonutStats center={e ? '0' : '163'} centerLabel="open" parts={[
-                { label: 'To review', value: e ? 0 : 128, color: '#2563EB' },
-                { label: 'Waiting 5d+', value: e ? 0 : 31, color: '#DC2626', tone: e ? 'ink' : 'red' },
-                { label: 'With owner', value: e ? 0 : 4, color: '#8B5CF6' },
-              ]} />
-            </SummaryCard>
-            <SummaryCard title="Rent" foot="Oldest overdue" footValue={e ? 'None' : 'Lily Chen · 41 days'} footTone={e ? 'ink' : 'red'} action={<ViewLink to="/reports" />}>
-              <DonutStats center={e ? '0%' : '85%'} centerLabel="paid" parts={[
-                { label: 'Paid', value: e ? 0 : 1204, color: '#16A34A' },
-                { label: 'Due this week', value: e ? 0 : 186, display: e ? '£0' : '£182k', color: '#2563EB' },
-                { label: 'Overdue', value: e ? 0 : 23, color: '#DC2626', tone: e ? 'ink' : 'red' },
-              ]} />
-            </SummaryCard>
+            <RankCard title="Pre-let by property" note="Target 90%" target={90} more={0} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/inventory/properties')}>Create a property</Button></>} moreLabel="View all properties" moreTo="/inventory/properties"
+              rows={e ? [] : [...PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/inventory/properties?open=${h.id}` })),
+                { id: 'erh', name: 'Elvet Riverside Houses', value: 'Not letting', pct: 0, muted: true, to: '/inventory/properties?open=erh' }]} />
           </div>
         </div>
       </div>

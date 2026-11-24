@@ -127,7 +127,7 @@ export function PanelModal({ open, onClose, eyebrow, pos, title, meta, lead, wid
           <DialogCloseButton />
         </div>
         {/* 20px under the header rule, like every other dialog body (2026-11-20). */}
-        <div className="flex-1 min-h-0 overflow-auto px-6 pt-5 pb-6">
+        <div className="flex-1 min-h-0 overflow-auto px-6 py-5">
           {/* No headline when it would only repeat the eyebrow (create modals, 2026-11-20). */}
           {title && (
             <div className="mb-4 flex items-center gap-3">

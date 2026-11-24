@@ -323,7 +323,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
       <TaskSheet scope={scope} task={task} nav={listNav(moving.map((m) => m.row), (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} />
 
       {/* E3 step 2: choose who */}
-      <PanelModal open={reassign} onClose={() => setReassign(false)} eyebrow="Reassign tasks" title={`Reassign ${pile} tasks`} meta="From Tom Baker · on leave until Mon 21 Sep" width={560}
+      <PanelModal open={reassign} onClose={() => setReassign(false)} eyebrow="Reassign tasks" icon={ArrowsLeftRight} title={`Reassign ${pile} tasks`} meta="From Tom Baker · on leave until Mon 21 Sep" width={560}
         right={<><Button onClick={() => setReassign(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={doReassign}>Reassign {pile}</Button></>}>
         <SheetSection title="Hand them to">
           <SheetRow lead={<Who name="Aisha Khan" size={24} />} title="Aisha Khan" sub="Property manager · Van Mildert, Collingwood · 7 tasks today" end={<Check size={16} className="shrink-0 text-[#0A0A0A]" aria-label="Picked" />} />

@@ -232,7 +232,7 @@ function ThemeEditor() {
   return (
     <div className="p-4 flex flex-col gap-5">
       <Field label="Logo and brand colour" hint="Shared with emails and the off-campus portal.">
-        <SharedBrand />
+        <SharedBrand stacked />
       </Field>
       <Field label="Font">
         <Select value={s.font} onChange={(e) => s.set({ font: e.target.value })}>
@@ -240,7 +240,7 @@ function ThemeEditor() {
         </Select>
       </Field>
       <Field label="Corners">
-        <Tabs value={s.corners} onChange={(v) => s.set({ corners: v })} tabs={[{ id: 'soft', label: 'Rounded' }, { id: 'square', label: 'Square' }]} />
+        <Tabs variant="segmented" value={s.corners} onChange={(v) => s.set({ corners: v })} tabs={[{ id: 'soft', label: 'Rounded' }, { id: 'square', label: 'Square' }]} />
       </Field>
     </div>
   );
@@ -334,7 +334,7 @@ function Preview() {
   return (
     <div className="flex-1 min-w-0 bg-[#FAFAFA] overflow-y-auto p-5 flex flex-col gap-3">
       <div className="flex items-center">
-        <Tabs value={device} onChange={setDevice} tabs={[{ id: 'desktop', label: 'Desktop' }, { id: 'mobile', label: 'Mobile' }]} />
+        <Tabs variant="segmented" value={device} onChange={setDevice} tabs={[{ id: 'desktop', label: 'Desktop' }, { id: 'mobile', label: 'Mobile' }]} />
         <span className="ml-auto text-xs text-[#737373]">Preview · not live</span>
       </div>
       <div className={cx('shrink-0 mx-auto w-full rounded-xl border border-line bg-white shadow-card overflow-hidden', mobile ? 'max-w-[390px]' : 'max-w-[1040px]')} style={{ fontFamily: font }}>

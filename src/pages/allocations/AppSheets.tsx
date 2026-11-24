@@ -37,7 +37,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
   };
   /* Allocating is an action, not the record: a centred modal over the list (2026-11-19), never a side sheet. */
   return (
-    <PanelModal open onClose={onClose} eyebrow="Allocate" title={a.name} meta={`${ordinal(pref.rank)} preference · ${hallFull[pref.hall]} · ${pref.room} · ${pref.weeks} weeks`} width={560}
+    <PanelModal open onClose={onClose} eyebrow="Allocate" title={a.name} person={a.name} meta={`${ordinal(pref.rank)} preference · ${hallFull[pref.hall]} · ${pref.room} · ${pref.weeks} weeks`} width={560}
       right={units.length ? <>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="primary" icon={null} disabled={!u || needReason} onClick={submit}>{taken ? `Allocate ${sel}` : email ? 'Allocate & send offer' : 'Allocate'}</Button>
@@ -83,7 +83,7 @@ export function AllocateSheet({ a, pref, onClose, onDone }: { a: App; pref: Pref
           </SheetSection>
           <SheetSection title="Offer">
             <SheetRow title={`Email the offer to ${firstName(a.name)}`} sub={`Template: Offer · ${a.reqs.includes('Step-free access') ? 'accessible room' : 'standard'}`} end={<Switch checked={email} onChange={setEmail} label="Email the offer" />} />
-            <SheetRow title="Offer expires in" end={<Tabs value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} />} />
+            <SheetRow title="Offer expires in" end={<Tabs variant="segmented" value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} />} />
           </SheetSection>
         </>
       )}
@@ -154,7 +154,7 @@ export function AutoAllocateDialog({ open, onClose }: { open: boolean; onClose: 
           <div key={l as string} className="rounded-xl border border-line p-3"><div className={cx('text-xl font-semibold', c as string)}>{n}</div><div className="text-xs text-gray-500 mt-0.5">{l}</div></div>
         ))}
       </div>
-      <div className="flex items-center justify-between mt-4"><span className="text-sm">Offers expire in</span><Tabs value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} /></div>
+      <div className="flex items-center justify-between mt-4"><span className="text-sm">Offers expire in</span><Tabs variant="segmented" value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} /></div>
       <div className="flex items-center justify-between mt-4">
         <div><div className="text-sm">Email the offers</div><div className="text-xs text-gray-500">Template: Offer · standard</div></div>
         <Switch checked={email} onChange={setEmail} label="Email the offers" />

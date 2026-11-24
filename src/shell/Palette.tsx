@@ -1,3 +1,4 @@
+import { markIntent } from '../lib/trail';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Buildings, Storefront, Tray, User, type Icon } from '../components/icons';
@@ -35,7 +36,7 @@ export function Palette({ open, onClose }: { open: boolean; onClose: () => void 
     ];
   }, [q, db, inv, alloc, rms, oc]);
 
-  const go = (h: Hit) => { nav(h.to); onClose(); };
+  const go = (h: Hit) => { markIntent('reset'); nav(h.to); onClose(); };
   const groups = [...new Set(hits.map((h) => h.group))];
   /* shadcn Command (cmdk) in a Dialog: arrow keys, Enter, Escape and focus come from cmdk and Radix. We filter the hits
      ourselves (records as well as pages), so cmdk's own filter is off. */

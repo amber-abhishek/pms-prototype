@@ -52,11 +52,14 @@ export function Section({ title, sub, children, action, tone }: { title: string;
   return (
     /* Connect 2.0 card: r12, 1px #E5E5E5, 0 1 2 at 5%; 44px #FAFAFA header (12/12/12/16) with a 14px medium title. */
     <section data-tone={tone} className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
-      <header className="h-11 pl-4 pr-3 flex items-center gap-3 bg-[#FAFAFA] border-b border-[#E5E5E5] [&:last-child]:border-b-0">
+      {/* A subtitle stacks under the title in 12px grey (2026-11-24), not beside it, so the title reads alone. */}
+      <header className={cx('pl-4 pr-3 flex items-center gap-3 bg-[#FAFAFA] border-b border-[#E5E5E5] [&:last-child]:border-b-0', sub ? 'min-h-[60px] py-2.5' : 'h-11')}>
         {/* `tone` kept for callers; the Danger zone title stays ink. */}
-        <h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">{title}</h2>
-        {sub && <p className="text-sm leading-5 text-[#737373] truncate">{sub}</p>}
-        {action && <div className="ml-auto shrink-0">{action}</div>}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">{title}</h2>
+          {sub && <p className="mt-0.5 text-xs leading-4 text-[#737373]">{sub}</p>}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
       </header>
       {children && <div className="min-w-0 p-4">{children}</div>}
     </section>

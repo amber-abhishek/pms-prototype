@@ -303,7 +303,7 @@ function AddToWaitlist({ onClose }: { onClose: () => void }) {
   const busy = useRef(false);
   const people = [...new Set(d.apps.filter((a) => a.status === 'review' || a.status === 'manual' || a.status === 'rejected').map((a) => a.name))].slice(0, 60);
   return (
-    <PanelModal open onClose={onClose} eyebrow="New waitlist entry" title="Add to waitlist" width={560}
+    <PanelModal open onClose={onClose} eyebrow="New waitlist entry" title="Add to waitlist" icon={HourglassMedium} width={560}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!name.trim()} onClick={() => {
       if (busy.current) return; busy.current = true;
       d.up((x) => ({ waitlist: [...x.waitlist, { id: `w${Date.now()}`, name: name.trim(), hall, room, note: note.trim() || '—', joined: TODAY }], apps: x.apps.map((a) => (a.name === name.trim() && a.status === 'review' ? { ...a, status: 'waitlist' as const } : a)) }));
@@ -331,7 +331,7 @@ function OfferUnit({ w, onClose }: { w: Wait; onClose: () => void }) {
   const [days, setDays] = useState('5');
   const busy = useRef(false);
   return (
-    <PanelModal open onClose={onClose} eyebrow="New offer" title={w.name} meta={`#1 for ${w.hall} · ${w.room} · joined ${w.joined}${w.note !== '—' ? ` · ${w.note}` : ''}`} width={520}
+    <PanelModal open onClose={onClose} eyebrow="New offer" title={w.name} person={w.name} meta={`#1 for ${w.hall} · ${w.room} · joined ${w.joined}${w.note !== '—' ? ` · ${w.note}` : ''}`} width={520}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={() => {
       if (busy.current) return; busy.current = true;
       const o: Offer = { id: `o${Date.now()}`, name: w.name, hall: w.hall, room: w.room, unit, status: 'open', sent: TODAY, expires: addDays('27 Oct 17:00', +days), leftH: +days * 24, reminders: 0, fromWaitlist: '#1', next: `From the waitlist · #1 for ${w.hall} ${w.room.toLowerCase()}`, recent: true };

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Avatar, Empty } from '../../components/ui';
 import { photoOf } from './photos';
 import { flushSync } from 'react-dom';
@@ -8,7 +8,7 @@ import { Checkbox } from '../../components/shadcn/checkbox';
 import { Button, IconTile, PageHeading, Field, Input, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneDot, SheetHero, SheetRow, SheetSection, listNav, type SheetNav, avatarFx } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { choicesOf, invId, pickOneType, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
-import { EditActions, EditLink, FieldErr, LineTabs, Modal, PanelModal, Picker, PropStatus } from './common';
+import { EditLink, FieldErr, LineTabs, Modal, PanelModal, Picker, PropStack, PropStatus } from './common';
 
 /* ---------------- Property layouts (code: /cms/structures; Figma 3057:2) ---------------- */
 export function StructuresPage() {
@@ -125,23 +125,6 @@ function UsedBy({ s }: { s: Structure }) {
   const used = usedBy(s, props);
   return <PropStack props={used} label={`${s.properties} ${s.properties === 1 ? 'property' : 'properties'}`} />;
 }
-/** Up to three overlapping cover photos, then a label; the names show on hover. */
-function PropStack({ props, label }: { props: Property[]; label: ReactNode }) {
-  return (
-    <span className="flex items-center gap-2.5 min-w-0">
-      <span className="flex shrink-0">
-        {props.slice(0, 3).map((p, i) => {
-          const src = photoOf(p.id);
-          return src
-            ? <img key={p.id + i} src={src} alt="" className={cx('size-6 rounded-md object-cover ring-2 ring-white', i > 0 && '-ml-2')} />
-            : <span key={p.id + i} className={cx('size-6 rounded-md bg-[#F5F5F5] ring-2 ring-white grid place-items-center', i > 0 && '-ml-2')}><Buildings size={12} className="text-[#737373]" /></span>;
-        })}
-      </span>
-      <span className="min-w-0 truncate text-[#0A0A0A]" title={props.map((p) => p.name).join(', ')}>{label}</span>
-    </span>
-  );
-}
-
 type LevelDraft = { key: string; name: string; bsu: boolean };
 /** Name + levels form, shared by the New layout dialog and the panel's Edit state. In use (`locked`): levels can only be
  *  renamed — bookable switches are locked and add / remove are hidden. */
@@ -348,7 +331,7 @@ export function CustomFieldsPage() {
 }
 
 /* Custom field panel, record-panel language (2026-11-19): control bar "CUSTOM FIELD · 2 OF 8" with Delete, a hero, and
-   read-only sections. Details' Edit turns that one section into inputs in place (no modal, 2026-11-19); Attached to
+   read-only sections. Details' Edit opens the centred Edit field dialog (2026-11-24); Attached to
    saves on each switch. Creating a field still uses the centred dialog. */
 function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | null; onClose: () => void }) {
   const structures = useInv((s) => s.structures);
@@ -368,8 +351,9 @@ function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | n
         footer={<><Button onClick={() => setAsking(false)}>Keep</Button><Button variant="danger" icon={null} onClick={del}>Delete field</Button></>}>{null}</Modal>
       <SheetHero icon={Textbox} tone="grey" name={f.name} meta={`${type} · on ${f.attached.length} ${f.attached.length === 1 ? 'level' : 'levels'}`} />
       {/* A pick-one field's options are a Details row (2026-11-23): listed when reading, edited in place with the rest. */}
-      {editing ? <FieldDetailsEdit key={f.id} f={f} onDone={() => setEditing(false)} />
-        : <SheetSection title="Details" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}
+      {/* Edit opens the field's centred dialog (2026-11-24), the same one New field uses; the panel stays read-only. */}
+      <FieldDialog f={f} open={editing} onClose={() => setEditing(false)} />
+      <SheetSection title="Details" action={<EditLink onClick={() => setEditing(true)}>Edit</EditLink>}
           rows={[['Name', f.name], ['Answer type', type]]}>
           {isPickOne(f) && (
             <OptionsBlock>
@@ -380,7 +364,7 @@ function FieldSheet({ f, onClose, nav }: { nav?: SheetNav; f: CField | 'new' | n
               ) : <span className="block py-1.5 text-[#A3A3A3]">None yet</span>}
             </OptionsBlock>
           )}
-        </SheetSection>}
+        </SheetSection>
       <SheetSection title="Attached to"><AttachPicker f={f} structures={structures} /></SheetSection>
       <SheetSection title="Rules">
         <SheetRow title="Required" sub={requiredCopy(f)} end={<Switch checked={!!f.required} onChange={(b) => { useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, required: b } : x))); toast.success(`${f.name} is ${b ? 'required' : 'optional'}`); }} label="Required" />} />
@@ -461,48 +445,6 @@ function requiredCopy(f: CField) {
 }
 
 /** Create or edit a field in a centred dialog: name, answer type, and the layout × level grid. */
-/* Details in edit mode: the same card and the same 32px label/value rows, each value swapped for a compact input in
-   place, so nothing moves when Edit is clicked. Cancel is grey, Save stays the blue link. */
-const inlineInput = 'w-full h-7 -my-1 -ml-2 px-2 rounded-md border border-[#E5E5E5] bg-white text-sm leading-5 text-[#0A0A0A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15';
-function FieldDetailsEdit({ f, onDone }: { f: CField; onDone: () => void }) {
-  const fields = useInv((s) => s.fields);
-  const [name, setName] = useState(f.name);
-  const [type, setType] = useState(f.type.split(' · ')[0]);
-  const [list, setList] = useState<string[]>(() => { const c = choicesOf(f); return c.length ? c : ['', '']; });
-  const pick = type === 'Pick one';
-  const [clean, choiceErr] = cleanChoices(list);
-  const [tried, setTried] = useState(false);
-  const nameRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { nameRef.current?.select(); }, []);
-  const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const nameErr = !name.trim() ? 'Give the field a name.' : !key ? 'Use letters or numbers in the name.' : fields.some((x) => x.id !== f.id && (x.name.trim().toLowerCase() === name.trim().toLowerCase() || x.key === key)) ? `A field called ${name.trim()} already exists.` : '';
-  const save = () => {
-    if (nameErr) { toast.error(nameErr); return; }
-    if (pick && choiceErr) { setTried(true); toast.error(choiceErr); return; }
-    const choices = pick ? clean : [];
-    useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, name: name.trim(), key, type: pick ? pickOneType(choices.length) : type, choices } : x)));
-    onDone();
-    toast.success(`${name.trim()} saved`);
-  };
-  const keys = (e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') { e.stopPropagation(); onDone(); } };
-  return (
-    <SheetSection title="Details" action={<EditActions onCancel={onDone} onSave={save} />}
-      rows={[
-        ['Name', <span className="block -my-1 -ml-2"><input ref={nameRef} aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={keys} aria-invalid={!!nameErr} className={cx(inlineInput, 'my-0 ml-0', nameErr && 'border-[#DC2626]')} /></span>],
-        ['Answer type', <span className="block -my-1 -ml-2">
-          <Picker value={type} onChange={setType} options={TYPES.map((t) => ({ id: t, label: t }))} className="!h-7 !rounded-md !border-[#E5E5E5] !px-2 text-[#0A0A0A] data-[state=open]:!border-[#2563EB]" />
-        </span>],
-      ]}>
-      {pick && (
-        <OptionsBlock edit>
-          <div className="-ml-2"><ChoicesEditor compact value={list} onChange={setList} onEscape={onDone} /></div>
-          {tried && choiceErr && <FieldErr>{choiceErr}</FieldErr>}
-        </OptionsBlock>
-      )}
-    </SheetSection>
-  );
-}
-
 /** Editable list of pick-one choices, shared by the panel's Options edit and the New / Edit field dialog. */
 function ChoicesEditor({ value, onChange, onEscape, autoFocus, compact }: { value: string[]; onChange: (v: string[]) => void; onEscape?: () => void; autoFocus?: boolean; compact?: boolean }) {
   const refs = useRef<(HTMLInputElement | null)[]>([]);
@@ -562,7 +504,7 @@ function FieldDialog({ f, open, onClose }: { f: CField | null; open: boolean; on
     toast.success(!f ? `${name.trim()} field created` : `${name.trim()} saved`);
   };
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow={f ? 'Edit field' : 'New field'} title={f ? f.name : 'New custom field'} meta="Pick the levels it appears on in each layout." width={640}
+    <PanelModal open={open} onClose={onClose} eyebrow={f ? 'Edit field' : 'New field'} title={f ? f.name : 'New custom field'} icon={Textbox} meta={f ? undefined : 'Pick the levels it appears on in each layout.'} width={f ? 560 : 640}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!name.trim() || !!nameErr || !!choiceErr} onClick={save}>{f ? 'Save' : 'Create field'}</Button></>}>
       <SheetSection title="Field">
         <div className="grid grid-cols-2 gap-4">
@@ -571,7 +513,8 @@ function FieldDialog({ f, open, onClose }: { f: CField | null; open: boolean; on
         </div>
       </SheetSection>
       {pick && <SheetSection title={`Options · ${clean.length}`}><ChoicesEditor value={choices} onChange={setChoices} />{showChoiceErr && <FieldErr>{cErr}</FieldErr>}</SheetSection>}
-      <SheetSection title="Attached to"><AttachGrid structures={structures} attached={attached} onChange={setAttached} /></SheetSection>
+      {/* Editing an existing field: its levels are switched in the panel's own Attached to section, so the dialog holds only name, type and options. */}
+      {!f && <SheetSection title="Attached to"><AttachGrid structures={structures} attached={attached} onChange={setAttached} /></SheetSection>}
     </PanelModal>
   );
 }
@@ -743,7 +686,7 @@ function TagDialog({ t, open, onClose }: { t: TagDef | null; open: boolean; onCl
     toast.success(!t ? `${name} tag created` : `${name} saved`);
   };
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow={t ? 'Edit tag' : 'New tag'} title={t?.label} width={520}
+    <PanelModal open={open} onClose={onClose} eyebrow={t ? 'Edit tag' : 'New tag'} title={t?.label} icon={Tag} width={520}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!name || clash} onClick={save}>{t ? 'Save' : 'Create tag'}</Button></>}>
       <SheetSection title="Tag" action={name ? <Pill tone={tone}>{name}</Pill> : undefined}>
         <div className="space-y-4">

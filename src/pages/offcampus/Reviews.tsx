@@ -188,7 +188,7 @@ export function Reviews({ bare }: { bare?: boolean } = {}) {
       <ODialog confirm width={480} open={dlg === 'approve' && !!sel} onClose={() => setDlg(null)} icon={CheckCircle} tone="green" title={block ? 'This listing can’t go live yet' : 'Approve this listing'}
         sub={block ? undefined : 'It goes live on your off-campus site straight away.'}
         footer={block?.kind === 'landlord'
-          ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => { setDlg(null); nav(block.id ? `/offcampus/approvals?kind=landlords&tab=all&open=${block.id}` : '/offcampus/approvals?kind=landlords&tab=all'); }}>Open their application</Button></>
+          ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => { setDlg(null); nav(block.id ? `/offcampus/approvals?kind=owners&tab=all&open=${block.id}` : '/offcampus/approvals?kind=owners&tab=all'); }}>Open their application</Button></>
           : block?.kind === 'duplicate'
             ? <><Button onClick={() => setDlg(null)}>Cancel</Button><Button variant="primary" onClick={() => setDlg('reject')}>Reject as duplicate</Button></>
             : noPhotos.length

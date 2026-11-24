@@ -3,7 +3,8 @@ import { Empty } from '../../components/ui';
 import { toast } from 'sonner';
 import { Bed, Buildings, CalendarBlank, CurrencyGbp, DoorOpen, Globe, Key, Money, Plus, Receipt, Shield, ShieldCheck, Shower, Sun, Tag as TagIcon, Warning, type Icon } from '../../components/icons';
 import type { Tone } from '../../data/seed';
-import { Button, Confirm, Field, IconTile, Input, PageHeader, Sheet, SheetHero, SheetRow, SheetSection, Switch, Table, Tabs, listNav, type SheetNav, Toolbar } from '../../components/ui';
+import { Button, Confirm, Field, IconTile, Input, PageHeader, Sheet, SheetHero, SheetRow, SheetSection, Switch, Table, listNav, type SheetNav } from '../../components/ui';
+import { StatusTabsBar } from '../offcampus/parts';
 import { invId, money, useInv, type Fee, type FeeType, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { EditLink, FieldErr, MoneyInput, PanelModal, Picker, PropStatus, RadioCard, Seg, isMoney, moneyErr, rangeErr } from './common';
@@ -43,11 +44,10 @@ export function RentFeesPage() {
           <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add fee</Button>
         )}
       </PageHeader>
-      {/* One toolbar row: tabs on the left; on the right the property picker (Templates) or Fee types (Fees, 2026-11-23). */}
-      <Toolbar right={tab === 'templates' ? <div className="w-64"><Picker value={pid} onChange={setPid} icon={Buildings} options={props.map((x) => ({ id: x.id, label: x.name }))} /></div>
-        : <Button icon={TagIcon} onClick={() => setTypesOpen(true)}>Fee types</Button>}>
-        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'templates', label: 'Tenancy templates', count: tpls.length }, { id: 'fees', label: 'Fees', count: fees.length }]} />
-      </Toolbar>
+      {/* Underline tabs on the bottom rule, as Approvals (2026-11-24); on the right the property picker (Templates) or Fee types (Fees). */}
+      <StatusTabsBar value={tab} onChange={setTab} tabs={[{ id: 'templates', label: 'Tenancy templates', count: tpls.length }, { id: 'fees', label: 'Fees', count: fees.length }]}
+        aside={tab === 'templates' ? <div className="w-64"><Picker value={pid} onChange={setPid} icon={Buildings} options={props.map((x) => ({ id: x.id, label: x.name }))} /></div>
+          : <Button icon={TagIcon} onClick={() => setTypesOpen(true)}>Fee types</Button>} />
       {tab === 'templates' ? (
         <Table rows={tpls} onRow={setEditing} selected={editing?.id}
           cols={[
@@ -148,7 +148,7 @@ export function TemplateDialog({ t, open, onClose, isNew, siblings }: { t: Templ
   };
   return (
     <PanelModal open={open} onClose={onClose} width={560} eyebrow={isNew ? 'New template' : 'Edit template'}
-      title={(() => { const [I, tone] = tplIcon(v.name || t.name || ''); return <span className="flex items-center gap-3"><IconTile icon={I} tone={tone} size={36} /><span className="min-w-0 truncate">{isNew ? (v.name.trim() || 'New template') : t.name}</span></span>; })()}
+      icon={tplIcon(v.name || t.name || '')[0]} title={<span className="block truncate">{isNew ? (v.name.trim() || 'New template') : t.name}</span>}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!ok} onClick={save}>{isNew ? 'Create template' : rentChanged && follow ? `Save and update ${follow}` : 'Save'}</Button></>}>
       <>
         <SheetSection title="Template">
@@ -245,7 +245,7 @@ function FeeDialog({ f, type, open, onClose }: { f: Fee; type: FeeType; open: bo
     toast.success(`${type.name} saved`);
   };
   return (
-    <PanelModal open={open} onClose={onClose} width={560} eyebrow="Edit fee" title={type.name}
+    <PanelModal open={open} onClose={onClose} width={560} eyebrow="Edit fee" title={type.name} icon={feeIcon(type.name)[0]}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!amountErr} onClick={save}>Save</Button></>}>
         <>
           <SheetSection title="Applies to">
@@ -304,6 +304,7 @@ function AddFeeDialog({ open, onClose, onAdded }: { open: boolean; onClose: () =
   };
   return (
     <PanelModal open={open} onClose={onClose} width={560} eyebrow={stage === 'newType' ? 'New fee type' : 'New fee'}
+      icon={stage === 'config' && type ? feeIcon(type.name)[0] : Receipt}
       title={stage === 'type' ? 'New fee' : stage === 'newType' ? 'New fee type' : type?.name ?? 'New fee'}
       meta={stage === 'config' && type ? `${type.calc} · ${type.mandatory ? 'mandatory' : 'optional'} · ${type.refundable ? 'refundable' : 'not refundable'}` : undefined}
       right={stage === 'type' ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!typeId} onClick={() => setStage('config')}>Continue</Button></>

@@ -1,11 +1,11 @@
 // Organisation › Campuses. Figma: empty state 3095:2; add campus = Journeys Flow 1 · 04–05 (2819:544, 2819:820).
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { BookOpen, ImageSquare, MagnifyingGlass, MapPin, Plus } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, DL, Dropdown, Input, Pill, SheetSection, Status, Table } from '../../components/ui';
-import { PanelModal } from '../inventory/common';
-import { useDb } from '../../data/store';
+import { Button, DL, Dropdown, Input, SheetSection, Status, Table } from '../../components/ui';
+import { PanelModal, PropStack } from '../inventory/common';
+import { useInv } from '../../data/inventory';
 import { oid, useOrg, type Campus } from '../../data/org';
 import { EmptyState, Header, ODialog } from './parts';
 
@@ -35,7 +35,6 @@ function HowItWorks({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 export function CampusesPage() {
   const { campuses, emptyCampuses } = useOrg();
-  const properties = useDb((s) => s.properties);
   const nav = useNavigate();
   /* /org/campuses/new and /org/campuses/:id open the campus in a centred modal over the list (2026-11-17). */
   const { id } = useParams();
@@ -45,7 +44,10 @@ export function CampusesPage() {
     if (sp.get('demo') === 'empty') { emptyCampuses(); setSp((p) => { const n = new URLSearchParams(p); n.delete('demo'); return n; }, { replace: true }); }
   }, [sp, setSp, emptyCampuses]);
   const rows = campuses;
-  const props = (cid: string) => properties.filter((p) => p.campusId === cid);
+  /* The Properties column reads the inventory records (they carry the cover photos), matched on the campus name. */
+  const invProps = useInv((st) => st.properties);
+  const q = (x: string) => x.replace(/[’']/g, "'");
+  const invOf = (name: string) => invProps.filter((p) => q(p.campus) === q(name));
   const close = () => nav('/org/campuses');
   const editing = id && id !== 'new' ? campuses.find((c) => c.id === id) : undefined;
 
@@ -68,7 +70,8 @@ export function CampusesPage() {
           { key: 's', label: 'Status', className: 'w-[12%]', render: (c) => <Status s={c.status} /> },
           { key: 'c', label: 'City', className: 'w-[14%]', render: (c) => <span className="text-sm whitespace-nowrap">{c.city || '—'}</span> },
           { key: 'r', label: 'Partner region', className: 'w-[14%]', render: (c) => <span className="text-sm text-[#737373]">{c.amberRegion || '—'}</span> },
-          { key: 'p', label: 'Properties', render: (c) => { const ps = props(c.id); return ps.length ? <div className="flex flex-wrap gap-1">{ps.map((p) => <Link key={p.id} to={`/inventory/properties?open=${p.id}`} onClick={(e) => e.stopPropagation()} className="relative inline-flex after:absolute after:inset-x-0 after:-inset-y-px after:content-['']"><Pill outline tone="blue">{p.name}</Pill></Link>)}</div> : <span className="text-sm text-[#737373]">None yet</span>; } },
+          { key: 'p', label: 'Properties', /* Cover photos and a count, as in Property layouts (2026-11-24); names show on hover. */
+            render: (c) => { const ps = invOf(c.name); return ps.length ? <PropStack props={ps} label={`${ps.length} ${ps.length === 1 ? 'property' : 'properties'}`} /> : <span className="text-sm text-[#A3A3A3]">None yet</span>; } },
         ]} />
       )}
       {id === 'new' && <CampusDialog key="new" onClose={close} />}
@@ -112,7 +115,7 @@ function CampusDialog({ existing, onClose }: { existing?: Campus; onClose: () =>
   };
 
   return (
-    <PanelModal open onClose={onClose} width={600} eyebrow={existing ? 'Edit location' : 'New location'} title={existing?.name}
+    <PanelModal open onClose={onClose} width={600} eyebrow={existing ? 'Edit location' : 'New location'} title={existing?.name} icon={MapPin}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{existing ? 'Save' : 'Create location'}</Button></>}>
       <SheetSection title="Location">
         <div className="grid grid-cols-[1fr_168px] gap-3">

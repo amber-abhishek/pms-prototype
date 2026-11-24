@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useTrailTracker } from '../lib/trail';
 import { useAuth } from '../data/auth';
 import { SigningOut } from '../pages/auth/Login';
 import { ArrowCounterClockwise, ChevronDown, ChevronRight, ChevronsUpDown, Monitor, Moon, Palette as PaletteIcon, Sun, Tray, UserCircle, Check as CheckIcon, Lock, PinOff, Plus, SidebarSimple, SignOut } from '../components/icons';
@@ -29,6 +30,7 @@ import { ShellV2 } from './ShellV2';
    PMS adds what Connect's flat list doesn't need: the open module's pages hang under it on a guide line. */
 export function Shell() {
   const { pathname, search } = useLocation();
+  useTrailTracker();
   const role = useDb((s) => s.role);
   const [open, setOpen] = useState(true);
   const [palette, setPalette] = useState(false);

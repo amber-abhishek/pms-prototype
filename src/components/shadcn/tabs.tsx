@@ -15,8 +15,9 @@ const Tabs = TabsPrimitive.Root
 /* Connect 2.0 "Advance Tabs" (3095:16041): the selected tab is white with 0 1 2 -1 and 0 1 3 0 drops at 10%.
    Its radius is r6, concentric with the r10 track: outer radius minus the 4px inset (2026-11-17). */
 const PILL = "bg-background shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)]"
-/** `slide`: true = the raised pill slides; "underline" = a 2px blue bar slides along the bottom; false = no slider. */
-type Slide = boolean | "underline"
+/** `slide`: true = the raised pill slides; "underline" = a 2px blue bar slides along the bottom; "folder" = the white
+ *  folder tab (r10 top, flared foot; styles.css [data-folder-pill]) glides to the picked tab; false = no slider. */
+type Slide = boolean | "underline" | "folder"
 const SlideCtx = React.createContext<Slide>(false)
 
 type Pill = { x: number; y: number; w: number; h: number; animate: boolean }
@@ -61,7 +62,21 @@ const TabsList = React.forwardRef<
       )}
       {...props}
     >
-      {slide && pill && (
+      {slide === "folder" && pill && (
+        <span
+          aria-hidden
+          data-folder-pill
+          className="pointer-events-none absolute left-0 top-0"
+          style={{
+            width: pill.w,
+            height: pill.h,
+            transform: `translate(${pill.x}px, ${pill.y}px)`,
+            /* Folder tabs glide (2026-11-24, "when changing the tabs should slide"): a short ease-out, no overshoot. */
+            transition: pill.animate ? "transform 220ms cubic-bezier(0.25, 1, 0.5, 1), width 220ms cubic-bezier(0.25, 1, 0.5, 1)" : "none",
+          }}
+        />
+      )}
+      {slide && slide !== "folder" && pill && (
         <span
           aria-hidden
           data-slide-bar

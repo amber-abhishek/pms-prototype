@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowRight, ArrowsLeftRight, Bed, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
+  ArrowRight, ArrowsLeftRight, Bed, Copy, BuildingOffice, CalendarBlank, CheckCircle, Check, CircleNotch, CurrencyGbp,
   DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { Avatar, Button, barBtn, Card, DL, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
+import { Avatar, Button, Card, DL, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
 import { allUnits, invId, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
@@ -154,9 +154,6 @@ export function PropertyDetail() {
           section Edit links; the footer only carries a draft's Make active. Open in Inventory lives on the Units tab. */}
       <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={576} nav={stepper}
         onDelete={{ label: 'Archive property', icon: Archive, onClick: () => setArchiveAsk(true) }}
-        more={<Menu width={220} trigger={(o) => <button type="button" onClick={o} aria-label="More actions" title="More actions" className={barBtn}><DotsThree size={16} /></button>} items={[
-          { label: 'Change letting period', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
-        ]} />}
         footer={p.status === 'Draft' ? <Button variant="primary" icon={null} onClick={activate}>Make active</Button> : undefined}>
         {/* Status is the record's state, so it sits on the name line (2026-11-23); the tag row below holds only tags and Add tag. */}
         <SheetHero name={p.name} meta={`${p.campus} · ${p.address || 'No address'}`}
@@ -508,7 +505,7 @@ function ImportRoomsSheet({ p, open, onClose }: { p: Property; open: boolean; on
     toast.success(`141 rooms built in ${short} · all Draft`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ blocks: p.blocks, units: p.units, tenancies: p.tenancies, pendingRows: p.pendingRows, counts: p.counts, roomTypes: p.roomTypes })) } });
   };
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow="Import rooms" title={`Import ${short} rooms`} meta="st-marys-rooms.csv · one row per room" width={576}
+    <PanelModal open={open} onClose={onClose} eyebrow="Import rooms" icon={UploadSimple} title={`Import ${short} rooms`} meta="st-marys-rooms.csv · one row per room" width={576}
       right={stage === 'pick' ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={() => setStage('check')}>Check the file</Button></> : <><Button onClick={() => setStage('pick')}>Choose another file</Button><Button variant="primary" icon={null} onClick={run}>Import 141 rooms</Button></>}>
       {stage === 'pick' ? (
         <>
@@ -650,7 +647,7 @@ function CopyTemplatesDialog({ p, open, onClose, onBlank }: { p: Property; open:
     toast.success(src.length === 1 ? `${src[0].name} copied to ${shortName(p)}` : `${src.length} templates copied to ${shortName(p)}`);
   };
   return (
-    <PanelModal open={open} onClose={onClose} width={560} eyebrow="Add template" title={`Copy templates to ${shortName(p)}`}
+    <PanelModal open={open} onClose={onClose} width={560} eyebrow="Add template" icon={Copy} title={`Copy templates to ${shortName(p)}`}
       meta="Copies start with no rooms linked."
       left={<Button icon={Plus} onClick={onBlank}>Start from scratch</Button>}
       right={<Button variant="primary" icon={null} disabled={!picked.length} onClick={copy}>{picked.length > 1 ? `Copy ${picked.length} templates` : 'Copy template'}</Button>}>
@@ -784,7 +781,7 @@ function ChangeRentSheet({ p, rt, onClose }: { p: Property; rt: RoomType | null;
       { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ roomTypes: old })) } });
   };
   return (
-    <PanelModal open onClose={onClose} width={576} eyebrow="Change rent" title={rt.name} meta={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`}
+    <PanelModal open onClose={onClose} width={576} eyebrow="Change rent" title={rt.name} icon={CurrencyGbp} meta={`${p.name} · ${rt.rooms} rooms · now ${rt.rent != null ? `${money(rt.rent)} / ${unit}` : 'no rent'}`}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!rentErr || !!fromErr} onClick={save}>{apply === 'new' ? `Save ${money(+rent || 0)} for new tenancies` : `Save ${money(+rent || 0)} for all`}</Button></>}>
       <>
         <SheetSection title="New rent">
@@ -848,6 +845,7 @@ export function EditSheet({ p, which, onClose }: { p: Property; which: null | 'b
   );
   return (
     <PanelModal open={!!which} onClose={onClose} width={576} eyebrow="Edit property" title={p.name}
+      lead={photoOf(p.id) ? <img src={photoOf(p.id, photoOrder(p)[0] ?? 0)} alt="" className="size-10 shrink-0 rounded-[10px] object-cover bg-[#F5F5F5]" /> : undefined} icon={Image}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!nameErr} onClick={save}>{switching ? `Save and switch to ${letting.toLowerCase()}` : 'Save'}</Button></>}>
       {/* Letting period is part of Edit (2026-11-20); picking the other period shows what switching converts, and Save says so.
           It sits second, straight after the section that was opened (2026-11-23). */}

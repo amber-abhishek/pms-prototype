@@ -59,13 +59,13 @@ export function Enquiries() {
       </PageHeader>
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Enquiries" />
-        {/* Search on the left; the source filter and the status tabs at the right edge. */}
+        {/* Status tabs lead on the left (underline tabs, 2026-11-24); search and the source filter at the right edge. */}
         {list.length > 0 && (<div {...PIN} className="px-[var(--tx,16px)] py-4 flex items-center gap-3 empty:hidden">
-          <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name, contact or property" /></div>
+          <Tabs value={status} onChange={setStatus} tabs={[{ id: 'All', label: 'All', count: bySource.length }, { id: 'New', label: 'New', count: nStatus('New') }]} />
           <div className="ml-auto flex items-center gap-2">
+            <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search name, contact or property" /></div>
             <SelectFilter prefix="Source" value={source} onChange={(v) => setSource(v as SourceView)} width={200}
               options={[{ value: 'All', meta: String(list.length) }, { value: 'Owners', meta: String(list.filter((e) => e.source === 'Landlord').length) }, { value: 'Partners', meta: String(list.filter((e) => e.source === 'Partner halls').length) }]} />
-            <Tabs value={status} onChange={setStatus} tabs={[{ id: 'All', label: 'All', count: bySource.length }, { id: 'New', label: 'New', count: nStatus('New') }]} />
           </div>
         </div>)}
         {!list.length ? (

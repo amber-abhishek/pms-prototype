@@ -465,7 +465,7 @@ function AssignSheet({ f, open, onClose, onDone }: { f: Fault; open: boolean; on
   });
 
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow={`Assign ${f.ref}`} title={f.title.replace(' onto the floor', '')} meta={f.where} width={600}
+    <PanelModal open={open} onClose={onClose} eyebrow={`Assign ${f.ref}`} icon={faultIcon[f.icon]} title={f.title.replace(' onto the floor', '')} meta={f.where} width={600}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={submit}>{needsOk ? 'Ask Aisha and assign' : `Assign to ${who === 'Estates helpdesk' ? 'Estates' : short.split(' ')[0]}`}</Button></>}>
       {breached && <div className="mb-3"><Note tone="red" icon={UserMinus} title="No in-house plumber free before 18:00">The contractor can come in 2 hours at the out-of-hours rate.</Note></div>}
       <SheetSection title="Who fixes it">

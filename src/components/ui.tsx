@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from './shadcn/tooltip';
 import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Illustration, artFor, type Illo } from './Illustration';
+import { PageIntro } from './pageIntro';
 import { FooterZone, GhostZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
 
 /** The breadcrumb's current page: the h1 unless the page shows its own title. */
@@ -13,7 +14,8 @@ export function TitleH1({ className, children }: { className: string; children: 
   useOwnHeading();
   return <h1 className={className}>{children}</h1>;
 }
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { markIntent, useTrail } from '../lib/trail';
 import { clsx } from 'clsx';
 import { Button as UIButton, type ButtonProps as UIButtonProps } from './shadcn/button';
 import { Badge } from './shadcn/badge';
@@ -141,19 +143,28 @@ export const Status = ({ s, tone, icon }: { s: string; tone?: Tone; icon?: Icon 
 /** Only a real parent page links (the list a record was opened from). Section names (Inventory, Allocations,
  *  Organisation…) are sidebar groups, not pages, so they stay plain text. */
 const CRUMB_TO: Record<string, string> = { Properties: '/inventory/properties' };
-export type Crumb = string | { label: string; to?: string; onClick?: () => void };
+export type Crumb = string | { label: string; to?: string; onClick?: () => void; /** Never resolves through CRUMB_TO. */ plain?: boolean };
 /* Every page shows its trail in the header (2026-11-18): the module's name (Inventory, Residents…) as plain text, then
    any parent page as a link ("Residents › Amira Rahman", "Campuses › Durham City"), then the page's own name. */
 /** One clickable crumb + chevron. Strings resolve through CRUMB_TO; a crumb with neither `to` nor `onClick` stays plain text. */
 export function CrumbLink({ c }: { c: Crumb }) {
-  const { label, to, onClick } = typeof c === 'string' ? { label: c, to: CRUMB_TO[c], onClick: undefined } : { ...c, to: c.to ?? (c.onClick ? undefined : CRUMB_TO[c.label]) };
-  const cls = 'rounded hover:text-ink hover:underline underline-offset-4 decoration-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  const { label, to, onClick } = typeof c === 'string' ? { label: c, to: CRUMB_TO[c], onClick: undefined } : { ...c, to: c.to ?? (c.onClick || c.plain ? undefined : CRUMB_TO[c.label]) };
+  const cls = '[text-transform:inherit] [font:inherit] rounded hover:text-ink hover:underline underline-offset-4 decoration-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
   return (
     <span className="flex items-center gap-2 text-[#737373] whitespace-nowrap">
       {to ? <Link to={to} className={cls}>{label}</Link> : onClick ? <button type="button" onClick={onClick} className={cls}>{label}</button> : label}
       <CaretRight size={16} strokeWidth={1.5} className="text-[#737373]" />
     </span>
   );
+}
+/** The pages an action brought you through (lib/trail.ts), each a link back to where you were; a page that is also the
+ *  current one is left out. */
+function TrailCrumbs({ title }: { title: string }) {
+  const stops = useTrail((s) => s.stops);
+  const navigate = useNavigate();
+  return <>{stops.map((s, i) => s.title && s.title !== title
+    ? <span key={i} data-trail className="contents"><CrumbLink c={{ label: s.title, onClick: () => { markIntent(i); navigate(s.path); } }} /></span>
+    : null)}</>;
 }
 /** Amber Connect page header (Figma 3884:39809): 56px #F5F5F5 band with a bottom line; a home link and a divider, then
  *  Geist Mono uppercase crumbs (#737373) and the current page in ink. Actions keep their own variants: bordered
@@ -163,10 +174,22 @@ export function CrumbLink({ c }: { c: Crumb }) {
    `search` adds the 280px "Search anything ⌘K" field, which opens the palette. */
 export function PageHeader({ title, crumbs, children, search, meta }: { icon?: Icon; title: string; crumbs?: Crumb[]; children?: ReactNode; search?: boolean; meta?: ReactNode }) {
   usePublishTitle(title);
-  return (
+  const stops = useTrail((s) => s.stops);
+  const { pathname } = useLocation();
+  return (<>
     <div data-page-head className="h-14 shrink-0 border-b border-[#E5E5E5] bg-[#F5F5F5] flex items-center gap-3 pl-6 pr-4">
       <div className="flex items-center gap-2 min-w-0 font-mono uppercase text-sm leading-5 font-medium">
-        {crumbs?.filter((c) => { const l = typeof c === 'string' ? c : c.label; return l && l !== title; }).map((c, i) => <CrumbLink key={i} c={c} />)}
+        <TrailCrumbs title={title} />
+        {crumbs?.map((c): Crumb => {
+          /* A crumb that links to the page you are on does nothing, so it shows as plain text (2026-11-24). */
+          const label = typeof c === 'string' ? c : c.label;
+          const to = typeof c === 'string' ? CRUMB_TO[c] : c.to ?? (c.onClick ? undefined : CRUMB_TO[c.label]);
+          const live = typeof c !== 'string' && !!c.onClick && !c.to;
+          return live || (to && to.split('?')[0] !== pathname) ? c : { label, to: undefined, onClick: undefined, plain: true } as Crumb;
+        }).filter((c) => { const l = typeof c === 'string' ? c : c.label; if (!l || l === title) return false;
+          /* With a trail in front, plain section names (Allocations, Residents…) drop out so the path stays short. */
+          const plain = typeof c === 'string' ? !CRUMB_TO[c] : !c.to && !c.onClick;
+          return !(stops.length && plain) && !stops.some((s) => s.title === l); }).map((c, i) => <CrumbLink key={i} c={c} />)}
         <CrumbTitle className="text-[#0A0A0A] truncate">{title}</CrumbTitle>
       </div>
       {meta}
@@ -181,7 +204,9 @@ export function PageHeader({ title, crumbs, children, search, meta }: { icon?: I
         {children}
       </div>
     </div>
-  );
+    {/* Page heading + one line on what the page is for, from the route (pageIntro.tsx; Overview and My tasks have none). */}
+    <PageIntro title={title} />
+  </>);
 }
 /** Joined header filters (Figma "Button group"): one white r8 box with a #E5E5E5 edge, items split by a 1px rule. */
 export function ButtonGroup({ children }: { children: ReactNode }) {
@@ -407,11 +432,16 @@ export function PersonName({ name, size = 20, className, children }: { name: str
 }
 
 /* ---------- Filter tabs: segmented track, raised selected ---------- */
-export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string; count?: number }[] }) {
-  /* shadcn Tabs (Radix): arrow keys move between tabs. Styled as the 2820:111 segmented track in ./shadcn/tabs.
+export function Tabs<T extends string>({ value, onChange, tabs, variant = 'line' }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string; count?: number }[];
+  /** `segmented`: the grey track with a raised white pick, for a secondary filter under a page's tab bar or a choice
+   *  inside a form (Desktop / Mobile, 7 / 14 days). Page-level tabs stay `line`. */ variant?: 'line' | 'segmented' }) {
+  /* shadcn Tabs (Radix): arrow keys move between tabs. Folder tabs (Connect 2.0 3095:25465, 2026-11-24): a #F5F5F5
+     band with a #E5E5E5 line along its foot; 34px tabs, 14px Geist Mono Medium uppercase, grey until picked; the picked
+     tab is white with r10 top corners and a 1px #E5E5E5 edge, drops over the line and flares into the white content
+     below (styles.css, [data-tab-band]). In a toolbar row the row itself is the band.
      Nothing to split yet (every count is 0, e.g. a first login): no tabs at all, only the empty state below. */
   if (tabs.length && tabs.every((t) => t.count === 0)) return null;
-  return (
+  if (variant === 'segmented') return (
     <UITabs value={value} onValueChange={(v) => onChange(v as T)}>
       <TabsList>
         {tabs.map((t) => (
@@ -421,6 +451,25 @@ export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; on
         ))}
       </TabsList>
     </UITabs>
+  );
+  return (
+    <UITabs value={value} onValueChange={(v) => onChange(v as T)}>
+      <FolderTabList tabs={tabs} />
+    </UITabs>
+  );
+}
+
+/** The folder-tab list on its own (the band comes from the row it sits in, or `band` for a standalone row). */
+export function FolderTabList<T extends string>({ tabs }: { tabs: { id: T; label: string; count?: number }[] }) {
+  return (
+    <TabsList data-tab-band slide="folder" className="h-auto flex items-end gap-0 rounded-none bg-transparent p-0 shadow-none">
+      {tabs.map((t) => (
+        <TabsTrigger key={t.id} value={t.id} data-folder-tab
+          className="relative z-[1] h-[34px] min-w-[108px] px-3 pt-1 pb-1.5 gap-1.5 rounded-none font-mono text-sm leading-6 font-medium uppercase tracking-normal text-[#737373] bg-transparent shadow-none transition-colors hover:text-[#0A0A0A] data-[state=active]:bg-transparent data-[state=active]:text-[#0A0A0A] data-[state=active]:shadow-none">
+          {t.label}{t.count !== undefined && <span className="font-mono text-xs font-medium tabular-nums text-[#A3A3A3]">{t.count.toLocaleString('en-GB')}</span>}
+        </TabsTrigger>
+      ))}
+    </TabsList>
   );
 }
 

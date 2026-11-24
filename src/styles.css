@@ -233,3 +233,33 @@ body[data-accent="orange"] { --primary: 21 90% 48%; --primary-hover: 17 88% 40%;
 .dark body[data-accent="pink"] { --primary: 333 60% 62%; --primary-hover: 333 65% 70%; --ring: 333 60% 62%; }
 .dark body[data-accent="green"] { --primary: 151 50% 44%; --primary-hover: 151 55% 52%; --ring: 151 50% 44%; }
 .dark body[data-accent="orange"] { --primary: 21 75% 56%; --primary-hover: 21 80% 63%; --ring: 21 75% 56%; }
+
+/* With a visible page intro (pageIntro.tsx) the toolbar's screen-reader-only h1 would repeat it. */
+.pms-main:has([data-intro]) h1.sr-only { display: none; }
+
+/* Folder tabs (Connect 2.0 3095:25465, 2026-11-24). The row holding them is the band: #F5F5F5 with a 1px #E5E5E5
+   line as its last pixel row (painted, not a border, so the tabs' foot sits on it); tabs 16px below its top; search /
+   filters / buttons centred on the right. The picked tab is one white shape ([data-folder-pill], shadcn/tabs) that
+   glides between tabs: r10 top, 1px edge, no foot, covering the line, with two 9px concave flares that turn its
+   edges into the line. */
+[data-toolbar]:has([data-tab-band]), .pms-main:has([data-scroller]) [data-toolbar]:has([data-tab-band]) {
+  padding-top: 0; padding-bottom: 0; min-height: 50px; align-items: stretch; border-bottom: 0;
+  background: linear-gradient(to bottom, #F5F5F5 calc(100% - 1px), #E5E5E5 calc(100% - 1px));
+  padding-left: calc(var(--tx, 16px) - 12px);
+}
+[data-toolbar]:has([data-tab-band]) > * { align-self: center; }
+[data-toolbar]:has([data-tab-band]) > :has([data-tab-band]) { align-self: stretch; display: flex; align-items: flex-end; }
+[data-tab-band] { padding-top: 16px; }
+[data-folder-pill] { background: #fff; border: 1px solid #E5E5E5; border-bottom: 0; border-radius: 10px 10px 0 0; }
+/* Each flare is 10px and also covers the bottom 10px of the pill's own side edge, so the edge turns into the arc. */
+[data-folder-pill]::before, [data-folder-pill]::after { content: ''; position: absolute; bottom: 0; width: 10px; height: 10px; }
+[data-folder-pill]::before { left: -10px; background: radial-gradient(circle at 0 0, #F5F5F5 9px, #E5E5E5 9px, #E5E5E5 10px, #FFFFFF 10px); }
+[data-folder-pill]::after { right: -10px; background: radial-gradient(circle at 100% 0, #F5F5F5 9px, #E5E5E5 9px, #E5E5E5 10px, #FFFFFF 10px); }
+/* 16px of white between the tab band and a table under it (2026-11-24: "add space between the tabs and table"). It is
+   padding inside the band's row, so the row's measured height (--tb-h) includes it and a sticky column header still
+   lands below it; the band's grey and its foot line are painted above the padding. Pages with a second toolbar row
+   (search + filters: Listings, Approvals; marked data-subbar) already have that space, so they are left out. */
+.pms-main:has(table, [data-head]):not(:has([data-subbar])) [data-toolbar]:has([data-tab-band]) {
+  padding-bottom: 16px; border-bottom: 0;
+  background: linear-gradient(to bottom, #F5F5F5 calc(100% - 17px), #E5E5E5 calc(100% - 17px), #E5E5E5 calc(100% - 16px), #FFFFFF calc(100% - 16px));
+}

@@ -185,7 +185,7 @@ function EditDates({ c, onClose }: { c: Cycle; onClose: () => void }) {
   const up = useAlloc((s) => s.up);
   const [v, setV] = useState({ opens: c.opens, closes: c.closes ?? '', offers: c.offersFrom ?? '', starts: c.starts ?? c.ends });
   return (
-    <PanelModal open onClose={onClose} eyebrow="Edit dates" title={c.name} width={560}
+    <PanelModal open onClose={onClose} eyebrow="Edit dates" title={c.name} icon={CalendarDots} width={560}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={() => {
       up((d) => ({ cycles: d.cycles.map((x) => (x.id === c.id ? { ...x, opens: v.opens, closes: v.closes, offersFrom: v.offers, starts: v.starts, ends: v.starts } : x)) }));
       toast.success(`${c.name} dates saved`, { description: 'Residents who already applied are emailed if a deadline moved' }); onClose();

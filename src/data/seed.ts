@@ -149,7 +149,7 @@ export function makeSeed() {
     { id: 't3', icon: 'lease', title: '14 leases not signed', sub: 'Move-in on Saturday · lease needed to collect keys', badge: { label: '5 days', tone: 'amber' }, to: '/allocations/bookings?tab=Awaiting%20signature', done: false },
     { id: 't4', icon: 'inbox', title: '31 applications waiting more than 5 days', sub: '2027/28 · To review', badge: { label: 'Behind', tone: 'orange' }, to: '/allocations/applications?tab=New', done: false },
     { id: 't5', icon: 'notice', title: 'Move-in notice to Ustinov residents', sub: 'Draft · scheduled for Wednesday 09:00', badge: { label: 'Draft', tone: 'grey' }, to: '/residents/notices?open=n1', done: false },
-    { id: 't6', icon: 'landlord', title: 'Review 4 owner applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange' }, to: '/offcampus/landlords', done: false },
+    { id: 't6', icon: 'landlord', title: 'Review 4 owner applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange' }, to: '/offcampus/approvals?kind=owners', done: false },
   ];
   const people: Person[] = [
     { id: 'u1', name: 'Priya Shah', email: 'priya.shah@durham.ac.uk', role: 'Super admin', teams: ['Accommodation office'], lastActive: 'Now' },

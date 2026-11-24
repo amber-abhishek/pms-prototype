@@ -1,14 +1,13 @@
 import { Badge } from '../../components/shadcn/badge';
 import { Illustration, type Illo } from '../../components/Illustration';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { CaretUpDown, Image, X, type Icon } from '../../components/icons';
+import { ArrowCounterClockwise, CaretUpDown, Check, Image, X, type Icon } from '../../components/icons';
 import { Button, ConfirmFrame, Tabs, TitleH1, cx, PIN, isConfirmTitle, noAutoFocus } from '../../components/ui';
 import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '../../components/shadcn/command';
 import type { Tone } from '../../data/seed';
 import { PHOTO } from '../inventory/photos';
-import { LineTabs } from '../inventory/common';
 
 /** Big title + description used at the top of every off-campus page. */
 export function Title({ title, sub, children }: { title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
@@ -88,25 +87,34 @@ export function Tag({ tone, icon: I, children, outline }: { tone: Tone; icon?: I
 }
 
 /** Typeahead combobox used for the Partner region override. */
-export function Combo({ value, options, onPick, noneLabel = 'None', icon: I }: { value: string | null; options: string[]; onPick: (v: string | null) => void; noneLabel?: string; icon?: Icon }) {
+/** Partner region picker (2026-11-24). The trigger names the region the campus actually uses and how it got it:
+ *  "Durham · auto" (nearest match) or "Newcastle · manual" (picked here). The list ticks the current region and, once
+ *  one was picked by hand, offers "Reset to nearest" to go back to the automatic match. */
+export function Combo({ value, auto, options, onPick, icon: I }: { /** The region picked by hand, if any. */ value: string | null; /** The nearest region, found automatically. */ auto: string | null; options: string[]; onPick: (v: string | null) => void; icon?: Icon }) {
   /* shadcn Combobox: Popover + Command, so the list filters as you type and arrow keys move through it. */
   const [open, setOpen] = useState(false);
   const pick = (v: string | null) => { onPick(v); setOpen(false); };
+  const current = value ?? auto;
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger aria-label="Override region" className="w-[220px] h-8 flex items-center rounded-lg border border-gray-300 bg-white px-2.5 text-sm text-left outline-none data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25">
-        <span className="flex-1 truncate">{value ?? noneLabel}</span>
-        <CaretUpDown size={14} className="text-gray-400" />
+      <PopoverTrigger aria-label="Partner region" className="w-[248px] h-8 flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 text-sm text-left outline-none data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25">
+        {I && <I size={14} className="shrink-0 text-gray-500" />}
+        <span className="flex-1 min-w-0 truncate">
+          {current ? <>{current}<span className="text-[#737373]"> · {value ? 'manual' : 'auto'}</span></> : <span className="text-[#737373]">Pick a region</span>}
+        </span>
+        <CaretUpDown size={14} className="shrink-0 text-gray-400" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+      <PopoverContent align="start" className="w-[260px] p-0">
         <Command>
           <CommandInput placeholder="Find a region" />
           <CommandList className="p-1">
             <CommandEmpty className="px-2 h-8 flex items-center text-sm text-[#737373]">No region matches</CommandEmpty>
-            <CommandItem value={`__none ${noneLabel}`} onSelect={() => pick(null)}><X size={14} className="text-gray-400" />{noneLabel}</CommandItem>
+            {value && <CommandItem value={`__reset ${auto ?? ''}`} onSelect={() => pick(null)}><ArrowCounterClockwise size={14} className="text-gray-500" /><span className="flex-1">Reset to nearest</span>{auto && <span className="text-xs text-[#737373]">{auto}</span>}</CommandItem>}
             {options.map((o) => (
-              <CommandItem key={o} value={o} onSelect={() => pick(o)} className={cx(value === o && 'bg-gray-50')}>
-                {I && <I size={14} className="text-gray-500" />}{o}
+              <CommandItem key={o} value={o} onSelect={() => pick(o === auto && !value ? null : o)}>
+                <span className="flex-1 truncate">{o}</span>
+                {o === auto && <span className="text-xs text-[#737373]">nearest</span>}
+                {o === current && <Check size={14} className="text-primary" />}
               </CommandItem>
             ))}
           </CommandList>
@@ -146,9 +154,9 @@ export function EmptyArt({ art }: { art: Illo }) {
  *  the search, or `aside` (Approvals puts its Owners / Listings switch there and the search in the header). */
 export function StatusTabsBar<T extends string>({ value, onChange, tabs, search, aside }: { value: T; onChange: (v: T) => void; tabs: { id: T; label: string; count: number }[]; search?: ReactNode; aside?: ReactNode }) {
   return (
-    /* 56px row: tab labels and search share the centre line; the tab underline sits on the bottom rule. */
-    <div {...PIN} className="shrink-0 h-14 px-[var(--tx,16px)] flex items-stretch gap-3 border-b border-[#E5E5E5]">
-      <div className="min-w-0"><LineTabs value={value} onChange={onChange} className="!px-0 !border-b-0 h-full [&>button]:!h-[55px]" tabs={tabs.map((t) => ({ id: t.id, label: `${t.label} · ${t.count}` }))} /></div>
+    /* The folder-tab band (Connect 2.0 3095:25465, 2026-11-24): the row is the band, see styles.css [data-tab-band]. */
+    <div {...PIN} className="shrink-0 px-[var(--tx,16px)] flex items-stretch gap-3">
+      <div className="min-w-0"><Tabs value={value} onChange={onChange} tabs={tabs} /></div>
       {aside ? <div className="ml-auto self-center shrink-0">{aside}</div>
         : search ? <div className="ml-auto self-center w-[240px] min-w-[140px] shrink [&>label]:!w-full">{search}</div> : null}
     </div>
@@ -172,11 +180,11 @@ export function QueueToolbar({ search, filters, view, onView, needs, all }: {
   search: ReactNode; filters: ReactNode; view: 'needs' | 'all'; onView: (v: 'needs' | 'all') => void; needs: number; all: number;
 }) {
   return (
-    <div {...PIN} className="shrink-0 px-[var(--tx,16px)] py-4 flex items-center gap-3">
+    <div {...PIN} data-subbar className="shrink-0 px-[var(--tx,16px)] py-4 flex items-center gap-3">
       <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full">{search}</div>
       <div className="ml-auto flex items-center gap-2">
         {filters}
-        <Tabs value={view} onChange={onView} tabs={[{ id: 'needs', label: 'Needs action', count: needs }, { id: 'all', label: 'All', count: all }]} />
+        <Tabs variant="segmented" value={view} onChange={onView} tabs={[{ id: 'needs', label: 'Needs action', count: needs }, { id: 'all', label: 'All', count: all }]} />
       </div>
     </div>
   );

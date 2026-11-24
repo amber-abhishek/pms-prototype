@@ -99,7 +99,7 @@ export function ReportsLibrary() {
       {tab === 'library' && (
         /* Same frame as Settings (2026-11-13): a 960px column 32px in, and the list in a Connect card with a 44px #FAFAFA header band. */
         <div className="flex-1 overflow-auto">
-          <div className="max-w-[720px] mx-auto px-8 pt-16 pb-16">
+          <div className="max-w-[720px] mx-auto px-8 pt-6 pb-16">{/* 24px under the centred page heading (pageIntro). */}
             <section className="rounded-xl border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
               <header className="min-h-11 py-3 pl-4 pr-3 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#E5E5E5]">
                 <h2 className="text-sm leading-5 font-medium text-[#0A0A0A]">All reports</h2>
@@ -251,7 +251,7 @@ function RecipientDialog({ s, open, onClose }: { s: Schedule; open: boolean; onC
     toast.success(now ? `${s.name} sent to ${multi ? s.sendsTo : email}` : `${s.name} · schedule saved`, { action: { label: 'Undo', onClick: u.arm() } });
   };
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow="Edit schedule" title={s.name} width={560}
+    <PanelModal open={open} onClose={onClose} eyebrow="Edit schedule" title={s.name} icon={AREA_ICON[s.reportId] ?? ChartBar} width={560}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{now ? 'Save and send' : 'Save'}</Button></>}>
       <SheetSection title="Send to">
         {multi ? <div className="text-sm text-[#0A0A0A]">{s.sendsTo}</div> : (
@@ -494,7 +494,7 @@ function ScheduleSheet({ id, hall, by, existing, onClose }: { id: string; hall: 
     toast.success(`${existing?.name ?? 'Occupancy'} won’t be sent any more`, { action: { label: 'Undo', onClick: u.arm() } });
   };
   return (
-    <PanelModal open onClose={onClose} width={560} eyebrow={existing ? 'Edit schedule' : 'New schedule'} title={existing?.name ?? 'Schedule this report'} meta={what}
+    <PanelModal open onClose={onClose} width={560} eyebrow={existing ? 'Edit schedule' : 'New schedule'} title={existing?.name ?? 'Schedule this report'} icon={AREA_ICON[existing?.reportId ?? 'occupancy'] ?? ChartBar} meta={what}
       left={existing && <Button variant="danger-ghost" icon={null} onClick={stop}>Stop sending</Button>}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>{existing ? 'Save' : 'Schedule'}</Button></>}>
       <SheetSection title="When">

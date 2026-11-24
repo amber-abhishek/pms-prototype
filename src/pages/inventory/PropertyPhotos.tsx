@@ -94,7 +94,7 @@ export function PhotosDialog({ p, open, onClose }: { p: Property; open: boolean;
     onClose();
   };
   return (
-    <PanelModal open={open} onClose={onClose} width={880} eyebrow="Edit photos" title={p.name} meta="Drag to reorder · the first is the cover"
+    <PanelModal open={open} onClose={onClose} width={880} eyebrow="Edit photos" title={p.name} icon={Image} meta="Drag to reorder · the first is the cover"
       left={changes ? <span className="text-sm text-[#737373]">{changes} {changes === 1 ? 'change' : 'changes'}</span> : undefined}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!changes} onClick={save}>Save</Button></>}>
       <SheetSection title={`Photos · ${order.length}`} action={<EditLink onClick={add}>Add photos</EditLink>}>

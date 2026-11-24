@@ -1,13 +1,14 @@
 import { FooterZone } from '../../components/headerCtx';
 import { Fragment, useState, type ReactNode } from 'react';
-import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, MagnifyingGlass, WarningCircle, XCircle, Archive, type Icon } from '../../components/icons';
-import { ConfirmFrame, Pill, Status, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
+import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, MagnifyingGlass, WarningCircle, XCircle, Archive, Buildings, type Icon } from '../../components/icons';
+import { Avatar, ConfirmFrame, Pill, Status, avatarFx, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
 import type { Tone } from '../../data/seed';
 import { Dialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, useInv, type PStatus, type Tag, type UStatus } from '../../data/inventory';
+import { photoOf } from './photos';
 
 /* Status pills as the CMS frames draw them: Draft is a white outlined chip. */
 export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' | 'Succeeded' | 'Failed' }) {
@@ -112,10 +113,14 @@ export function InvModal({ open, onClose, title, width = 600, left, right, child
 /** A modal in the side panels' language (2026-11-19, memory pms-panel-v2-design-language): a 61px control bar with the
  *  flow in mono caps (+ an optional "STEP 1 OF 5"), then the ✕; a hero (20px Medium title, one grey line); the body as
  *  SheetSection cards; a 64px footer with `left` (Cancel) and `right` (the action). */
-export function PanelModal({ open, onClose, eyebrow, pos, title, meta, lead, width = 640, left, right, children }: {
+export function PanelModal({ open, onClose, eyebrow, pos, title, meta, lead, icon: I, person, width = 640, left, right, children }: {
   open: boolean; onClose: () => void; eyebrow: string; pos?: string; title?: ReactNode; meta?: ReactNode; width?: number; left?: ReactNode; right?: ReactNode; children: ReactNode;
   /** The record's icon tile beside the headline, as in its panel's hero (2026-11-23). */ lead?: ReactNode;
+  /** Every headline carries the record's mark (2026-11-24): `icon` draws the neutral 40px tile its panel hero uses,
+   *  `person` the person's avatar; `lead` overrides both. */ icon?: Icon; person?: string;
 }) {
+  const mark = lead ?? (I ? <span className="size-10 shrink-0 rounded-[10px] flex items-center justify-center" style={avatarFx('#64748B')}><I size={20} strokeWidth={1.75} /></span>
+    : person ? <Avatar name={person} size={40} /> : null);
   const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -131,7 +136,7 @@ export function PanelModal({ open, onClose, eyebrow, pos, title, meta, lead, wid
           {/* No headline when it would only repeat the eyebrow (create modals, 2026-11-20). */}
           {title && (
             <div className="mb-4 flex items-center gap-3">
-              {lead}
+              {mark}
               <div className="min-w-0">
                 <div className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</div>
                 {meta && <p className="text-sm leading-5 text-[#737373]">{meta}</p>}
@@ -386,3 +391,21 @@ export function TagPicker({ have, onPick, onRemove, trigger }: { have: Tag[]; on
     </Popover>
   );
 }
+
+/** Up to three overlapping cover photos, then a label; the names show on hover. */
+export function PropStack({ props, label }: { props: { id: string; name: string }[]; label: ReactNode }) {
+  return (
+    <span className="flex items-center gap-2.5 min-w-0">
+      <span className="flex shrink-0">
+        {props.slice(0, 3).map((p, i) => {
+          const src = photoOf(p.id);
+          return src
+            ? <img key={p.id + i} src={src} alt="" className={cx('size-6 rounded-md object-cover ring-2 ring-white', i > 0 && '-ml-2')} />
+            : <span key={p.id + i} className={cx('size-6 rounded-md bg-[#F5F5F5] ring-2 ring-white grid place-items-center', i > 0 && '-ml-2')}><Buildings size={12} className="text-[#737373]" /></span>;
+        })}
+      </span>
+      <span className="min-w-0 truncate text-[#0A0A0A]" title={props.map((p) => p.name).join(', ')}>{label}</span>
+    </span>
+  );
+}
+

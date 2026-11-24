@@ -432,7 +432,7 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
       {tab === 'overview' && <>
         {/* Edit opens a centred modal with the form; the card stays read-only (2026-11-20, user asked for a modal here). */}
         <SheetSection title="Room" action={<EditLink onClick={startEdit}>Edit</EditLink>} rows={[['Room type', unit.type], ['Size', `${unit.size} m²`], ['Location', [path[1], flat].filter(Boolean).join(' · ') || '—'], ['Status', unit.status]]} />
-        <PanelModal open={editing} onClose={() => setEditing(false)} width={480} eyebrow="Edit room" title={unit.code} meta={path.filter(Boolean).slice(1).join(' · ')}
+        <PanelModal open={editing} onClose={() => setEditing(false)} width={480} eyebrow="Edit room" title={unit.code} icon={Door} meta={path.filter(Boolean).slice(1).join(' · ')}
           right={<><Button onClick={() => setEditing(false)}>Cancel</Button><Button variant="primary" onClick={saveRoom}>Save</Button></>}>
           <div className="space-y-4">
             <Field label="Unit name"><Input aria-label="Unit name" value={dCode} onChange={(e) => setDCode(e.target.value)} className="w-full font-mono" /><FieldErr>{codeErr}</FieldErr></Field>

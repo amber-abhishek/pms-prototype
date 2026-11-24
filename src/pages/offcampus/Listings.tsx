@@ -60,10 +60,10 @@ function HmoTab() {
 
   return (
     <>
-      {hmos.length > 0 && (<div {...PIN} className="px-6 py-4 flex items-center gap-3 empty:hidden">
+      {hmos.length > 0 && (<div {...PIN} data-subbar className="px-6 py-4 flex items-center gap-3 empty:hidden">
                 {/* Every off-campus list: search on the left, status tabs at the right edge. */}
                 <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search owner or property" /></div>
-                <div className="ml-auto"><Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Inactive', count: n('Paused') }]} /></div>
+                <div className="ml-auto"><Tabs variant="segmented" value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Inactive', count: n('Paused') }]} /></div>
       </div>)}
       <Table fill rows={rows} footer={false}
         empty={hmos.length ? (t ? <Empty art="noResults" title="No listing matches that search" /> : <Empty art="nothingToShow" title={`No ${tab === 'paused' ? 'inactive' : tab} listings`} />) : <Empty art="properties" title="No owner listings yet" sub="Approved owners’ houses show here." />}
@@ -127,13 +127,13 @@ function PbsaTab() {
   const nothing = view === 'all' && !!region && !inRegion.length && !hiddenAll.length;
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className="px-6 py-4 empty:hidden">
+      <div {...PIN} data-subbar className="px-6 py-4 empty:hidden">
         {/* One row: search on the left; the campus dropdown and All / Inactive on the right edge. */}
         <div className="flex items-center gap-3">
           <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search hall name or reference" /></div>
           <div className="ml-auto w-[220px] shrink-0"><Picker value={campus} onChange={setCampus} icon={Buildings}
             options={campuses.map((x) => ({ id: x.id, label: <span className="flex items-center gap-2"><span className="flex-1 truncate">{x.name}</span><span className="font-mono text-xs text-[#A3A3A3] tabular-nums">{!x.ticked ? 0 : pbsa.filter((p) => p.region === regionOf(x)).length}</span></span> }))} /></div>
-          {!nothing && <div><Tabs value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: rows.length }, { id: 'hidden', label: 'Inactive', count: hiddenHere.length }]} /></div>}
+          {!nothing && <div><Tabs variant="segmented" value={view} onChange={setView} tabs={[{ id: 'all', label: 'All', count: rows.length }, { id: 'hidden', label: 'Inactive', count: hiddenHere.length }]} /></div>}
         </div>
       </div>
       <div className="flex-1 min-h-0 flex flex-col">

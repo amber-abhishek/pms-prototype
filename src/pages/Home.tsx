@@ -33,7 +33,7 @@ export function ActivityFeed({ title = 'Activity', icon = ClockCounterClockwise 
       <PageHeader icon={icon} title={title} />
       {/* Toolbar: search on the left; the area tabs at the right edge. */}
       {activity.length > 0 && (
-        <Toolbar right={<Tabs value={area} onChange={setArea} tabs={areas.map((x) => ({ id: x, label: x, count: x === 'All' ? activity.length : activity.filter((a) => a.area === x).length }))} />}>
+        <Toolbar right={<Tabs variant="segmented" value={area} onChange={setArea} tabs={areas.map((x) => ({ id: x, label: x, count: x === 'All' ? activity.length : activity.filter((a) => a.area === x).length }))} />}>
           <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Person or action" /></div>
         </Toolbar>
       )}

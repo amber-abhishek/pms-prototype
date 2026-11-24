@@ -191,7 +191,7 @@ export const NEEDS: Need[] = [
   { id: 'n5', icon: 'notice', title: 'Move-in notice to Ustinov residents', sub: 'Draft · scheduled for Wednesday 09:00', badge: { label: 'Draft', tone: 'grey', icon: 'pencil' }, to: '/residents/notices?open=n1', taskId: 'k4', when: 'week', action: 'Send', mine: true },
   { id: 'n7', icon: 'conflict', title: '2 double-booked units', sub: 'Collingwood 3.2.C · Stephenson 4.2.C · overlapping bookings', badge: { label: 'Due today', tone: 'orange', icon: 'calendar' }, to: '/allocations/bookings?tab=Conflicts', when: 'today', action: 'Resolve', mine: false },
   { id: 'n8', icon: 'import', title: 'Room import failed: hild-bede-flats.csv', sub: 'Hild Bede · 72 rooms · 2 rows need fixing', badge: { label: 'Failed', tone: 'red', icon: 'failed' }, to: '/inventory/imports', when: 'week', action: 'Fix', mine: false },
-  { id: 'n6', icon: 'landlord', title: 'Review 4 owner applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange', icon: 'trend' }, to: '/offcampus/landlords', when: 'week', action: 'Review', mine: false },
+  { id: 'n6', icon: 'landlord', title: 'Review 4 owner applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange', icon: 'trend' }, to: '/offcampus/approvals?kind=owners', when: 'week', action: 'Review', mine: false },
 ];
 
 /* ---------- Store ---------- */

@@ -249,7 +249,7 @@ function CheckInSheet({ r, onClose }: { r: Resident; onClose: () => void }) {
     undoToast(isAmira ? 'Amira Rahman checked in · Ustinov is 62% in residence' : `${r.name} checked in to ${r.room}`, undo);
   });
   return (
-    <PanelModal open onClose={onClose} eyebrow="Check in" title={r.name} width={600}
+    <PanelModal open onClose={onClose} eyebrow="Check in" title={r.name} person={r.name} width={600}
       meta={`${r.room} · ${r.hall} · ${(r.lease === 'Signed' ? 1 : 0) + (r.deposit === 'Paid' ? 1 : 0) + (r.plan ? 1 : 0)} of ${total} done`}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={submit}>Check in</Button></>}>
       <SheetSection title="ID checked">

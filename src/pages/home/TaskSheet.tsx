@@ -187,7 +187,7 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
       )}
 
       {/* Handing it on is an action over the record: a centred modal, the panel stays read-only (2026-11-19). */}
-      <PanelModal open={mode === 'pick'} onClose={() => setMode('detail')} eyebrow="Hand over task" title={title} meta={sub || undefined} width={520}
+      <PanelModal open={mode === 'pick'} onClose={() => setMode('detail')} eyebrow="Hand over task" icon={ListChecks} title={title} meta={sub || undefined} width={520}
         right={nobody ? <>
           <Button onClick={() => setMode('detail')}>Keep it</Button>
           <Button variant="primary" icon={null} onClick={() => setMode('halls')}>Open Roles and access</Button>
@@ -197,7 +197,7 @@ export function TaskSheet({ scope, task, onClose, nav: sheetNav }: { nav?: Sheet
       </PanelModal>
 
       {/* E1 step 3: give Aisha the hall. */}
-      <PanelModal open={mode === 'halls'} onClose={() => setMode('pick')} eyebrow="Edit properties" title="Aisha Khan’s properties" meta="Property manager" width={520}
+      <PanelModal open={mode === 'halls'} onClose={() => setMode('pick')} eyebrow="Edit properties" person="Aisha Khan" title="Aisha Khan’s properties" meta="Property manager" width={520}
         right={<>
           <Button onClick={() => setMode('pick')}>Cancel</Button>
           <Button variant="primary" icon={null} onClick={saveHalls}>{jb ? 'Save and hand over' : 'Save'}</Button>

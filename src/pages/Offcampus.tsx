@@ -11,7 +11,8 @@ export function OffcampusRoutes() {
       <Route index element={<Navigate to="approvals" replace />} />
       <Route path="approvals" element={<Approvals />} />
       {/* Owner applications and Listing reviews are one Approvals page now; old links keep their ?tab / ?open. */}
-      <Route path="landlords" element={<Moved kind="landlords" />} />
+      <Route path="landlords" element={<Moved kind="owners" />} />{/* old link */}
+      <Route path="owners" element={<Moved kind="owners" />} />
       <Route path="reviews" element={<Moved kind="listings" />} />
       <Route path="listings" element={<Listings />} />
       <Route path="enquiries" element={<Enquiries />} />
@@ -24,7 +25,7 @@ export function OffcampusRoutes() {
   );
 }
 
-function Moved({ kind }: { kind: 'landlords' | 'listings' }) {
+function Moved({ kind }: { kind: 'owners' | 'listings' }) {
   const { search } = useLocation();
   const sp = new URLSearchParams(search);
   sp.set('kind', kind);

@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { PersonName, Empty, PIN } from '../../components/ui';
+import { PersonName, Empty } from '../../components/ui';
+import { StatusTabsBar } from '../offcampus/parts';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Check, FileArrowUp, FileCsv, Stack, UploadSimple } from '../../components/icons';
-import { Button, IconTile, listNav, PageHeader, Pill, Sheet, SheetHero, SheetRow, SheetSection, Table, Tabs, PageHeading, type SheetNav } from '../../components/ui';
+import { Button, IconTile, listNav, PageHeader, Pill, Sheet, SheetHero, SheetRow, SheetSection, Table, PageHeading, type SheetNav } from '../../components/ui';
 import type { Tone } from '../../data/seed';
 import { useInv, type ImportJob, type Property } from '../../data/inventory';
 import { useOpen } from '../hooks';
@@ -58,9 +59,8 @@ export function ImportsPage() {
         <Button icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
       </PageHeader>
       <PageHeading />
-      <div {...PIN} className="shrink-0 px-[var(--tx,16px)] py-4 flex items-center gap-2 empty:hidden">
-        <Tabs value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: jobs.length }, { id: 'Running', label: 'Running', count: cnt('Running') }, { id: 'Queued', label: 'Queued', count: cnt('Queued') }, { id: 'Failed', label: 'Failed', count: cnt('Failed') }]} />
-      </div>
+      {/* Underline tabs on the bottom rule, as Approvals and Custom pricing (2026-11-24). */}
+      <StatusTabsBar value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: jobs.length }, { id: 'Running', label: 'Running', count: cnt('Running') }, { id: 'Queued', label: 'Queued', count: cnt('Queued') }, { id: 'Failed', label: 'Failed', count: cnt('Failed') }]} />
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 min-w-0 flex flex-col">
           <Table rows={rows} empty={<Empty art="nothingToShow" title="No imports yet" sub="Imported spreadsheets show here." />} onRow={(j) => setOpen(j.id)} selected={open ?? undefined} summary="Latest 100 imports"

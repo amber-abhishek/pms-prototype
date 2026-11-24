@@ -34,6 +34,8 @@ export function AccessPage() {
   const [f, setF] = useState<Filters>({});
   const [invite, setInvite] = useState<{ open: boolean; roleId?: string }>({ open: false });
   const [access, setAccess] = useState<{ m: Member; addHall?: string; roleId?: string } | null>(null);
+  /* The row menu's Change role / Change properties open Edit access straight away, at that part (2026-11-24). */
+  const [quick, setQuick] = useState<{ m: Member; focus: 'role' | 'properties' } | null>(null);
   const [removing, setRemoving] = useState<Member | null>(null);
   const [deleting, setDeleting] = useState<Role | null>(null);
 
@@ -80,8 +82,8 @@ export function AccessPage() {
       : <span className="text-sm text-[#737373]">{m.lastActive}</span> },
     { key: 'x', label: '', className: 'w-12 text-right', render: (m) => (
       <RowMenu items={[
-        { label: 'Change role', onClick: () => setAccess({ m }) },
-        { label: 'Change properties', onClick: () => setAccess({ m }) },
+        { label: 'Change role', onClick: () => setQuick({ m, focus: 'role' }) },
+        { label: 'Change properties', onClick: () => setQuick({ m, focus: 'properties' }) },
         ...(m.status !== 'Active' ? [{ label: 'Resend invite', onClick: () => resend(m) }] : []),
         { label: 'Remove from workspace', danger: true, onClick: () => setRemoving(m) },
       ]} />
@@ -142,6 +144,7 @@ export function AccessPage() {
 
       <InviteDialog open={invite.open} initialRole={invite.roleId} onClose={() => setInvite({ open: false })}
         onExisting={(m, roleId, hall) => { setInvite({ open: false }); setAccess({ m, addHall: hall === 'all' ? undefined : hall, roleId }); }} />
+      {quick && <EditAccessDialog key={quick.m.id} m={quick.m} focus={quick.focus} open onClose={() => setQuick(null)} />}
       {access && <AccessSheet key={access.m.id} m={access.m} nav={listNav(shown, (x) => x.id === access.m.id, (x) => setAccess({ m: x }))} addHall={access.addHall} onClose={() => setAccess(null)} onRemove={() => { const x = access.m; setAccess(null); setRemoving(x); }} />}
       <RemoveDialog m={removing} onClose={() => setRemoving(null)} />
       <DeleteRoleDialog r={deleting} onClose={() => setDeleting(null)} />
@@ -189,7 +192,7 @@ function InviteDialog({ open, initialRole, onClose, onExisting }: { open: boolea
   };
 
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow="New member" title="Invite a member" width={560}
+    <PanelModal open={open} onClose={onClose} eyebrow="New member" title="Invite a member" icon={UserPlus} width={560}
       right={<><Button onClick={onClose}>Cancel</Button>
         {existing ? <Button variant="primary" icon={null} onClick={() => onExisting(existing, role.id, hall)}>Change {first}’s access</Button>
           : <Button variant="primary" icon={null} onClick={send}>Send invite</Button>}</>}>
@@ -264,7 +267,18 @@ function AccessSheet({ m: m0, addHall, onClose, onRemove, nav }: { nav?: SheetNa
 }
 
 /** Edit a member's role and halls in a centred modal over the read-only panel. */
-function EditAccessDialog({ m, addHall, open, onClose }: { m: Member; addHall?: string; open: boolean; onClose: () => void }) {
+function EditAccessDialog({ m, addHall, focus, open, onClose }: { m: Member; addHall?: string; focus?: 'role' | 'properties'; open: boolean; onClose: () => void }) {
+  const roleRef = useRef<HTMLDivElement>(null);
+  const propsRef = useRef<HTMLDivElement>(null);
+  /* Opened from the row menu: land on the part that was asked for. */
+  useEffect(() => {
+    if (!open || !focus) return;
+    const t = setTimeout(() => {
+      if (focus === 'role') roleRef.current?.querySelector<HTMLElement>('button, [role="combobox"], select')?.focus();
+      else { propsRef.current?.scrollIntoView({ block: 'start' }); propsRef.current?.querySelector<HTMLElement>('button[role="checkbox"], input')?.focus(); }
+    }, 60);
+    return () => clearTimeout(t);
+  }, [open, focus]);
   const { roles, set, audit_ } = useOrg();
   const orig = m.halls === 'all' ? HALLS.map((h) => h.id) : m.halls;
   const initHalls = () => (addHall && !orig.includes(addHall) ? [...orig, addHall] : orig);
@@ -291,13 +305,13 @@ function EditAccessDialog({ m, addHall, open, onClose }: { m: Member; addHall?: 
     else undoable(`${m.name}’s access saved`, before);
   };
   return (
-    <PanelModal open={open} onClose={onClose} eyebrow="Edit access" title={m.name} meta={`Applies straight away; ${first} gets an email.`} width={560}
+    <PanelModal open={open} onClose={onClose} eyebrow="Edit access" title={m.name} person={m.name} meta={`Applies straight away; ${first} gets an email.`} width={560}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} onClick={save}>Save</Button></>}>
-      <SheetSection title="Role">
+      <div ref={roleRef}><SheetSection title="Role">
         <IconSelect ariaLabel="Role" icon={Shield} value={roleId} onChange={setRoleId} options={roles.map((r) => ({ value: r.id, label: r.name }))} />
         {role && <p className="text-xs text-[#737373] mt-1.5">{roleCan(role)}</p>}
-      </SheetSection>
-      <SheetSection title={allScope ? 'Properties' : `Properties · ${halls.length}`}>
+      </SheetSection></div>
+      <div ref={propsRef} className="mt-3 scroll-mt-4"><SheetSection title={allScope ? 'Properties' : `Properties · ${halls.length}`}>
         {allScope ? <p className="text-sm text-[#737373]">{role?.name} covers every property.</p> : (
           <div className="divide-y divide-[#EBEBEB] -my-1">
             {ordered.map((h) => { const on = halls.includes(h.id); const isNew = on && !orig.includes(h.id); return (
@@ -308,7 +322,7 @@ function EditAccessDialog({ m, addHall, open, onClose }: { m: Member; addHall?: 
             ); })}
           </div>
         )}
-      </SheetSection>
+      </SheetSection></div>
     </PanelModal>
   );
 }

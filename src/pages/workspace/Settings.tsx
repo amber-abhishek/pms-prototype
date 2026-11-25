@@ -642,7 +642,7 @@ export function SettingsEmails() {
         </div></Section>
         <div className="sticky top-0"><Section title="Preview">
           <div className="rounded-lg bg-white border border-line overflow-hidden">
-            <div className="h-12 px-3.5 flex items-center gap-2.5" style={{ background: c }}><span className="size-5 rounded bg-white text-[11px] font-semibold flex items-center justify-center" style={{ color: c }}>D</span><span className="text-xs font-semibold text-white">{d.sender || general.name}</span></div>
+            <div className="h-12 px-3.5 flex items-center gap-2.5" style={{ background: c }}><span className="size-5 rounded text-[11px] font-semibold flex items-center justify-center" style={{ color: c, background: '#fff' }}>D</span><span className="text-xs font-semibold text-white">{d.sender || general.name}</span></div>
             <div className="p-3.5">
               <div className="text-sm font-semibold text-[#0A0A0A]">Your rent for the Spring period is due</div>
               <p className="text-xs text-[#404040] mt-2 leading-[17px]">Hi Amira, £2,180 is due on 5 January. Pay in the resident portal by card or bank transfer.</p>

@@ -262,7 +262,7 @@ function AppTable({ tab, rows, open, setOpen }: { tab: TabId; rows: App[]; open:
       {/* The footer every table page has: the count on the left, the numbered pager on the right. */}
       <Foot right={pages > 1 && <Pager pages={pages} page={page} onPage={setPage} />}>{pages > 1 && `Showing ${shown.length} of ${fmtN(order.length)} entries`}</Foot>
       <Sheet open={!!sel && !allocating && !rejecting} onClose={() => setOpen(null)} width={520} title="Application" nav={listNav(order, (a) => a.id === open, (a) => setOpen(a.id))}>
-        {sel && <div className="-m-5 h-[calc(100vh-16px-56px)] flex"><AppDetail a={sel} onAllocate={(p) => setAllocating({ a: sel, p })} onReject={() => setRejecting(sel)} onAfter={() => setOpen(null)} /></div>}
+        {sel && <div className="-m-5 h-[calc(100%+40px)] flex"><AppDetail a={sel} onAllocate={(p) => setAllocating({ a: sel, p })} onReject={() => setRejecting(sel)} onAfter={() => setOpen(null)} /></div>}
       </Sheet>
       {allocating && <AllocateSheet a={allocating.a} pref={allocating.p} onClose={() => setAllocating(null)} onDone={() => { setAllocating(null); setOpen(null); }} />}
       {rejecting && <RejectDialog a={rejecting} onClose={() => setRejecting(null)} onDone={() => { setRejecting(null); setOpen(null); }} />}

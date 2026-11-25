@@ -71,9 +71,10 @@ export function Profile() {
           </Section>
 
           <Section title="Role and access">
+            {/* Same row as Sign-in below: what it is and its detail on the left, the value on the right. */}
             <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0"><div className="text-sm leading-5 font-medium text-[#0A0A0A]">Access</div><div className="text-sm leading-5 text-[#737373]">{ROLE[role].scope}</div></div>
               <Pill tone="blue">{ROLE[role].label}</Pill>
-              <span className="text-sm leading-5 text-[#737373]">{ROLE[role].scope}</span>
             </div>
           </Section>
 

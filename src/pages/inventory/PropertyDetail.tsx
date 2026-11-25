@@ -6,6 +6,7 @@ import {
   DotsThree, DownloadSimple, FileCsv, Image, ImageSquare, LinkSimple, ListDashes, MapPin, PencilSimple, Plus, Archive, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
 import { Avatar, Button, Card, DL, Empty, Field, Input, Note, Sheet, SheetNavButtons, Textarea, cx, listNav, Pill, SheetHero, SheetRow, SheetSection } from '../../components/ui';
+import { layoutOf } from './LevelSheet';
 import { allUnits, invId, logAct, money, per, toMonthly, useInv, type Property, type RoomType, type Tag, type Template } from '../../data/inventory';
 import { useTab } from '../hooks';
 import { NotFound } from '../Misc';
@@ -199,7 +200,7 @@ export function PropertyDetail() {
               <div className="-my-2.5">
                 <DL rows={[
                   ['Inventory no.', p.invNo ? <span className="font-mono">{p.invNo}</span> : '—'],
-                  ['Layout', `${p.structure} · ${p.structure === 'Building' ? 5 : 2} levels`],
+                  ['Layout', `${layoutOf(p)} · ${useInv.getState().structures.find((x) => x.name === layoutOf(p))?.levels.length ?? (p.structure === 'Building' ? 5 : 3)} levels`],
                   ['Zone', p.zone || '—'],
                 ]} />
                 <p className="mt-3 pb-2.5 pt-1 text-xs leading-4 text-[#737373]">Created by {p.createdBy} on {p.created}</p>
@@ -377,7 +378,7 @@ export function PropertyDetail() {
             {p.tenancies === false && <Note tone="amber" icon={WarningCircle} title="These rooms have no tenancy yet">Apply a tenancy template to each room type before the property can go active.</Note>}
             <Card className="overflow-hidden">
               <div className="h-14 px-4 flex items-center gap-3 border-b border-[#F5F5F5]"><div className="min-w-0"><div className="text-sm leading-5 font-semibold">Room types</div><div className="mt-1 text-xs leading-4 text-[#737373] truncate">Rent applies to every room of that type</div></div></div>
-              <table className="w-full text-sm">
+              {!p.roomTypes.length ? <div className="h-16 flex items-center justify-center text-sm text-[#737373]">No room types yet</div> : <table className="w-full text-sm">
                 <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Room type</th><th className="font-medium px-3">Rooms</th><th className="font-medium px-3">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="pr-4" /></tr></thead>
                 <GhostZone.Provider value><tbody>
                   {p.roomTypes.map((r) => (
@@ -388,9 +389,8 @@ export function PropertyDetail() {
                       <td className="pr-4 text-right"><Button size="sm" icon={null} onClick={() => setRentFor(r)}>Change rent</Button></td>
                     </tr>
                   ))}
-                  {!p.roomTypes.length && <tr><td colSpan={4} className="h-16 text-center text-[#737373]">No room types yet</td></tr>}
                 </tbody></GhostZone.Provider>
-              </table>
+              </table>}
             </Card>
             <Card className="overflow-hidden">
               <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Custom pricing</button></div>
@@ -831,7 +831,7 @@ export function EditSheet({ p, which, onClose }: { p: Property; which: null | 'b
         <Field label="Inventory number" hint="Optional"><Input className="font-mono" value={invNo} onChange={(e) => setInvNo(e.target.value)} /></Field>
         <Field label="Location"><Input value={p.campus} disabled /></Field>
         {/* Read-only like Campus, so it sits with it as a field rather than a label/value row in its own card. */}
-        <Field label="Layout" hint="Can’t change once rooms are built"><Input value={p.structure} disabled /></Field>
+        <Field label="Layout" hint="Can’t change once rooms are built"><Input value={layoutOf(p)} disabled /></Field>
       </div>
     </SheetSection>
   );

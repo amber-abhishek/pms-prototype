@@ -12,7 +12,7 @@ export type RoomType = { name: string; rooms: number; rent: number | null; next?
 export type ActivityRow = { who: string; what: string; when: string };
 export type Counts = { all: number; active: number; draft: number; inactive: number; archived: number };
 export type Property = {
-  id: string; name: string; campus: string; structure: 'Building' | 'House'; tags: Tag[]; units: number; status: PStatus;
+  id: string; name: string; campus: string; structure: 'Building' | 'House'; /** The Property layouts entry it was built from; unset on seeded properties. */ layout?: string; tags: Tag[]; units: number; status: PStatus;
   address: string; zone: string; invNo: string; letting: 'Weekly' | 'Monthly';
   blocks: Block[]; build: { done: number; total: number } | null;
   photos: number; description: string; amenities: string[]; wardenPhone: string;
@@ -96,10 +96,10 @@ export function makeInventorySeed() {
     { id: 'fe4', typeId: 'ft4', amount: '£10 each', appliesTo: 'ust', chargedOn: 'Each room' },
   ];
   const imports: ImportJob[] = [
-    { id: 'im2', name: 'ustinov-annex.csv', kind: 'Spreadsheet', status: 'Queued', done: 0, total: 60, by: 'Tom Reid', started: 'Today 11:44', structure: 'Building', creates: '60 rooms' },
-    { id: 'im3', name: 'Fenwick Block · 48 rooms', kind: 'Bulk create', status: 'Succeeded', done: 48, total: 48, by: 'Arjun Mehta', started: 'Today 10:05', structure: 'Building', creates: '1 block · 63 entities' },
-    { id: 'im4', name: 'hild-bede-flats.csv', kind: 'Spreadsheet', status: 'Failed', done: 0, total: 72, errors: 2, by: 'Tom Reid', started: 'Yesterday 16:20', structure: 'Building', creates: '72 rooms' },
-    { id: 'im5', name: 'John Snow · Block D', kind: 'Bulk create', status: 'Succeeded', done: 120, total: 120, by: 'Arjun Mehta', started: '24 Oct', structure: 'Building', creates: '1 block · 145 entities' },
+    { id: 'im2', name: 'ustinov-annex.csv', kind: 'Spreadsheet', status: 'Queued', done: 0, total: 60, by: 'Tom Reid', started: 'Today 11:44', structure: 'Blocks with flats', creates: '60 rooms' },
+    { id: 'im3', name: 'Fenwick Block · 48 rooms', kind: 'Bulk create', status: 'Succeeded', done: 48, total: 48, by: 'Arjun Mehta', started: 'Today 10:05', structure: 'Blocks with flats', creates: '1 block · 63 entities' },
+    { id: 'im4', name: 'hild-bede-flats.csv', kind: 'Spreadsheet', status: 'Failed', done: 0, total: 72, errors: 2, by: 'Tom Reid', started: 'Yesterday 16:20', structure: 'Blocks with flats', creates: '72 rooms' },
+    { id: 'im5', name: 'John Snow · Block D', kind: 'Bulk create', status: 'Succeeded', done: 120, total: 120, by: 'Arjun Mehta', started: '24 Oct', structure: 'Blocks with flats', creates: '1 block · 145 entities' },
   ];
   const archived: Record<string, ArchivedRow[]> = {
     col: [

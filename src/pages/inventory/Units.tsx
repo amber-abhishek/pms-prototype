@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Archive, ArrowSquareOut, ArrowUUpLeft, ArrowsOutCardinal, Bed, Buildings, CaretDown, CaretRight, Door, DotsThree, Info, LinkSimple, ListDashes, PencilSimple, Plus, Stack, UploadSimple, Warning, WarningCircle,
 } from '../../components/icons';
-import { PersonName, Button, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
+import { PersonName, Button, Empty, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, flatsOf, money, per, useInv, type ArchivedRow, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
@@ -172,7 +172,7 @@ function UnitsView({ props }: { props: Property[] }) {
           ) : (
             <>
               <div data-fill className="flex-1 overflow-auto">
-                <table className="w-full text-sm">
+                {!groups.length ? <Empty art="noResults" title={`No ${tab === 'all' ? '' : tab.toLowerCase() + ' '}units here`} sub={typeF.length ? `None of type ${typeF.join(' or ')}.` : undefined} /> : <table className="w-full text-sm">
                   <thead className="sticky top-0 z-[1]"><tr className="text-left">
                     <th className="w-12 pl-6"><Checkbox aria-label="Select all" checked={!!flatList.length && checked.length === flatList.length} onCheckedChange={(v) => setChecked((v === true) ? flatList.map((u) => u.id) : [])} /></th>
                     {['Unit', 'Room type', `Rent / ${per(p)}`, 'Status', 'Tenancy template'].map((h, i) => <th key={h} className={cx('px-3', i === 4 && 'pr-6')}>{h}</th>)}
@@ -182,9 +182,8 @@ function UnitsView({ props }: { props: Property[] }) {
                       <FlatGroup key={f.id} f={f} units={units} cursorId={kbd ? flatList[cursor]?.id : undefined} open={open} checked={checked} setChecked={setChecked} onOpen={(id) => { setKbd(false); setOpen(id); setCursor(flatList.findIndex((u) => u.id === id)); }}
                         onFlat={() => go({ flat: +f.id.split('|')[3] })} onArchive={() => setArchiveFlat(f)} onRename={() => setRenaming(f)} />
                     ))}
-                    {!groups.length && <tr><td colSpan={6} className="h-32 text-center text-sm text-[#737373]">No {tab === 'all' ? '' : tab.toLowerCase() + ' '}units here{typeF.length ? ` of type ${typeF.join(' or ')}` : ''}.</td></tr>}
                   </tbody>
-                </table>
+                </table>}
               </div>
               {/* Footer (59px, lines up with the sidebar profile): the count, or the bulk action while rows are ticked. */}
               <div className="h-[59px] shrink-0 px-6 flex items-center gap-3 border-t border-[#E5E5E5] text-sm text-[#737373]">
@@ -511,7 +510,7 @@ function ArchivedTable({ p, rows, onRestore }: { p: Property; rows: ArchivedRow[
   return (
     <>
       <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
-        <table className="w-full text-sm">
+        {!top.length ? <Empty art="nothingToShow" title="Nothing archived" sub={`Archived flats and units in ${p.name} show here.`} /> : <table className="w-full text-sm">
           <thead className="sticky top-0 bg-white"><tr className="text-left text-xs text-[#737373]">{['Entity', 'Type', 'Status', 'Archived', ''].map((h, i) => <th key={i} className={cx('font-medium h-9 border-b border-line px-3', i === 0 && 'pl-[var(--cx,12px)]', i === 4 && 'pr-[var(--cx,12px)]')}>{h}</th>)}</tr></thead>
           <GhostZone.Provider value><tbody>
             {top.map((r) => (
@@ -523,11 +522,10 @@ function ArchivedTable({ p, rows, onRestore }: { p: Property; rows: ArchivedRow[
                 <td className="row-act pl-3 pr-[var(--cx,12px)] text-right"><Button size="sm" icon={ArrowUUpLeft} onClick={() => onRestore(r)}>Restore</Button></td>
               </tr>
             ))}
-            {!top.length && <tr><td colSpan={5} className="h-32 text-center text-sm text-[#737373]">Nothing archived in {p.name}.</td></tr>}
           </tbody></GhostZone.Provider>
-        </table>
+        </table>}
       </div>
-      <div className="h-10 shrink-0 px-5 flex items-center border-t border-line text-sm text-[#737373]">{rows.length} archived in {p.name}</div>
+      {rows.length > 0 && <div className="h-10 shrink-0 px-5 flex items-center border-t border-line text-sm text-[#737373]">{rows.length} archived in {p.name}</div>}
     </>
   );
 }

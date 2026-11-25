@@ -20,6 +20,12 @@ const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
 /** More rows than this changing at once is a new view (tab, filter, page), not an action: no motion. */
 const MAX_ANIMATED = 6;
 
+/* A tab switch, search or filter is a new view, however few rows it swaps (a 6-row list losing 2 on a tab change
+   used to fade them out, 2026-11-24): the control says so here, and row changes that land with it don't animate. */
+let viewChangedAt = -1e9;
+export const markViewChange = () => { viewChangedAt = performance.now(); };
+const VIEW_CHANGE_MS = 150;
+
 type Ghost<T> = { row: T; index: number };
 type St<T> = { prev: T[]; key: string; ghosts: Ghost<T>[]; fresh: string[]; tick: number };
 const keyOf = (rows: { id: string }[]) => rows.map((r) => r.id).join('\u0001');
@@ -37,7 +43,7 @@ function usePresence<T extends { id: string }>(rows: T[]) {
     const removed = st.prev.map((row, index) => ({ row, index })).filter((g) => !now.has(g.row.id));
     const added = rows.filter((r) => !before.has(r.id)).map((r) => r.id);
     const swapped = removed.length > 0 && removed.length === st.prev.length && added.length > 0;
-    const small = removed.length + added.length > 0 && removed.length + added.length <= MAX_ANIMATED && !swapped;
+    const small = removed.length + added.length > 0 && removed.length + added.length <= MAX_ANIMATED && !swapped && performance.now() - viewChangedAt > VIEW_CHANGE_MS;
     cur = small
       ? { prev: rows, key, ghosts: [...st.ghosts.filter((g) => !now.has(g.row.id)), ...removed], fresh: [...st.fresh, ...added], tick: st.tick + 1 }
       : { prev: rows, key, ghosts: [], fresh: [], tick: st.tick };

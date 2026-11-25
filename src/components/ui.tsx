@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from './shadcn/tooltip';
-import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Illustration, artFor, type Illo } from './Illustration';
 import { PageIntro } from './pageIntro';
 import { FooterZone, GhostZone, useHeadingTaken, useOwnHeading, usePageTitle, usePublishTitle } from './headerCtx';
@@ -32,7 +32,7 @@ import { Checkbox } from './shadcn/checkbox';
 import { Sheet as UISheet, sheetStep, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from './shadcn/sheet';
 import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogDescription, DialogFrame, DialogTitle } from './shadcn/dialog';
 import { toneCls, toneDot } from './tones';
-import { rowAttrs, useRowMotion } from './rowMotion';
+import { markViewChange, rowAttrs, useRowMotion } from './rowMotion';
 import { useColumns } from './columns';
 import { ArrowLeft as ArrowL, ArrowRight as ArrowR, ArrowUpRight as ArrowUR, CaretDown, CaretLeft, CaretRight, CaretUp, Check as CheckIcon, ChevronsUpDown, FunnelSimple, MagnifyingGlass, type Icon } from './icons';
 import { X, ArrowDown, ArrowUp, Prohibit, Lock, MagicWand, UserCheck, XCircle, Trash, Archive, ArrowCounterClockwise, Bell, UserPlus, PaperPlaneTilt, ChatCenteredText, Copy, PencilSimple, DownloadSimple, UploadSimple, Plus, Eye, ArrowSquareOut, CalendarPlus, Pause, ArrowClockwise, Tag, Flag } from './icons';
@@ -98,6 +98,9 @@ export function Button({ variant: asked = 'secondary', size = 'md', icon, childr
 /* ---------- Pills: shadcn Badge with the vibrant tones (./tones) ---------- */
 /** Pill: 22px, 8px radius, 12px medium. `outline` is the tag style (white ground, tone border at 35%). */
 /** Each tone's avatar colour, so an icon tile takes the avatar finish in the same hue. */
+/** A tone colour set from code (not a class), for `.tone-fg` / `.tone-tag` (styles.css): the colour rides in a
+ *  variable so dark mode can lift it. A plain inline `color` is invisible to the dark pass and stays too dark. */
+export const toneFg = (c: string) => ({ '--fg': c }) as CSSProperties;
 const TONE_FG: Record<Tone, string> = { blue: '#2563EB', green: '#0B8A4C', amber: '#C47A00', orange: '#E5530C', red: '#E0243A', purple: '#8B2CF5', grey: '#64748B' };
 /** A row's icon (2026-11-13): 28px r8 tile, 16px icon, with the avatar finish (tint gradient, top highlight, tinted ring). */
 export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; tone?: Tone; size?: number }) {
@@ -465,7 +468,7 @@ export function FolderTabList<T extends string>({ tabs }: { tabs: { id: T; label
     <TabsList data-tab-band slide="folder" className="h-auto flex items-end gap-0 rounded-none bg-transparent p-0 shadow-none">
       {tabs.map((t) => (
         <TabsTrigger key={t.id} value={t.id} data-folder-tab
-          className="relative z-[1] h-[34px] min-w-[108px] px-3 pt-1 pb-1.5 gap-1.5 rounded-none font-mono text-sm leading-6 font-medium uppercase tracking-normal text-[#737373] bg-transparent shadow-none transition-colors hover:text-[#0A0A0A] data-[state=active]:bg-transparent data-[state=active]:text-[#0A0A0A] data-[state=active]:shadow-none">
+          className="relative z-[1] h-[34px] min-w-[108px] px-5 pt-1 pb-1.5 gap-2 rounded-none font-mono text-sm leading-6 font-medium uppercase tracking-normal text-[#737373] bg-transparent shadow-none transition-colors hover:text-[#0A0A0A] data-[state=active]:bg-transparent data-[state=active]:text-[#0A0A0A] data-[state=active]:shadow-none">
           {t.label}{t.count !== undefined && <span className="font-mono text-xs font-medium tabular-nums text-[#A3A3A3]">{t.count.toLocaleString('en-GB')}</span>}
         </TabsTrigger>
       ))}
@@ -481,8 +484,8 @@ export function SearchInput({ value, onChange, placeholder = 'Search' }: { value
     /* Connect 2.0 (3095:16041) search: 320×32, 6/6/6/8, r8, 20px #737373 icon and placeholder; focus = #2563EB edge + 1px ring. */
     <label className="h-8 w-[320px] max-w-full flex items-center gap-1.5 pl-2 pr-1.5 rounded-lg border border-[#E5E5E5] bg-white text-sm text-[#0A0A0A] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-[border-color,box-shadow] duration-150 focus-within:border-[#2563EB] focus-within:shadow-[0_0_0_1px_#2563EB]">
       <MagnifyingGlass size={20} strokeWidth={1.5} className="text-[#737373] shrink-0" />
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent outline-none placeholder:text-[#737373] min-w-0" />
-      {value && <button type="button" aria-label="Clear" onClick={() => onChange('')}><X size={12} className="text-gray-400" /></button>}
+      <input value={value} onChange={(e) => { markViewChange(); onChange(e.target.value); }} placeholder={placeholder} className="flex-1 bg-transparent outline-none placeholder:text-[#737373] min-w-0" />
+      {value && <button type="button" aria-label="Clear" onClick={() => { markViewChange(); onChange(''); }}><X size={12} className="text-gray-400" /></button>}
     </label>
   );
 }
@@ -520,8 +523,8 @@ export function MultiFilter({ label, options, value, onChange, width = 200, alig
           ))}
         </div>
         <div className="flex gap-2 p-3 border-t border-[#E5E5E5]">
-          <UIButton variant="outline" size="sm" className="flex-1 h-8" onClick={() => { onChange([]); setOpen(false); }}>Clear</UIButton>
-          <UIButton size="sm" className="flex-1 h-8" onClick={() => { onChange(draft); setOpen(false); }}>Apply</UIButton>
+          <UIButton variant="outline" size="sm" className="flex-1 h-8" onClick={() => { markViewChange(); onChange([]); setOpen(false); }}>Clear</UIButton>
+          <UIButton size="sm" className="flex-1 h-8" onClick={() => { markViewChange(); onChange(draft); setOpen(false); }}>Apply</UIButton>
         </div>
       </PopoverContent>
     </Popover>
@@ -714,8 +717,8 @@ export function Note({ tone = 'amber', title, children, icon: I, plain }: { tone
   return (
     <div className={cx('flex items-start gap-2.5', !plain && 'rounded-lg border px-3 py-2.5', !plain && (tone === 'grey' ? 'bg-[#FAFAFA]' : 'bg-white'))} style={plain ? undefined : { borderColor: c[2] }}>
       {/* The icon sits on the title line (16px icon in a 20px line), not centred on the whole note. */}
-      {I && <I size={16} weight="regular" style={{ color: c[0] }} className="shrink-0 mt-0.5" />}
-      <div className="min-w-0"><div className="text-sm leading-5 font-medium" style={{ color: c[1] }}>{title}</div>{children && <div className="mt-1 text-xs leading-4 text-[#737373]">{children}</div>}</div>
+      {I && <I size={16} weight="regular" style={toneFg(c[0])} className="tone-fg shrink-0 mt-0.5" />}
+      <div className="min-w-0"><div className="tone-fg text-sm leading-5 font-medium" style={toneFg(c[1])}>{title}</div>{children && <div className="mt-1 text-xs leading-4 text-[#737373]">{children}</div>}</div>
     </div>
   );
 }
@@ -1003,13 +1006,13 @@ export function SheetHero({ name, meta, avatar = true, lead, icon: I, tone = 'gr
   );
 }
 /** Key facts under the hero: an r12 box split into equal cells, mono caps label over a 16px Medium value (tone = colour). */
-export function SheetFacts({ facts }: { facts: Fact[] }) {
+export function SheetFacts({ facts, big }: { facts: Fact[]; /** Figures, not words: 24px Geist Mono, as in the number bands. */ big?: boolean }) {
   return (
     <div className="grid rounded-xl border border-[#E5E5E5]" style={{ gridTemplateColumns: `repeat(${facts.length}, minmax(0, 1fr))` }}>
       {facts.map(([k, v, t], i) => (
         <div key={k} className={cx('min-w-0 px-3.5 py-3', i > 0 && 'border-l border-[#E5E5E5]')}>
           <div className={cx(EYEBROW, 'text-[#737373] truncate')}>{k}</div>
-          <div className="mt-1 text-base leading-6 font-medium truncate" style={{ color: t ? TONE_FG[t] : '#0A0A0A' }}>{v}</div>
+          <div className={cx('truncate', big ? 'mt-1.5 font-mono text-2xl leading-8 font-semibold tabular-nums' : 'mt-1 text-base leading-6 font-medium', t ? 'tone-fg' : 'text-[#0A0A0A]')} style={t ? toneFg(TONE_FG[t]) : undefined}>{v}</div>
         </div>
       ))}
     </div>

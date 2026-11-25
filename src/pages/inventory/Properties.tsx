@@ -10,7 +10,8 @@ import { PHOTO } from './photos';
 import { EditSheet } from './PropertyDetail';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
 import { useOrg } from '../../data/org';
-import { EditLink, LayoutRadios, Menu, Modal, PanelModal, PropStatus, RadioCard, Stepper, Tags } from './common';
+import { layoutOf } from './LevelSheet';
+import { EditLink, LayoutRadios, useLayout, Menu, Modal, PanelModal, PropStatus, RadioCard, Stepper, Tags } from './common';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Dropdown, Input } from '../../components/ui';
 
@@ -42,6 +43,7 @@ export function PropertiesPage() {
 
   const [campusF, setCampusF] = useState<string[]>([]);
   const [layoutF, setLayoutF] = useState<string[]>([]);
+  const layoutNames = useInv((st) => st.structures).map((x) => x.name);
   const [statusF, setStatusF] = useState<string[]>([]);
   const [sort, setSort] = useState<{ key: 'name' | 'units'; dir: 1 | -1 } | null>(null);
   const list = useMemo(() => (empty ? [] : props).filter((p) => p.status !== 'Archived'), [props, empty]);
@@ -50,7 +52,7 @@ export function PropertiesPage() {
   /* The list and its toolbar stay while anything exists, archived included, so the Archived filter is always reachable. */
   const anyProps = !empty && props.length > 0;
   const rows = (archivedShown ? props : list)
-    .filter((p) => (!campusF.length || campusF.includes(p.campus)) && (!layoutF.length || layoutF.includes(p.structure)) && (!statusF.length || statusF.includes(p.status)) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())))
+    .filter((p) => (!campusF.length || campusF.includes(p.campus)) && (!layoutF.length || layoutF.includes(layoutOf(p))) && (!statusF.length || statusF.includes(p.status)) && (!q || (p.name + p.address).toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => !sort ? 0 : sort.dir * (sort.key === 'units' ? a.units - b.units : a.name.localeCompare(b.name)));
   shownOrder.ids = rows.map((p) => p.id);
   const sortBy = (key: 'name' | 'units') => setSort((s) => (s?.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
@@ -99,7 +101,7 @@ export function PropertiesPage() {
       );
     } },
     { key: 'Location', label: 'Location', render: (p: Property) => <span className="text-[#404040]">{p.campus}</span> },
-    { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#404040]">{p.structure}</span> },
+    { key: 'Layout', label: 'Layout', render: (p: Property) => <span className="text-[#404040]">{layoutOf(p)}</span> },
     { key: 'Tags', label: 'Tags', render: (p: Property) => <Tags tags={p.tags} /> },
     { key: 'Units', label: head('Units', 'units'), render: (p: Property) => <span className="font-medium tabular-nums">{p.units.toLocaleString('en-GB')}</span> },
     { key: 'Status', label: 'Status', render: (p: Property) => <PropStatus s={p.status} /> },
@@ -136,7 +138,7 @@ export function PropertiesPage() {
             <div className="[&>label]:w-[280px] [&>label]:h-9"><SearchInput value={q} onChange={setQ} placeholder="Search properties" /></div>
             <div className="ml-auto flex items-center gap-3">
               <MultiFilter label="Location" value={campusF} onChange={setCampusF} options={[{ value: 'Durham City' }, { value: 'Queen’s Campus' }]} />
-              <MultiFilter label="Layout" value={layoutF} onChange={setLayoutF} options={[{ value: 'Building' }, { value: 'House' }]} />
+              <MultiFilter label="Layout" value={layoutF} onChange={setLayoutF} options={layoutNames.map((value) => ({ value }))} />
               <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={240} options={[{ value: 'Active', tone: 'green' }, { value: 'Draft', tone: 'amber' }, { value: 'Inactive', tone: 'grey' }, { value: 'Closed to allocations', tone: 'amber' }, { value: 'Archived', tone: 'red' }]} />
             </div>
           </div>
@@ -192,10 +194,15 @@ function CreateButton({ onSingle, onBulk, onImport }: { onSingle: () => void; on
   );
 }
 
+/** An example cell for a level's template column. */
+const sampleOf = (level: string) => (/house/i.test(level) ? '1' : /build|block|hall/i.test(level) ? 'A' : /floor|level|storey/i.test(level) ? '1' : /flat|apartment|cluster/i.test(level) ? 'A1' : 'A1-01');
+
 /* ---------------- Bulk create: several similar properties from one layout ---------------- */
 const BULK_TYPES = ['Ensuite single', 'Standard single', 'Studio'] as const;
 function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [structure, setStructure] = useState<'Building' | 'House'>('House');
+  const [layoutName, setStructure] = useState('Shared houses');
+  const shape = useLayout(layoutName);
+  const structure = shape.kind;
   const orgCampuses = useOrg((o) => o.campuses);
   const campusNames = orgCampuses.length ? orgCampuses.filter((c) => c.status !== 'Inactive').map((c) => c.name) : ['Durham City', 'Queen’s Campus'];
   const [campus, setCampus] = useState(campusNames[0] ?? '');
@@ -212,7 +219,7 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
     if (busy.current || !valid) return;
     busy.current = true;
     const made: Property[] = names.map((name) => ({
-      id: invId('p'), name, campus, structure, tags: [], units: roomsEach, status: 'Draft', address: '', zone: '', invNo: '', letting: 'Weekly',
+      id: invId('p'), name, campus, structure, layout: shape.name, tags: [], units: roomsEach, status: 'Draft', address: '', zone: '', invNo: '', letting: 'Weekly',
       blocks: [{ name, floors: 1, flats: 1, rooms: roomsEach, roomType, size: 12 }], build: null, photos: 0, description: '', amenities: [], wardenPhone: '',
       createdBy: 'Arjun Mehta', created: '19 Nov', activity: [{ who: 'Arjun Mehta', what: `${name} created in bulk`, when: 'Just now' }],
       roomTypes: [{ name: roomType, rooms: roomsEach, rent: 0 }], liveTenancies: 0, fees: 1,
@@ -220,7 +227,7 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
     }));
     useInv.getState().set('properties', (ps) => [...ps, ...made]);
     /* Logged on Imports like every other build, so the team can see what was made and by whom (2026-11-20). */
-    useInv.getState().set('imports', (l) => [{ id: invId('im'), name: made.length > 1 ? `${made[0].name} – ${made[made.length - 1].name}` : made[0].name, kind: 'Bulk create', status: 'Succeeded', done: made.length * roomsEach, total: made.length * roomsEach, by: 'Arjun Mehta', started: 'Just now', structure, creates: `${made.length} properties · ${made.length * roomsEach} rooms` }, ...l]);
+    useInv.getState().set('imports', (l) => [{ id: invId('im'), name: made.length > 1 ? `${made[0].name} – ${made[made.length - 1].name}` : made[0].name, kind: 'Bulk create', status: 'Succeeded', done: made.length * roomsEach, total: made.length * roomsEach, by: 'Arjun Mehta', started: 'Just now', structure: shape.name, creates: `${made.length} properties · ${made.length * roomsEach} rooms` }, ...l]);
     setDone(made.length);
   };
   if (done) {
@@ -234,7 +241,7 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!valid} onClick={create}>Create {count} properties</Button></>}>
       {/* The side panels' language: r16 section cards with a 48px grey strip. Plain divs for the labels, not <label>: a
           label around a stepper would press its − button when the label text is clicked. */}
-      <SheetSection title="Layout"><LayoutRadios value={structure} onChange={setStructure} /></SheetSection>
+      <SheetSection title="Layout"><LayoutRadios value={shape.name} onChange={setStructure} /></SheetSection>
       <SheetSection title="Properties">
         {/* Campus is a dropdown, not a segmented control: an organisation can have any number of campuses. */}
         <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-x-3 gap-y-4">
@@ -280,11 +287,13 @@ type ImpStage = 'pick' | 'problems' | 'ok' | 'queued';
 export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const nav = useNavigate();
   const [stage, setStage] = useState<ImpStage>('pick');
-  const [structure, setStructure] = useState<'Building' | 'House'>('Building');
+  const [layoutName, setStructure] = useState('Blocks with flats');
+  const shape = useLayout(layoutName);
+  const structure = shape.name;
   const tries = useRef(0);
   const busy = useRef(false);
   useEffect(() => { if (open) { setStage('pick'); tries.current = 0; } }, [open]);
-  const cols = structure === 'Building' ? ['Property', 'Block', 'Floor', 'Flat', 'Room', 'Room.roomSize*', 'Room.accessible'] : ['Property', 'Room', 'Room.roomSize*', 'Room.accessible'];
+  const cols = ['Property', ...shape.levels, `${shape.unit}.roomSize*`, `${shape.unit}.accessible`];
   const choose = () => { tries.current += 1; setStage(tries.current === 1 ? 'problems' : 'ok'); };
   const upload = () => {
     if (busy.current) return;
@@ -297,7 +306,8 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
     return (
       <Modal open={open} onClose={onClose} width={520} title="Import started" sub="It runs in the background and shows on Imports. We’ll email you the outcome."
         footer={<><Button icon={null} onClick={() => { onClose(); nav('/inventory/imports'); }}>View imports</Button><Button variant="primary" icon={null} onClick={onClose}>Done</Button></>}>
-        <SheetRow lead={<FileCsv size={20} className="shrink-0 text-[#737373]" />} title="st-marys-rooms.csv" sub={`144 rows · ${structure} layout`}
+        <Illustration name="importSent" className="block w-[203px] h-[160px] mx-auto mb-2" />
+        <SheetRow lead={<FileCsv size={20} className="shrink-0 text-[#737373]" />} title="st-marys-rooms.csv" sub={`144 rows · ${structure}`}
           end={<button type="button" aria-label="Cancel import" onClick={() => { useInv.getState().set('imports', (l) => l.filter((x) => x.name !== 'st-marys-rooms.csv')); onClose(); toast('Import cancelled'); }} className="text-[#737373] hover:text-ink"><X size={14} /></button>} />
       </Modal>
     );
@@ -307,19 +317,19 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
       lead={<span className="size-10 shrink-0 rounded-[10px] flex items-center justify-center" style={avatarFx('#64748B')}><UploadSimple size={20} strokeWidth={1.75} /></span>}
       right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={stage !== 'ok'} onClick={upload}>Upload</Button></>}>
       <SheetSection title="Property layout">
-        <LayoutRadios value={structure} onChange={(v) => { setStructure(v); setStage('pick'); tries.current = 0; }} />
+        <LayoutRadios value={shape.name} onChange={(v) => { setStructure(v); setStage('pick'); tries.current = 0; }} />
       </SheetSection>
-      <SheetSection title={`Template · ${cols.length} columns`} action={<EditLink onClick={() => toast.success(`${structure.toLowerCase()}-template.csv downloaded`)}>Download</EditLink>}>
+      <SheetSection title={`Template · ${cols.length} columns`} action={<EditLink onClick={() => toast.success(`${structure.toLowerCase().replace(/\s+/g, '-')}-template.csv downloaded`)}>Download</EditLink>}>
         {/* The template's header row and one example room; * marks a required column. */}
         <div className="-mx-4 -my-3.5 overflow-x-auto font-mono text-[11px] leading-4 whitespace-nowrap grid" style={{ gridTemplateColumns: cols.map((c) => `minmax(max-content, ${c.length}fr)`).join(' ') }}>
           {cols.map((c, k) => <span key={c} className={cx('h-8 px-3 flex items-center border-b border-[#E5E5E5] text-[#0A0A0A] font-medium', k < cols.length - 1 && 'border-r')}>{c}</span>)}
-          {(structure === 'Building' ? ['St Mary’s', 'A', '1', 'A1', 'A1-01', '12.5', 'no'] : ['Mill Lane', '1', '11.0', 'yes']).map((v, k) => <span key={k} className={cx('h-8 px-3 flex items-center border-[#E5E5E5] text-[#A3A3A3]', k < cols.length - 1 && 'border-r')}>{v}</span>)}
+          {['St Mary’s', ...shape.levels.map(sampleOf), '12.5', 'no'].map((v, k) => <span key={k} className={cx('h-8 px-3 flex items-center border-[#E5E5E5] text-[#A3A3A3]', k < cols.length - 1 && 'border-r')}>{v}</span>)}
         </div>
       </SheetSection>
       <SheetSection title="CSV file">
         {stage === 'pick' && (
           <button type="button" onClick={choose} className="w-full rounded-xl border border-dashed border-[#D4D4D4] bg-[#FAFAFA] hover:bg-[#F5F5F5] py-6 flex flex-col items-center gap-2.5 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <UploadSimple size={20} strokeWidth={1.5} className="text-[#737373]" />
+            <Illustration name="importFile" className="block w-[152px] h-[120px]" />
             <span className="text-sm text-[#0A0A0A]">Drop the CSV here or <span className="text-primary">choose a file</span></span>
           </button>
         )}

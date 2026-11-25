@@ -22,7 +22,8 @@ const NEUTRAL_HUE = 222;
 const NEUTRAL_SAT = 0.13;
 
 const OVERRIDES = {
-  bg: { '#fafafa': '#101217' },
+  /* Brand green fills carry white text (stepper discs, primary green): the softened lift read 3.3:1, so pin it. */
+  bg: { '#fafafa': '#101217', '#0b8a4c': '#0A8046' },
 };
 
 const KIND = (prop) => {
@@ -78,7 +79,8 @@ function mapColor(kind, r, g, b) {
     return null;
   }
   if (kind === 'text') {
-    if (neutral) return l >= 0.85 ? null : N(0.97 - l * 0.75);
+    /* Floor at 62%: muted greys (#A3A3A3 counts, dashes, hints) came out near 49%, about 3.5:1 on a card. */
+    if (neutral) return l >= 0.85 ? null : N(Math.max(0.62, 0.97 - l * 0.75));
     if (l < 0.62) return hslToRgb(h, Math.min(s, 0.9) * 0.5, 0.67 + l * 0.05);
     return null;
   }

@@ -209,7 +209,7 @@ export function OccupancyTimeline({ rooms, floors, year, hall }: { rooms: TlRoom
                                 className={cx('absolute top-2 bottom-2 z-[1] rounded-md border pr-2.5 flex items-center gap-1.5 min-w-0 text-left text-xs leading-4 font-medium cursor-pointer transition-[border-color,box-shadow] duration-150 hover:shadow-[0_1px_3px_rgba(0,0,0,0.10)] data-[state=open]:shadow-[0_1px_3px_rgba(0,0,0,0.10)] outline-none focus-visible:ring-2 focus-visible:ring-ring', 'pl-2.5', s.cls, s.text)}
                                 style={{ left: `max(6px, ${left}%)`, right: `${100 - left - width}%` }}>
                                 <span className="truncate">{b.label}</span>
-                                {width > 14 && <span className="ml-auto shrink-0 font-mono text-[11px] font-normal opacity-70">{fmt(b.to)}</span>}
+                                {width > 14 && <span className="ml-auto shrink-0 font-mono text-[11px] font-normal opacity-90">{fmt(b.to)}</span>}
                               </button>
                             </PopoverTrigger>
                             <PopoverContent align="start" sideOffset={6} collisionPadding={16} onOpenAutoFocus={(e) => e.preventDefault()} className="w-[340px] p-0 overflow-hidden rounded-2xl shadow-[0_12px_32px_-4px_rgba(0,0,0,0.14),0_4px_8px_-2px_rgba(0,0,0,0.06)]">

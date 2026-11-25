@@ -12,7 +12,11 @@ export type Illo = 'applications' | 'beds' | 'bookings' | 'campuses' | 'caughtUp
   | 'landlords' | 'notices' | 'offers' | 'properties' | 'queueClear' | 'requests' | 'rooms' | 'schedule' | 'team' | 'waitlist'
   /* General-purpose set, semi-flat objects by the profile-avatar illustrator (Figma "Empty states · Illustrations",
      4002:18207), recoloured to the PMS palette: search/filter misses, an empty tab, a 404, scheduling, record lists. */
-  | 'noResults' | 'nothingHere' | 'nothingToShow' | 'notFound' | 'calendar' | 'records' | 'noData' | 'getStarted';
+  | 'noResults' | 'nothingHere' | 'nothingToShow' | 'notFound' | 'calendar' | 'records' | 'noData' | 'getStarted'
+  /* Success moments (a property created). No file of its own yet: draws the target until one is added as created.svg. */
+  | 'created'
+  /* Import from another PMS: the drop zone and the "Import started" moment (IconScout 3385479, 3385487). */
+  | 'importFile' | 'importSent';
 
 /* The older per-module names now draw from the general set, so every empty state uses the one illustration style. */
 const ALIAS: Partial<Record<Illo, Illo>> = {
@@ -22,6 +26,7 @@ const ALIAS: Partial<Record<Illo, Illo>> = {
   landlords: 'notFound', enquiries: 'nothingToShow',
   properties: 'nothingHere', beds: 'noData', rooms: 'noData',
   team: 'notFound', campuses: 'getStarted', schedule: 'calendar', caughtUp: 'getStarted',
+  ...(Object.keys(files).some((f) => f.endsWith('/created.svg')) ? {} : { created: 'getStarted' as Illo }),
 };
 
 /** The illustration for an empty state that doesn't name one: a search/filter miss gets the magnifier, anything else one of a mix, picked by title. */

@@ -13,7 +13,7 @@ export type LevelKind = 'Block' | 'Floor' | 'Flat';
 type FieldLevel = LevelKind | 'Room';
 const ICON: Record<LevelKind, Icon> = { Block: Buildings, Floor: Stack, Flat: Door };
 /** The layout a property uses and the level name inside it, as custom fields store their attachment ("Halls with flats › Floor"). */
-export const layoutOf = (p: Property) => (p.structure === 'House' ? 'Shared houses' : 'Blocks with flats');
+export const layoutOf = (p: Property) => p.layout ?? (p.structure === 'House' ? 'Shared houses' : 'Blocks with flats');
 const levelName = (p: Property, k: FieldLevel) => (k === 'Block' ? (p.structure === 'House' ? 'House' : 'Building') : k);
 export const attachKey = (p: Property, k: FieldLevel) => `${layoutOf(p)} › ${levelName(p, k)}`;
 

@@ -111,6 +111,7 @@ function MyTasks() {
   const toggleDone = (t: HTask, v: boolean) =>
     change((rs) => rs.map((r) => (r.id === t.id ? { ...r, done: v, doneBy: v ? ME : undefined, doneLabel: v ? 'Mon 14 Sep' : undefined } : r)), v ? <span>Done · {t.title}</span> : <span>Moved back to My tasks</span>);
 
+  const hasRows = tab === 'snoozed' ? shown.length > 0 : tab === 'done' ? doneRows.length > 0 : ordered.length > 0;
   const task = rows.find((r) => r.id === open);
 
   return (
@@ -132,9 +133,10 @@ function MyTasks() {
         <CaughtUp />
       ) : (
         <div data-inset data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">
-          <div data-head className="grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] h-[42px] items-center font-mono uppercase text-[13px] leading-5 tracking-[0.02em] font-medium text-[#737373] border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-4">
+          {/* No column header over an empty state: the header only shows with rows under it (2026-11-24). */}
+          {hasRows && <div data-head className="grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] h-[42px] items-center font-mono uppercase text-[13px] leading-5 tracking-[0.02em] font-medium text-[#737373] border-b border-line sticky top-0 bg-white z-[1] [&>span]:px-4">
             <span className="col-span-2 !pl-[var(--cx,12px)]">Task</span><span>From</span><span><SortHead desc={desc} onToggle={() => setDesc((d) => !d)}>{tab === 'done' ? 'Done' : tab === 'snoozed' ? 'Back' : 'Due'}</SortHead></span><span>Owner</span><span />
-          </div>
+          </div>}
           {tab === 'snoozed' ? (
             shown.length ? shown.map((r) => <MainRow key={r.id} t={r} sel={open === r.id} onOpen={() => setOpen(r.id)} onCheck={(v) => toggleDone(r, v)} onWake={() => wake(r)} />)
               : <Empty icon={AlarmClock} title="Nothing snoozed" sub="Snoozed tasks come back on their own." />
@@ -287,9 +289,9 @@ function TeamBoard({ scope }: { scope: CaseId }) {
         </CaughtUp>
       ) : (
         <div ref={bodyRef} data-inset data-scroller className="flex-1 overflow-auto px-[var(--gx,16px)]">
-          <div data-head className="sticky top-0 bg-white z-[1] grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] h-10 items-center text-xs font-medium text-gray-500 border-b border-line [&>span]:px-4">
+          {(shown.length > 0 || moving.length > 0) && <div data-head className="sticky top-0 bg-white z-[1] grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] h-10 items-center text-xs font-medium text-gray-500 border-b border-line [&>span]:px-4">
             <span className="col-span-2 !pl-[var(--cx,12px)]">Task</span><span><SortHead desc={desc} onToggle={() => setDesc((d) => !d)}>{tab === 'done' ? 'Done' : 'Due'}</SortHead></span><span>Owner</span>
-          </div>
+          </div>}
           {shown.length === 0 && (tab === 'done'
             ? <Empty art="caughtUp" icon={CheckCircle} title="Nothing done yet" sub="Tasks you tick off show up here." />
             : <Empty title="Nothing in this list" sub="Try another tab or clear the filters." />)}

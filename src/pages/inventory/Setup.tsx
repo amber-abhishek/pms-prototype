@@ -8,7 +8,7 @@ import { Checkbox } from '../../components/shadcn/checkbox';
 import { Button, IconTile, PageHeading, Field, Input, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneDot, SheetHero, SheetRow, SheetSection, listNav, type SheetNav, avatarFx } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { choicesOf, invId, pickOneType, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
-import { EditLink, FieldErr, LineTabs, Modal, PanelModal, Picker, PropStack, PropStatus } from './common';
+import { EditLink, FieldErr, LineTabs, levelTone, Modal, PanelModal, Picker, PropStack, PropStatus } from './common';
 
 /* ---------------- Property layouts (code: /cms/structures; Figma 3057:2) ---------------- */
 export function StructuresPage() {
@@ -62,16 +62,6 @@ function levelIcon(name: string): Icon {
   if (/room|bed/.test(n)) return Bed;
   if (/tenanc|lease|contract/.test(n)) return Key;
   return Stack;
-}
-/** Level colour, as in Figma 3933:51435: building blue, floor purple, flat amber, room green, studio orange. */
-function levelTone(name: string): Tone {
-  const n = name.toLowerCase();
-  if (/studio/.test(n)) return 'orange';
-  if (/house|build|block|hall/.test(n)) return 'blue';
-  if (/floor|level|storey/.test(n)) return 'purple';
-  if (/flat|apartment|cluster/.test(n)) return 'amber';
-  if (/room|bed/.test(n)) return 'green';
-  return 'grey';
 }
 const DESC: Record<string, string> = {
   'Blocks with flats': 'Blocks split into floors and flats of shared rooms',

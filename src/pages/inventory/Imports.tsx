@@ -56,7 +56,7 @@ export function ImportsPage() {
   return (
     <>
       <PageHeader icon={FileArrowUp} title="Imports" crumbs={['Properties']}>
-        <Button icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
+        <Button variant="primary" icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
       </PageHeader>
       <PageHeading />
       {/* Underline tabs on the bottom rule, as Approvals and Custom pricing (2026-11-24). */}

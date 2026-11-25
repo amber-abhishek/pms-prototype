@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Illustration, artFor, type Illo } from '../../components/Illustration';
 import { ArrowDown, ArrowUp, Check as CheckMark, CheckCircle, Clock, EnvelopeSimple, FileText, Flag, Hourglass, House, MinusCircle, PaperPlaneTilt, PencilSimple, RadioButton, SlidersHorizontal, UserCheck, WarningCircle, XCircle, type Icon } from '../../components/icons';
-import { Avatar, Button, Check, Pill, cx } from '../../components/ui';
+import { Avatar, Button, Check, Empty, Pill, cx } from '../../components/ui';
 import { Popover, PopoverAnchor, PopoverContent } from '../../components/shadcn/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/shadcn/table';
 import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
@@ -107,11 +107,13 @@ export const Kbd = ({ children }: { children: ReactNode }) => <span className="i
 
 /** Simple full-bleed table: 36px header, 40px rows. */
 export type C<T> = { key: string; label: ReactNode; render: (r: T) => ReactNode; className?: string };
-export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [], selected, fill, sort, numberFrom }: { cols: C<T>[]; rows: T[]; /** Adds a leading # column, counting from this number (pass the page offset + 1). */ numberFrom?: number; onRow?: (r: T) => void; hidden?: string[]; selected?: string | null; /** edge-to-edge rows; default on for 6+ columns */ fill?: boolean;
+export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [], selected, fill, sort, numberFrom, empty }: { cols: C<T>[]; rows: T[]; /** Shown in place of the table, header included, when there are no rows. */ empty?: ReactNode; /** Adds a leading # column, counting from this number (pass the page offset + 1). */ numberFrom?: number; onRow?: (r: T) => void; hidden?: string[]; selected?: string | null; /** edge-to-edge rows; default on for 6+ columns */ fill?: boolean;
   /** Sorted column: its header goes ink with an arrow, like `Table sort`; click flips it. */ sort?: { key: string; dir: 'asc' | 'desc'; onToggle?: () => void } }) {
   const shownCols = cols.filter((c) => !hidden.includes(c.key));
   const cs: C<T>[] = numberFrom === undefined ? shownCols : [{ key: '#', label: 'S.No.', className: 'w-[56px]', render: (r) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(r) + numberFrom}</span> }, ...shownCols];
   const { items, bodyRef } = useRowMotion(rows);
+  /* No rows, no header: the empty state stands alone (2026-11-24). */
+  if (!rows.length) return <>{empty ?? <Empty art="nothingToShow" title="Nothing here" sub="Try a different tab or clear the filters." />}</>;
   return (
     <div data-scroller {...((fill ?? cs.length >= 6) ? { 'data-fill': '' } : { 'data-inset': '' })} className="px-[var(--gx,16px)]">
     <Table>
@@ -119,7 +121,7 @@ export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [],
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }) => (
           <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow && 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]')}>
-            {cs.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && 'pl-[var(--cx,12px)]', i === cs.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{c.render(r)}</TableCell>)}
+            {cs.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && 'pl-[var(--cx,12px)]', i === cs.length - 1 && 'pr-[var(--cx,12px)]', i === cs.length - 1 && c.label === '' && 'row-act', c.className)}>{c.render(r)}</TableCell>)}
           </TableRow>
         ))}
       </TableBody>

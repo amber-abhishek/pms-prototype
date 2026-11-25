@@ -112,8 +112,6 @@ export const modules: Module[] = [
       { items: [
         { label: 'Approvals', to: '/offcampus/approvals', icon: UserCheck, count: (c) => c.landlords + c.reviews },
         { label: 'Listings', to: '/offcampus/listings', icon: House },
-      ] },
-      { label: 'Portal', items: [
         { label: 'Enquiries', to: '/offcampus/enquiries', icon: MessageSquare, count: (c) => c.enquiries },
         { label: 'Off-campus portal', to: '/offcampus/portal', icon: AppWindow },
       ] },

@@ -55,7 +55,7 @@ export function Enquiries() {
   return (
     <>
       <PageHeader icon={Tray} crumbs={['Off-campus']} title="Enquiries">
-        <Button icon={DownloadSimple} onClick={exportCsv}>Export CSV</Button>
+        <Button variant="primary" icon={DownloadSimple} onClick={exportCsv}>Export CSV</Button>
       </PageHeader>
       <div className="flex-1 min-h-0 flex flex-col">
         <Title title="Enquiries" />

@@ -39,9 +39,9 @@
   /* Dark mode (src/data/theme.ts puts .dark on <html>). Hard-coded colours get their dark twins from postcss-dark.js;
      these are the shadcn tokens, set to match it: Mercury-style tinted 222° greys, white card → #1A1C21, brand blue softened. */
   .dark {
-    --background: 222 11% 12%;           /* card #1A1C21 */
+    --background: 223 11.9% 11.57%;      /* card #1A1C21 exactly: 222 11% 12% came out a step lighter than the mapped white */
     --foreground: 220 15% 88%;           /* ink #DCDFE4 */
-    --card: 222 11% 12%;
+    --card: 223 11.9% 11.57%;
     --card-foreground: 220 15% 88%;
     --popover: 222 12% 15%;              /* raised a step */
     --popover-foreground: 220 15% 88%;
@@ -85,6 +85,14 @@
 @keyframes row-wash { from { background-color: #EFF6FF } to { background-color: transparent } }
 @keyframes row-wash-dark { from { background-color: #1C2633 } to { background-color: transparent } }
 .dark [data-motion=in] { animation-name: row-in, row-wash-dark; }
+/* Tone colours set from code (toneFg in ui.tsx): notes, key-fact figures, property tags. Dark lifts the colour so it
+   reads on a dark card (2026-11-24 dark-mode contrast pass; all >= 4.5:1). */
+.tone-fg { color: var(--fg); }
+.dark .tone-fg { color: color-mix(in srgb, var(--fg) 50%, white); }
+.tone-tag { color: var(--fg); background: color-mix(in srgb, var(--fg) 10%, white); }
+.dark .tone-tag { color: color-mix(in srgb, var(--fg) 45%, white); background: color-mix(in srgb, var(--fg) 20%, #1A1C21); }
+/* Links in dark: the softened brand blue is tuned for button fills and reads 4.3:1 as text. */
+.dark .text-primary { color: hsl(221 80% 74%); }
 /* Inline-styled tint tiles (Overview's "Needs you today" icons): in dark, a deep wash of the icon colour, icon lifted. */
 .dark .tint { background: color-mix(in srgb, var(--tint) 18%, #1A1C21) !important; color: color-mix(in srgb, var(--tint) 55%, white) !important; }
 [data-motion=in] { animation: row-in 240ms cubic-bezier(0.23, 1, 0.32, 1), row-wash 1400ms cubic-bezier(0.23, 1, 0.32, 1); }
@@ -242,24 +250,28 @@ body[data-accent="orange"] { --primary: 21 90% 48%; --primary-hover: 17 88% 40%;
    filters / buttons centred on the right. The picked tab is one white shape ([data-folder-pill], shadcn/tabs) that
    glides between tabs: r10 top, 1px edge, no foot, covering the line, with two 9px concave flares that turn its
    edges into the line. */
+/* The line is painted (a gradient stop), so the dark-mode pass would map it as a ground, lighter than the picked
+   tab's real border: one variable keeps the tab edge, its flares and the band line the same grey (2026-11-24). */
+:root { --tab-line: #E5E5E5; }
+.dark { --tab-line: #2A2E37; }
 [data-toolbar]:has([data-tab-band]), .pms-main:has([data-scroller]) [data-toolbar]:has([data-tab-band]) {
   padding-top: 0; padding-bottom: 0; min-height: 50px; align-items: stretch; border-bottom: 0;
-  background: linear-gradient(to bottom, #F5F5F5 calc(100% - 1px), #E5E5E5 calc(100% - 1px));
+  background: linear-gradient(to bottom, #F5F5F5 calc(100% - 1px), var(--tab-line) calc(100% - 1px));
   padding-left: calc(var(--tx, 16px) - 12px);
 }
 [data-toolbar]:has([data-tab-band]) > * { align-self: center; }
 [data-toolbar]:has([data-tab-band]) > :has([data-tab-band]) { align-self: stretch; display: flex; align-items: flex-end; }
 [data-tab-band] { padding-top: 16px; }
-[data-folder-pill] { background: #fff; border: 1px solid #E5E5E5; border-bottom: 0; border-radius: 10px 10px 0 0; }
+[data-folder-pill] { background: #fff; border: 1px solid var(--tab-line); border-bottom: 0; border-radius: 10px 10px 0 0; }
 /* Each flare is 10px and also covers the bottom 10px of the pill's own side edge, so the edge turns into the arc. */
 [data-folder-pill]::before, [data-folder-pill]::after { content: ''; position: absolute; bottom: 0; width: 10px; height: 10px; }
-[data-folder-pill]::before { left: -10px; background: radial-gradient(circle at 0 0, #F5F5F5 9px, #E5E5E5 9px, #E5E5E5 10px, #FFFFFF 10px); }
-[data-folder-pill]::after { right: -10px; background: radial-gradient(circle at 100% 0, #F5F5F5 9px, #E5E5E5 9px, #E5E5E5 10px, #FFFFFF 10px); }
+[data-folder-pill]::before { left: -10px; background: radial-gradient(circle at 0 0, #F5F5F5 9px, var(--tab-line) 9px, var(--tab-line) 10px, #FFFFFF 10px); }
+[data-folder-pill]::after { right: -10px; background: radial-gradient(circle at 100% 0, #F5F5F5 9px, var(--tab-line) 9px, var(--tab-line) 10px, #FFFFFF 10px); }
 /* 16px of white between the tab band and a table under it (2026-11-24: "add space between the tabs and table"). It is
    padding inside the band's row, so the row's measured height (--tb-h) includes it and a sticky column header still
    lands below it; the band's grey and its foot line are painted above the padding. Pages with a second toolbar row
    (search + filters: Listings, Approvals; marked data-subbar) already have that space, so they are left out. */
 .pms-main:has(table, [data-head]):not(:has([data-subbar])) [data-toolbar]:has([data-tab-band]) {
   padding-bottom: 16px; border-bottom: 0;
-  background: linear-gradient(to bottom, #F5F5F5 calc(100% - 17px), #E5E5E5 calc(100% - 17px), #E5E5E5 calc(100% - 16px), #FFFFFF calc(100% - 16px));
+  background: linear-gradient(to bottom, #F5F5F5 calc(100% - 17px), var(--tab-line) calc(100% - 17px), var(--tab-line) calc(100% - 16px), #FFFFFF calc(100% - 16px));
 }

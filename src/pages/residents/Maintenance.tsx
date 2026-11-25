@@ -91,7 +91,7 @@ export function MaintenanceList() {
       )}
       {view === 'board' ? <MaintenanceBoard faults={scoped} onLog={() => setLogging(true)} selected={job} onOpen={setJob} /> : (
       <Table rows={rows} onRow={(x) => setJob(x.id)} selected={job ?? undefined} sort={slaFirst ? { key: 's', dir: 'asc', onToggle: () => setSlaFirst(false) } : { key: 'r', dir: 'desc', onToggle: () => setSlaFirst(true) }} footer={false}
-        empty={<Empty art="faults" icon={Wrench} title="No faults match" sub="Everything reported has been fixed." action={<Button icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>} />}
+        empty={<Empty art="faults" icon={Wrench} title={faults.length ? 'No faults match' : 'No faults yet'} sub={faults.length ? 'Try another search or clear the filters.' : 'Faults residents report show here.'} action={<Button icon={Plus} onClick={() => setLogging(true)}>Log a fault</Button>} />}
         cols={[
           { key: 'r', label: 'Ref', className: 'w-[90px]', render: (x) => <span className="font-mono text-xs text-gray-500">{x.ref}</span> },
           { key: 't', label: 'Fault', render: (x) => { const I = faultIcon[x.icon]; return <span className="flex items-center gap-2 font-medium"><I size={14} className="text-gray-500" />{x.title}</span>; } },

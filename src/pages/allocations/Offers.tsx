@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarPlus, DotsSixVertical, HourglassMedium, PaperPlaneTilt, Plus, Tray } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, SelectFilter, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, Pager, SearchInput, Select, Sheet, SheetHero, SheetRow, SheetSection, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
+import { Button, Empty, SelectFilter, Field, FilterButton, inFilter, type Filters, Input, Note, PageHeader, Pager, SearchInput, Select, Sheet, SheetHero, SheetRow, SheetSection, Toolbar, cx, listNav, type SheetNav } from '../../components/ui';
 import { HALLS, ROOMS, TODAY, addDays, fmtLeft, fmtN, hallFull, offerCounts, roomTerms, useAlloc, type Booking, type Data, type Offer, type Wait } from '../../data/allocations';
 import { useOpen, useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Ini, Person, St, type C } from './common';
 import { useAllocActions } from './actions';
 import { EditLink, LineTabs, Modal, PanelModal } from '../inventory/common';
 import { GhostZone } from '../../components/headerCtx';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/shadcn/table';
 
 type TabId = 'Recent' | 'Open' | 'Accepted' | 'Declined' | 'Lapsed' | 'Waitlist';
 const LEGACY: Record<string, TabId> = { Sent: 'Open', Expired: 'Lapsed' };
@@ -156,7 +157,7 @@ export function Offers() {
   return (
     <>
       <PageHeader icon={PaperPlaneTilt} title="Offers & waitlist" crumbs={['Allocations']}>
-        {tab === 'Waitlist' ? <Button icon={Plus} onClick={() => setAdding(true)}>Add to waitlist</Button> : !noOffers && <Button icon={PaperPlaneTilt} onClick={remind}>Send reminders</Button>}
+        {tab === 'Waitlist' ? <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add to waitlist</Button> : !noOffers && <Button variant="primary" icon={PaperPlaneTilt} onClick={remind}>Send reminders</Button>}
       </PageHeader>
       {/* Toolbar: search on the left; on the right the view (was the tab strip) as a single-choice dropdown, then the filters. */}
       {!(noOffers && c.waitlist === 0) && (
@@ -186,7 +187,7 @@ export function Offers() {
           <Foot right={pages > 1 && <Pager pages={pages} page={page} onPage={setPage} />}>{pages > 1 && `Showing ${shown.length} of ${fmtN(rows.length)} entries`}</Foot>
         </div>
       )}
-      {sel && <OfferSheet o={sel} nav={listNav(shown, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} onAccept={() => accept(sel)} onLapse={() => lapse(sel)} onDecline={(r) => decline(sel, r)} onExtend={() => extend(sel)} onBooking={() => openBooking(sel.name)} />}
+      {sel && <OfferSheet o={sel} nav={listNav(shown, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} onAccept={() => accept(sel)} onLapse={() => lapse(sel)} onDecline={(r) => decline(sel, r)} onExtend={() => extend(sel)} onBooking={() => openBooking(sel.name)} onOfferAgain={() => { offerAgain(sel); setOpen(null); }} />}
       {adding && <AddToWaitlist onClose={() => setAdding(false)} />}
       {offering && <OfferUnit w={offering} onClose={() => setOffering(null)} />}
     </>
@@ -209,37 +210,38 @@ function Waitlist({ rows, onOffer }: { rows: Wait[]; onOffer: (w: Wait) => void 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-white z-[1]"><tr className="text-left text-xs text-gray-500"><th className="w-12 h-9 pl-[var(--cx,12px)] font-medium border-b border-line">S.No.</th><th className="font-medium border-b border-line px-3">Applicant</th><th className="font-medium border-b border-line px-3">Note</th><th className="font-medium border-b border-line px-3">Joined</th><th className="border-b border-line pr-[var(--cx,12px)]" /></tr></thead>
-          <GhostZone.Provider value><tbody>
+        {!rows.length ? <Empty art="noResults" title="No one on the waitlist matches" sub="Clear the search or filter to see more." /> : <Table>
+          {/* The shared table primitives, so header, 56px rows, cell padding and rules match every other table. */}
+          <TableHeader className="sticky top-0 z-[1]"><TableRow><TableHead className="w-[56px] pl-[var(--cx,12px)]">S.No.</TableHead><TableHead>Applicant</TableHead><TableHead>Note</TableHead><TableHead>Joined</TableHead><TableHead className="pr-[var(--cx,12px)]" /></TableRow></TableHeader>
+          <GhostZone.Provider value><TableBody>
             {groups.map((g) => {
               const [hall, room] = g.split('|');
               const list = rows.filter((w) => w.hall === hall && w.room === room);
               return [
-                <tr key={g} className="bg-[#FAFAFA] border-b border-[#F5F5F5]"><td colSpan={5} className="h-8 pl-[var(--cx,12px)] pr-3 text-xs"><span className="font-medium">{hall} · {room}</span><span className="text-gray-500"> · {list.length} waiting</span></td></tr>,
+                <TableRow key={g} className="bg-[#FAFAFA] hover:bg-[#FAFAFA]"><TableCell colSpan={5} className="h-10 pl-[var(--cx,12px)]">{hall} · {room}<span className="font-normal text-[#737373]"> · {list.length} waiting</span></TableCell></TableRow>,
                 ...list.map((w, i) => (
-                  <tr key={w.id} className="border-b border-[#F5F5F5] text-sm">
-                    <td className="h-10 pl-[var(--cx,12px)] font-mono text-[#737373] tabular-nums">{i + 1}</td>
-                    <td className="px-3"><span className="flex items-center gap-2 font-medium"><Ini name={w.name} size={24} />{w.name}</span></td>
-                    <td className="px-3 text-gray-500">{w.note}</td>
-                    <td className="px-3 text-gray-500">{w.joined}</td>
-                    <td className="pr-[var(--cx,12px)] text-right">
+                  <TableRow key={w.id}>
+                    <TableCell className="pl-[var(--cx,12px)]"><span className="font-mono text-[#737373] tabular-nums">{i + 1}</span></TableCell>
+                    <TableCell><Person name={w.name} /></TableCell>
+                    <TableCell className="font-normal text-[#737373]">{w.note}</TableCell>
+                    <TableCell><span className="text-gray-500">{w.joined}</span></TableCell>
+                    <TableCell className="pr-[var(--cx,12px)] text-right">
                       {i === 0 ? <Button size="sm" icon={PaperPlaneTilt} onClick={() => onOffer(w)}>Offer a unit</Button>
                         : <button type="button" aria-label={`Move ${w.name} up`} title="Move up" onClick={() => moveUp(w)} className="size-7 rounded-lg hover:bg-[#F5F5F5] inline-flex items-center justify-center text-gray-400"><DotsSixVertical size={16} /></button>}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )),
               ];
             })}
-          </tbody></GhostZone.Provider>
-        </table>
+          </TableBody></GhostZone.Provider>
+        </Table>}
       </div>
     </div>
   );
 }
 
 /** The offer (Figma "Side panel · Offer" 4073:17183): Overview and Activity tabs. Decline records a reason in place. */
-function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBooking , nav }: { nav?: SheetNav;  o: Offer; onClose: () => void; onAccept: () => void; onLapse: () => void; onDecline: (r: string) => void; onExtend: () => void; onBooking: () => void }) {
+function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBooking, onOfferAgain, nav }: { nav?: SheetNav; onOfferAgain: () => void;  o: Offer; onClose: () => void; onAccept: () => void; onLapse: () => void; onDecline: (r: string) => void; onExtend: () => void; onBooking: () => void }) {
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('Chose another operator');
   const [tab, setTab] = useState<'overview' | 'activity'>('overview');
@@ -263,7 +265,7 @@ function OfferSheet({ o, onClose, onAccept, onLapse, onDecline, onExtend, onBook
       footer={o.status === 'open' ? <>
         <Button icon={null} onClick={() => setDeclining(true)}>Declined</Button>
         <Button variant="primary" icon={null} onClick={() => { onAccept(); onClose(); }}>Mark accepted</Button>
-      </> : o.status === 'accepted' ? <Button variant="primary" icon={null} onClick={onBooking}>Open booking</Button> : undefined}>
+      </> : o.status === 'accepted' ? <Button variant="primary" icon={null} onClick={onBooking}>Open booking</Button> : o.status === 'lapsed' ? <Button variant="primary" icon={null} onClick={onOfferAgain}>Offer again</Button> : undefined}>
       <Modal open={declining} onClose={() => setDeclining(false)} title={`Record ${first}’s decline`} width={440}
         footer={<><Button onClick={() => setDeclining(false)}>Cancel</Button><Button variant="danger" icon={null} onClick={() => { setDeclining(false); onDecline(reason); }}>Record decline</Button></>}>
         <Field label="Their reason"><Select value={reason} onChange={(e) => setReason(e.target.value)}>{['Chose another operator', 'Too expensive', 'Living at home', 'Wanted a different property', 'No reason given'].map((r) => <option key={r}>{r}</option>)}</Select></Field>

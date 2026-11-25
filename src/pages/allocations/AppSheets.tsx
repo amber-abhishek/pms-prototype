@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CalendarX, MagicWand, WarningCircle, XCircle } from '../../components/icons';
-import { Button, Field, Input, Note, Pill, SheetRow, SheetSection, Switch, Tabs, cx } from '../../components/ui';
+import { Button, Field, Input, Note, Pill, SheetFacts, SheetRow, SheetSection, Switch, Tabs, cx } from '../../components/ui';
 import { available, firstName, hallFull, unitsFor, useAlloc, type App } from '../../data/allocations';
 import { Modal, Radio } from './common';
 import { PanelModal } from '../inventory/common';
@@ -144,20 +144,17 @@ export function AutoAllocateDialog({ open, onClose }: { open: boolean; onClose: 
   const none = queue.length - flagged.length - free.length;
   return (
     <Modal open onClose={onClose} tone="blue" icon={MagicWand} title="Auto-allocate 2027/28" width={520}
-      sub="Flagged applications wait for a person."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={MagicWand} disabled={!free.length} onClick={() => {
         if (busy.current) return; busy.current = true;
         act.autoAllocate(+days[0], email); onClose();
       }}>Auto-allocate {free.length}</Button></>}>
-      <div className="grid grid-cols-3 gap-2 mt-1">
-        {[[free.length, 'can be allocated now', 'text-[#0B8A4C]'], [flagged.length, 'need a person', 'text-[#B45309]'], [none, 'have no free unit', 'text-gray-500']].map(([n, l, c]) => (
-          <div key={l as string} className="rounded-xl border border-line p-3"><div className={cx('text-xl font-semibold', c as string)}>{n}</div><div className="text-xs text-gray-500 mt-0.5">{l}</div></div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between mt-4"><span className="text-sm">Offers expire in</span><Tabs variant="segmented" value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} /></div>
-      <div className="flex items-center justify-between mt-4">
-        <div><div className="text-sm">Email the offers</div><div className="text-xs text-gray-500">Template: Offer · standard</div></div>
-        <Switch checked={email} onChange={setEmail} label="Email the offers" />
+      {/* Panel language: the key-facts box (mono caps labels, toned figures), then the choices as rows in a section card. */}
+      <SheetFacts big facts={[['Ready', free.length, 'green'], ['Need a person', flagged.length, flagged.length ? 'amber' : undefined], ['No free unit', none]]} />
+      <div className="mt-3">
+        <SheetSection title="Offers">
+          <SheetRow title="Expire in" end={<Tabs variant="segmented" value={days} onChange={setDays} tabs={DAYS.map((x) => ({ id: x, label: x }))} />} />
+          <SheetRow title="Email the offers" sub="Template: Offer · standard" end={<Switch checked={email} onChange={setEmail} label="Email the offers" />} />
+        </SheetSection>
       </div>
     </Modal>
   );

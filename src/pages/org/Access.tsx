@@ -111,7 +111,7 @@ export function AccessPage() {
   return (
     <>
       <Header icon={ShieldCheck} crumbs={[{ label: 'Organisation' }]} title="Roles and access">
-        <Button icon={Plus} onClick={() => nav('/org/people/roles/new')}>New role</Button>
+        <Button variant={tab === 'members' && onlyYou ? 'primary' : 'secondary'} icon={Plus} onClick={() => nav('/org/people/roles/new')}>New role</Button>
         {!(tab === 'members' && onlyYou) && <Button variant="primary" icon={UserPlus} onClick={() => setInvite({ open: true })}>Invite member</Button>}
       </Header>
       {/* Tabs switch the view, so they lead on the left; the Members filters sit on the right (2026-11-23). */}

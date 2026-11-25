@@ -1,7 +1,7 @@
 import { FooterZone } from '../../components/headerCtx';
 import { Fragment, useState, type ReactNode } from 'react';
 import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, MagnifyingGlass, WarningCircle, XCircle, Archive, Buildings, type Icon } from '../../components/icons';
-import { Avatar, ConfirmFrame, Pill, Status, avatarFx, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
+import { Avatar, ConfirmFrame, Pill, Status, avatarFx, cx, isConfirmTitle, noAutoFocus, toneFg } from '../../components/ui';
 import type { Tone } from '../../data/seed';
 import { Dialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
@@ -32,7 +32,7 @@ export function Tags({ tags, max = 2 }: { tags: Tag[]; max?: number }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       {/* Figma 3884:39809 tag: Connect chip, 20px, r6, 6px sides, the tag colour at 10% over white, Geist Mono 12 medium uppercase. */}
-      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-5 px-1.5 rounded-[6px] font-mono text-xs leading-4 font-medium uppercase whitespace-nowrap" style={{ color: c, background: `linear-gradient(${c}1A, ${c}1A), #fff` }}>{t.label}</span>; })}
+      {tags.slice(0, max).map((t) => { const c = tagColor(t); return <span key={t.label} className="inline-flex items-center h-5 px-1.5 rounded-[6px] tone-tag font-mono text-xs leading-4 font-medium uppercase whitespace-nowrap" style={toneFg(c)}>{t.label}</span>; })}
       {tags.length > max && <span className="font-mono text-xs text-[#737373]">+{tags.length - max}</span>}
     </span>
   );
@@ -49,23 +49,41 @@ export function IconTile({ icon: I, tone = 'grey', size = 28 }: { icon: Icon; to
 /** Each layout level's tone, used by its pill and tile. */
 export const LV = { Property: 'blue', Block: 'purple', Floor: 'orange', Flat: 'amber', Room: 'green' } as const satisfies Record<string, Tone>;
 export type Level = keyof typeof LV;
-export type Layout = 'Building' | 'House';
-const LAYOUTS: [Layout, number, Level[]][] = [['Building', 6, ['Property', 'Block', 'Floor', 'Flat', 'Room']], ['House', 2, ['Property', 'Room']]];
+/** Level colour by its name, as in Figma 3933:51435: building blue, floor purple, flat amber, room green, studio orange. */
+export function levelTone(name: string): Tone {
+  const n = name.toLowerCase();
+  if (/studio/.test(n)) return 'orange';
+  if (/house|build|block|hall/.test(n)) return 'blue';
+  if (/floor|level|storey/.test(n)) return 'purple';
+  if (/flat|apartment|cluster/.test(n)) return 'amber';
+  if (/room|bed/.test(n)) return 'green';
+  return 'grey';
+}
+/** What a layout asks the build forms for: floors, flats, and what its bookable unit is called. A layout the
+    Property layouts page no longer has falls back to the first one. */
+export function useLayout(name: string) {
+  const all = useInv((s) => s.structures);
+  const st = all.find((x) => x.name === name) ?? all[0];
+  const levels = (st?.levels ?? []).filter((l) => !/tenanc|lease|contract/i.test(l.name));
+  const unit = levels.find((l) => l.bsu)?.name ?? levels[levels.length - 1]?.name ?? 'Room';
+  return { name: st?.name ?? name, levels: levels.map((l) => l.name), unit, floors: levels.some((l) => /floor|level|storey/i.test(l.name)), flats: levels.some((l) => /flat|apartment|cluster/i.test(l.name)), kind: (/house/i.test(levels[0]?.name ?? '') ? 'House' : 'Building') as 'Building' | 'House' };
+}
 
-/** Property layout radio cards: name, "Used by n", then the level pills joined by carets. */
-export function LayoutRadios({ value, onChange }: { value: Layout; onChange: (l: Layout) => void }) {
+/** Property layout radio cards, one per layout on the Property layouts page: name, "Used by n", then its level pills. */
+export function LayoutRadios({ value, onChange }: { value: string; onChange: (l: string) => void }) {
+  const layouts = useInv((s) => s.structures);
   return (
     <div role="radiogroup" aria-label="Property layout" className="flex flex-col gap-2">
-      {LAYOUTS.map(([s, n, lv]) => (
-        <div key={s} role="radio" aria-checked={value === s} tabIndex={0} onClick={() => onChange(s)} onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChange(s)}
+      {layouts.map((st) => { const s = st.name; return (
+        <div key={st.id} role="radio" aria-checked={value === s} tabIndex={0} onClick={() => onChange(s)} onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChange(s)}
           className={cx('rounded-xl border p-4 flex gap-3 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring', value === s ? 'border-[#2563EB] bg-[#2563EB]/[0.03]' : 'border-[#E5E5E5] hover:bg-[#FAFAFA]')}>
           <span className={cx('size-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0', value === s ? 'border-[#2563EB] bg-[#2563EB]' : 'border-[#D4D4D4] bg-white')}>{value === s && <span className="size-1.5 rounded-full bg-white" />}</span>
           <div className="min-w-0">
-            <div className="flex items-baseline gap-2"><span className="text-sm font-medium text-[#0A0A0A]">{s}</span><span className="text-xs text-[#737373]">Used by {n} properties</span></div>
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">{lv.map((l, i) => <span key={l} className="flex items-center gap-1.5">{i > 0 && <CaretRight size={12} strokeWidth={1.5} className="text-[#A3A3A3]" />}<Pill tone={LV[l]}>{l}</Pill></span>)}</div>
+            <div className="flex items-baseline gap-2"><span className="text-sm font-medium text-[#0A0A0A]">{s}</span><span className="text-xs text-[#737373]">{st.properties ? `Used by ${st.properties} ${st.properties === 1 ? 'property' : 'properties'}` : 'Not in use'}</span></div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">{st.levels.map((l, i) => <span key={i} className="flex items-center gap-1.5">{i > 0 && <CaretRight size={12} strokeWidth={1.5} className="text-[#A3A3A3]" />}<Pill tone={levelTone(l.name)}>{l.name}</Pill></span>)}</div>
           </div>
         </div>
-      ))}
+      ); })}
     </div>
   );
 }

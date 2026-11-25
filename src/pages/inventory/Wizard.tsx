@@ -5,11 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   Bed, Buildings, CalendarBlank, Info, CaretDown, Check, DotsThree, MagnifyingGlass, MapPin, Minus, Plus, Trash, WarningCircle, X, type Icon,
 } from '../../components/icons';
-import { Button, Confirm, Field, Input, SheetRow, SheetSection, cx, toneCls } from '../../components/ui';
+import { Button, Confirm, Field, Input, SheetFacts, SheetRow, SheetSection, cx, toneCls } from '../../components/ui';
+import { Illustration } from '../../components/Illustration';
 import { Dialog as Modal, DialogContent, DialogTitle } from '../../components/shadcn/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/shadcn/tooltip';
 import { invId, useInv, type Property, type Template } from '../../data/inventory';
-import { EditLink, LV, LayoutRadios, Menu, Modal as InvConfirm, MoneyInput, Picker, Stepper, type Level } from './common';
+import { EditLink, LV, LayoutRadios, useLayout, Menu, Modal as InvConfirm, MoneyInput, Picker, Stepper, type Level } from './common';
 
 type WBlock = { key: string; name: string; floors: number; flats: number; rpf: number; roomType: string; size: string; floorPat: string; flatPat: string; roomPat: string };
 const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
@@ -27,7 +28,8 @@ const STEPS: { title: string; sub: string }[] = [
 const LevelTile = ({ level, icon: I, size = 24 }: { level: Level; icon: Icon; size?: number }) => (
   <span className={cx('rounded-md flex items-center justify-center shrink-0', toneCls[LV[level]])} style={{ width: size, height: size }}><I size={Math.round(size * 0.6)} strokeWidth={1.5} /></span>
 );
-const rooms = (b: WBlock, house: boolean) => (house ? b.rpf : b.floors * b.flats * b.rpf);
+type Shape = { floors: boolean; flats: boolean };
+const rooms = (b: WBlock, s: Shape) => (s.floors ? b.floors : 1) * (s.flats ? b.flats : 1) * b.rpf;
 const isNum = (v: string) => /^\d+(\.\d+)?$/.test(v.trim());
 const parseDate = (v: string) => { if (!/^\d{1,2} [A-Za-z]{3,9} \d{4}$/.test(v.trim())) return null; const t = Date.parse(v); return Number.isNaN(t) ? null : t; };
 const fmt = (n: number) => n.toLocaleString('en-GB');
@@ -42,7 +44,10 @@ export function AddPropertyWizard() {
   const [invNo, setInvNo] = useState('');
   const [campus, setCampus] = useState<'Durham City' | 'Queen’s Campus'>('Durham City');
   const [letting, setLetting] = useState<'Weekly' | 'Monthly'>('Weekly');
-  const [structure, setStructure] = useState<'Building' | 'House'>('Building');
+  const [layoutName, setStructure] = useState('Blocks with flats');
+  const shape = useLayout(layoutName);
+  const structure = shape.kind;
+  const unitLc = shape.unit.toLowerCase();
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState(false);
   const [zone, setZone] = useState('');
@@ -60,11 +65,11 @@ export function AddPropertyWizard() {
   const [done, setDone] = useState<Property | null>(null);
   const nameRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const house = structure === 'House';
-  const total = blocks.reduce((a, b) => a + rooms(b, house), 0);
+  const house = !shape.floors;
+  const total = blocks.reduce((a, b) => a + rooms(b, shape), 0);
   const floors = house ? 0 : blocks.reduce((a, b) => a + b.floors, 0);
-  const flats = house ? 0 : blocks.reduce((a, b) => a + b.floors * b.flats, 0);
-  const types = [...new Set(blocks.map((b) => b.roomType))].map((t) => ({ name: t, rooms: blocks.filter((b) => b.roomType === t).reduce((a, b) => a + rooms(b, house), 0), ...(terms[t] ?? DEF_TERMS[t] ?? { weeks: '44', rent: '150', deposit: '250' }) }));
+  const flats = !shape.flats ? 0 : blocks.reduce((a, b) => a + b.floors * b.flats, 0);
+  const types = [...new Set(blocks.map((b) => b.roomType))].map((t) => ({ name: t, rooms: blocks.filter((b) => b.roomType === t).reduce((a, b) => a + rooms(b, shape), 0), ...(terms[t] ?? DEF_TERMS[t] ?? { weeks: '44', rent: '150', deposit: '250' }) }));
   const setTerm = (t: string, k: keyof Terms, v: string) => setTerms((x) => ({ ...x, [t]: { ...(x[t] ?? DEF_TERMS[t] ?? { weeks: '44', rent: '150', deposit: '250' }), [k]: v } }));
   const upd = (key: string, p: Partial<WBlock>) => setBlocks((bs) => bs.map((b) => (b.key === key ? { ...b, ...p } : b)));
   const addBlock = () => {
@@ -83,7 +88,7 @@ export function AddPropertyWizard() {
     if (blocks.some((x) => x.key !== b.key && x.name.trim().toLowerCase() === b.name.trim().toLowerCase())) return `Another block is already called ${b.name.trim()}.`;
     if (!isNum(b.size) || +b.size <= 0) return 'Enter a room size in m², e.g. 14.';
     if (!house && b.floors > 1 && !b.floorPat.includes('{n}')) return 'Add {n} to the floor pattern so each floor gets its own number.';
-    if (!house && b.flats > 1 && !b.flatPat.includes('{n}')) return 'Add {n} to the flat pattern so each flat gets its own number.';
+    if (shape.flats && b.flats > 1 && !b.flatPat.includes('{n}')) return 'Add {n} to the flat pattern so each flat gets its own number.';
     if (b.rpf > 1 && !b.roomPat.includes('{n}')) return 'Add {n} to the room pattern so each room gets its own number.';
     return '';
   };
@@ -111,8 +116,8 @@ export function AddPropertyWizard() {
     const extra = id === 'stm' ? 1 : 0;
     const tpls: Template[] = types.map((t) => ({ id: invId('tp'), propertyId: id, name: t.name, weeks: +t.weeks, rent: +t.rent, deposit: +t.deposit, billing, from, to, linked: t.rooms, own: 0, status: 'Active' }));
     const p: Property = {
-      id, name: name.trim(), campus, structure, tags: [], units: total, status: 'Draft', address: 'Elvet Hill Road, Durham DH1 3LR', zone, invNo, letting,
-      blocks: blocks.map((b) => ({ name: b.name, floors: house ? 1 : b.floors, flats: house ? 1 : b.flats, rooms: rooms(b, house), roomType: b.roomType, size: +b.size })),
+      id, name: name.trim(), campus, structure, layout: shape.name, tags: [], units: total, status: 'Draft', address: 'Elvet Hill Road, Durham DH1 3LR', zone, invNo, letting,
+      blocks: blocks.map((b) => ({ name: b.name, floors: house ? 1 : b.floors, flats: shape.flats ? b.flats : 1, rooms: rooms(b, shape), roomType: b.roomType, size: +b.size })),
       build: total ? { done: 0, total } : null, photos: 0, description: '', amenities: [], wardenPhone: '', createdBy: 'Arjun Mehta', created: '27 Oct',
       activity: [{ who: 'Arjun Mehta', what: `${name.trim()} created · building its rooms`, when: 'Just now' }],
       roomTypes: types.map((t) => ({ name: t.name, rooms: t.rooms, rent: +t.rent })), liveTenancies: 0, fees: 1,
@@ -121,7 +126,7 @@ export function AddPropertyWizard() {
     const st = useInv.getState();
     st.set('properties', (ps) => [...ps.filter((x) => x.id !== id), p]);
     st.set('templates', (ts) => [...ts.filter((x) => x.propertyId !== id), ...tpls]);
-    if (total) st.set('imports', (l) => [{ id: invId('im'), name: `${p.name} · ${total} rooms`, kind: 'New property', status: 'Running', done: 0, total, by: 'Arjun Mehta', started: 'Just now', structure, creates: `1 property · ${total + flats + floors + blocks.length} entities` }, ...l]);
+    if (total) st.set('imports', (l) => [{ id: invId('im'), name: `${p.name} · ${total} rooms`, kind: 'New property', status: 'Running', done: 0, total, by: 'Arjun Mehta', started: 'Just now', structure: shape.name, creates: `1 property · ${total + flats + floors + blocks.length} entities` }, ...l]);
     setDone(p);
   };
 
@@ -198,7 +203,7 @@ export function AddPropertyWizard() {
                     <p className="text-[13px] leading-5 text-[#737373] mt-1">Rent and tenancy length use this unit.</p>
                   </SheetSection>
                   <SheetSection title="Layout" action={<EditLink onClick={() => nav('/inventory/structures')}>New layout</EditLink>}>
-                    <LayoutRadios value={structure} onChange={setStructure} />
+                    <LayoutRadios value={shape.name} onChange={setStructure} />
                   </SheetSection>
                 </>
               )}
@@ -247,7 +252,7 @@ export function AddPropertyWizard() {
                       <div className="h-[52px] pl-4 pr-3 flex items-center gap-2.5">
                         <LevelTile level="Block" icon={Buildings} />
                         <Input aria-label="Block name" ref={(el: HTMLInputElement | null) => { nameRefs.current[b.key] = el; }} value={b.name} onChange={(e) => upd(b.key, { name: e.target.value })} className="h-8 w-[200px]" />
-                        <span className="ml-auto font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, house))} rooms</span>
+                        <span className="ml-auto font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, shape))} rooms</span>
                         <Menu width={160} trigger={(o) => <button type="button" aria-label="Block menu" onClick={o} className="size-7 rounded-md hover:bg-[#F5F5F5] flex items-center justify-center text-[#737373]"><DotsThree size={16} /></button>}
                           items={[{ label: 'Remove block', icon: Trash, danger: true, disabled: blocks.length < 2, onClick: () => setBlocks((bs) => bs.filter((x) => x.key !== b.key)) }]} />
                       </div>
@@ -259,12 +264,12 @@ export function AddPropertyWizard() {
                             <TooltipContent side="top" className="max-w-[260px]">{'{n}'} becomes 1, 2, 3… under each parent. “Floor {'{n}'}” makes Floor 1, Floor 2. Type your own words around it, e.g. “Level {'{n}'}” or “{'{n}'}F”.</TooltipContent></Tooltip>
                         </span>
                         {!house && <><span>Floors</span><Stepper value={b.floors} onChange={(n) => upd(b.key, { floors: n })} /><Input className="h-8 font-mono" value={b.floorPat} onChange={(e) => upd(b.key, { floorPat: e.target.value })} aria-label="Floor name pattern" /></>}
-                        {!house && <><span>Flats per floor</span><Stepper value={b.flats} onChange={(n) => upd(b.key, { flats: n })} /><Input className="h-8 font-mono" value={b.flatPat} onChange={(e) => upd(b.key, { flatPat: e.target.value })} aria-label="Flat name pattern" /></>}
-                        <span>{house ? 'Rooms' : 'Rooms per flat'}</span><Stepper value={b.rpf} onChange={(n) => upd(b.key, { rpf: n })} /><Input className="h-8 font-mono" value={b.roomPat} onChange={(e) => upd(b.key, { roomPat: e.target.value })} aria-label="Room name pattern" />
+                        {shape.flats && <><span>Flats per floor</span><Stepper value={b.flats} onChange={(n) => upd(b.key, { flats: n })} /><Input className="h-8 font-mono" value={b.flatPat} onChange={(e) => upd(b.key, { flatPat: e.target.value })} aria-label="Flat name pattern" /></>}
+                        <span>{house ? `${shape.unit}s` : `${shape.unit}s per ${shape.flats ? 'flat' : 'floor'}`}</span><Stepper value={b.rpf} onChange={(n) => upd(b.key, { rpf: n })} /><Input className="h-8 font-mono" value={b.roomPat} onChange={(e) => upd(b.key, { roomPat: e.target.value })} aria-label="Room name pattern" />
                         <span>Room type</span><div className="col-span-2"><Picker value={b.roomType} onChange={(v) => upd(b.key, { roomType: v })} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></div>
                         <span>Room size</span>
                         <label className="h-8 w-[104px] flex items-center rounded-lg border border-input bg-white px-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25"><input aria-label="Room size" value={b.size} onChange={(e) => upd(b.key, { size: e.target.value.replace(/[^0-9.]/g, '') })} className="flex-1 min-w-0 outline-none bg-transparent" /><span className="text-[#A3A3A3] text-xs">m²</span></label>
-                        <span className="text-xs text-[#737373]">Set on all {fmt(rooms(b, house))} rooms</span>
+                        <span className="text-xs text-[#737373]">Set on all {fmt(rooms(b, shape))} rooms</span>
                       </div>
                       {blockErr(b) && <div className="px-4 pb-4 -mt-2"><Err>{blockErr(b)}</Err></div>}
                     </div>
@@ -272,8 +277,8 @@ export function AddPropertyWizard() {
                     <button key={b.key} type="button" onClick={() => setOpenBlock(b.key)} className="-mx-4 w-[calc(100%+32px)] h-[52px] px-4 flex items-center gap-2.5 text-left hover:bg-[#FAFAFA] border-t border-[#EBEBEB] first:border-t-0">
                       <LevelTile level="Block" icon={Buildings} />
                       <span className="text-sm font-medium text-[#0A0A0A] whitespace-nowrap">{b.name}</span>
-                      <span className="flex-1 min-w-0 text-xs text-[#737373] truncate">{blockErr(b) ? <span className="text-[#DC2626]">Needs a fix</span> : <>{house ? `${b.rpf} rooms` : `${b.floors} floors × ${b.flats} flats × ${b.rpf} rooms`} · {b.roomType}</>}</span>
-                      <span className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, house))} rooms</span><CaretDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
+                      <span className="flex-1 min-w-0 text-xs text-[#737373] truncate">{blockErr(b) ? <span className="text-[#DC2626]">Needs a fix</span> : <>{house ? `${b.rpf} ${unitLc}s` : shape.flats ? `${b.floors} floors × ${b.flats} flats × ${b.rpf} ${unitLc}s` : `${b.floors} floors × ${b.rpf} ${unitLc}s`} · {b.roomType}</>}</span>
+                      <span className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, shape))} rooms</span><CaretDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
                     </button>
                   ))}
                     </div>
@@ -330,9 +335,9 @@ export function AddPropertyWizard() {
                 <>
                   <SheetSection title="Summary">
                     {([
-                      ['Basics', name, `${campus} · ${structure} layout · ${letting.toLowerCase()} · ${invNo || 'no ref'}`, 0],
+                      ['Basics', name, `${campus} · ${shape.name} · ${letting.toLowerCase()} · ${invNo || 'no ref'}`, 0],
                       ['Address', 'Elvet Hill Road, Durham DH1 3LR', zone ? `Zone ${zone}` : 'No zone', 1],
-                      ['Units', `${fmt(total)} rooms`, blocks.map((b) => `${b.name} ${fmt(rooms(b, house))}`).join(' · '), 2],
+                      ['Units', `${fmt(total)} rooms`, blocks.map((b) => `${b.name} ${fmt(rooms(b, shape))}`).join(' · '), 2],
                       ['Rent & terms', `${types.length} templates · ${fmt(total)} draft tenancies`, types.map((t) => `${t.name.split(' ')[0]} £${t.rent} · ${t.weeks} wk`).join(' · '), 3],
                     ] as const).map(([k, a, b, s]) => (
                       <div key={k} className="py-3 first:pt-0 last:pb-0 border-t border-[#EBEBEB] first:border-t-0 grid grid-cols-[120px_minmax(0,1fr)_auto] gap-3 items-center">
@@ -375,9 +380,17 @@ export function AddPropertyWizard() {
 /** Shown once the property exists: what was made, then View property. */
 function Created({ p, onView, onClose }: { p: Property | null; onView: () => void; onClose: () => void }) {
   return (
-    <InvConfirm open={!!p} onClose={onClose} width={440} title={`${p?.name ?? ''} created`}
-      sub={p ? `Saved as a draft with ${p.units.toLocaleString('en-GB')} rooms. Make it active when it’s ready to book.` : undefined}
-      footer={<><Button icon={null} onClick={onClose}>Done</Button><Button variant="primary" icon={null} onClick={onView}>View property</Button></>} />
+    <InvConfirm open={!!p} onClose={onClose} width={440} title="Property created"
+      footer={<><Button icon={null} onClick={onClose}>Done</Button><Button variant="primary" icon={null} onClick={onView}>View property</Button></>}>
+      {p && (
+        <div className="flex flex-col items-center text-center">
+          <Illustration name="created" className="block w-[203px] h-[160px]" />
+          <div className="mt-4 text-xl leading-7 font-medium text-[#0A0A0A]">{p.name}</div>
+          <div className="mt-1 text-sm leading-5 text-[#737373]">Saved as a draft. Make it active when it’s ready to book.</div>
+          <div className="mt-5 w-full text-left"><SheetFacts facts={[['Rooms', p.units.toLocaleString('en-GB')], ['Room types', p.roomTypes.length], ['Status', 'Draft', 'amber']]} /></div>
+        </div>
+      )}
+    </InvConfirm>
   );
 }
 

@@ -55,9 +55,6 @@ function find(path: string, search: string): Intro | undefined {
   return base ? INTROS[base] : undefined;
 }
 
-/** The band's grey run edge to edge behind a centred intro (its box is only the column's width). */
-const BAND_FULL = 'bg-[#F5F5F5] shadow-[0_0_0_100vmax_#F5F5F5] [clip-path:inset(0_-100vmax)]';
-
 export function PageIntro({ title }: { title: string }) {
   const { pathname, search } = useLocation();
   const intro = INTRO_ON ? find(pathname, search) : undefined;
@@ -73,10 +70,22 @@ export function PageIntro({ title }: { title: string }) {
     setToolbarNext(next && tb?.querySelector('[data-tab-band]') ? 'band' : next);
   });
   if (!intro) return null;
-  return (
-    <div ref={ref} data-intro className={intro.centred ? cx('shrink-0 w-full mx-auto px-8 pt-8', intro.centred === 'narrow' ? 'max-w-[720px]' : 'max-w-[864px]', toolbarNext === 'band' && BAND_FULL) : cx('shrink-0 px-[var(--tx,24px)] pt-6', intro.rule ? 'pb-6 border-b border-[#E5E5E5]' : toolbarNext === 'band' ? 'bg-[#F5F5F5]' : toolbarNext ? 'pb-2' : 'pb-6')}>
+  const body = (
+    <>
       <TitleH1 className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</TitleH1>
       <p className="mt-1 max-w-[640px] text-sm leading-5 text-[#737373]">{intro.text}</p>
+    </>
+  );
+  /* A centred intro is only as wide as its column, so the band's grey is a full-width row around it. It used to be a
+     100vmax shadow, which painted over the sidebar whenever the page area did not clip it (2026-11-25). */
+  if (intro.centred) return (
+    <div ref={ref} data-intro className={cx('shrink-0', toolbarNext === 'band' && 'bg-[#F5F5F5]')}>
+      <div className={cx('w-full mx-auto px-8 pt-8', intro.centred === 'narrow' ? 'max-w-[720px]' : 'max-w-[864px]')}>{body}</div>
+    </div>
+  );
+  return (
+    <div ref={ref} data-intro className={cx('shrink-0 px-[var(--tx,24px)] pt-6', intro.rule ? 'pb-6 border-b border-[#E5E5E5]' : toolbarNext === 'band' ? 'bg-[#F5F5F5]' : toolbarNext ? 'pb-2' : 'pb-6')}>
+      {body}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, CalendarCheck, CalendarDots, Plus, Warning } from '../../components/icons';
 import { toast } from 'sonner';
-import { Button, Field, Input, PageHeader, SheetSection, StatStrip, Tabs, Toolbar } from '../../components/ui';
+import { Button, Empty, Field, Input, PageHeader, SheetSection, StatStrip, Tabs, Toolbar } from '../../components/ui';
 import { TODAY, appCounts, fmtN, offerCounts, useAlloc, type Cycle } from '../../data/allocations';
 import { useTab } from '../hooks';
 import { EmptyArea, Foot, Grid, Modal, Radio, St } from './common';
@@ -59,14 +59,14 @@ export function Cycles() {
           </div>
         </div>
       ) : tab === 'Live' ? (
-        <div className="flex-1 overflow-auto px-[var(--tx,16px)] pt-2 pb-5 space-y-4">
+        <div className="flex-1 overflow-auto px-[var(--tx,16px)] pt-4 pb-5 space-y-4">
           {live.map((c) => <LiveCard key={c.id} c={c} onEdit={() => setEditing(c)} onClose={() => setClosing(c)} onOpenApps={() => { filterToCycle(c.name); nav('/allocations/applications?tab=To%20review'); }} />)}
           {!live.length && <EmptyArea art="cycles" icon={CalendarCheck} title="No live term" sub="Create next year’s term to open applications."><Button icon={Plus} onClick={() => setCreating(true)}>New term</Button></EmptyArea>}
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-auto">
-            <Grid fill rows={closed} cols={[
+            <Grid fill rows={closed} empty={<Empty art="cycles" title="No closed terms" sub="Terms move here once they close." />} cols={[
               { key: 'n', label: 'Term', render: (c) => <span className="flex items-center gap-2.5"><CycleIcon /><span className="font-semibold">{c.name}</span></span> },
               { key: 'w', label: 'Window', render: (c) => <span className="text-gray-500">{c.opens} – {c.ends}</span> },
               { key: 'a', label: 'Applications', render: (c) => fmtN(c.apps) },
@@ -141,7 +141,7 @@ function NewCycleSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
     toast.success(`Term ${n} created`, { description: from === 'dup' ? `Copied properties, room types, rules, offer emails and the form from ${latest?.name}` : 'Empty · set up the form and rules next' });
     onCreated();
   };
-  const bars: [string, number, number, string][] = [['Applications', 0, 6, '#2563EB'], ['Review & allocate', 0.6, 7.5, '#7C3AED'], ['Offers open', 0.65, 10, '#F59E0B'], ['Move-in', 11.4, 12, '#0B8A4C']];
+  const bars: [string, number, number, string][] = [['Applications', 0, 6, '#2563EB'], ['Review & allocate', 0.6, 7.5, '#7C3AED'], ['Offers open', 0.65, 10, '#B45309'], ['Move-in', 11.4, 12, '#0A8046']];
   return (
     /* Creating something opens a centred modal; side sheets are for reading and editing a record. */
     <PanelModal open onClose={onClose} eyebrow="New term" width={600}

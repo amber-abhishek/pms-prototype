@@ -2,7 +2,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { Illustration, artFor, type Illo } from '../../components/Illustration';
 import { DotsThree, type Icon } from '../../components/icons';
-import { ConfirmFrame, Dropdown, PageHeader, cx, isConfirmTitle, noAutoFocus } from '../../components/ui';
+import { ConfirmFrame, Dropdown, PageHeader, cx, isConfirmTitle, noAutoFocus, toneFg } from '../../components/ui';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
 import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 
@@ -54,8 +54,8 @@ export function Alert({ tone, icon: I, title, children, action }: { tone: 'red' 
   const c = { amber: ['#A16207', '#A16207'], red: ['#E0243A', '#E0243A'], blue: ['#2563EB', '#2563EB'], green: ['#0B8A4C', '#0B8A4C'] }[tone];
   return (
     <div className="rounded-lg bg-white border px-4 py-2.5 flex items-center gap-3" style={{ borderColor: c[0] + '4D' }}>
-      {I && <I size={16} style={{ color: c[0] }} className="shrink-0" />}
-      <div className="flex-1 min-w-0"><div className="text-sm leading-5" style={{ color: c[1] }}>{title}</div>{children && <div className="text-xs text-[#737373] mt-0.5">{children}</div>}</div>
+      {I && <I size={16} style={toneFg(c[0])} className="tone-fg shrink-0" />}
+      <div className="flex-1 min-w-0"><div className="tone-fg text-sm leading-5" style={toneFg(c[1])}>{title}</div>{children && <div className="text-xs text-[#737373] mt-0.5">{children}</div>}</div>
       {action}
     </div>
   );

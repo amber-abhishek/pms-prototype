@@ -115,7 +115,7 @@ export function OccupancyPage() {
     <>
       <PageHeader icon={Grid3x3} title="Occupancy" crumbs={['Properties']}>
         <SelectFilter icon={CalendarRange} width={160} value={year} onChange={setYear} options={['2025/26', '2026/27', '2027/28'].map((y) => ({ value: y }))} />
-        <Button icon={DownloadSimple} onClick={() => toast.success(`${h.name.toLowerCase().replace(/\W+/g, '-')}-occupancy-${year.replace('/', '-')}.csv exported`)}>Export</Button>
+        <Button variant="primary" icon={DownloadSimple} onClick={() => toast.success(`${h.name.toLowerCase().replace(/\W+/g, '-')}-occupancy-${year.replace('/', '-')}.csv exported`)}>Export</Button>
       </PageHeader>
 
       {/* Connect toolbar (as Properties, 3884:39809): one 68px row, 16/24 padding, every control 34px.

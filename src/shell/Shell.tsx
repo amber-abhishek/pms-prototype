@@ -1,3 +1,4 @@
+import { create } from 'zustand';
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTrailTracker } from '../lib/trail';
@@ -123,7 +124,7 @@ function Sidebar({ visible, active, collapsed: target, onToggle }: { visible: Mo
   const top = visible.filter((m) => m.group === 'top');
   const mods = visible.filter((m) => m.group === 'modules');
   const system = visible.filter((m) => m.group === 'bottom');
-  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} onExpand={onToggle} chevron />;
+  const row = (m: Module) => <ModuleRow key={m.id} m={m} on={m.id === active.id} counts={counts} collapsed={collapsed} chevron />;
   return (
     <TooltipProvider delayDuration={300}>
       <aside aria-label="Main" className={cx('shrink-0 h-full flex flex-col overflow-hidden bg-[#FAFAFA] border-r border-[#E5E5E5] transition-[width] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]', target ? 'w-[68px]' : 'w-64')}>
@@ -159,6 +160,15 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="h-5 px-1.5 rounded border border-[#E5E5E5] bg-white font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#737373] flex items-center">{children}</kbd>;
 }
 
+/* Which module's flyout is showing on the folded sidebar: one at a time. Leaving closes it after a short beat, so the
+   pointer can cross the gap from the icon to the flyout. */
+const useFly = create<{ id: string | null }>(() => ({ id: null }));
+let flyTimer = 0;
+const fly = {
+  show: (id: string) => { window.clearTimeout(flyTimer); useFly.setState({ id }); },
+  hide: (ms = 120) => { window.clearTimeout(flyTimer); if (ms) flyTimer = window.setTimeout(() => useFly.setState({ id: null }), ms); else useFly.setState({ id: null }); },
+};
+
 /** Every page of a module, flattened with its section labels, for the collapsed sidebar's flyout. */
 function Flyout({ m, counts }: { m: Module; counts: NavCounts }) {
   return (
@@ -187,28 +197,34 @@ function Flyout({ m, counts }: { m: Module; counts: NavCounts }) {
 /** A module row (Figma 3924:50640). A module with pages opens or closes its list in place and never changes the page;
     only a page row under it navigates. One module is open at a time, plus at most one you opened to look (data/navOpen); a closed one
     shows its rolled-up count. ← / → close and open from the keyboard; ⌥-click on the chevron closes all the others. */
-function ModuleRow({ m, on, counts, collapsed, onExpand, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Opens the folded sidebar. */ onExpand: () => void; /** Every module with pages shows a chevron, Home and Reports included. */ chevron: boolean }) {
+function ModuleRow({ m, on, counts, collapsed, chevron }: { m: Module; on: boolean; counts: NavCounts; collapsed: boolean; /** Every module with pages shows a chevron, Home and Reports included. */ chevron: boolean }) {
   const I = m.icon;
   const single = m.sections.every((s) => s.items.length <= 1 && !s.pinned);
   const isOpen = useNavOpen((s) => s.open.includes(m.id));
+  const flyId = useFly((s) => s.id);
   if (collapsed) {
     const glyph = (<>
       <I size={16} strokeWidth={1.5} absoluteStrokeWidth />
       {m.locked && <span className="absolute right-1 bottom-0.5 size-3.5 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center"><Lock size={8} className="text-[#737373]" /></span>}
     </>);
     const cls = cx(ROW, 'relative h-9 shrink-0 justify-center px-2', on ? RAISED : IDLE);
-    /* A module with pages doesn't change the page: clicking its icon unfolds the sidebar with that module open
-       (or pick a page straight from the hover flyout). A single page (Overview) still goes there. */
-    const link = single
-      ? <NavLink to={m.home} aria-label={m.label} onClick={() => usePins.getState().go(m.home, null)} className={cls}>{glyph}</NavLink>
-      : <button type="button" aria-label={`Open ${m.label}`} onClick={() => { useNavOpen.getState().set(m.id, true); onExpand(); }} className={cls}>{glyph}</button>;
-    return (
+    /* Clicking an icon goes to the module's first page and leaves the sidebar folded (2026-11-25: "clicking on the
+       top level icon on the closed sidebar should not open the sidebar"); the hover flyout picks any other page. */
+    const link = <NavLink to={m.home} aria-label={m.label} onClick={() => { usePins.getState().go(m.home, null); fly.hide(0); }} className={cls}>{glyph}</NavLink>;
+    if (single || m.locked) return (
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        {/* Collapsed: a module with pages shows a flyout of them on hover; a single page keeps the dark name tooltip. */}
-        {single || m.locked
-          ? <TooltipContent side="right" sideOffset={8}>{m.label}{m.locked && <span className="text-gray-400"> · locked</span>}</TooltipContent>
-          : <TooltipContent side="right" sideOffset={10} align="start" className="bg-white text-[#0A0A0A] border border-[#E5E5E5] rounded-xl p-1.5 whitespace-normal font-normal shadow-[0_8px_24px_-6px_rgba(17,24,39,0.16)]"><Flyout m={m} counts={counts} /></TooltipContent>}
+        <TooltipContent side="right" sideOffset={8}>{m.label}{m.locked && <span className="text-gray-400"> · locked</span>}</TooltipContent>
+      </Tooltip>
+    );
+    /* The flyout follows the pointer: entering an icon shows that module's pages at once and drops any other.
+       (Radix's own hover logic keeps a tooltip open while the pointer heads towards it; the flyouts are tall, so
+       moving down the icons stayed inside that zone and Properties never gave way to Allocations.) */
+    return (
+      <Tooltip open={flyId === m.id} disableHoverableContent>
+        <TooltipTrigger asChild onPointerEnter={() => fly.show(m.id)} onPointerLeave={() => fly.hide()} onFocus={() => fly.show(m.id)} onBlur={() => fly.hide()}>{link}</TooltipTrigger>
+        <TooltipContent side="right" sideOffset={10} align="start" onPointerEnter={() => fly.show(m.id)} onPointerLeave={() => fly.hide()} onClick={() => fly.hide(0)}
+          className="bg-white text-[#0A0A0A] border border-[#E5E5E5] rounded-xl p-1.5 whitespace-normal font-normal shadow-[0_8px_24px_-6px_rgba(17,24,39,0.16)]"><Flyout m={m} counts={counts} /></TooltipContent>
       </Tooltip>
     );
   }

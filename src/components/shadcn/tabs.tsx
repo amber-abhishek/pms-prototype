@@ -4,8 +4,16 @@ import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "../../lib/cn"
+import { markViewChange } from "../rowMotion"
 
-const Tabs = TabsPrimitive.Root
+/* Picking a tab is a new view: the table under it swaps without row fades (rowMotion). */
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
+>(({ onValueChange, ...props }, ref) => (
+  <TabsPrimitive.Root ref={ref} onValueChange={(v) => { markViewChange(); onValueChange?.(v) }} {...props} />
+))
+Tabs.displayName = "Tabs"
 
 /* The raised white "selected" pill. With `slide` (the default) it is one element under the tabs that moves to the
    active tab, so switching tabs slides it across instead of jumping. Underline-style lists pass slide={false}. */
@@ -86,8 +94,9 @@ const TabsList = React.forwardRef<
             height: slide === "underline" ? 2 : pill.h,
             /* Underline: 1px above the list's bottom rule and 1px over it, as the old 2px tab border did. */
             transform: `translate(${pill.x}px, ${slide === "underline" ? pill.y + pill.h - 1 : pill.y}px)`,
-            /* No motion (2026-11-19: tab switches felt bouncy): the highlight moves straight to the picked tab. */
-            transition: "none",
+            /* Slides to the picked tab (2026-11-24: "all these tabs switches should be sliding"), with the folder tabs'
+               short ease-out and no overshoot, so it never bounces (the 2026-11-19 complaint). */
+            transition: pill.animate ? "transform 220ms cubic-bezier(0.25, 1, 0.5, 1), width 220ms cubic-bezier(0.25, 1, 0.5, 1)" : "none",
           }}
         />
       )}

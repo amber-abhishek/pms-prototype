@@ -3,12 +3,12 @@ import { Avatar, Empty } from '../../components/ui';
 import { photoOf } from './photos';
 import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
-import { Bed, Info, Buildings, Door, DoorOpen, House, Key, Plus, Stack, Tag, Textbox, Trash, TreeStructure, X, type Icon } from '../../components/icons';
+import { Bed, Info, Buildings, Door, DoorOpen, House, Plus, Stack, Tag, Textbox, Trash, TreeStructure, X, type Icon } from '../../components/icons';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { Button, IconTile, PageHeading, Field, Input, PageHeader, Pill, SearchInput, type Tone, Sheet, Switch, Table, cx, toneDot, SheetHero, SheetRow, SheetSection, listNav, type SheetNav, avatarFx } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { choicesOf, invId, pickOneType, useInv, type Field as CField, type Property, type Structure, type TagDef } from '../../data/inventory';
-import { EditLink, FieldErr, LineTabs, levelTone, Modal, PanelModal, Picker, PropStack, PropStatus } from './common';
+import { EditLink, FieldErr, LineTabs, levelIcon, levelTone, Modal, PanelModal, Picker, PropStack, PropStatus } from './common';
 
 /* ---------------- Property layouts (code: /cms/structures; Figma 3057:2) ---------------- */
 export function StructuresPage() {
@@ -51,18 +51,6 @@ export function StructuresPage() {
   );
 }
 
-/** Icon for a level by its name, so a layout reads as a picture: building › floor › flat › room. */
-function levelIcon(name: string): Icon {
-  const n = name.toLowerCase();
-  if (/house/.test(n)) return House;
-  if (/build|block|hall/.test(n)) return Buildings;
-  if (/floor|level|storey/.test(n)) return Stack;
-  if (/flat|apartment|cluster/.test(n)) return DoorOpen;
-  if (/studio/.test(n)) return Door;
-  if (/room|bed/.test(n)) return Bed;
-  if (/tenanc|lease|contract/.test(n)) return Key;
-  return Stack;
-}
 const DESC: Record<string, string> = {
   'Blocks with flats': 'Blocks split into floors and flats of shared rooms',
   'Rooms only': 'Corridors of rooms on each floor, no flats',

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Buildings, Door, MagnifyingGlass, Plus, Stack, X, type Icon } from '../../components/icons';
+import { Archive, Buildings, Door, MagnifyingGlass, Plus, Stack, X, type Icon } from '../../components/icons';
 import { Confirm, Dropdown, Input, Sheet, SheetHero, SheetSection, Switch, cx, type SheetNav } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { choicesOf, invId, useInv, type Field, type Property } from '../../data/inventory';
@@ -14,16 +14,18 @@ type FieldLevel = LevelKind | 'Room';
 const ICON: Record<LevelKind, Icon> = { Block: Buildings, Floor: Stack, Flat: Door };
 /** The layout a property uses and the level name inside it, as custom fields store their attachment ("Halls with flats › Floor"). */
 export const layoutOf = (p: Property) => p.layout ?? (p.structure === 'House' ? 'Shared houses' : 'Blocks with flats');
-const levelName = (p: Property, k: FieldLevel) => (k === 'Block' ? (p.structure === 'House' ? 'House' : 'Building') : k);
+/* In Shared houses the houses are stored as the data's flats, so a Flat there is a House. */
+const levelName = (p: Property, k: FieldLevel) => { const house = layoutOf(p) === 'Shared houses' || p.structure === 'House'; return k === 'Block' ? (house ? 'House' : 'Building') : k === 'Flat' && house ? 'House' : k; };
 export const attachKey = (p: Property, k: FieldLevel) => `${layoutOf(p)} › ${levelName(p, k)}`;
 
 const NEW_TYPES = ['Text', 'Number', 'Yes / no', 'Date'] as const;
 
-export function LevelSheet({ p, kind, id, name, meta, facts, onClose, nav }: {
-  p: Property; kind: LevelKind; id: string; name: string; meta: string; facts: [string, string][]; onClose: () => void; nav?: SheetNav;
+export function LevelSheet({ p, kind, label, id, name, meta, facts, onClose, nav, onArchive }: {
+  p: Property; kind: LevelKind; /** The layout's own name for the level (House), when it isn't the kind. */ label?: string; id: string; name: string; meta: string; facts: [string, string][]; onClose: () => void; nav?: SheetNav; /** Archive in the control bar (it asks first). */ onArchive?: () => void;
 }) {
   return (
-    <Sheet open onClose={onClose} nav={nav} title={kind} width={520}>
+    <Sheet open onClose={onClose} nav={nav} title={label ?? kind} width={520}
+      onDelete={onArchive ? { label: `Archive ${name}`, text: 'Archive', icon: Archive, onClick: onArchive } : undefined}>
       <SheetHero icon={ICON[kind]} tone="grey" name={name} meta={meta} facts={facts} />
       <LevelFields p={p} kind={kind} id={id} />
       <p className="mt-3 text-[13px] leading-5 text-[#737373]">Custom fields apply to every {levelName(p, kind).toLowerCase()} in {layoutOf(p)}; each one keeps its own value.</p>
@@ -33,7 +35,9 @@ export function LevelSheet({ p, kind, id, name, meta, facts, onClose, nav }: {
 
 /** The custom fields on one record at a level (block, floor, flat or room): fill values, attach an existing field or create
  *  one inline, remove one from the level. Shared by the level panels and the unit panel (2026-11-20). */
-export function LevelFields({ p, kind, id }: { p: Property; kind: FieldLevel; id: string }) {
+export function LevelFields({ p, kind, id, local }: { p: Property; kind: FieldLevel; id: string;
+  /** For records being made (Add units): × only leaves the field out of this one, it doesn't come off the level. */ local?: boolean }) {
+  const [left, setLeft] = useState<string[]>([]);
   const all = useInv((s) => s.fields);
   const values = useInv((s) => s.fieldValues[id]) ?? {};
   const key = attachKey(p, kind);
@@ -41,7 +45,7 @@ export function LevelFields({ p, kind, id }: { p: Property; kind: FieldLevel; id
   // Toggles first, then the fields that take a typed or picked value, each group in the order they were added.
   const isToggle = (f: Field) => f.type === 'Yes / no';
   const attached = all.filter((f) => f.attached.includes(key));
-  const fields = [...attached.filter(isToggle), ...attached.filter((f) => !isToggle(f))];
+  const fields = [...attached.filter(isToggle), ...attached.filter((f) => !isToggle(f))].filter((f) => !left.includes(f.id));
   const setValue = (fid: string, v: string) => useInv.getState().set('fieldValues', (m) => ({ ...m, [id]: { ...m[id], [fid]: v } }));
   const attach = (f: Field) => {
     useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, attached: [...x.attached, key] } : x)));
@@ -59,12 +63,13 @@ export function LevelFields({ p, kind, id }: { p: Property; kind: FieldLevel; id
   };
   return (
     <>
-      <SheetSection title={`Custom fields · ${fields.length}`} action={<FieldPicker have={fields} onAttach={attach} onCreate={create} />}>
+      <SheetSection title={`Custom fields · ${fields.length}`} action={<FieldPicker have={fields} onAttach={(f) => (left.includes(f.id) ? setLeft((x) => x.filter((y) => y !== f.id)) : attach(f))} onCreate={create} />}>
         {fields.length ? fields.map((f) => (
           <div key={f.id} className="py-3 first:pt-0 last:pb-0 border-t border-[#EBEBEB] first:border-t-0 group/row grid grid-cols-[160px_minmax(0,1fr)] gap-3 items-center">
             <span className="min-w-0 flex items-center gap-1">
               <span className="min-w-0 truncate text-sm leading-5 text-[#737373]">{f.name}</span>
-              <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setRemoving(f)}
+              <button type="button" aria-label={local ? `Leave out ${f.name}` : `Remove ${f.name}`} title={local ? 'Leave out of these units' : undefined}
+                onClick={() => { if (local) { setLeft((x) => [...x, f.id]); useInv.getState().set('fieldValues', (m) => { const { [f.id]: _, ...rest } = m[id] ?? {}; return { ...m, [id]: rest }; }); } else setRemoving(f); }}
                 className="shrink-0 size-6 rounded-md grid place-items-center text-[#A3A3A3] opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"><X size={14} /></button>
             </span>
             <FieldInput f={f} value={values[f.id] ?? ''} onChange={(v) => setValue(f.id, v)} />

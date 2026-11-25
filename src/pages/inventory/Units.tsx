@@ -1,22 +1,38 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Archive, ArrowSquareOut, ArrowUUpLeft, ArrowsOutCardinal, Bed, Buildings, CaretDown, CaretRight, Door, DotsThree, Info, LinkSimple, ListDashes, PencilSimple, Plus, Stack, UploadSimple, Warning, WarningCircle,
+  Archive, ArrowUUpLeft, Bed, CaretDown, CaretRight, CaretUpDown, MapPin, Door, DotsThree, Info, ListDashes, PencilSimple, Plus, Warning, WarningCircle, type Icon,
 } from '../../components/icons';
-import { PersonName, Button, Empty, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
+import { PersonName, Button, Dropdown, Empty, Field, Input, MultiFilter, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
-import { allUnits, flatsOf, money, per, useInv, type ArchivedRow, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
+import { allUnits, flatsOf, money, per, rentFor, useInv, type ArchivedRow, type Flat, type Property, type Structure, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
-import { EditLink, FieldErr, LineTabs, Menu, Modal, PanelModal, Picker, PropStatus, RadioCard } from './common';
+import { EditLink, FieldErr, LineTabs, Menu, Modal, PanelModal, Picker, PropStatus, RadioCard, levelIcon } from './common';
 import { GhostZone } from '../../components/headerCtx';
-import { LevelFields, LevelSheet, type LevelKind } from './LevelSheet';
+import { LevelFields, LevelSheet, layoutOf, type LevelKind } from './LevelSheet';
 import { PHOTO } from './photos';
 import { EmptyArea } from '../allocations/common';
 
-type Sel = { pid: string; bi: number; floor: number; flat: number | null };
+/* The selection is a place in the tree: a property, a block, a floor or a flat. A null level means "the whole of the one above". */
+type Sel = { pid: string; bi: number | null; floor: number | null; flat: number | null };
 type TabId = 'all' | 'Active' | 'Draft' | 'Inactive' | 'Archived';
 const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
+
+/* Which levels the tree and table show come from the property's layout (Property layouts): floors and flats only when the
+   layout has them. A houses layout (House › Room) keeps its houses as the data's flats, so they're named House n (2026-11-25). */
+type Shape = { flats: boolean; house: boolean };
+function shapeOf(p: Property, structures: Structure[]): Shape {
+  const names = (structures.find((s) => s.name === layoutOf(p))?.levels ?? []).map((l) => l.name);
+  const house = /house/i.test(names[0] ?? '') || (!names.length && p.structure === 'House');
+  return { house, flats: !house && (names.length ? names.some((n) => /flat|apartment|cluster/i.test(n)) : true) };
+}
+/* Archiving works at any level: archivedFlats holds a block ("pid|bi"), floor ("pid|bi|floor") or flat id, and a flat is
+   gone when it or anything above it is in the list (2026-11-25). */
+const goneIn = (arch: string[]) => (id: string) => arch.some((a) => id === a || id.startsWith(`${a}|`));
+/** Something to archive: a block, floor or flat (or house), with the flats it takes along. */
+type ArchTarget = { id: string; name: string; kind: string; flats: Flat[] };
+const nameOf = (f: Flat, sh: Shape) => (sh.house ? `House ${f.id.split('|')[3]}` : f.name);
 
 function parseUnit(id: string): Sel | null {
   const m = /^([^:]+):(\d+):(\d+)\.(\d+)\./.exec(id);
@@ -38,18 +54,18 @@ export function UnitsPage() {
 }
 
 function UnitsView({ props }: { props: Property[] }) {
-  const nav = useNavigate();
   const [sp, setSp] = useSearchParams();
   const [open, setOpen] = useOpen();
   const edits = useInv((s) => s.unitEdits);
   const archived = useInv((s) => s.archived);
   const archivedFlats = useInv((s) => s.archivedFlats);
+  const structures = useInv((s) => s.structures);
+  /* Every property opens on its first block's Floor 1 (2026-11-23); a houses property on its list of houses. */
+  const home = (pid: string): Sel => { const x = props.find((q) => q.id === pid); return x && shapeOf(x, structures).house ? { pid, bi: null, floor: null, flat: null } : { pid, bi: 0, floor: 1, flat: null }; };
   const [sel, setSel] = useState<Sel>(() => {
     const fromOpen = open ? parseUnit(open) : null;
     if (fromOpen) return fromOpen;
-    const pid = sp.get('p') ?? 'col';
-    /* Every property opens on its first block's Floor 1 (2026-11-23). */
-    return { pid, bi: 0, floor: 1, flat: null };
+    return home(sp.get('p') ?? 'col');
   });
   const [tab, setTab] = useState<TabId>('all');
   const [typeF, setTypeF] = useState<string[]>([]);
@@ -57,25 +73,30 @@ function UnitsView({ props }: { props: Property[] }) {
   /* The J/K cursor's grey shows only while moving by keyboard; a click (and closing the panel after it) leaves no grey behind. */
   const [kbd, setKbd] = useState(false);
   const [checked, setChecked] = useState<string[]>([]);
-  const [archiveFlat, setArchiveFlat] = useState<Flat | null>(null);
+  const [archiveT, setArchiveT] = useState<ArchTarget | null>(null);
   const [restore, setRestore] = useState<ArchivedRow | null>(null);
   const [renaming, setRenaming] = useState<Flat | null>(null);
+  const [adding, setAdding] = useState(false);
   /* The level panel (Block, Floor or Flat) for filling in custom fields; one panel at a time, so it closes the unit's. */
   const [level, setLevelRaw] = useState<LevelRef | null>(null);
   const setLevel = (l: LevelRef | null) => { if (l) setOpen(null); setLevelRaw(l); };
 
   const p = props.find((x) => x.id === sel.pid) ?? props[0];
-  useEffect(() => { if (p && p.id !== sel.pid) setSel({ pid: p.id, bi: 0, floor: 1, flat: null }); }, [p, sel.pid]);
-  useEffect(() => { const q = sp.get('p'); if (q && q !== sel.pid && !open) setSel({ pid: q, bi: 0, floor: 1, flat: null }); }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (p && p.id !== sel.pid) setSel(home(p.id)); }, [p, sel.pid]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const q = sp.get('p'); if (q && q !== sel.pid && !open) setSel(home(q)); }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const flats = useMemo(() => flatsOf(p, sel.bi, sel.floor, edits).filter((f) => !archivedFlats.includes(f.id)), [p, sel.bi, sel.floor, edits, archivedFlats]);
+  /* What the table shows: a property or a block groups its units under block and floor rows; a floor or a flat under flat rows. */
+  const mode: 'property' | 'block' | 'floor' | 'flat' = sel.bi == null ? 'property' : sel.floor == null ? 'block' : sel.flat == null ? 'floor' : 'flat';
+  const sh = shapeOf(p, structures);
+  const bi0 = sel.bi ?? 0;
+  const fl0 = sel.floor ?? 1;
+  const flats = useMemo(() => flatsOf(p, bi0, fl0, edits).filter((f) => !goneIn(archivedFlats)(f.id)), [p, bi0, fl0, edits, archivedFlats]);
   const shownFlats = sel.flat ? flats.filter((f) => f.id.endsWith(`|${sel.flat}`)) : flats;
   const all = useMemo(() => allUnits(p, edits), [p, edits]);
-  const block = p.blocks[sel.bi];
+  const block = sel.bi != null ? p.blocks[sel.bi] : undefined;
   const curFlat = sel.flat ? flats.find((f) => f.id.endsWith(`|${sel.flat}`)) ?? null : null;
-  const copyLink = () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); };
   const archRows = archived[p.id] ?? [];
-  const archUnitIds = new Set(archivedFlats.filter((f) => f.startsWith(`${p.id}|`)).flatMap((fid) => { const [, bi, fl] = fid.split('|'); return flatsOf(p, +bi, +fl, edits).find((f) => f.id === fid)?.units.map((u) => u.id) ?? []; }));
+  const archUnitIds = new Set(p.blocks.flatMap((b, bi) => Array.from({ length: b.floors }, (_, i) => flatsOf(p, bi, i + 1, edits)).flat()).filter((f) => goneIn(archivedFlats)(f.id)).flatMap((f) => f.units.map((u) => u.id)));
   const live = all.filter((u) => !archUnitIds.has(u.id) && u.status !== 'Archived');
   const counts = p.id === 'col'
     ? { all: p.counts.all, Active: p.counts.active - [...archUnitIds].filter((id) => all.find((u) => u.id === id)?.status === 'Active').length, Draft: p.counts.draft - [...archUnitIds].filter((id) => all.find((u) => u.id === id)?.status === 'Draft').length, Inactive: p.counts.inactive - [...archUnitIds].filter((id) => all.find((u) => u.id === id)?.status === 'Inactive').length, Archived: archRows.length }
@@ -84,8 +105,27 @@ function UnitsView({ props }: { props: Property[] }) {
   const ql = q.trim().toLowerCase();
   const visible = (u: Unit) => u.status !== 'Archived' && (tab === 'all' || u.status === tab) && (!typeF.length || typeF.includes(u.type)) && (!ql || u.code.toLowerCase().includes(ql) || u.type.toLowerCase().includes(ql));
   const groups = shownFlats.map((f) => ({ f, units: f.units.filter(visible) })).filter((g) => g.units.length || tab === 'all');
-  const flatList = groups.flatMap((g) => g.units);
+  /* Block → floor → units, for the property and block views. */
+  const blockGroups = useMemo(() => {
+    if (sh.house || (mode !== 'property' && mode !== 'block')) return [];
+    const bis = (mode === 'property' ? p.blocks.map((_, i) => i) : [sel.bi!]).filter((bi) => !goneIn(archivedFlats)(`${p.id}|${bi}`));
+    return bis.map((bi) => {
+      const b = p.blocks[bi];
+      const floors = Array.from({ length: b.floors }, (_, i) => ({ floor: i + 1, gone: goneIn(archivedFlats)(`${p.id}|${bi}|${i + 1}`), units: flatsOf(p, bi, i + 1, edits).filter((f) => !goneIn(archivedFlats)(f.id)).flatMap((f) => f.units) }));
+      return { bi, b, floors: floors.filter((f) => !f.gone) };
+    });
+  }, [mode, p, sel.bi, edits, archivedFlats, sh.house]);
+  const shownBlocks = blockGroups.map((g) => ({ ...g, floors: g.floors.map((f) => ({ ...f, shown: f.units.filter(visible) })).filter((f) => f.shown.length || tab === 'all') }));
+  /* Property/block: floor rows. Floor (with flats), or a houses property: flat (house) rows. Otherwise one straight list. */
+  const grouped = !sh.house && (mode === 'property' || mode === 'block');
+  const byFlat = sh.house ? mode !== 'flat' : mode === 'floor' && sh.flats;
+  /* Place only where it says something the rows above don't: the flat under a floor row, or the full place in a flat view. */
+  const showPlace = grouped ? sh.flats : mode === 'flat' && !sh.house;
+  const flatList = grouped ? shownBlocks.flatMap((g) => g.floors.flatMap((f) => f.shown)) : groups.flatMap((g) => g.units);
+  const totalHere = grouped ? blockGroups.reduce((n, g) => n + g.floors.reduce((m, f) => m + f.units.length, 0), 0) : shownFlats.reduce((n, f) => n + f.units.length, 0);
   const openUnit = open ? flats.flatMap((f) => f.units).find((u) => u.id === open) ?? all.find((u) => u.id === open) ?? null : null;
+  const openAt = open ? parseUnit(open) : null;
+  const placeOf = (u: Unit, flatOnly = false) => { const at = parseUnit(u.id); if (!at) return ''; const flat = `Flat ${at.floor}.${at.flat}`; return flatOnly ? flat : [p.blocks[at.bi ?? 0]?.name ?? '', `Floor ${at.floor}`, ...(sh.flats ? [flat] : [])].join(' · '); };
 
   // J/K move, Enter opens, X selects.
   const stateRef = useRef({ flatList, cursor });
@@ -105,19 +145,48 @@ function UnitsView({ props }: { props: Property[] }) {
     return () => window.removeEventListener('keydown', h);
   }, [setOpen]);
 
-  /* Figma 3884:43935: the top bar stays INVENTORY › UNITS; the place in the tree is the heading band's small crumb + 20px title. */
-  const placeCrumbs: { label: string; onClick?: () => void }[] = [{ label: p.name }, ...(block ? [{ label: block.name, onClick: curFlat ? () => go({ flat: null }) : undefined }] : []), ...(curFlat ? [{ label: `Floor ${sel.floor}`, onClick: () => go({ flat: null }) }] : [])];
-  const title = curFlat ? curFlat.name : `Floor ${sel.floor}`;
-  const go = (s: Partial<Sel>) => { setSel((x) => ({ ...x, ...s })); setCursor(0); setChecked([]); if (s.pid) setSp((q) => { const n = new URLSearchParams(q); n.set('p', s.pid!); n.delete('open'); return n; }, { replace: true }); };
+  const go = (s: Sel) => { setSel(s); setCursor(0); setChecked([]); if (s.pid !== sel.pid) setSp((q) => { const n = new URLSearchParams(q); n.set('p', s.pid); n.delete('open'); return n; }, { replace: true }); };
+  const toProperty = () => go({ pid: p.id, bi: null, floor: null, flat: null });
+  const toBlock = (bi: number) => go({ pid: p.id, bi, floor: null, flat: null });
+  const toFloor = (bi: number, floor: number) => go({ pid: p.id, bi, floor, flat: null });
+  /* Figma 4251:17646: the heading is the place, property · block · floor; each part above the current one goes back up. */
+  const floorName = p.structure === 'House' ? 'Houses' : `Floor ${sel.floor}`;
+  const place: { label: string; onClick?: () => void }[] = [
+    { label: p.name, onClick: mode !== 'property' ? toProperty : undefined },
+    ...(block && !sh.house ? [{ label: block.name, onClick: mode === 'floor' || mode === 'flat' ? () => toBlock(sel.bi!) : undefined }] : []),
+    ...(sel.floor != null && !sh.house ? [{ label: floorName, onClick: mode === 'flat' ? () => toFloor(sel.bi!, sel.floor!) : undefined }] : []),
+    ...(curFlat ? [{ label: nameOf(curFlat, sh) }] : []),
+  ];
+  const title = place[place.length - 1].label;
+  const toggleIds = (ids: string[]) => setChecked((c) => (ids.every((id) => c.includes(id)) ? c.filter((x) => !ids.includes(x)) : [...new Set([...c, ...ids])]));
+  const tri = (ids: string[]): boolean | 'indeterminate' => { const n = ids.filter((id) => checked.includes(id)).length; return !ids.length || !n ? false : n === ids.length ? true : 'indeterminate'; };
+  const onOpenUnit = (id: string) => { setKbd(false); setOpen(id); setCursor(flatList.findIndex((u) => u.id === id)); };
+  const unitRow = (u: Unit, place?: string) => <UnitRow key={u.id} u={u} place={place} cursor={kbd && flatList[cursor]?.id === u.id} open={open === u.id} checked={checked.includes(u.id)} onCheck={() => toggleIds([u.id])} onOpen={() => onOpenUnit(u.id)} />;
 
-  const doArchiveFlat = (f: Flat) => {
+  /* A level's archive: from its panel (Archive in the control bar) or a flat's ⋯ menu. The panel closes and, if the table
+     was showing what went, it steps up to the level above. */
+  const doArchive = (t: ArchTarget) => {
     const st = useInv.getState();
-    const rows: ArchivedRow[] = [{ id: f.id, name: f.name, type: 'Flat', flat: true, units: f.units.length, who: 'Arjun Mehta', when: 'Just now' }, ...f.units.map((u) => ({ id: `${f.id}#${u.code}`, name: u.code, type: u.type, who: 'Arjun Mehta', when: 'Just now', parent: f.id }))];
-    st.set('archivedFlats', (l) => [...l, f.id]);
+    const units = t.flats.flatMap((f) => f.units);
+    const rows: ArchivedRow[] = [{ id: t.id, name: t.name, type: t.kind, flat: true, units: units.length, who: 'Arjun Mehta', when: 'Just now' }, ...units.map((u) => ({ id: `${t.id}#${u.id}`, name: u.code, type: u.type, who: 'Arjun Mehta', when: 'Just now', parent: t.id }))];
+    st.set('archivedFlats', (l) => [...l, t.id]);
     st.set('archived', (a) => ({ ...a, [p.id]: [...rows, ...(a[p.id] ?? [])] }));
-    setArchiveFlat(null);
-    if (curFlat?.id === f.id) go({ flat: null });
-    toast.success(`${f.name} and ${f.units.length} units archived`, { action: { label: 'Undo', onClick: () => undoArchive(f.id) } });
+    setArchiveT(null);
+    setLevelRaw(null);
+    const [, tb, tf] = t.id.split('|');
+    const here = [p.id, sel.bi, sel.floor, sel.flat].filter((x) => x != null).join('|');
+    if (here === t.id || here.startsWith(`${t.id}|`)) go(tf == null ? { pid: p.id, bi: null, floor: null, flat: null } : t.id.split('|').length === 3 ? { pid: p.id, bi: +tb, floor: null, flat: null } : sh.house ? { pid: p.id, bi: null, floor: null, flat: null } : { pid: p.id, bi: +tb, floor: +tf, flat: null });
+    toast.success(`${t.name} and ${units.length} units archived`, { action: { label: 'Undo', onClick: () => undoArchive(t.id) } });
+  };
+  /* What archiving a level takes with it. */
+  const targetOf = (l: LevelRef): ArchTarget | null => {
+    const b = p.blocks[l.bi]; if (!b) return null;
+    const live = (fs: Flat[]) => fs.filter((f) => !goneIn(archivedFlats)(f.id));
+    if (l.kind === 'Block') return { id: `${p.id}|${l.bi}`, name: b.name, kind: 'Block', flats: live(Array.from({ length: b.floors }, (_, i) => flatsOf(p, l.bi, i + 1, edits)).flat()) };
+    const fs = live(flatsOf(p, l.bi, l.floor, edits));
+    if (l.kind === 'Floor') return { id: `${p.id}|${l.bi}|${l.floor}`, name: `Floor ${l.floor}`, kind: 'Floor', flats: fs };
+    const f = fs.find((x) => +x.id.split('|')[3] === l.flat); if (!f) return null;
+    return { id: f.id, name: nameOf(f, sh), kind: sh.house ? 'House' : 'Flat', flats: [f] };
   };
   const undoArchive = (fid: string) => {
     const st = useInv.getState();
@@ -128,38 +197,32 @@ function UnitsView({ props }: { props: Property[] }) {
   return (
     <>
       <PageHeader icon={ListDashes} title="Units" crumbs={['Properties']}>
-        <Button icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
         <Button variant="primary" icon={Plus} onClick={() => addUnit()}>Add unit</Button>
       </PageHeader>
       <div className="flex-1 min-h-0 flex">
-        <Tree props={props} p={p} sel={sel} go={go} archivedFlats={archivedFlats} onInfo={setLevel} />
+        <Tree props={props} structures={structures} sel={sel} go={go} archivedFlats={archivedFlats} onInfo={(pid, l) => { if (pid !== p.id) go({ pid, bi: l.bi, floor: l.kind === 'Block' ? null : l.floor, flat: l.flat ?? null }); setLevel(l); }} />
         <section className="flex-1 min-w-0 flex flex-col">
-          {/* Heading band (Figma "Heading", 20/24/4/24): 12px #737373 crumb over the 20px medium title, flat actions on the right. */}
-          <div className="shrink-0 px-6 pt-5 pb-4 border-b border-[#E5E5E5] flex items-end gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1 text-xs leading-4 text-[#737373]">
-                {placeCrumbs.map((c, i) => (
-                  <span key={i} className="flex items-center gap-1">{i > 0 && <CaretRight size={12} strokeWidth={1.5} />}
-                    {c.onClick ? <button type="button" onClick={c.onClick} className="hover:text-[#0A0A0A] hover:underline underline-offset-2">{c.label}</button> : c.label}</span>
-                ))}
-              </div>
-              <h1 className="mt-1 text-xl leading-7 font-medium text-[#0A0A0A] truncate">{title}</h1>
-            </div>
-            <Button icon={null} onClick={() => setLevel(curFlat ? { kind: 'Flat', bi: sel.bi, floor: sel.floor, flat: sel.flat ?? undefined } : { kind: 'Floor', bi: sel.bi, floor: sel.floor })}>Details</Button>
-            {/* Rename, move and archive act on a flat; on a block or floor the only action is the link, so it shows as its own button. */}
-            {curFlat ? (
+          {/* Heading band: the place as one 20px line, property · block · floor; the parts above the current level link back up. */}
+          <div className="shrink-0 px-6 pt-5 pb-4 border-b border-[#E5E5E5] flex items-center gap-3">
+            <h1 className="min-w-0 flex-1 text-xl leading-7 font-medium text-[#0A0A0A] truncate">
+              {place.map((c, i) => (
+                <span key={i}>{i > 0 && <span className="text-[#A3A3A3]"> · </span>}
+                  {c.onClick ? <button type="button" onClick={c.onClick} className="text-[#737373] hover:text-[#0A0A0A] hover:underline underline-offset-4">{c.label}</button> : c.label}</span>
+              ))}
+            </h1>
+            {/* No Details button (2026-11-25): a level's panel opens from its (i) in the tree or its name in a group row. */}
+            {/* Rename and archive act on a flat, so the menu shows only when a flat is selected. */}
+            {curFlat && sh.flats && (
               <Menu width={200} trigger={(o) => <Button icon={DotsThree} onClick={o} aria-label="More" />} items={[
                 { label: 'Rename', icon: PencilSimple, onClick: () => setRenaming(curFlat) },
-                { label: 'Move', icon: ArrowsOutCardinal, onClick: () => toast('Pick a new floor for the flat in the tree') },
-                { label: 'Copy link', icon: LinkSimple, onClick: copyLink },
                 'sep',
-                { label: 'Archive flat', icon: Archive, danger: true, onClick: () => setArchiveFlat(curFlat) },
+                { label: 'Archive flat', icon: Archive, danger: true, onClick: () => setArchiveT({ id: curFlat.id, name: curFlat.name, kind: 'Flat', flats: [curFlat] }) },
               ]} />
-            ) : <Button icon={LinkSimple} onClick={copyLink} aria-label="Copy link" title="Copy link" />}
+            )}
           </div>
           {/* Toolbar: search on the left; the status (was the tab strip) as a single-choice dropdown and the room-type filter on the right. */}
           <div {...PIN} className="shrink-0 px-6 py-4 flex items-center gap-2">
-            <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder="Search units" /></div>
+            <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder={`Search ${title}`} /></div>
             <div className="ml-auto min-w-0 flex items-center gap-2">
               <SelectFilter prefix="Status" value={tab} onChange={(t) => { setTab(t as typeof tab); setCursor(0); }} width={220}
                 options={[{ value: 'all', label: 'All', meta: counts.all }, { value: 'Active', meta: counts.Active }, { value: 'Draft', meta: counts.Draft }, { value: 'Inactive', meta: counts.Inactive }, { value: 'Archived', meta: counts.Archived }]} />
@@ -172,16 +235,39 @@ function UnitsView({ props }: { props: Property[] }) {
           ) : (
             <>
               <div data-fill className="flex-1 overflow-auto">
-                {!groups.length ? <Empty art="noResults" title={`No ${tab === 'all' ? '' : tab.toLowerCase() + ' '}units here`} sub={typeF.length ? `None of type ${typeF.join(' or ')}.` : undefined} /> : <table className="w-full text-sm">
+                {!flatList.length ? <Empty art="noResults" title={`No ${tab === 'all' ? '' : tab.toLowerCase() + ' '}units here`} sub={typeF.length ? `None of type ${typeF.join(' or ')}.` : undefined} /> : <table className="w-full text-sm">
                   <thead className="sticky top-0 z-[1]"><tr className="text-left">
-                    <th className="w-12 pl-6"><Checkbox aria-label="Select all" checked={!!flatList.length && checked.length === flatList.length} onCheckedChange={(v) => setChecked((v === true) ? flatList.map((u) => u.id) : [])} /></th>
-                    {['Unit', 'Room type', `Rent / ${per(p)}`, 'Status', 'Tenancy template'].map((h, i) => <th key={h} className={cx('px-3', i === 4 && 'pr-6')}>{h}</th>)}
+                    <th className="w-12 pl-6"><Checkbox aria-label="Select all" checked={tri(flatList.map((u) => u.id))} onCheckedChange={() => toggleIds(flatList.map((u) => u.id))} /></th>
+                    {/* Figma D1 4251:17819: Unit, Place, Room type, Rent, Status, Template. */}
+                    {/* A floor's flat rows already say where each unit is, so the floor view drops Place. */}
+                    {['Unit', 'Place', 'Room type', 'Rent', 'Status', 'Template'].filter((h) => showPlace || h !== 'Place').map((h) => <th key={h} className={cx('px-3', h === 'Template' && 'pr-6')}>{h}</th>)}
                   </tr></thead>
                   <tbody>
-                    {groups.map(({ f, units }) => (
-                      <FlatGroup key={f.id} f={f} units={units} cursorId={kbd ? flatList[cursor]?.id : undefined} open={open} checked={checked} setChecked={setChecked} onOpen={(id) => { setKbd(false); setOpen(id); setCursor(flatList.findIndex((u) => u.id === id)); }}
-                        onFlat={() => go({ flat: +f.id.split('|')[3] })} onArchive={() => setArchiveFlat(f)} onRename={() => setRenaming(f)} />
-                    ))}
+                    {/* Floor and flat views: one straight list, Place saying where each unit is (Figma D1). Block and property views split it by floor. */}
+                    {grouped ? shownBlocks.flatMap((g) => g.floors.map((f) => {
+                      /* A block (or a property) splits its list with a grey row per floor: tick it to take the floor, (i) for its panel.
+                         Under it Place names only the flat, since the row says the rest (2026-11-25). */
+                      const ids = f.shown.map((u) => u.id);
+                      const name = `Floor ${f.floor}`;
+                      return (
+                        <Fragment key={`${g.bi}|${f.floor}`}>
+                          <FloorRow name={name} pre={mode === 'property' ? { name: g.b.name, onClick: () => setLevel({ kind: 'Block', bi: g.bi, floor: 1 }) } : undefined} meta={`${f.units.length} units`} check={tri(ids)} onCheck={() => toggleIds(ids)}
+                            active={level?.kind === 'Floor' && level.bi === g.bi && level.floor === f.floor} onInfo={() => setLevel({ kind: 'Floor', bi: g.bi, floor: f.floor })} />
+                          {f.shown.map((u) => unitRow(u, sh.flats ? placeOf(u, true) : undefined))}
+                        </Fragment>
+                      );
+                    })) : byFlat ? groups.map(({ f, units }) => {
+                      /* A floor splits its list with a grey row per flat: tick it to take the flat, (i) for its panel (2026-11-25). */
+                      const ids = units.map((u) => u.id);
+                      const fn = +f.id.split('|')[3];
+                      return (
+                        <Fragment key={f.id}>
+                          <FloorRow name={nameOf(f, sh)} meta={`${f.units.length} units`} check={tri(ids)} onCheck={() => toggleIds(ids)}
+                            active={level?.kind === 'Flat' && level.bi === bi0 && level.floor === fl0 && level.flat === fn} onInfo={() => setLevel({ kind: 'Flat', bi: bi0, floor: fl0, flat: fn })} />
+                          {units.map((u) => unitRow(u))}
+                        </Fragment>
+                      );
+                    }) : flatList.map((u) => unitRow(u, showPlace ? placeOf(u) : undefined))}
                   </tbody>
                 </table>}
               </div>
@@ -194,31 +280,24 @@ function UnitsView({ props }: { props: Property[] }) {
                     <Button size="sm" variant="danger-ghost" icon={null} onClick={() => setChecked([])}>Clear</Button>
                     <Menu align="right" width={160} trigger={(o) => <Button size="sm" onClick={o}>Set status</Button>} items={(['Active', 'Inactive', 'Draft'] as UStatus[]).map((s) => ({ label: s, onClick: () => bulkStatus(s) }))} />
                   </span>
-                </> : (() => { const all = shownFlats.reduce((n, f) => n + f.units.length, 0); return <span>{flatList.length === all ? `${all} units on ${title}` : `Showing ${flatList.length} of ${all} units on ${title}`}</span>; })()}
+                </> : <span>{flatList.length === totalHere ? `${totalHere} units in ${title}` : `Showing ${flatList.length} of ${totalHere} units in ${title}`}</span>}
               </div>
             </>
           )}
         </section>
       </div>
 
-      <UnitSheet p={p} unit={openUnit} nav={listNav(flatList, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)} path={[p.name, block?.name ?? '', `Floor ${sel.floor}`, flats.find((f) => f.units.some((u) => u.id === open))?.name ?? '']} />
-      {level && <LevelSheetFor key={`${level.kind}${level.bi}${level.floor}${level.flat}`} p={p} l={level} onClose={() => setLevelRaw(null)} />}
-      <ArchiveFlatDialog flat={archiveFlat} onClose={() => setArchiveFlat(null)} onConfirm={doArchiveFlat} />
+      <UnitSheet p={p} unit={openUnit} nav={listNav(flatList, (x) => x.id === open, (x) => setOpen(x.id))} onClose={() => setOpen(null)}
+        path={openAt ? [p.name, p.blocks[openAt.bi ?? 0]?.name ?? '', `Floor ${openAt.floor}`, `Flat ${openAt.floor}.${openAt.flat}`] : [p.name]} />
+      {level && <LevelSheetFor key={`${level.kind}${level.bi}${level.floor}${level.flat}`} p={p} l={level} onClose={() => setLevelRaw(null)} onArchive={() => setArchiveT(targetOf(level))} />}
+      <ArchiveDialog t={archiveT} onClose={() => setArchiveT(null)} onConfirm={doArchive} />
       <RestoreDialog p={p} row={restore} onClose={() => setRestore(null)} />
       <RenameDialog flat={renaming} siblings={flats} onClose={() => setRenaming(null)} />
+      {adding && <AddUnitsDialog props={props} start={sel} onClose={() => setAdding(false)} onAdded={(s) => { setAdding(false); go(s); }} />}
     </>
   );
 
-  function addUnit() {
-    const f = curFlat ?? flats[flats.length - 1];
-    if (!f) return;
-    const letters = 'ABCDEFGHIJKLMNOP';
-    const code = `${f.name.replace('Flat ', '')}.${letters[f.units.length] ?? f.units.length + 1}`;
-    const id = `${p.id}:${sel.bi}:${code}`;
-    useInv.getState().editUnit(id, { status: 'Draft' });
-    toast.success(`${code} added to ${f.name} as Draft`, { description: 'Open it to give it a room type and tenancy.' });
-    setOpen(id);
-  }
+  function addUnit() { setAdding(true); }
   function bulkStatus(s: UStatus) {
     const ed = useInv.getState().editUnit;
     let skipped = 0;
@@ -234,24 +313,27 @@ function restoreOne(p: Property, r: ArchivedRow) {
 }
 
 /* ---------------- Left hierarchy tree ---------------- */
-/* Figma 3884:43935 tree panel: 264px, a property picker on top, a "HIERARCHY · N UNITS" mono label, then the picked
-   property's blocks → floors → flats. 32px r8 rows indented 4/20/36; counts in Geist Mono 12 #A3A3A3; the selected
-   row is raised white (1px #E5E5E5, soft drop) with its icon and count in blue. Rows sit 2px apart, so a hovered row
-   never touches the selected one (2026-11-23). */
-function Tree({ props, p, sel, go, archivedFlats, onInfo }: { props: Property[]; p: Property; sel: Sel; go: (s: Partial<Sel>) => void; archivedFlats: string[]; onInfo: (l: LevelRef) => void }) {
+/* Figma 4251:17646: 264px, a location picker on top, a PROPERTIES mono label, then every property → blocks → floors → flats.
+   32px r8 rows, 8px in on both sides, each level 22px in so a row's caret sits under its parent's icon; counts in Geist Mono 12 #A3A3A3; the selected row is raised white (1px #E5E5E5, soft drop)
+   with its icon in blue. Picking a property or a block lists all its units, one straight list (2026-11-25). */
+function Tree({ props, structures, sel, go, archivedFlats, onInfo }: { props: Property[]; structures: Structure[]; sel: Sel; go: (s: Sel) => void; archivedFlats: string[]; onInfo: (pid: string, l: LevelRef) => void }) {
   const edits = useInv((s) => s.unitEdits);
-  const [open, setOpen] = useState<Record<string, boolean>>({ [`${sel.pid}|${sel.bi}`]: true, [`${sel.pid}|${sel.bi}|${sel.floor}`]: true });
+  const [loc, setLoc] = useState<string | null>(null);
+  const [open, setOpen] = useState<Record<string, boolean>>(() => ({ [sel.pid]: true, ...(sel.bi != null ? { [`${sel.pid}|${sel.bi}`]: true } : {}), ...(sel.floor != null ? { [`${sel.pid}|${sel.bi}|${sel.floor}`]: true } : {}) }));
   const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
-  const row = (depth: number, k: string, I: typeof Bed, label: string, n: number | null, active: boolean, onClick: () => void, leaf = false, info?: LevelRef) => (
-    <div key={k} aria-current={active || undefined} style={{ paddingLeft: 4 + depth * 16 }} onClick={onClick}
+  const expand = (...ks: string[]) => setOpen((o) => ({ ...o, ...Object.fromEntries(ks.map((k) => [k, true])) }));
+  const campuses = [...new Set(props.map((x) => x.campus))];
+  const shown = loc ? props.filter((x) => x.campus === loc) : props;
+  const row = (depth: number, k: string, I: Icon | null, label: string, n: number | null, active: boolean, onClick: () => void, leaf = false, info?: () => void) => (
+    <div key={k} aria-current={active || undefined} style={{ paddingLeft: 8 + depth * 22 }} onClick={onClick}
       className={cx('group h-8 shrink-0 flex items-center gap-1.5 rounded-lg border pr-2 text-sm leading-5 cursor-pointer transition-colors',
         depth === 0 || active ? 'font-medium' : 'font-normal',
         active ? 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(10,13,20,0.06)] text-[#0A0A0A]' : 'border-transparent text-[#0A0A0A] hover:bg-black/[0.03]')}>
       {leaf ? <span className="w-4 shrink-0" /> : <button type="button" aria-label={open[k] ? 'Collapse' : 'Expand'} aria-expanded={!!open[k]} onClick={(e) => { e.stopPropagation(); tog(k); }} className="size-4 shrink-0 rounded flex items-center justify-center text-[#737373] hover:text-[#0A0A0A]">{open[k] ? <CaretDown size={14} strokeWidth={1.5} /> : <CaretRight size={14} strokeWidth={1.5} />}</button>}
-      <I size={16} strokeWidth={1.5} className={cx('shrink-0', active ? 'text-[#2563EB]' : 'text-[#404040]')} />
+      {I && <I size={16} strokeWidth={1.5} className={cx('shrink-0', active ? 'text-[#2563EB]' : 'text-[#404040]')} />}
       <span className="truncate flex-1">{label}</span>
-      {/* Every level opens its own panel (custom fields), on hover or when it's the current one. */}
-      {info && <button type="button" aria-label={`${label} details`} title="Details" onClick={(e) => { e.stopPropagation(); onInfo(info); }}
+      {/* Blocks, floors and flats open their own panel (custom fields), on hover or when it's the current one. */}
+      {info && <button type="button" aria-label={`${label} details`} title="Details" onClick={(e) => { e.stopPropagation(); info(); }}
         className={cx('size-5 shrink-0 rounded flex items-center justify-center text-[#737373] hover:text-[#0A0A0A] hover:bg-black/[0.05]', active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100')}><Info size={14} strokeWidth={1.5} /></button>}
       {n != null && <span className={cx('font-mono text-xs tabular-nums', active ? 'text-[#737373]' : 'text-[#A3A3A3]')}>{n}</span>}
     </div>
@@ -259,26 +341,38 @@ function Tree({ props, p, sel, go, archivedFlats, onInfo }: { props: Property[];
   return (
     <aside className="w-[264px] shrink-0 border-r border-[#E5E5E5] bg-white overflow-auto px-3 pt-3 pb-4 flex flex-col">
       <Menu align="left" width={240} trigger={(o) => (
-        <button type="button" onClick={o} className="h-9 shrink-0 px-2.5 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex items-center gap-2 text-sm font-medium text-[#0A0A0A] hover:bg-[#FAFAFA]">
-          <Buildings size={16} strokeWidth={1.5} className="text-[#404040] shrink-0" /><span className="flex-1 text-left truncate">{p.name}</span><CaretDown size={16} strokeWidth={1.5} className="text-[#737373]" />
+        <button type="button" onClick={o} className="w-full h-9 shrink-0 px-2.5 rounded-lg border border-[#E5E5E5] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex items-center gap-2 text-sm font-medium text-[#0A0A0A] hover:bg-[#FAFAFA]">
+          <MapPin size={16} strokeWidth={1.5} className="text-[#404040] shrink-0" /><span className="flex-1 text-left truncate">{loc ?? 'All locations'}</span><CaretUpDown size={16} strokeWidth={1.5} className="text-[#737373]" />
         </button>
-      )} items={props.map((x) => ({ label: x.name, icon: Buildings, onClick: () => go({ pid: x.id, bi: 0, floor: 1, flat: null }) }))} />
-      <div className="h-9 shrink-0 px-2 pt-3.5 pb-1.5 flex items-center justify-between font-mono uppercase text-xs leading-4 font-medium tracking-[0.48px] text-[#737373]">
-        <span>Hierarchy</span><span>{p.units} units</span>
-      </div>
-      {p.blocks.map((b, bi) => {
-        const bk = `${p.id}|${bi}`;
+      )} items={[{ label: 'All locations', icon: MapPin, onClick: () => setLoc(null) }, ...campuses.map((c) => ({ label: c, icon: MapPin, onClick: () => setLoc(c) }))]} />
+      <div className="h-9 shrink-0 px-2 pt-3.5 pb-1.5 flex items-center font-mono uppercase text-xs leading-4 font-medium tracking-[0.48px] text-[#737373]">Properties</div>
+      {shown.map((p) => {
+        const pActive = sel.pid === p.id && sel.bi == null;
+        const sh = shapeOf(p, structures);
         return (
-          <div key={bk} className="flex flex-col gap-0.5 mb-0.5">
-            {row(0, bk, Buildings, b.name, b.rooms, false, () => { tog(bk); go({ pid: p.id, bi, floor: 1, flat: null }); }, false, { kind: 'Block', bi, floor: 1 })}
-            {open[bk] && Array.from({ length: b.floors }, (_, i) => {
-              const fk = `${bk}|${i + 1}`;
-              const isFloor = sel.pid === p.id && sel.bi === bi && sel.floor === i + 1;
-              const fl = open[fk] || isFloor ? flatsOf(p, bi, i + 1, edits).filter((f) => !archivedFlats.includes(f.id)) : [];
+          <div key={p.id} className="flex flex-col gap-0.5 mb-0.5">
+            {row(0, p.id, null, p.name, p.units, pActive, () => { expand(p.id); go({ pid: p.id, bi: null, floor: null, flat: null }); })}
+            {/* A houses layout (House › Room): the houses sit straight under the property. */}
+            {open[p.id] && sh.house && flatsOf(p, 0, 1, edits).filter((f) => !goneIn(archivedFlats)(f.id)).map((f) => { const fn = +f.id.split('|')[3]; return row(1, f.id, levelIcon('House'), nameOf(f, sh), f.units.length, sel.pid === p.id && sel.flat === fn, () => go({ pid: p.id, bi: 0, floor: 1, flat: fn }), true, () => onInfo(p.id, { kind: 'Flat', bi: 0, floor: 1, flat: fn })); })}
+            {open[p.id] && !sh.house && p.blocks.map((b, bi) => {
+              const bk = `${p.id}|${bi}`;
+              if (goneIn(archivedFlats)(bk)) return null;
+              const bActive = sel.pid === p.id && sel.bi === bi && sel.floor == null;
               return (
-                <div key={fk} className="flex flex-col gap-0.5">
-                  {row(1, fk, Stack, p.structure === 'House' ? 'Houses' : `Floor ${i + 1}`, Math.round(b.rooms / b.floors), isFloor && sel.flat == null, () => { setOpen((o) => ({ ...o, [fk]: true })); go({ pid: p.id, bi, floor: i + 1, flat: null }); }, false, { kind: 'Floor', bi, floor: i + 1 })}
-                  {open[fk] && fl.map((f) => row(2, f.id, Door, f.name, f.units.length, isFloor && sel.flat === +f.id.split('|')[3], () => go({ pid: p.id, bi, floor: i + 1, flat: +f.id.split('|')[3] }), true, { kind: 'Flat', bi, floor: i + 1, flat: +f.id.split('|')[3] }))}
+                <div key={bk} className="flex flex-col gap-0.5">
+                  {row(1, bk, levelIcon('Building'), b.name, b.rooms, bActive, () => { expand(p.id, bk); go({ pid: p.id, bi, floor: null, flat: null }); }, false, () => onInfo(p.id, { kind: 'Block', bi, floor: 1 }))}
+                  {open[bk] && Array.from({ length: b.floors }, (_, i) => {
+                    const fk = `${bk}|${i + 1}`;
+                    if (goneIn(archivedFlats)(fk)) return null;
+                    const isFloor = sel.pid === p.id && sel.bi === bi && sel.floor === i + 1;
+                    const fl = open[fk] && sh.flats ? flatsOf(p, bi, i + 1, edits).filter((f) => !goneIn(archivedFlats)(f.id)) : [];
+                    return (
+                      <div key={fk} className="flex flex-col gap-0.5">
+                        {row(2, fk, levelIcon('Floor'), `Floor ${i + 1}`, Math.round(b.rooms / b.floors), isFloor && sel.flat == null, () => go({ pid: p.id, bi, floor: i + 1, flat: null }), !sh.flats, () => onInfo(p.id, { kind: 'Floor', bi, floor: i + 1 }))}
+                        {open[fk] && fl.map((f) => { const fn = +f.id.split('|')[3]; return row(3, f.id, levelIcon('Flat'), f.name, f.units.length, isFloor && sel.flat === fn, () => go({ pid: p.id, bi, floor: i + 1, flat: fn }), true, () => onInfo(p.id, { kind: 'Flat', bi, floor: i + 1, flat: fn })); })}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -291,12 +385,12 @@ function Tree({ props, p, sel, go, archivedFlats, onInfo }: { props: Property[];
 
 /* ---------------- Level panel (Block, Floor, Flat): custom field values ---------------- */
 type LevelRef = { kind: LevelKind; bi: number; floor: number; flat?: number };
-function LevelSheetFor({ p, l, onClose }: { p: Property; l: LevelRef; onClose: () => void }) {
+function LevelSheetFor({ p, l, onClose, onArchive }: { p: Property; l: LevelRef; onClose: () => void; onArchive: () => void }) {
   const edits = useInv((s) => s.unitEdits);
   const b = p.blocks[l.bi];
   if (!b) return null;
   if (l.kind === 'Block') {
-    return <LevelSheet p={p} kind="Block" id={`${p.id}|${l.bi}`} name={b.name} meta={p.name} onClose={onClose}
+    return <LevelSheet p={p} kind="Block" onArchive={onArchive} id={`${p.id}|${l.bi}`} name={b.name} meta={p.name} onClose={onClose}
       facts={[['Floors', String(b.floors)], ['Units', String(b.rooms)], ['Room type', b.roomType]]} />;
   }
   const fl = flatsOf(p, l.bi, l.floor, edits);
@@ -304,47 +398,49 @@ function LevelSheetFor({ p, l, onClose }: { p: Property; l: LevelRef; onClose: (
   if (l.kind === 'Floor') {
     const us = fl.flatMap((f) => f.units);
     const [n, a] = unitsOf(us);
-    return <LevelSheet p={p} kind="Floor" id={`${p.id}|${l.bi}|${l.floor}`} name={`Floor ${l.floor}`} meta={`${p.name} · ${b.name}`} onClose={onClose}
+    return <LevelSheet p={p} kind="Floor" onArchive={onArchive} id={`${p.id}|${l.bi}|${l.floor}`} name={`Floor ${l.floor}`} meta={`${p.name} · ${b.name}`} onClose={onClose}
       facts={[['Flats', String(fl.length)], ['Units', n], ['Active', a]]} />;
   }
   const f = fl.find((x) => +x.id.split('|')[3] === l.flat);
   if (!f) return null;
   const [n, a] = unitsOf(f.units);
-  return <LevelSheet p={p} kind="Flat" id={f.id} name={f.name} meta={`${p.name} · ${b.name} · Floor ${l.floor}`} onClose={onClose}
+  const house = shapeOf(p, useInv.getState().structures).house;
+  return <LevelSheet p={p} kind="Flat" onArchive={onArchive} label={house ? 'House' : undefined} id={f.id} name={house ? `House ${l.flat}` : f.name} meta={house ? p.name : `${p.name} · ${b.name} · Floor ${l.floor}`} onClose={onClose}
     facts={[['Units', n], ['Active', a], ['Room types', String(new Set(f.units.map((u) => u.type)).size)]]} />;
 }
 
 /* ---------------- Grouped table rows ---------------- */
-function FlatGroup({ f, units, cursorId, open, checked, setChecked, onOpen, onFlat, onArchive, onRename }: {
-  f: Flat; units: Unit[]; cursorId?: string; open: string | null; checked: string[]; setChecked: (fn: (c: string[]) => string[]) => void; onOpen: (id: string) => void; onFlat: () => void; onArchive: () => void; onRename: () => void;
-}) {
-  /* Count line says the total once and names only the exceptions (2 draft · 1 inactive); all-active needs no word. */
-  const odd = (['Draft', 'Inactive'] as UStatus[]).map((st) => [st, f.units.filter((u) => u.status === st).length] as const).filter(([, n]) => n);
-  const meta = [`${f.units.length} unit${f.units.length === 1 ? '' : 's'}`, ...odd.map(([st, n]) => `${n} ${st.toLowerCase()}`)].join(' · ');
+/* Group row: 40px #FAFAFA divider — a floor in a block's list, or a flat in a floor's. The name starts on the Unit column's line
+   and opens its panel; no (i) icon (2026-11-25). */
+function FloorRow({ name, pre, meta, check, onCheck, onInfo, active }: { name: string; /** The block before the floor in a property's list; its name opens the block's panel. */ pre?: { name: string; onClick: () => void }; meta: string; check: boolean | 'indeterminate'; onCheck: () => void; onInfo: () => void; active?: boolean }) {
   return (
-    <>
-      {/* Group row: 40px #FAFAFA. The caret sits in the checkbox column and the flat name starts on the Unit column's line. */}
-      <tr className="bg-[#FAFAFA] border-b border-[#E5E5E5]">
-        <td className="h-10 pl-6"><span className="w-5 flex justify-center"><CaretDown size={16} strokeWidth={1.5} className="text-[#737373]" /></span></td>
-        <td colSpan={5} className="pl-3 pr-4">
-          <div className="flex items-baseline gap-2">
-            <button type="button" onClick={onFlat} className="text-sm leading-5 font-medium text-[#0A0A0A] hover:underline underline-offset-2">{f.name}</button><span className="text-xs leading-4 text-[#737373]">{meta}</span>
-            <span className="ml-auto self-center"><Menu width={180} trigger={(o) => <button type="button" aria-label={`More for ${f.name}`} onClick={o} className="size-6 rounded-md hover:bg-black/[0.05] flex items-center justify-center text-[#404040]"><DotsThree size={16} weight="bold" /></button>}
-              items={[{ label: 'Open flat', icon: ArrowSquareOut, onClick: onFlat }, { label: 'Rename', icon: PencilSimple, onClick: onRename }, 'sep', { label: 'Archive flat', icon: Archive, danger: true, onClick: onArchive }]} /></span>
-          </div>
-        </td>
-      </tr>
-      {units.map((u) => (
-        <tr key={u.id} onClick={() => onOpen(u.id)} aria-selected={open === u.id} className={cx('border-b border-[#E5E5E5] cursor-pointer', open === u.id ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]' : cursorId === u.id ? 'bg-[#FAFAFA]' : 'hover:bg-[#FAFAFA]/70')}>
-          <td className="pl-6 h-12" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${u.code}`} checked={checked.includes(u.id)} onCheckedChange={() => setChecked((c) => (c.includes(u.id) ? c.filter((x) => x !== u.id) : [...c, u.id]))} /></td>
-          <td className="px-3 font-mono font-medium text-[13px] text-[#0A0A0A]">{u.code}</td>
-          <td className="px-3 text-sm text-[#404040]">{u.type}</td>
-          <td className="px-3 text-sm text-[#404040] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#737373]">No tenancy</span>}</td>
-          <td className="px-3"><PropStatus s={u.status} /></td>
-          <td className="pl-3 pr-6 text-sm text-[#737373] tabular-nums">{u.template && u.weeks ? `${u.weeks} wk` : '—'}</td>
-        </tr>
-      ))}
-    </>
+    <tr className={cx('border-b border-[#E5E5E5]', active ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]' : 'bg-[#FAFAFA]')}>
+      <td className="h-10 pl-6"><Checkbox aria-label={`Select ${pre ? `${pre.name} ` : ''}${name}`} checked={check} onCheckedChange={onCheck} /></td>
+      <td colSpan={6} className="pl-3 pr-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm leading-5 font-medium text-[#0A0A0A]">
+            {pre && <><button type="button" onClick={pre.onClick} className="hover:underline underline-offset-2">{pre.name}</button><span className="text-[#A3A3A3]"> · </span></>}
+            <button type="button" onClick={onInfo} className="hover:underline underline-offset-2">{name}</button>
+          </span>
+          <span className="text-xs leading-4 text-[#737373]">{meta}</span>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+/* Unit row (Figma D1 4251:17819): 48px; ticked rows take a light blue; Place says where the unit is (block · floor · flat). */
+function UnitRow({ u, place, cursor, open, checked, onCheck, onOpen }: { u: Unit; place?: string; cursor?: boolean; open: boolean; checked: boolean; onCheck: () => void; onOpen: () => void }) {
+  return (
+    <tr onClick={onOpen} aria-selected={open} className={cx('border-b border-[#E5E5E5] cursor-pointer', open ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]' : checked ? 'bg-[#F5F9FF]' : cursor ? 'bg-[#FAFAFA]' : 'hover:bg-[#FAFAFA]/70')}>
+      <td className="pl-6 h-12" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${u.code}`} checked={checked} onCheckedChange={onCheck} /></td>
+      <td className="px-3 text-sm font-medium text-[#0A0A0A] whitespace-nowrap">{u.code}</td>
+      {place != null && <td className="px-3 text-sm text-[#404040] whitespace-nowrap">{place}</td>}
+      <td className="px-3 text-sm text-[#404040] whitespace-nowrap">{u.type}</td>
+      <td className="px-3 text-sm text-[#404040] tabular-nums">{u.rent != null ? money(u.rent) : <span className="text-[#A3A3A3]">—</span>}</td>
+      <td className="px-3"><PropStatus s={u.status} /></td>
+      <td className="pl-3 pr-6 text-sm text-[#404040] whitespace-nowrap">{u.template && u.weeks ? `${u.type.split(' ')[0]} · ${u.weeks} wk` : <span className="text-[#A3A3A3]">—</span>}</td>
+    </tr>
   );
 }
 
@@ -488,18 +584,21 @@ function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: Propert
 }
 
 /* ---------------- F6: archive a flat ---------------- */
-function ArchiveFlatDialog({ flat, onClose, onConfirm }: { flat: Flat | null; onClose: () => void; onConfirm: (f: Flat) => void }) {
+function ArchiveDialog({ t, onClose, onConfirm }: { t: ArchTarget | null; onClose: () => void; onConfirm: (t: ArchTarget) => void }) {
   const busy = useRef(false);
-  useEffect(() => { if (flat) busy.current = false; }, [flat]);
-  if (!flat) return null;
-  const withT = flat.units.filter((u) => u.rent != null).length;
+  useEffect(() => { if (t) busy.current = false; }, [t]);
+  if (!t) return null;
+  const units = t.flats.flatMap((f) => f.units);
+  const withT = units.filter((u) => u.rent != null).length;
+  const shown = units.slice(0, 6);
   return (
-    <Modal open onClose={onClose} icon={Archive} tone="red" title={`Archive ${flat.name}?`} sub={`${flat.name} and its ${flat.units.length} units leave every list and can’t be let. You can restore them from Archived.`} width={500}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" onClick={() => { if (busy.current) return; busy.current = true; onConfirm(flat); }}>Archive flat and {flat.units.length} units</Button></>}>
+    <Modal open onClose={onClose} icon={Archive} tone="red" title={`Archive ${t.name}?`} sub={`${t.name} and its ${units.length} units leave every list and can’t be let. You can restore them from Archived.`} width={500}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" onClick={() => { if (busy.current) return; busy.current = true; onConfirm(t); }}>Archive {t.kind.toLowerCase()} and {units.length} units</Button></>}>
       <div className="rounded-xl border border-line divide-y divide-line">
-        {flat.units.map((u) => <div key={u.id} className="h-10 px-3.5 flex items-center gap-3 text-sm"><span className="font-mono w-14">{u.code}</span><span className="flex-1 text-[#737373]">{u.type}</span><PropStatus s={u.status} /></div>)}
+        {shown.map((u) => <div key={u.id} className="h-10 px-3.5 flex items-center gap-3 text-sm"><span className="font-mono w-14">{u.code}</span><span className="flex-1 text-[#737373]">{u.type}</span><PropStatus s={u.status} /></div>)}
+        {units.length > shown.length && <div className="h-10 px-3.5 flex items-center text-sm text-[#737373]">and {units.length - shown.length} more</div>}
       </div>
-      <div className="mt-3 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span><b className="font-semibold text-[#1D4ED8]">{withT} tenancies keep their status</b><span className="block text-[#737373]">Signed residents stay in their rooms; nobody new can book them.</span></span></div>
+      {withT > 0 && <div className="mt-3 rounded-xl border border-[#3B82F64D] p-3 flex gap-2.5 text-sm"><Info size={17} weight="fill" className="text-[#3B82F6] shrink-0" /><span><b className="font-semibold text-[#1D4ED8]">{withT} tenancies keep their status</b><span className="block text-[#737373]">Signed residents stay in their rooms; nobody new can book them.</span></span></div>}
     </Modal>
   );
 }
@@ -510,13 +609,13 @@ function ArchivedTable({ p, rows, onRestore }: { p: Property; rows: ArchivedRow[
   return (
     <>
       <div data-fill className="flex-1 overflow-auto px-[var(--gx,16px)]">
-        {!top.length ? <Empty art="nothingToShow" title="Nothing archived" sub={`Archived flats and units in ${p.name} show here.`} /> : <table className="w-full text-sm">
+        {!top.length ? <Empty art="nothingToShow" title="Nothing archived" sub={`Archived blocks, floors, flats and units in ${p.name} show here.`} /> : <table className="w-full text-sm">
           <thead className="sticky top-0 bg-white"><tr className="text-left text-xs text-[#737373]">{['Entity', 'Type', 'Status', 'Archived', ''].map((h, i) => <th key={i} className={cx('font-medium h-9 border-b border-line px-3', i === 0 && 'pl-[var(--cx,12px)]', i === 4 && 'pr-[var(--cx,12px)]')}>{h}</th>)}</tr></thead>
           <GhostZone.Provider value><tbody>
             {top.map((r) => (
               <tr key={r.id} className="border-b border-line">
-                <td className="pl-[var(--cx,12px)] pr-3 h-10"><span className="flex items-center gap-2">{r.flat ? <Door size={14} className="text-[#737373]" /> : <Bed size={14} className="text-[#737373]" />}<span className={r.flat ? 'font-medium' : 'font-mono text-sm'}>{r.name}</span>{r.flat && <span className="text-xs text-[#737373]">+ {r.units} units</span>}</span></td>
-                <td className="px-3 text-[#737373]">{r.flat ? 'Flat' : r.type}</td>
+                <td className="pl-[var(--cx,12px)] pr-3 h-10"><span className="flex items-center gap-2">{(() => { const I = r.flat ? levelIcon(r.type === 'Block' ? 'Building' : r.type) : Bed; return <I size={14} className="text-[#737373]" />; })()}<span className={r.flat ? 'font-medium' : 'font-mono text-sm'}>{r.name}</span>{r.flat && <span className="text-xs text-[#737373]">+ {r.units} units</span>}</span></td>
+                <td className="px-3 text-[#737373]">{r.type}</td>
                 <td className="px-3"><PropStatus s="Archived" /></td>
                 <td className="px-3"><PersonName name={r.who}><span className="text-[#737373] whitespace-nowrap">· {r.when}</span></PersonName></td>
                 <td className="row-act pl-3 pr-[var(--cx,12px)] text-right"><Button size="sm" icon={ArrowUUpLeft} onClick={() => onRestore(r)}>Restore</Button></td>
@@ -535,9 +634,7 @@ function RestoreDialog({ p, row, onClose }: { p: Property; row: ArchivedRow | nu
   const busy = useRef(false);
   useEffect(() => { if (row) { setTo('Active'); busy.current = false; } }, [row]);
   if (!row) return null;
-  const [, bi, fl] = row.id.split('|');
-  const flat = flatsOf(p, +bi, +fl, edits).find((f) => f.id === row.id);
-  const units = flat?.units ?? [];
+  const units = p.blocks.flatMap((b, bi) => Array.from({ length: b.floors }, (_, i) => flatsOf(p, bi, i + 1, edits)).flat()).filter((f) => goneIn([row.id])(f.id)).flatMap((f) => f.units);
   const noT = units.filter((u) => u.rent == null);
   const go = () => {
     if (busy.current) return;
@@ -568,6 +665,115 @@ function RestoreDialog({ p, row, onClose }: { p: Property; row: ArchivedRow | nu
     </Modal>
   );
 }
+/* ---------------- Add units (centred dialog, Figma 4238:18166, 2026-11-25) ----------------
+   The create-modal frame every other "New …" uses (PanelModal): Where (property, then the layout's own levels, starting at
+   the place picked in the tree, with the path spelled out), then Units (room type, rent template, how many, and the next
+   free names). New units start as Draft. */
+function AddUnitsDialog({ props, start, onClose, onAdded }: { props: Property[]; start: Sel; onClose: () => void; onAdded: (s: Sel) => void }) {
+  const edits = useInv((s) => s.unitEdits);
+  const archivedFlats = useInv((s) => s.archivedFlats);
+  const structures = useInv((s) => s.structures);
+  const templates = useInv((s) => s.templates);
+  const [pid, setPid] = useState(start.pid);
+  const p = props.find((x) => x.id === pid) ?? props[0];
+  const sh = shapeOf(p, structures);
+  const [bi, setBi] = useState(start.bi ?? 0);
+  const [floor, setFloor] = useState(start.floor ?? 1);
+  const flatsHere = flatsOf(p, bi, floor, edits).filter((f) => !goneIn(archivedFlats)(f.id));
+  const [flat, setFlat] = useState<number>(start.flat ?? +(flatsHere[0]?.id.split('|')[3] ?? 1));
+  const f = flatsHere.find((x) => +x.id.split('|')[3] === flat) ?? flatsHere[0];
+  const types = p.roomTypes.length ? p.roomTypes.map((t) => t.name) : ROOM_TYPES;
+  const [type, setType] = useState(p.blocks[bi]?.roomType ?? types[0]);
+  const tpls = templates.filter((t) => t.propertyId === p.id && t.status === 'Active');
+  const [tplPick, setTpl] = useState<string | null>(null);
+  const tpl = tplPick === 'none' ? null : tpls.find((t) => t.id === tplPick) ?? tpls.find((t) => t.name === type) ?? null;
+  const [n, setN] = useState('1');
+  const count = Math.floor(Number(n));
+  const err = !Number.isFinite(count) || count < 1 ? 'Enter 1 or more.' : count > 20 ? 'Add up to 20 at a time.' : '';
+  const [, , fl, fn] = (f?.id ?? '').split('|');
+  const taken = new Set(f?.units.map((x) => x.code) ?? []);
+  const codes: string[] = [];
+  for (let k = 0; codes.length < (err ? 0 : count) && k < 52; k++) { const c = `${fl}.${fn}.${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[k] ?? k}`; if (!taken.has(c)) codes.push(c); }
+  const fname = f ? (sh.house ? `House ${fn}` : f.name) : '';
+  /* A typed name for a single unit; null means "use the next free one". */
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => setName(null), [pid, bi, floor, flat]);
+  const typed = codes.length === 1 && name != null ? name.trim() : null;
+  const nameErr = typed == null ? '' : !typed ? 'Enter a name.' : taken.has(typed) ? `${fname || 'This place'} already has ${typed}.` : '';
+  const path = sh.house ? [p.name, fname] : [p.name, p.blocks[bi]?.name ?? '', `Floor ${floor}`, ...(sh.flats ? [fname] : [])];
+  const reset = (nextBi: number, nextP = p) => { setBi(nextBi); setFloor(1); setFlat(1); setType(nextP.blocks[nextBi]?.roomType ?? types[0]); setTpl(null); };
+  /* Custom field values are filled on a draft record, then copied onto each new unit when they're added. */
+  const DRAFT = 'draft:add-units';
+  const clearDraft = () => useInv.getState().set('fieldValues', (m) => { const { [DRAFT]: _, ...rest } = m; return rest; });
+  useEffect(() => clearDraft, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const busy = useRef(false);
+  const add = () => {
+    if (err || nameErr || !f || busy.current) return;
+    busy.current = true;
+    const draftVals = useInv.getState().fieldValues[DRAFT];
+    if (draftVals) useInv.getState().set('fieldValues', (m) => ({ ...m, ...Object.fromEntries(codes.map((code) => [`${p.id}:${bi}:${code}`, { ...draftVals }])) }));
+    const rt = p.roomTypes.find((t) => t.name === type);
+    useInv.getState().set('unitEdits', (e) => ({ ...e, ...Object.fromEntries(codes.map((code) => {
+      const id = `${p.id}:${bi}:${code}`;
+      const unit: Unit = { id, code: typed || code, type, status: 'Draft', size: p.blocks[bi]?.size ?? 12, added: true,
+        weeks: tpl ? tpl.weeks : null, rent: tpl ? tpl.rent : p.tenancies !== false ? rt?.rent ?? rentFor(type) : null, template: tpl ? `${tpl.name} · ${tpl.weeks} wk` : null };
+      return [id, unit];
+    })) }));
+    toast.success(`${codes.length} ${codes.length === 1 ? 'unit' : 'units'} added to ${fname || path[path.length - 1]} as Draft`);
+    onAdded(sh.house ? { pid: p.id, bi: 0, floor: 1, flat: +fn } : { pid: p.id, bi, floor, flat: sh.flats ? +fn : null });
+  };
+  const opt = (value: string, label: string) => ({ value, label });
+  const many = !err && codes.length > 1;
+  return (
+    <PanelModal open onClose={onClose} eyebrow="Add units" width={560}
+      right={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={null} disabled={!!err || !!nameErr || !f} onClick={add}>{many ? `Add ${codes.length} units` : 'Add unit'}</Button></>}>
+      {/* Draft is said up front, before the form, as one quiet grey line (2026-11-25), not in the footer. */}
+      <div className="mb-3 flex items-center gap-2 text-sm leading-5 text-[#737373]"><Info size={16} className="shrink-0" />New units start as Draft</div>
+      <SheetSection title="Where">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Property"><Dropdown value={p.id} onChange={(v) => { const np = props.find((x) => x.id === v) ?? p; setPid(v); reset(0, np); }} options={props.map((x) => opt(x.id, x.name))} /></Field>
+            {sh.house ? (
+              <Field label="House"><Dropdown value={String(flat)} onChange={(v) => setFlat(+v)} options={flatsHere.map((x) => opt(x.id.split('|')[3], `House ${x.id.split('|')[3]} · ${x.units.length} rooms`))} /></Field>
+            ) : <>
+              <Field label="Block"><Dropdown value={String(bi)} onChange={(v) => reset(+v)} options={p.blocks.map((b, i) => opt(String(i), b.name))} /></Field>
+              <Field label="Floor"><Dropdown value={String(floor)} onChange={(v) => { setFloor(+v); setFlat(1); }} options={Array.from({ length: p.blocks[bi]?.floors ?? 1 }, (_, i) => opt(String(i + 1), `Floor ${i + 1}`))} /></Field>
+              {sh.flats && <Field label="Flat"><Dropdown value={String(flat)} onChange={(v) => setFlat(+v)} options={flatsHere.map((x) => opt(x.id.split('|')[3], `${x.name} · ${x.units.length} units`))} /></Field>}
+            </>}
+          </div>
+          {/* The place in one line, as the tree spells it (Figma 4238:18166). */}
+          <div className="h-10 px-3 rounded-lg bg-[#EFF6FF] flex items-center gap-1.5 text-sm text-[#1D4ED8] min-w-0">
+            <MapPin size={16} weight="fill" className="shrink-0 text-[#2563EB]" />
+            {path.map((c, i) => <span key={i} className="flex items-center gap-1.5 min-w-0">{i > 0 && <CaretRight size={12} strokeWidth={2} className="shrink-0 text-[#60A5FA]" />}<span className="truncate">{c}</span></span>)}
+          </div>
+        </div>
+      </SheetSection>
+      <SheetSection title="Units">
+        <div className="space-y-4">
+          <div className="grid grid-cols-[1fr_120px] gap-3">
+            <Field label="Room type"><Dropdown value={type} onChange={(v) => { setType(v); setTpl(null); }} options={types.map((t) => opt(t, t))} /></Field>
+            <Field label="How many"><Input type="number" min={1} max={20} value={n} onChange={(e) => setN(e.target.value)} /><FieldErr>{err}</FieldErr></Field>
+          </div>
+          <Field label="Rent template"><Dropdown value={tpl?.id ?? 'none'} onChange={(v) => setTpl(v)} options={[...tpls.map((t) => opt(t.id, `${t.name} · ${money(t.rent)} / wk · ${t.weeks} wk`)), opt('none', 'No template yet')]} /></Field>
+          {!err && codes.length > 0 && (
+            <div>
+              {/* One unit: its name, filled with the next free one and editable (Figma 4238:18166). Several: the run they'll get. */}
+              {codes.length === 1 ? (
+                <Field label="Unit name"><Input value={name ?? codes[0]} onChange={(e) => setName(e.target.value)} /><FieldErr>{nameErr}</FieldErr></Field>
+              ) : (
+                <Field label="Unit names"><Input readOnly value={`${codes[0]} to ${codes[codes.length - 1]}`} className="bg-[#FAFAFA] text-[#404040]" /></Field>
+              )}
+              {!nameErr && <p className="text-xs text-[#737373] mt-1.5">{codes.length === 1 ? (name != null && name.trim() !== codes[0] ? `Next free name is ${codes[0]}` : `Next free name in ${fname || path[path.length - 1]}`) : `The next ${codes.length} free names in ${fname || path[path.length - 1]}`}</p>}
+            </div>
+          )}
+        </div>
+      </SheetSection>
+      {/* The room's custom fields, as in the unit panel: fill values for the new units, or add a field to the level. */}
+      <LevelFields p={p} kind="Room" id={DRAFT} local />
+    </PanelModal>
+  );
+}
+
 function RenameDialog({ flat, siblings, onClose }: { flat: Flat | null; siblings: Flat[]; onClose: () => void }) {
   const [v, setV] = useState('');
   useEffect(() => { if (flat) setV(flat.name); }, [flat]);

@@ -1,6 +1,6 @@
 import { FooterZone } from '../../components/headerCtx';
 import { Fragment, useState, type ReactNode } from 'react';
-import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, MagnifyingGlass, WarningCircle, XCircle, Archive, Buildings, type Icon } from '../../components/icons';
+import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, MagnifyingGlass, WarningCircle, XCircle, Archive, Bed, Buildings, Door, DoorOpen, House, Key, Stack, type Icon } from '../../components/icons';
 import { Avatar, ConfirmFrame, Pill, Status, avatarFx, cx, isConfirmTitle, noAutoFocus, toneFg } from '../../components/ui';
 import type { Tone } from '../../data/seed';
 import { Dialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
@@ -58,6 +58,18 @@ export function levelTone(name: string): Tone {
   if (/flat|apartment|cluster/.test(n)) return 'amber';
   if (/room|bed/.test(n)) return 'green';
   return 'grey';
+}
+/** Icon for a level by its name, as on Property layouts, so a layout reads as a picture (the Units tree uses it too): building › floor › flat › room. */
+export function levelIcon(name: string): Icon {
+  const n = name.toLowerCase();
+  if (/house/.test(n)) return House;
+  if (/build|block|hall/.test(n)) return Buildings;
+  if (/floor|level|storey/.test(n)) return Stack;
+  if (/flat|apartment|cluster/.test(n)) return DoorOpen;
+  if (/studio/.test(n)) return Door;
+  if (/room|bed/.test(n)) return Bed;
+  if (/tenanc|lease|contract/.test(n)) return Key;
+  return Stack;
 }
 /** What a layout asks the build forms for: floors, flats, and what its bookable unit is called. A layout the
     Property layouts page no longer has falls back to the first one. */

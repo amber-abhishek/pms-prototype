@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { TitleH1, cx } from './ui';
 
@@ -55,7 +55,7 @@ function find(path: string, search: string): Intro | undefined {
   return base ? INTROS[base] : undefined;
 }
 
-export function PageIntro({ title }: { title: string }) {
+export function PageIntro({ title, end }: { title: string; /** Controls level with the heading, on the right. */ end?: ReactNode }) {
   const { pathname, search } = useLocation();
   const intro = INTRO_ON ? find(pathname, search) : undefined;
   /* 24px to whatever comes next. A toolbar row (search, tabs) already has its own top padding, so when one sits
@@ -70,12 +70,14 @@ export function PageIntro({ title }: { title: string }) {
     setToolbarNext(next && tb?.querySelector('[data-tab-band]') ? 'band' : next);
   });
   if (!intro) return null;
-  const body = (
+  const words = (
     <>
       <TitleH1 className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</TitleH1>
       <p className="mt-1 max-w-[640px] text-sm leading-5 text-[#737373]">{intro.text}</p>
     </>
   );
+  const text = words;
+  const body = end ? <div className="flex items-end gap-4"><div className="min-w-0 flex-1">{text}</div><div className="shrink-0 flex items-center gap-3">{end}</div></div> : text;
   /* A centred intro is only as wide as its column, so the band's grey is a full-width row around it. It used to be a
      100vmax shadow, which painted over the sidebar whenever the page area did not clip it (2026-11-25). */
   if (intro.centred) return (

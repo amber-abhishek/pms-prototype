@@ -555,8 +555,8 @@ export function ApplicationsReport() {
   return (
     <>
       <RHeader icon={FunnelIcon} title="Applications funnel">
-        <Button icon={DownloadSimple} onClick={() => exportOnce(() => toast.success('Applications funnel.csv downloaded'))}>Export CSV</Button>
         <Button icon={ShareNetwork} onClick={() => { void navigator.clipboard?.writeText(location.href).catch(() => {}); toast.success('Link copied', { description: 'People see only the properties they have access to.' }); }}>Share</Button>
+        <Button variant="primary" icon={DownloadSimple} onClick={() => exportOnce(() => toast.success('Applications funnel.csv downloaded'))}>Export CSV</Button>
       </RHeader>
       <Toolbar right={<span className="text-xs text-[#737373] whitespace-nowrap shrink-0">Updated 5 min ago</span>}>
         <Chip label="Term" value={cycle} onChange={setCycle} options={['2027/28', '2026/27']} />

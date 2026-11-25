@@ -12,7 +12,7 @@ export type RoomType = { name: string; rooms: number; rent: number | null; next?
 export type ActivityRow = { who: string; what: string; when: string };
 export type Counts = { all: number; active: number; draft: number; inactive: number; archived: number };
 export type Property = {
-  id: string; name: string; campus: string; structure: 'Building' | 'House'; /** The Property layouts entry it was built from; unset on seeded properties. */ layout?: string; tags: Tag[]; units: number; status: PStatus;
+  id: string; name: string; campus: string; structure: 'Building' | 'House'; /** The Property layouts entry it was built from (seeds name theirs, 2026-11-25). */ layout?: string; tags: Tag[]; units: number; status: PStatus;
   address: string; zone: string; invNo: string; letting: 'Weekly' | 'Monthly';
   blocks: Block[]; build: { done: number; total: number } | null;
   photos: number; description: string; amenities: string[]; wardenPhone: string;
@@ -29,7 +29,7 @@ export type Template = {
 export type FeeType = { id: string; name: string; calc: 'Flat' | 'Percentage' | 'Per unit'; mandatory: boolean; refundable: boolean };
 export type Fee = { id: string; typeId: string; amount: string; appliesTo: string | null; chargedOn: 'Each tenancy' | 'Each room' | 'The property' };
 export type ImportJob = { id: string; name: string; kind: 'Spreadsheet' | 'Bulk create' | 'New property'; status: 'Running' | 'Queued' | 'Succeeded' | 'Failed'; done: number; total: number; errors?: number; by: string; started: string; structure: string; creates: string };
-export type Unit = { id: string; code: string; type: string; weeks: number | null; rent: number | null; status: UStatus; template: string | null; size: number; note?: string; accessible?: boolean };
+export type Unit = { id: string; code: string; type: string; weeks: number | null; rent: number | null; status: UStatus; template: string | null; size: number; note?: string; accessible?: boolean; /** Made in Units › Add unit; kept whole in unitEdits. */ added?: boolean };
 export type Flat = { id: string; name: string; units: Unit[] };
 export type ArchivedRow = { id: string; name: string; type: string; flat?: boolean; units?: number; who: string; when: string; parent?: string };
 export type Structure = { id: string; name: string; levels: { name: string; bsu: boolean }[]; properties: number; updated: string };
@@ -73,9 +73,9 @@ export function makeInventorySeed() {
     prop({ id: 'jb', name: 'Josephine Butler', campus: 'Durham City', tags: [T('Self-catered', 'green'), T('Long stay', 'blue')], units: 386, status: 'Active', address: 'South Road, Durham DH1 3DF', zone: 'Hill', invNo: 'JB-001' }),
     prop({ id: 'ust', name: 'Ustinov College', campus: 'Durham City', tags: [T('Long stay', 'blue'), T('Self-catered', 'green'), T('Accessible', 'purple')], units: 540, status: 'Active', address: 'Howlands Farm, Durham DH1 3DZ', zone: 'Howlands', invNo: 'UST-001' }),
     prop({ id: 'ste', name: 'Stephenson College', campus: 'Queen’s Campus', tags: [T('Catered', 'orange'), T('Shared lounge', 'red')], units: 610, status: 'Active', address: 'University Boulevard, Stockton TS17 6BH', zone: 'Stockton', invNo: 'STE-001' }),
-    prop({ id: 'hb', name: 'Hild Bede', campus: 'Durham City', tags: [T('Catered', 'orange'), T('Riverside', 'green'), T('Chapel', 'grey')], units: 298, status: 'Active', address: 'Leazes Road, Durham DH1 1SZ', zone: 'Elvet', invNo: 'HB-001' }),
-    prop({ id: 'js', name: 'John Snow College', campus: 'Queen’s Campus', tags: [T('Self-catered', 'green')], units: 455, status: 'Active', address: 'Ebsworth Building, Stockton TS17 6BH', zone: 'Stockton', invNo: 'JS-001' }),
-    prop({ id: 'erh', name: 'Elvet Riverside Houses', campus: 'Durham City', structure: 'House', tags: [], units: 48, status: 'Inactive', address: 'New Elvet, Durham DH1 3JT', zone: 'Elvet', invNo: 'ERH-001', blocks: [{ name: 'Houses', floors: 1, flats: 8, rooms: 48, roomType: 'Standard single', size: 10 }] }),
+    prop({ id: 'hb', layout: 'Rooms only', name: 'Hild Bede', campus: 'Durham City', tags: [T('Catered', 'orange'), T('Riverside', 'green'), T('Chapel', 'grey')], units: 298, status: 'Active', address: 'Leazes Road, Durham DH1 1SZ', zone: 'Elvet', invNo: 'HB-001' }),
+    prop({ id: 'js', layout: 'Studio block', blocks: blocks3(455, 'Studio'), name: 'John Snow College', campus: 'Queen’s Campus', tags: [T('Self-catered', 'green')], units: 455, status: 'Active', address: 'Ebsworth Building, Stockton TS17 6BH', zone: 'Stockton', invNo: 'JS-001' }),
+    prop({ id: 'erh', layout: 'Shared houses', name: 'Elvet Riverside Houses', campus: 'Durham City', structure: 'House', tags: [], units: 48, status: 'Inactive', address: 'New Elvet, Durham DH1 3JT', zone: 'Elvet', invNo: 'ERH-001', blocks: [{ name: 'Houses', floors: 1, flats: 8, rooms: 48, roomType: 'Standard single', size: 10 }] }),
   ];
   const templates: Template[] = [
     { id: 'tp1', propertyId: 'col', name: 'Ensuite single', weeks: 51, rent: 212, deposit: 250, billing: 'Weekly', from: '19 Sep 2027', to: '8 Sep 2028', linked: 96, own: 2, ownNote: '2.3.C £205 · 4.2.B £205', status: 'Active' },
@@ -175,7 +175,7 @@ function special(p: Property, bi: number, floor: number): Flat[] | null {
   return null;
 }
 function weeksFor(type: string) { return type.startsWith('Ensuite') || type === 'Studio' ? 51 : 44; }
-function rentFor(type: string) { return type === 'Studio' ? 246 : type.startsWith('Ensuite') ? 212 : 168; }
+export function rentFor(type: string) { return type === 'Studio' ? 246 : type.startsWith('Ensuite') ? 212 : 168; }
 
 export function flatsOf(p: Property, bi: number, floor: number, edits: Record<string, Partial<Unit>>): Flat[] {
   const b = p.blocks[bi];
@@ -200,7 +200,13 @@ export function flatsOf(p: Property, bi: number, floor: number, edits: Record<st
     });
   }
   /* A renamed flat is stored as edits["flat|<flat id>"].code (Units › Rename). */
-  return flats.map((f) => ({ ...f, name: edits[`flat|${f.id}`]?.code ?? f.name, units: f.units.map((x) => ({ ...x, ...edits[x.id] })) }));
+  /* Units added by hand (Units › Add unit) are stored whole in the edits, keyed by an id inside their flat. */
+  return flats.map((f) => {
+    const [, , fl, fn] = f.id.split('|');
+    const pre = `${p.id}:${bi}:${fl}.${fn}.`;
+    const added = Object.entries(edits).filter(([k, v]) => v.added && k.startsWith(pre) && !f.units.some((x) => x.id === k)).map(([, v]) => v as Unit);
+    return { ...f, name: edits[`flat|${f.id}`]?.code ?? f.name, units: [...f.units.map((x) => ({ ...x, ...edits[x.id] })), ...added] };
+  });
 }
 export const floorRooms = (b: Block) => Math.round(b.rooms / b.floors);
 

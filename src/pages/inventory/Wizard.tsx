@@ -18,9 +18,9 @@ type Terms = { weeks: string; rent: string; deposit: string };
 const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
 const DEF_TERMS: Record<string, Terms> = { 'Ensuite single': { weeks: '51', rent: '212', deposit: '250' }, 'Standard single': { weeks: '44', rent: '168', deposit: '250' }, Studio: { weeks: '51', rent: '246', deposit: '300' } };
 /* Figma "B · Left rail" (4119:17380, 2026-11-19): a numbered step list down the left, one hint line per step, neutral ink. */
-const STEPS: { title: string; sub: string }[] = [
+const STEPS: { title: string; sub: string; tip?: string }[] = [
   { title: 'Basics', sub: 'Name, location, layout' }, { title: 'Address', sub: 'Address and zone' }, { title: 'Units', sub: 'Blocks, floors, rooms' },
-  { title: 'Rent & terms', sub: 'Templates and dates' }, { title: 'Review', sub: 'Check and create' },
+  { title: 'Rent & terms', sub: 'Templates and dates', tip: 'Each room type becomes a rent template. Its weeks, rent and deposit apply to every room of that type, and the dates set when they can be let. You can change a single room later.' }, { title: 'Review', sub: 'Check and create' },
 ];
 /* One colour per level, from the tag-pill tones (2026-11-13): the layout cards, the previews, the Units tree and its
    counts all use it, so a level reads the same everywhere in the flow. */
@@ -104,7 +104,19 @@ export function AddPropertyWizard() {
   const fromD = parseDate(from), toD = parseDate(to);
   const dateErr = !fromD ? 'Enter Available from as a date, e.g. 19 Sep 2027.' : !toD ? 'Enter Available to as a date, e.g. 4 Aug 2028.' : toD <= fromD ? 'Available to must be after Available from.' : '';
   const termErrs = [...types.map(termErr).filter(Boolean), dateErr].filter(Boolean);
-  const canNext = step === 0 ? !nameErr : step === 1 ? picked : step === 2 ? unitsOk : step === 3 ? termErrs.length === 0 : true;
+  /* Free movement (2026-11-25): any step can be opened from the rail and Continue always moves on; only Create property
+     waits until every step is complete. Each step's first missing item, in words, for the rail and the Review step. */
+  const firstBlockErr = blocks.map(blockErr).find(Boolean);
+  const missing: string[] = [
+    nameErr,
+    picked ? '' : 'Pick the address.',
+    unitsOk ? '' : !blocks.length ? 'Add at least one block.' : firstBlockErr || `Confirm ${fmt(total)} rooms is right.`,
+    termErrs[0] ?? '',
+    '',
+  ];
+  const allDone = missing.every((m) => !m);
+  const [seen, setSeen] = useState<number[]>([0]);
+  const go = (i: number) => { if (step === 0) setNameTouched(true); setSeen((v) => (v.includes(i) ? v : [...v, i])); setStep(i); };
   /* Leaving loses every step, so ask first (✕ and Cancel). */
   const [leaving, setLeaving] = useState(false);
   const leave = () => (step > 0 || name.trim() || invNo.trim() ? setLeaving(true) : nav('/inventory/properties'));
@@ -153,19 +165,20 @@ export function AddPropertyWizard() {
             <nav aria-label="Steps" className="w-[240px] shrink-0 bg-[#FAFAFA] border-r border-[#E5E5E5] overflow-auto px-4 py-6">
               <ol className="flex flex-col gap-1">
                 {STEPS.map((s, i) => {
-                  const done = i < step, cur = i === step;
+                  /* Done = complete and visited; a visited step with something missing says so under its name. */
+                  const cur = i === step, open = !!missing[i] && seen.includes(i) && !cur, done = !missing[i] && seen.includes(i) && !cur && i < 4;
                   return (
                     <li key={s.title}>
-                      <button type="button" disabled={i > step} onClick={() => setStep(i)} aria-current={cur ? 'step' : undefined}
-                        className={cx('w-full text-left rounded-[10px] p-2.5 flex items-start gap-3 outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default border',
-                          cur ? 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'border-transparent', done && 'hover:bg-[#F0F0F0]')}>
+                      <button type="button" onClick={() => go(i)} aria-current={cur ? 'step' : undefined}
+                        className={cx('w-full text-left rounded-[10px] p-2.5 flex items-center gap-3 outline-none focus-visible:ring-2 focus-visible:ring-ring border',
+                          cur ? 'bg-white border-[#E5E5E5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'border-transparent hover:bg-[#F0F0F0]')}>
                         <span className={cx('size-6 shrink-0 rounded-full flex items-center justify-center text-xs font-medium tabular-nums',
                           cur ? 'bg-[#0B8A4C] text-white' : done ? 'bg-[#E5E5E5] text-[#0A0A0A]' : 'bg-white border border-[#D4D4D4] text-[#737373]')}>
                           {done ? <Check size={12} strokeWidth={2} /> : i + 1}
                         </span>
                         <span className="min-w-0">
                           <span className={cx('block text-sm leading-5 font-medium', cur || done ? 'text-[#0A0A0A]' : 'text-[#737373]')}>{s.title}</span>
-                          <span className={cx('block text-xs leading-4', cur ? 'text-[#737373]' : 'text-[#A3A3A3]')}>{s.sub}</span>
+                          <span className={cx('block text-xs leading-4', open ? 'text-[#C47A00]' : cur ? 'text-[#737373]' : 'text-[#A3A3A3]')}>{open ? 'Needs details' : s.sub}</span>
                         </span>
                       </button>
                     </li>
@@ -177,7 +190,12 @@ export function AddPropertyWizard() {
               {/* Hero, as the side panels: the step name at 20px Medium and one grey line under it; then r16 section cards
                   with a 48px #FAFAFA strip (SheetSection). */}
               <div className="mb-5">
-                <h2 className="text-xl leading-7 font-medium text-[#0A0A0A]">{STEPS[step].title}</h2>
+                <h2 className="text-xl leading-7 font-medium text-[#0A0A0A] flex items-center gap-1.5">{STEPS[step].title}
+                  {STEPS[step].tip && (
+                    <Tooltip><TooltipTrigger asChild><button type="button" aria-label={`About ${STEPS[step].title}`} className="size-5 rounded-full flex items-center justify-center text-[#A3A3A3] hover:text-[#0A0A0A] outline-none focus-visible:ring-2 focus-visible:ring-ring"><Info size={16} strokeWidth={1.5} /></button></TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[280px] whitespace-normal font-normal">{STEPS[step].tip}</TooltipContent></Tooltip>
+                  )}
+                </h2>
                 <p className="text-sm leading-5 text-[#737373]">{STEPS[step].sub}</p>
               </div>
 
@@ -234,11 +252,12 @@ export function AddPropertyWizard() {
                       <button type="button" onClick={() => { setPicked(false); setQuery(''); }} className="text-sm text-[#2563EB] hover:underline underline-offset-2">Change</button>
                     </div>
                   )}
+                      {/* Zone sits in the Address card as a labelled field, as Inventory number on Basics, not in a card of
+                          its own with one bare input (2026-11-25). */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label="Zone" hint="Optional · groups nearby properties"><Input className={i9} value={zone} onChange={(e) => setZone(e.target.value)} placeholder="e.g. Elvet" /></Field>
+                      </div>
                     </div>
-                  </SheetSection>
-                  <SheetSection title="Zone">
-                    <div className="w-[241px]"><Input className={i9} aria-label="Zone" value={zone} onChange={(e) => setZone(e.target.value)} placeholder="e.g. Elvet" /></div>
-                    <p className="text-[13px] leading-5 text-[#737373] mt-1.5">Optional · groups nearby properties</p>
                   </SheetSection>
                 </>
               )}
@@ -246,26 +265,29 @@ export function AddPropertyWizard() {
               {step === 2 && (
                 <>
                   <SheetSection title={`Blocks · ${blocks.length} · ${fmt(total)} rooms`} action={<EditLink onClick={addBlock}>Add block</EditLink>}>
-                    <div className="-my-3.5">
+                    {/* Each block is its own card with a gap between, so two blocks read as two (2026-11-25). The open one has a
+                        grey head band over its fields; the rest are one-line cards that open on click. */}
+                    <div className="flex flex-col gap-3">
                   {blocks.map((b) => openBlock === b.key ? (
-                    <div key={b.key} className="border-t border-[#EBEBEB] first:border-t-0 -mx-4">
-                      <div className="h-[52px] pl-4 pr-3 flex items-center gap-2.5">
-                        <LevelTile level="Block" icon={Buildings} />
-                        <Input aria-label="Block name" ref={(el: HTMLInputElement | null) => { nameRefs.current[b.key] = el; }} value={b.name} onChange={(e) => upd(b.key, { name: e.target.value })} className="h-8 w-[200px]" />
+                    <div key={b.key} className="rounded-xl border border-[#E5E5E5] bg-white overflow-hidden">
+                      <div className="h-[52px] pl-2.5 pr-2 flex items-center gap-2 bg-[#FAFAFA] border-b border-[#EBEBEB]">
+                        {/* The tile matches the 32px field beside it, so the two read as one row (2026-11-25). */}
+                        <LevelTile level="Block" icon={Buildings} size={32} />
+                        <Input aria-label="Block name" ref={(el: HTMLInputElement | null) => { nameRefs.current[b.key] = el; }} value={b.name} onChange={(e) => upd(b.key, { name: e.target.value })} className="!h-8 w-[200px]" />
                         <span className="ml-auto font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, shape))} rooms</span>
                         <Menu width={160} trigger={(o) => <button type="button" aria-label="Block menu" onClick={o} className="size-7 rounded-md hover:bg-[#F5F5F5] flex items-center justify-center text-[#737373]"><DotsThree size={16} /></button>}
                           items={[{ label: 'Remove block', icon: Trash, danger: true, disabled: blocks.length < 2, onClick: () => setBlocks((bs) => bs.filter((x) => x.key !== b.key)) }]} />
                       </div>
-                      <div className="px-4 pb-4 grid grid-cols-[120px_auto_minmax(0,1fr)] gap-3 items-center text-sm text-[#0A0A0A]">
+                      <div className="p-4 grid grid-cols-[120px_auto_minmax(0,1fr)] gap-3 items-center text-sm text-[#0A0A0A]">
                         {/* Column heads, so "Floor {n}" reads as a naming pattern, with a tooltip on what {n} does (2026-11-19). */}
                         <span /><span className="text-xs leading-4 text-[#737373]">How many</span>
                         <span className="text-xs leading-4 text-[#737373] flex items-center gap-1">Names
                           <Tooltip><TooltipTrigger asChild><button type="button" aria-label="How naming works" className="size-4 rounded-full flex items-center justify-center text-[#A3A3A3] hover:text-[#0A0A0A]"><Info size={13} strokeWidth={1.5} /></button></TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-[260px]">{'{n}'} becomes 1, 2, 3… under each parent. “Floor {'{n}'}” makes Floor 1, Floor 2. Type your own words around it, e.g. “Level {'{n}'}” or “{'{n}'}F”.</TooltipContent></Tooltip>
+                            <TooltipContent side="top" className="max-w-[260px] whitespace-normal px-2.5 py-2">{'{n}'} becomes 1, 2, 3… under each parent. “Floor {'{n}'}” makes Floor 1, Floor 2. Type your own words around it, e.g. “Level {'{n}'}” or “{'{n}'}F”.</TooltipContent></Tooltip>
                         </span>
-                        {!house && <><span>Floors</span><Stepper value={b.floors} onChange={(n) => upd(b.key, { floors: n })} /><Input className="h-8 font-mono" value={b.floorPat} onChange={(e) => upd(b.key, { floorPat: e.target.value })} aria-label="Floor name pattern" /></>}
-                        {shape.flats && <><span>Flats per floor</span><Stepper value={b.flats} onChange={(n) => upd(b.key, { flats: n })} /><Input className="h-8 font-mono" value={b.flatPat} onChange={(e) => upd(b.key, { flatPat: e.target.value })} aria-label="Flat name pattern" /></>}
-                        <span>{house ? `${shape.unit}s` : `${shape.unit}s per ${shape.flats ? 'flat' : 'floor'}`}</span><Stepper value={b.rpf} onChange={(n) => upd(b.key, { rpf: n })} /><Input className="h-8 font-mono" value={b.roomPat} onChange={(e) => upd(b.key, { roomPat: e.target.value })} aria-label="Room name pattern" />
+                        {!house && <><span>Floors</span><Stepper value={b.floors} onChange={(n) => upd(b.key, { floors: n })} /><Input className="!h-8 font-mono" value={b.floorPat} onChange={(e) => upd(b.key, { floorPat: e.target.value })} aria-label="Floor name pattern" /></>}
+                        {shape.flats && <><span>Flats per floor</span><Stepper value={b.flats} onChange={(n) => upd(b.key, { flats: n })} /><Input className="!h-8 font-mono" value={b.flatPat} onChange={(e) => upd(b.key, { flatPat: e.target.value })} aria-label="Flat name pattern" /></>}
+                        <span>{house ? `${shape.unit}s` : `${shape.unit}s per ${shape.flats ? 'flat' : 'floor'}`}</span><Stepper value={b.rpf} onChange={(n) => upd(b.key, { rpf: n })} /><Input className="!h-8 font-mono" value={b.roomPat} onChange={(e) => upd(b.key, { roomPat: e.target.value })} aria-label="Room name pattern" />
                         <span>Room type</span><div className="col-span-2"><Picker value={b.roomType} onChange={(v) => upd(b.key, { roomType: v })} icon={Bed} options={ROOM_TYPES.map((t) => ({ id: t, label: t }))} /></div>
                         <span>Room size</span>
                         <label className="h-8 w-[104px] flex items-center rounded-lg border border-input bg-white px-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25"><input aria-label="Room size" value={b.size} onChange={(e) => upd(b.key, { size: e.target.value.replace(/[^0-9.]/g, '') })} className="flex-1 min-w-0 outline-none bg-transparent" /><span className="text-[#A3A3A3] text-xs">m²</span></label>
@@ -274,9 +296,9 @@ export function AddPropertyWizard() {
                       {blockErr(b) && <div className="px-4 pb-4 -mt-2"><Err>{blockErr(b)}</Err></div>}
                     </div>
                   ) : (
-                    <button key={b.key} type="button" onClick={() => setOpenBlock(b.key)} className="-mx-4 w-[calc(100%+32px)] h-[52px] px-4 flex items-center gap-2.5 text-left hover:bg-[#FAFAFA] border-t border-[#EBEBEB] first:border-t-0">
-                      <LevelTile level="Block" icon={Buildings} />
-                      <span className="text-sm font-medium text-[#0A0A0A] whitespace-nowrap">{b.name}</span>
+                    <button key={b.key} type="button" onClick={() => setOpenBlock(b.key)} className="w-full h-[52px] pl-2.5 pr-3 rounded-xl border border-[#E5E5E5] bg-white flex items-center gap-2 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:border-[#D4D4D4] hover:bg-[#FAFAFA] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <LevelTile level="Block" icon={Buildings} size={32} />
+                      <span className="pl-2.5 text-sm font-medium text-[#0A0A0A] whitespace-nowrap">{b.name}</span>
                       <span className="flex-1 min-w-0 text-xs text-[#737373] truncate">{blockErr(b) ? <span className="text-[#DC2626]">Needs a fix</span> : <>{house ? `${b.rpf} ${unitLc}s` : shape.flats ? `${b.floors} floors × ${b.flats} flats × ${b.rpf} ${unitLc}s` : `${b.floors} floors × ${b.rpf} ${unitLc}s`} · {b.roomType}</>}</span>
                       <span className="font-mono uppercase text-xs font-medium tracking-[0.48px] text-[#0A0A0A] whitespace-nowrap">{fmt(rooms(b, shape))} rooms</span><CaretDown size={16} strokeWidth={1.5} className="text-[#737373] shrink-0" />
                     </button>
@@ -296,7 +318,8 @@ export function AddPropertyWizard() {
               {step === 3 && (
                 <>
                   <SheetSection title={`Room types · ${types.length}`}>
-                    <div className="-mx-4 -my-3.5">
+                    {/* data-card: the section is the table's frame, so the table draws no second border or radius. */}
+                    <div data-card className="-mx-4 -my-3.5">
                       <table className="w-full text-sm table-fixed">
                         <colgroup><col /><col className="w-[68px]" /><col className="w-[72px]" /><col className="w-[108px]" /><col className="w-[116px]" /></colgroup>
                         <thead><tr className="text-left border-b border-[#EBEBEB] text-sm text-[#737373] [&>th]:font-normal [&>th]:h-10">
@@ -307,7 +330,7 @@ export function AddPropertyWizard() {
                             <tr key={t.name} className="border-b border-[#EBEBEB] last:border-0">
                               <td className="h-14 pl-4"><span className="flex items-center gap-2 font-medium text-[#0A0A0A]"><LevelTile level="Room" icon={Bed} /><span className="truncate">{t.name}</span></span></td>
                               <td className="px-1 text-[#404040] tabular-nums">{fmt(t.rooms)}</td>
-                              <td className="px-1"><Input className="h-8" aria-label={`${t.name} weeks`} value={t.weeks} onChange={(e) => setTerm(t.name, 'weeks', e.target.value.replace(/\D/g, ''))} /></td>
+                              <td className="px-1"><Input className="!h-8" aria-label={`${t.name} weeks`} value={t.weeks} onChange={(e) => setTerm(t.name, 'weeks', e.target.value.replace(/\D/g, ''))} /></td>
                               <td className="px-1"><MoneyInput value={t.rent} onChange={(v) => setTerm(t.name, 'rent', v)} /></td>
                               <td className="px-1 pr-4"><MoneyInput value={t.deposit} onChange={(v) => setTerm(t.name, 'deposit', v)} /></td>
                             </tr>
@@ -343,7 +366,7 @@ export function AddPropertyWizard() {
                       <div key={k} className="py-3 first:pt-0 last:pb-0 border-t border-[#EBEBEB] first:border-t-0 grid grid-cols-[120px_minmax(0,1fr)_auto] gap-3 items-center">
                         <span className="text-sm text-[#737373]">{k}</span>
                         <span className="min-w-0"><span className="block text-sm font-medium text-[#0A0A0A] truncate">{a}</span><span className="block text-[13px] leading-5 text-[#737373] truncate">{b}</span></span>
-                        <EditLink onClick={() => setStep(s)}>Edit</EditLink>
+                        <EditLink onClick={() => go(s)}>Edit</EditLink>
                       </div>
                     ))}
                   </SheetSection>
@@ -355,10 +378,10 @@ export function AddPropertyWizard() {
           </div>
 
           <FooterZone.Provider value><div className="h-16 shrink-0 border-t border-[#E5E5E5] px-6 flex items-center">
-            {step === 0 ? <Button variant="ghost" onClick={leave}>Cancel</Button> : <Button variant="ghost" onClick={() => setStep(step - 1)}>Back</Button>}
+            {step === 0 ? <Button variant="ghost" onClick={leave}>Cancel</Button> : <Button variant="ghost" onClick={() => go(step - 1)}>Back</Button>}
             <div className="ml-auto">
-              {step < 4 ? <Button variant="primary" icon={null} disabled={!canNext} onClick={() => setStep(step + 1)}>Continue</Button>
-                : <Button variant="primary" icon={Check} onClick={create}>Create property</Button>}
+              {step < 4 ? <Button variant="primary" icon={null} onClick={() => go(step + 1)}>Continue</Button>
+                : <Button variant="primary" icon={Check} disabled={!allDone} onClick={create}>Create property</Button>}
             </div>
           </div></FooterZone.Provider>
         </DialogContent>

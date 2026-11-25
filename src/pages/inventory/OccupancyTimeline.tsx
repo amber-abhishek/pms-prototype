@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/shadcn/tooltip';
 import { PersonName, Avatar, Button, Pill, cx, type Tone } from '../../components/ui';
 import { useRms } from '../../data/residents';
+import type { Range } from '../../components/DateRangePicker';
 
 /* Occupancy as a Gantt (exploration, 2026-11-17): rooms down the side, grouped by floor; the academic year across the
    top (Sep → Aug) with month rules and a "today" line; each tenancy, hold or block is a bar in its status tint.
@@ -26,7 +27,6 @@ const BAR: Record<Kind, { cls: string; text: string; name: string; tone: Tone }>
 export const TIMELINE_EXTRA = { label: 'Summer let', dot: '#8B5CF6' };
 
 const NAMES = ['S. Patel', 'O. Wright', 'E. Morgan', 'J. Okafor', 'L. Moreau', 'C. Byrne'];
-const MONTHS = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
 const DAY = 86_400_000;
 const d = (y: number, m: number, day: number) => new Date(Date.UTC(y, m, day));
 /* Own month names: en-GB writes "Sept", which sits oddly beside "Jun". */
@@ -125,20 +125,26 @@ function BarCard({ bar, room, hall }: { bar: Bar; room: TlRoom; hall: string }) 
 
 const COLS = 'grid grid-cols-[200px_minmax(0,1fr)]';
 
-export function OccupancyTimeline({ rooms, floors, year, hall }: { rooms: TlRoom[]; floors: readonly string[]; year: string; hall: string }) {
-  const y = Number(year.slice(0, 4));
-  /* The year starts on 1 Sep so September's rule falls on the room column's own border (no second line beside it). */
-  const start = d(y, 8, 1), span = d(y + 1, 8, 1).getTime() - start.getTime();
+export function OccupancyTimeline({ rooms, floors, range, hall }: { rooms: TlRoom[]; floors: readonly string[]; range: Range; hall: string }) {
+  /* The axis runs over the page's date range (both ends inclusive). Bars come from the academic year the range starts
+     in; anything outside the range is dropped and the rest is clipped to its edges. */
+  const start = range.from, end = plus(range.to, 1), span = end.getTime() - start.getTime();
+  const y = start.getUTCMonth() >= 8 ? start.getUTCFullYear() : start.getUTCFullYear() - 1;
   const at = (x: Date) => Math.max(0, Math.min(100, ((x.getTime() - start.getTime()) / span) * 100));
-  const months = MONTHS.map((m, i) => ({ m, left: at(d(i < 4 ? y : y + 1, (8 + i) % 12, 1)) }));
-  /* The today line shows only on the academic year that contains today. */
-  const today = yearHas(y, TODAY) ? at(TODAY) : null;
+  /* Columns: months for a long range, Mondays for ten weeks or less. The first column always starts at the left edge. */
+  const short = span <= 70 * DAY;
+  const ticks: Date[] = [start];
+  for (let x = short ? plus(start, (8 - start.getUTCDay()) % 7 || 7) : d(start.getUTCFullYear(), start.getUTCMonth() + 1, 1); x < end;
+    x = short ? plus(x, 7) : d(x.getUTCFullYear(), x.getUTCMonth() + 1, 1)) ticks.push(x);
+  const months = ticks.map((x) => ({ m: short ? fmt(x) : MON[x.getUTCMonth()] + (x.getUTCMonth() === 0 || x === start ? ` ${String(x.getUTCFullYear()).slice(2)}` : ''), left: at(x) }));
+  const inRange = (x: Date) => x >= start && x < end;
+  const today = inRange(TODAY) ? at(TODAY) : null;
   /* This week (Mon–Sun) as a faint blue column behind the bars, like Miro's current-period highlight. */
   const monday = plus(TODAY, -((TODAY.getUTCDay() + 6) % 7));
   const week = today != null ? { left: at(monday), width: at(plus(monday, 7)) - at(monday) } : null;
   const [shut, setShut] = useState<string[]>([]);
   const toggle = (f: string) => setShut((x) => (x.includes(f) ? x.filter((v) => v !== f) : [...x, f]));
-  const Rules = () => <>{week && <span aria-hidden className="absolute inset-y-0 bg-[#2563EB]/[0.05]" style={{ left: `${week.left}%`, width: `${week.width}%` }} />}{months.slice(1).map((x) => <span key={x.m} aria-hidden className="absolute inset-y-0 border-l border-[#F0F0F0]" style={{ left: `${x.left}%` }} />)}
+  const Rules = () => <>{week && <span aria-hidden className="absolute inset-y-0 bg-[#2563EB]/[0.05]" style={{ left: `${week.left}%`, width: `${week.width}%` }} />}{months.slice(1).map((x) => <span key={x.left} aria-hidden className="absolute inset-y-0 border-l border-[#F0F0F0]" style={{ left: `${x.left}%` }} />)}
     {today != null && <span aria-hidden className="absolute inset-y-0 w-px bg-[#2563EB]/60 z-[1]" style={{ left: `${today}%` }} />}</>;
 
   return (
@@ -153,7 +159,7 @@ export function OccupancyTimeline({ rooms, floors, year, hall }: { rooms: TlRoom
           <div className="px-5 flex items-center border-r border-[#E5E5E5]">Room</div>
           <div className="relative">
             {week && <span aria-hidden className="absolute inset-y-0 bg-[#2563EB]/[0.08] pointer-events-none" style={{ left: `${week.left}%`, width: `${week.width}%` }} />}
-            {months.map((x, i) => <span key={x.m} className={cx('absolute inset-y-0 pl-2.5 flex items-center', i > 0 && 'border-l border-[#E5E5E5]')} style={{ left: `${x.left}%` }}>{x.m}</span>)}
+            {months.map((x, i) => <span key={x.left} className={cx('absolute inset-y-0 pl-2.5 flex items-center', i > 0 && 'border-l border-[#E5E5E5]')} style={{ left: `${x.left}%` }}>{x.m}</span>)}
             {today != null && (
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
@@ -199,7 +205,7 @@ export function OccupancyTimeline({ rooms, floors, year, hall }: { rooms: TlRoom
                       <span className={cx('text-xs leading-4 truncate', room.who ? 'text-[#737373]' : 'text-[#A3A3A3]')}>{room.who ?? (room.st === 'vacant' ? 'Vacant now' : room.st === 'held' ? 'Held' : 'Blocked')}</span>
                     </div>
                     <div className="relative">
-                      {barsFor(room, y).map((b) => {
+                      {barsFor(room, y).filter((b) => b.to >= start && b.from < end).map((b) => {
                         /* Bars keep 6px off the room column's edge (a stay from 1 Sep would otherwise touch it); the end stays on its date. */
                         const s = BAR[b.kind], left = at(b.from), width = Math.max(1.2, at(b.to) - left);
                         return (

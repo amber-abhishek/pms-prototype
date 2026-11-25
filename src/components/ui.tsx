@@ -70,9 +70,12 @@ const AUTO_ICON: [RegExp, Icon][] = [
   [/^(approve|accept|confirm|mark|done|claim|save|apply|verify|publish|finish|continue|next|check in)/i, CheckIcon],
 ];
 const labelOf = (c: ReactNode): string => (typeof c === 'string' || typeof c === 'number' ? String(c) : Array.isArray(c) ? c.map(labelOf).join('') : '');
-/** In a footer (`foot`), dismiss buttons get ✕ and an unmatched label falls back to a tick, so every footer button has one. */
+/** Back gets ←. In a footer (`foot`), other dismiss buttons get ✕ and an unmatched label falls back to a tick, so every footer button has one. */
 const autoIcon = (c: ReactNode, foot = false): Icon | undefined => {
   const t = labelOf(c).trim(); if (!t) return;
+  /* Back steps to the previous screen rather than dismissing: it gets a left arrow, never the ✕ (2026-11-25).
+     The one arrow a button may carry; arrows passed as `icon` are still dropped. */
+  if (/^back\b(?! to)/i.test(t)) return ArrowL;
   if (DISMISS.test(t)) return foot ? X : undefined;
   for (const [re, ic] of AUTO_ICON) if (re.test(t)) return ic;
   return foot ? CheckIcon : undefined;
@@ -175,12 +178,22 @@ function TrailCrumbs({ title }: { title: string }) {
 /* Figma 3884:39270 top bar: 56px #F5F5F5 band, 24/16 sides, 12px gap; no home button (2026-11-13), just
    Geist Mono Medium 14 uppercase crumbs (#737373 parents with a 16px chevron, the page in #0A0A0A).
    `search` adds the 280px "Search anything ⌘K" field, which opens the palette. */
-export function PageHeader({ title, crumbs, children, search, meta }: { icon?: Icon; title: string; crumbs?: Crumb[]; children?: ReactNode; search?: boolean; meta?: ReactNode }) {
+export function PageHeader({ title, crumbs, children, search, meta, introEnd, onBack, backLabel }: { icon?: Icon; title: string; crumbs?: Crumb[]; children?: ReactNode; search?: boolean; meta?: ReactNode;
+  /** Controls on the right of the page heading, level with it: filters that change everything below, stat cards included. */ introEnd?: ReactNode;
+  /** A drill-in view (one property inside Occupancy): a back button at the start of the breadcrumb bar returns to the list. */ onBack?: () => void; /** Its tooltip and label for screen readers. */ backLabel?: string }) {
   usePublishTitle(title);
   const stops = useTrail((s) => s.stops);
   const { pathname } = useLocation();
   return (<>
     <div data-page-head className="h-14 shrink-0 border-b border-[#E5E5E5] bg-[#F5F5F5] flex items-center gap-3 pl-6 pr-4">
+      {/* Drill-in: a 28px back button first in the bar, split from the crumbs by a short rule. */}
+      {onBack && <>
+        <button type="button" aria-label={backLabel ? `Back to ${backLabel}` : 'Back'} title={backLabel ? `Back to ${backLabel}` : 'Back'} onClick={onBack}
+          className="-ml-2 size-7 shrink-0 rounded-md flex items-center justify-center text-[#525252] hover:bg-[#EBEBEB] hover:text-[#0A0A0A] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <ArrowL size={16} strokeWidth={1.75} />
+        </button>
+        <span aria-hidden className="w-px h-4 bg-[#D4D4D4] shrink-0" />
+      </>}
       <div className="flex items-center gap-2 min-w-0 font-mono uppercase text-sm leading-5 font-medium">
         <TrailCrumbs title={title} />
         {crumbs?.map((c): Crumb => {
@@ -208,7 +221,7 @@ export function PageHeader({ title, crumbs, children, search, meta }: { icon?: I
       </div>
     </div>
     {/* Page heading + one line on what the page is for, from the route (pageIntro.tsx; Overview and My tasks have none). */}
-    <PageIntro title={title} />
+    <PageIntro title={title} end={introEnd} />
   </>);
 }
 /** Joined header filters (Figma "Button group"): one white r8 box with a #E5E5E5 edge, items split by a 1px rule. */

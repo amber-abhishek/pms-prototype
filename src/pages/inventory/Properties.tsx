@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Archive, ArrowCounterClockwise, CaretDown, Stack, ArrowsDownUp, Buildings, DotsThree, FileCsv, PauseCircle, PencilSimple, UploadSimple, X, CheckCircle,
 } from '../../components/icons';
-import { Button, Empty, MultiFilter, PageHeader, Pill, SearchInput, SheetRow, SheetSection, Table, cx, PIN, avatarFx } from '../../components/ui';
+import { Button, Empty, MultiFilter, PageHeader, Pill, SearchInput, SelectFilter, SheetRow, SheetSection, Table, cx, PIN, avatarFx } from '../../components/ui';
 import { PHOTO } from './photos';
 import { EditSheet } from './PropertyDetail';
 import { invId, logAct, useInv, type Property } from '../../data/inventory';
@@ -137,7 +137,9 @@ export function PropertiesPage() {
           <div {...PIN} className="shrink-0 px-6 py-4 flex items-center gap-3">
             <div className="[&>label]:w-[280px] [&>label]:h-9"><SearchInput value={q} onChange={setQ} placeholder="Search properties" /></div>
             <div className="ml-auto flex items-center gap-3">
-              <MultiFilter label="Location" value={campusF} onChange={setCampusF} options={[{ value: 'Durham City' }, { value: 'Queen’s Campus' }]} />
+              {/* Location is one pick with an All row and counts, as on Units (2026-11-26). */}
+              <SelectFilter label="Location" width={220} value={campusF[0] ?? ''} onChange={(v) => setCampusF(v ? [v] : [])}
+                options={[...new Set(props.map((x) => x.campus))].map((c) => ({ value: c, meta: props.filter((x) => x.campus === c).length }))} />
               <MultiFilter label="Layout" value={layoutF} onChange={setLayoutF} options={layoutNames.map((value) => ({ value }))} />
               <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={240} options={[{ value: 'Active', tone: 'green' }, { value: 'Draft', tone: 'amber' }, { value: 'Inactive', tone: 'grey' }, { value: 'Closed to allocations', tone: 'amber' }, { value: 'Archived', tone: 'red' }]} />
             </div>

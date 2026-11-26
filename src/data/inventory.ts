@@ -60,6 +60,11 @@ function prop(p: Partial<Property> & Pick<Property, 'id' | 'name' | 'campus' | '
     counts: counts(p.units, p.status), ...p,
   } as Property;
 }
+/** At most 4 units to a flat (2026-11-26): a block gets as many flats per floor as that takes, so its room total
+ *  stays the same. Houses keep their own size. */
+export const FLAT_MAX = 4;
+const fitFlats = (p: Property): Property => p.structure === 'House' ? p
+  : { ...p, blocks: p.blocks.map((b) => ({ ...b, flats: Math.max(b.flats, Math.ceil(b.rooms / (b.floors * FLAT_MAX))) })) };
 
 export function makeInventorySeed() {
   const properties: Property[] = [
@@ -76,7 +81,7 @@ export function makeInventorySeed() {
     prop({ id: 'hb', layout: 'Rooms only', name: 'Hild Bede', campus: 'Durham City', tags: [T('Catered', 'orange'), T('Riverside', 'green'), T('Chapel', 'grey')], units: 298, status: 'Active', address: 'Leazes Road, Durham DH1 1SZ', zone: 'Elvet', invNo: 'HB-001' }),
     prop({ id: 'js', layout: 'Studio block', blocks: blocks3(455, 'Studio'), name: 'John Snow College', campus: 'Queen’s Campus', tags: [T('Self-catered', 'green')], units: 455, status: 'Active', address: 'Ebsworth Building, Stockton TS17 6BH', zone: 'Stockton', invNo: 'JS-001' }),
     prop({ id: 'erh', layout: 'Shared houses', name: 'Elvet Riverside Houses', campus: 'Durham City', structure: 'House', tags: [], units: 48, status: 'Inactive', address: 'New Elvet, Durham DH1 3JT', zone: 'Elvet', invNo: 'ERH-001', blocks: [{ name: 'Houses', floors: 1, flats: 8, rooms: 48, roomType: 'Standard single', size: 10 }] }),
-  ];
+  ].map(fitFlats);
   const templates: Template[] = [
     { id: 'tp1', propertyId: 'col', name: 'Ensuite single', weeks: 51, rent: 212, deposit: 250, billing: 'Weekly', from: '19 Sep 2027', to: '8 Sep 2028', linked: 96, own: 2, ownNote: '2.3.C £205 · 4.2.B £205', status: 'Active' },
     { id: 'tp2', propertyId: 'col', name: 'Standard single', weeks: 44, rent: 168, deposit: 250, billing: 'Weekly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 128, own: 1, ownNote: '1.4.D £160', status: 'Active' },
@@ -145,7 +150,9 @@ export const useInv = create<InvState>()(
       patchProp: (id, fn) => set((st) => ({ properties: st.properties.map((p) => (p.id === id ? { ...p, ...fn(p) } : p)) })),
       editUnit: (id, e) => set((st) => ({ unitEdits: { ...st.unitEdits, [id]: { ...st.unitEdits[id], ...e } } })),
     }),
-    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 4, migrate: (st, v) => (v < 4 ? {} : termlyToWeekly(renameFrom(4)(st, v))) },
+    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 4, migrate: (st, v) => (v < 4 ? {} : termlyToWeekly(renameFrom(4)(st, v))),
+      /* A tab saved before flats were capped at 4 units gets its blocks re-split on load; edits are kept. */
+      merge: (saved, cur) => { const m = { ...cur, ...(saved as Partial<InvState>) }; return { ...m, properties: m.properties.map(fitFlats) }; } },
   ),
 );
 
@@ -164,13 +171,16 @@ function special(p: Property, bi: number, floor: number): Flat[] | null {
   if (p.id === 'col' && bi === 0 && floor === 3) {
     const f1: Unit[] = [
       u('col', 0, '3.1.A', 'Ensuite single', 51, 212, 'Active', 13), u('col', 0, '3.1.B', 'Ensuite single', 51, 212, 'Active', 13), u('col', 0, '3.1.C', 'Ensuite single', 51, 212, 'Active', 13),
-      u('col', 0, '3.1.D', 'Ensuite single', 51, 212, 'Inactive', 13), u('col', 0, '3.1.E', 'Standard single', 44, 168, 'Active', 11), u('col', 0, '3.1.F', 'Standard single', 44, 168, 'Active', 11),
+      u('col', 0, '3.1.D', 'Ensuite single', 51, 212, 'Inactive', 13),
     ];
     const f2: Unit[] = [
       u('col', 0, '3.2.A', 'Studio', 51, 289, 'Inactive', 20), u('col', 0, '3.2.B', 'Studio', 51, 289, 'Active', 20), u('col', 0, '3.2.C', 'Ensuite single', 51, 212, 'Active', 13),
-      u('col', 0, '3.2.D', 'Accessible ensuite', 51, 212, 'Active', 16, { accessible: true }), u('col', 0, '3.2.E', 'Ensuite single', null, null, 'Draft', 13),
+      u('col', 0, '3.2.D', 'Accessible ensuite', 51, 212, 'Active', 16, { accessible: true }),
     ];
-    return [{ id: 'col|0|3|1', name: 'Flat 3.1', units: f1 }, { id: 'col|0|3|2', name: 'Flat 3.2', units: f2 }];
+    const f3: Unit[] = [
+      u('col', 0, '3.3.A', 'Standard single', 44, 168, 'Active', 11), u('col', 0, '3.3.B', 'Standard single', 44, 168, 'Active', 11), u('col', 0, '3.3.C', 'Ensuite single', null, null, 'Draft', 13),
+    ];
+    return [{ id: 'col|0|3|1', name: 'Flat 3.1', units: f1 }, { id: 'col|0|3|2', name: 'Flat 3.2', units: f2 }, { id: 'col|0|3|3', name: 'Flat 3.3', units: f3 }];
   }
   return null;
 }
@@ -181,15 +191,16 @@ export function flatsOf(p: Property, bi: number, floor: number, edits: Record<st
   const b = p.blocks[bi];
   let flats = special(p, bi, floor);
   if (!flats) {
-    const per = Math.max(1, Math.round(b.rooms / (b.floors * b.flats)));
+    const per = Math.max(1, Math.min(p.structure === 'House' ? Infinity : FLAT_MAX, Math.ceil(b.rooms / (b.floors * b.flats))));
     const built = p.build ? p.build.done : Infinity;
     const st: UStatus = p.status === 'Active' || p.status === 'Closed to allocations' ? 'Active' : p.status === 'Inactive' ? 'Inactive' : 'Draft';
     const priorRooms = p.blocks.slice(0, bi).reduce((a, x) => a + x.rooms, 0);
     flats = Array.from({ length: b.flats }, (_, fi) => {
       const units: Unit[] = [];
       for (let k = 0; k < per; k++) {
-        const idx = priorRooms + ((floor - 1) * b.flats + fi) * per + k;
-        if (idx >= built) break;
+        const local = ((floor - 1) * b.flats + fi) * per + k;
+        const idx = priorRooms + local;
+        if (idx >= built || local >= b.rooms) break;
         const code = `${floor}.${fi + 1}.${L[k] ?? k}`;
         const has = p.tenancies !== false;
         const rt = p.roomTypes.find((r) => r.name === b.roomType);

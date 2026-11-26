@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Buildings, Grid3x3, Stack } from '../../components/icons';
-import { Button, Meter, MultiFilter, PageHeader, SelectFilter, StatStrip, Table, cx, inFilter, type Col, type Filters, type StatItem, type Tone } from '../../components/ui';
+import { Button, Meter, MultiFilter, Pill, PageHeader, SearchInput, SelectFilter, Sheet, SheetHero, StatStrip, Table, cx, inFilter, listNav, type Col, type Filters, type StatItem, type Tone } from '../../components/ui';
 import { useDb } from '../../data/store';
 import { DateRangePicker, utc, type Range, type RangePreset } from '../../components/DateRangePicker';
 import { useEmpty } from '../../data/empty';
@@ -10,6 +10,7 @@ import { EmptyArea } from '../allocations/common';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DownloadSimple } from '../../components/icons';
 import { Seg } from './common';
+import { PHOTO, photoOf } from './photos';
 import { OccupancyTimeline, TIMELINE_EXTRA } from './OccupancyTimeline';
 
 /* Occupancy, floor plan (frame 3355:105349): hall tabs with bed counts, five stat tiles, then one
@@ -21,6 +22,10 @@ type Hall = { id: string; name: string; campus: string; beds: number; inRes: num
 
 /* Bed counts come from data/occupancy (HALL_OCC), the same rows Reports › Occupancy reads; this page adds its names and blocks. */
 /* campus is the seed campus id (c1 Durham City, c2 Queen's Campus): the Location filter narrows by it. */
+/* A hall's cover photo (2026-11-26): its property's own where it has one; St Mary's and Van Mildert aren't in Properties,
+   so they borrow a stock one (dummy data). */
+const STOCK = Object.values(PHOTO);
+const hallPhoto = (id: string) => photoOf(id) ?? STOCK[[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % STOCK.length];
 const HALL_EXTRA: Record<string, { name: string; campus: string; blocks: string[] }> = {
   ust: { name: 'Ustinov College', campus: 'c1', blocks: ['Block G', 'Block H', 'Block J'] },
   col: { name: 'Collingwood', campus: 'c1', blocks: ['Block A', 'Block B', 'Block C'] },
@@ -136,7 +141,13 @@ type Field = { id: string; label: string; options: { value: string; tone?: Tone;
 
 /** Overall view: one row per property with its bed counts and how full it is. */
 const HALL_COLS: Col<Hall>[] = [
-  { key: 'name', label: 'Property', render: (h) => <span className="font-medium">{h.name}</span> },
+  { key: 'name', label: 'Property', render: (h) => (
+    /* A 48px photo (2026-11-26), the name over its blocks. */
+    <span className="flex items-center gap-3 min-w-0 py-1">
+      <img src={hallPhoto(h.id)} alt="" loading="lazy" className="size-12 shrink-0 rounded-lg object-cover bg-[#F5F5F5]" />
+      <span className="min-w-0"><span className="block truncate font-medium">{h.name}</span><span className="block truncate text-xs leading-4 text-[#737373]">{h.blocks.length} {h.blocks.length === 1 ? 'block' : 'blocks'}</span></span>
+    </span>
+  ) },
   { key: 'beds', label: 'Beds', render: (h) => <span className="tabular-nums">{h.beds.toLocaleString('en-GB')}</span> },
   { key: 'occ', label: 'Occupancy', className: 'w-[240px]', render: (h) => (
     <span className="flex items-center gap-3">
@@ -170,13 +181,16 @@ export function OccupancyPage() {
   const [view, setView] = useState<'Grid' | 'Timeline'>('Timeline');
   const block = h ? (h.blocks.includes(blockSel) ? blockSel : h.blocks[0]) : '';
   const allRooms = useMemo(() => (h ? roomsFor(h, block) : []), [h, block]);
-  const rooms = useMemo(() => allRooms.filter((x) => inFilter(roomF.status, ST[x.st].label) && inFilter(roomF.floor, x.floor)), [allRooms, roomF]);
+  /* The panel's search finds a room by its code or its resident. */
+  const [q, setQ] = useState('');
+  const rooms = useMemo(() => { const n = q.trim().toLowerCase();
+    return allRooms.filter((x) => inFilter(roomF.status, ST[x.st].label) && inFilter(roomF.floor, x.floor) && (!n || x.code.toLowerCase().includes(n) || (x.who ?? '').toLowerCase().includes(n))); }, [allRooms, roomF, q]);
   const halls = useMemo(() => ranged.filter((x) => inFilter(hallF.location, campuses.find((c) => c.id === x.campus)?.name) && inFilter(hallF.band, bandOf(x))
     && (!hallF.needs?.length || hallF.needs.some((n) => needsOf(x).includes(n)))), [ranged, hallF, campuses]);
   const empty = useEmpty((s) => s.on);
   const nav = useNavigate();
   const back = () => setHid('all');
-  const pickHall = (id: string) => { setHid(id); setRoomF({}); const nh = HALLS.find((x) => x.id === id); if (nh) setBlock(nh.blocks[0]); };
+  const pickHall = (id: string) => { setHid(id); setRoomF({}); setQ(''); const nh = HALLS.find((x) => x.id === id); if (nh) setBlock(nh.blocks[0]); };
 
   /* Context-aware filters: the overall view filters properties, a property's plan filters its rooms. */
   const count = <T,>(xs: T[], f: (x: T) => boolean) => xs.filter(f).length;
@@ -190,19 +204,23 @@ export function OccupancyPage() {
     { id: 'floor', label: 'Floor', options: FLOORS.map(([f]) => ({ value: f, count: count(allRooms, (x) => x.floor === f) })).filter((o) => o.count) },
   ];
 
-  /* The Overview / Reports number band: each figure with a thin meter in its status colour, out of the beds in view. */
-  const t = h ?? halls.reduce<Hall>((a, x) => ({ ...a, beds: a.beds + x.beds, inRes: a.inRes + x.inRes, arriving: a.arriving + x.arriving, vacant: a.vacant + x.vacant, blocked: a.blocked + x.blocked }),
+  /* The Overview / Reports number band: each figure with a thin meter in its status colour, out of the beds in view.
+     The page shows every property in view; the side panel shows the open property's own. */
+  const statsOf = (t: Hall, sub: string): StatItem[] => {
+    const share = (n: number) => `${t.beds ? Math.round((n / t.beds) * 100) : 0}% of beds`;
+    const held = heldOf(t);
+    return [
+      { label: 'Beds', value: t.beds.toLocaleString('en-GB'), sub,
+        meter: { kind: 'split', parts: [{ label: 'In residence', value: t.inRes, color: '#16A34A' }, { label: 'Arriving', value: t.arriving, color: '#2563EB' }, { label: 'Held', value: held, color: '#F59E0B' }, { label: 'Vacant', value: t.vacant, color: '#F97316' }, { label: 'Blocked', value: t.blocked, color: '#A3A3A3' }] } },
+      { label: 'In residence', value: t.inRes.toLocaleString('en-GB'), sub: share(t.inRes), meter: { kind: 'progress', value: t.inRes, max: t.beds || 1, color: '#16A34A', tip: share(t.inRes) } },
+      { label: 'Arriving', value: t.arriving.toLocaleString('en-GB'), sub: share(t.arriving), meter: { kind: 'progress', value: t.arriving, max: t.beds || 1, color: '#2563EB', tip: share(t.arriving) } },
+      { label: 'Vacant', value: t.vacant.toLocaleString('en-GB'), sub: share(t.vacant), meter: { kind: 'progress', value: t.vacant, max: t.beds || 1, color: '#F97316', tip: share(t.vacant) } },
+      { label: 'Blocked', value: t.blocked.toLocaleString('en-GB'), sub: share(t.blocked), meter: { kind: 'progress', value: t.blocked, max: t.beds || 1, color: '#A3A3A3', tip: share(t.blocked) } },
+    ];
+  };
+  const all = halls.reduce<Hall>((a, x) => ({ ...a, beds: a.beds + x.beds, inRes: a.inRes + x.inRes, arriving: a.arriving + x.arriving, vacant: a.vacant + x.vacant, blocked: a.blocked + x.blocked }),
     { id: 'all', name: 'All properties', campus: '', beds: 0, inRes: 0, arriving: 0, vacant: 0, blocked: 0, blocks: [] });
-  const share = (n: number) => `${t.beds ? Math.round((n / t.beds) * 100) : 0}% of beds`;
-  const held = heldOf(t);
-  const stats: StatItem[] = [
-    { label: 'Beds', value: t.beds.toLocaleString('en-GB'), sub: h ? `${h.blocks.length} ${h.blocks.length === 1 ? 'block' : 'blocks'}` : `${halls.length} ${halls.length === 1 ? 'property' : 'properties'}`,
-      meter: { kind: 'split', parts: [{ label: 'In residence', value: t.inRes, color: '#16A34A' }, { label: 'Arriving', value: t.arriving, color: '#2563EB' }, { label: 'Held', value: held, color: '#F59E0B' }, { label: 'Vacant', value: t.vacant, color: '#F97316' }, { label: 'Blocked', value: t.blocked, color: '#A3A3A3' }] } },
-    { label: 'In residence', value: t.inRes.toLocaleString('en-GB'), sub: share(t.inRes), meter: { kind: 'progress', value: t.inRes, max: t.beds || 1, color: '#16A34A', tip: share(t.inRes) } },
-    { label: 'Arriving', value: t.arriving.toLocaleString('en-GB'), sub: share(t.arriving), meter: { kind: 'progress', value: t.arriving, max: t.beds || 1, color: '#2563EB', tip: share(t.arriving) } },
-    { label: 'Vacant', value: t.vacant.toLocaleString('en-GB'), sub: share(t.vacant), meter: { kind: 'progress', value: t.vacant, max: t.beds || 1, color: '#F97316', tip: share(t.vacant) } },
-    { label: 'Blocked', value: t.blocked.toLocaleString('en-GB'), sub: share(t.blocked), meter: { kind: 'progress', value: t.blocked, max: t.beds || 1, color: '#A3A3A3', tip: share(t.blocked) } },
-  ];
+  const stats = statsOf(all, `${halls.length} ${halls.length === 1 ? 'property' : 'properties'}`);
 
   /* Empty-states demo: no halls yet, so no plan to show. */
   if (empty) return (
@@ -218,48 +236,58 @@ export function OccupancyPage() {
     <MultiFilter key={f.id} label={f.label} width={Math.max(220, ...f.options.map((o) => o.value.length * 8 + 120))} value={val[f.id] ?? []}
       options={f.options} onChange={(v) => set({ ...val, [f.id]: v })} />
   ));
-  const fileBase = (h ? h.name : 'all-properties').toLowerCase().replace(/\W+/g, '-');
+  const fileBase = 'all-properties';
+  const hallNav = h ? listNav(halls, (x) => x.id === h.id, (x) => pickHall(x.id)) : undefined;
   return (
     <>
-      {/* The date range leads the controls level with the heading, as the page's main control. Then whatever else changes the numbers: the property filters overall, the property picker
-          inside one (switching in place; the way back is the Occupancy crumb or browser back). The breadcrumb bar keeps
-          only Export. */}
-      <PageHeader icon={Grid3x3} title={h ? h.name : 'Occupancy'} crumbs={h ? [SECTION, { label: 'Occupancy', onClick: back }] : [SECTION]} onBack={h ? back : undefined} backLabel="All properties"
+      {/* The date range leads the controls level with the heading, as the page's main control, then the property
+          filters. Clicking a property opens its plan in a wide side panel (70% of the screen) over the table, so
+          the list stays where it was; ?p keeps it in the URL so browser back closes it. */}
+      <PageHeader icon={Grid3x3} title="Occupancy" crumbs={[SECTION]}
         introEnd={<>
           <DateRangePicker value={range} onChange={setRange} presets={PRESETS} />
           <span aria-hidden className="w-px h-5 bg-[#E5E5E5] shrink-0" />
-          {h
-            ? <SelectFilter icon={Buildings} width={260} value={h.id} onChange={pickHall} suffix={<span className="text-[#737373] font-mono tabular-nums">{h.beds.toLocaleString('en-GB')}</span>}
-                options={halls.map((x) => ({ value: x.id, label: x.name, meta: x.beds }))} />
-            : filterEls(hallFields, hallF, setHallF)}
+          {filterEls(hallFields, hallF, setHallF)}
         </>}>
         <Button variant="primary" icon={DownloadSimple} onClick={() => toast.success(`${fileBase}-occupancy-${range.from.toISOString().slice(0, 10)}-to-${range.to.toISOString().slice(0, 10)}.csv exported`)}>Export</Button>
       </PageHeader>
 
       <div data-fill className="flex-1 overflow-auto">
-        {/* The numbers come first, then the filters for what is listed under them. */}
-        {/* Overall, the table's header draws its own top line, so the strip drops its bottom one (else the two stack into a 2px rule). */}
-        <div className="px-[var(--tx,16px)]"><StatStrip bleed compact items={stats} className={h ? undefined : 'border-b-0'} /></div>
+        {/* The table's header draws its own top line, so the strip drops its bottom one (else the two stack into a 2px rule). */}
+        <div className="px-[var(--tx,16px)]"><StatStrip bleed compact items={stats} className="border-b-0" /></div>
+        <Table cols={HALL_COLS} rows={halls} onRow={(x) => pickHall(x.id)} columns={false}
+          empty={<EmptyArea art="nothingToShow" icon={Buildings} title="No properties match" sub="Clear a filter to see more." />} />
+      </div>
 
-        {/* Inside a property: its block on the left; the room filters and the Timeline / Grid toggle on the right.
-            (Overall, the property filters sit beside the heading instead, since they change the numbers too.) */}
+      <Sheet open={!!h} onClose={back} title="Property" width="max(70vw, 1124px)" nav={hallNav}
+        more={<Button variant="primary" icon={DownloadSimple} onClick={() => h && toast.success(`${h.name.toLowerCase().replace(/\W+/g, '-')}-occupancy-${range.from.toISOString().slice(0, 10)}-to-${range.to.toISOString().slice(0, 10)}.csv exported`)}>Export</Button>}>
         {h && (
-          <div className="px-6 py-4 flex items-center gap-3">
-            {h.blocks.length > 1 && <SelectFilter icon={Stack} width={180} value={block} onChange={setBlock} options={h.blocks.map((b) => ({ value: b }))} />}
-            <div className="ml-auto flex items-center gap-3">
-              {filterEls(roomFields, roomF, setRoomF)}
-              <Seg value={view} onChange={setView} options={['Timeline', 'Grid']} className="w-[180px]" />
+          /* The panel is 70% of the screen but never narrower than the timeline's 1080px (+ 40px padding, 2px border), so the
+             chart fits without scrolling sideways. The whole panel scrolls, and the month header sticks to its top. */
+          <div className="flex flex-col gap-5 [&>[data-sheet-hero]]:pb-0">
+            <SheetHero name={h.name} icon={Buildings} lead={<img src={hallPhoto(h.id)} alt="" className="size-14 shrink-0 rounded-xl object-cover bg-[#F5F5F5]" />} meta={[campuses.find((c) => c.id === h.campus)?.name, `${h.blocks.length} ${h.blocks.length === 1 ? 'block' : 'blocks'}`, `${h.beds.toLocaleString('en-GB')} beds`].filter(Boolean).join(' · ')}
+              tags={<>
+                {/* The figures the number band used to show, as tags in the timeline key's colours; zero counts drop out. */}
+                <Pill tone="green">{h.inRes.toLocaleString('en-GB')} in residence</Pill>
+                {h.arriving > 0 && <Pill tone="blue">{h.arriving.toLocaleString('en-GB')} arriving</Pill>}
+                {heldOf(h) > 0 && <Pill tone="amber">{heldOf(h)} held</Pill>}
+                {h.vacant > 0 && <Pill tone="orange">{h.vacant} vacant</Pill>}
+                {h.blocked > 0 && <Pill tone="grey">{h.blocked} blocked</Pill>}
+              </>} />
+            {/* A full-width rule splits the property's header from the plan's controls. */}
+            <div aria-hidden className="-mx-5 h-px bg-[#E5E5E5]" />
+            {/* Search on the left; the block, the room filters and the Timeline / Grid toggle on the right. */}
+            <div className="flex items-center gap-3">
+              <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Room or resident" /></div>
+              <div className="ml-auto flex items-center gap-3">
+                {h.blocks.length > 1 && <SelectFilter icon={Stack} width={180} value={block} onChange={setBlock} options={h.blocks.map((b) => ({ value: b }))} />}
+                {filterEls(roomFields, roomF, setRoomF)}
+                <Seg value={view} onChange={setView} options={['Timeline', 'Grid']} className="w-[180px]" />
+              </div>
             </div>
-          </div>
-        )}
-
-        {!h ? (
-          <div>
-            <Table cols={HALL_COLS} rows={halls} onRow={(x) => pickHall(x.id)} columns={false}
-              empty={<EmptyArea art="nothingToShow" icon={Buildings} title="No properties match" sub="Clear a filter to see more." />} />
-          </div>
-        ) : (<>
-        <div className="px-[var(--tx,16px)] flex items-center">
+            <div>
+        {/* The block's name and the key stick to the panel's top (its body has 20px top padding), the chart's month header under them. */}
+        <div className="sticky top-[-20px] z-[6] -mx-5 px-5 h-12 bg-white flex items-center">
           <div className="text-sm leading-5 font-medium text-[#0A0A0A]">{block} · {h.id === 'ust' && block === 'Block G' ? 'Ground and first floor' : `${FLOORS.length} floors`}</div>
           <div className="ml-auto flex items-center gap-4">
             {ORDER.map((st) => <span key={st} className="flex items-center gap-1.5 text-xs leading-4 text-[#737373]"><Dot st={st} />{st === 'arriving' && view === 'Timeline' ? 'Booked' : ST[st].label}</span>)}
@@ -269,11 +297,11 @@ export function OccupancyPage() {
         </div>
 
           {view === 'Timeline' ? (
-            <div className="px-[var(--tx,16px)] py-3 pb-6">
-              <OccupancyTimeline rooms={rooms} floors={FLOORS.map(([f]) => f)} range={range} hall={h.name} />
+            <div>
+              <OccupancyTimeline panel rooms={rooms} floors={FLOORS.map(([f]) => f)} range={range} hall={h.name} />
             </div>
           ) : (
-          <div className="px-[var(--tx,16px)] py-3 flex flex-col gap-4">
+          <div className="py-3 flex flex-col gap-4">
             {FLOORS.map(([floor]) => {
               const fr = rooms.filter((x) => x.floor === floor);
               if (!fr.length) return null;
@@ -294,8 +322,10 @@ export function OccupancyPage() {
             })}
           </div>
           )}
-        </>)}
-      </div>
+            </div>
+          </div>
+        )}
+      </Sheet>
     </>
   );
 }

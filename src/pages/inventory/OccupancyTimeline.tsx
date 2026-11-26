@@ -125,7 +125,8 @@ function BarCard({ bar, room, hall }: { bar: Bar; room: TlRoom; hall: string }) 
 
 const COLS = 'grid grid-cols-[200px_minmax(0,1fr)]';
 
-export function OccupancyTimeline({ rooms, floors, range, hall }: { rooms: TlRoom[]; floors: readonly string[]; range: Range; hall: string }) {
+export function OccupancyTimeline({ rooms, floors, range, hall, panel }: { rooms: TlRoom[]; floors: readonly string[]; range: Range; hall: string;
+  /** Inside a side panel: the month header sticks under the panel's 48px sticky key row (body padding 20px, so at 28px) and bar cards keep inside the panel. */ panel?: boolean }) {
   /* The axis runs over the page's date range (both ends inclusive). Bars come from the academic year the range starts
      in; anything outside the range is dropped and the rest is clipped to its edges. */
   const start = range.from, end = plus(range.to, 1), span = end.getTime() - start.getTime();
@@ -155,8 +156,8 @@ export function OccupancyTimeline({ rooms, floors, range, hall }: { rooms: TlRoo
       <div className="min-w-[1080px]">
         {/* Header: room column, then the months in Geist Mono; this week is tinted blue and a small arrowhead on the
             bottom rule marks today (hover for the date). The terms row was tried and removed (2026-11-17). */}
-        <div className={cx(COLS, 'sticky top-0 z-[5] h-10 -mt-px border-t border-t-[#E5E5E5] bg-[#FAFAFA] border-b border-[#E5E5E5] font-mono text-[11px] leading-4 uppercase tracking-[0.48px] text-[#737373]')}>
-          <div className="px-5 flex items-center border-r border-[#E5E5E5]">Room</div>
+        <div className={cx(COLS, 'sticky z-[5] h-10 -mt-px border-t border-t-[#E5E5E5]', panel ? 'top-[28px]' : 'top-0', 'bg-[#FAFAFA] border-b border-[#E5E5E5] font-mono text-[11px] leading-4 uppercase tracking-[0.48px] text-[#737373]')}>
+          <div className="sticky left-0 z-[2] bg-[#FAFAFA] px-5 flex items-center border-r border-[#E5E5E5]">Room</div>
           <div className="relative">
             {week && <span aria-hidden className="absolute inset-y-0 bg-[#2563EB]/[0.08] pointer-events-none" style={{ left: `${week.left}%`, width: `${week.width}%` }} />}
             {months.map((x, i) => <span key={x.left} className={cx('absolute inset-y-0 pl-2.5 flex items-center', i > 0 && 'border-l border-[#E5E5E5]')} style={{ left: `${x.left}%` }}>{x.m}</span>)}
@@ -183,7 +184,7 @@ export function OccupancyTimeline({ rooms, floors, range, hall }: { rooms: TlRoo
               {/* Floor band: a grey strip with a firm rule above it (after the first floor), the floor name and its counts. */}
               {/* The band folds its floor away (Miro swimlanes); folded, the counts still read. */}
               <div className={cx(COLS, 'h-10 bg-[#FAFAFA]', !closed && 'border-b border-[#E5E5E5]', fi > 0 && 'border-t border-t-[#E5E5E5]')}>
-                <button type="button" aria-expanded={!closed} onClick={() => toggle(floor)} className="pl-3 pr-5 flex items-center gap-2 border-r border-[#E5E5E5] text-left hover:bg-[#F5F5F5] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <button type="button" aria-expanded={!closed} onClick={() => toggle(floor)} className="sticky left-0 z-[2] bg-[#FAFAFA] pl-3 pr-5 flex items-center gap-2 border-r border-[#E5E5E5] text-left hover:bg-[#F5F5F5] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                   <ChevronDown size={14} className={cx('text-[#737373] transition-transform duration-150', closed && '-rotate-90')} />
                   <span className="font-mono text-xs leading-4 font-medium uppercase tracking-[0.48px] text-[#0A0A0A]">{floor} floor</span>
                   <span className="font-mono text-[11px] leading-4 text-[#737373] tabular-nums">{fr.length}</span>
@@ -200,7 +201,7 @@ export function OccupancyTimeline({ rooms, floors, range, hall }: { rooms: TlRoo
                 <div aria-hidden className="absolute inset-y-0 left-[200px] right-0 pointer-events-none"><Rules /></div>
                 {fr.map((room) => (
                   <div key={room.code} className={cx(COLS, 'h-12 border-b border-[#F0F0F0] last:border-b-0')}>
-                    <div className="px-5 flex flex-col justify-center">
+                    <div className="sticky left-0 z-[2] bg-white border-r border-[#E5E5E5] px-5 flex flex-col justify-center">
                       <span className="font-mono text-xs leading-4 font-medium text-[#0A0A0A]">{room.code}</span>
                       <span className={cx('text-xs leading-4 truncate', room.who ? 'text-[#737373]' : 'text-[#A3A3A3]')}>{room.who ?? (room.st === 'vacant' ? 'Vacant now' : room.st === 'held' ? 'Held' : 'Blocked')}</span>
                     </div>
@@ -218,7 +219,7 @@ export function OccupancyTimeline({ rooms, floors, range, hall }: { rooms: TlRoo
                                 {width > 14 && <span className="ml-auto shrink-0 font-mono text-[11px] font-normal opacity-90">{fmt(b.to)}</span>}
                               </button>
                             </PopoverTrigger>
-                            <PopoverContent align="start" sideOffset={6} collisionPadding={16} onOpenAutoFocus={(e) => e.preventDefault()} className="w-[340px] p-0 overflow-hidden rounded-2xl shadow-[0_12px_32px_-4px_rgba(0,0,0,0.14),0_4px_8px_-2px_rgba(0,0,0,0.06)]">
+                            <PopoverContent align="start" sideOffset={6} collisionPadding={panel ? 52 : 16} onOpenAutoFocus={(e) => e.preventDefault()} className="w-[340px] p-0 overflow-hidden rounded-2xl shadow-[0_12px_32px_-4px_rgba(0,0,0,0.14),0_4px_8px_-2px_rgba(0,0,0,0.06)]">
                               <BarCard bar={b} room={room} hall={hall} />
                             </PopoverContent>
                           </Popover>

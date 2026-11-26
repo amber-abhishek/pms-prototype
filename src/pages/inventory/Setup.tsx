@@ -213,12 +213,12 @@ function StructureSheet({ s, onClose, nav }: { nav?: SheetNav; s: Structure; onC
         </>}
         {tab === 'properties' && (
           <SheetSection title={`Properties · ${s.properties}`}>
-            {used.length ? used.map((p, i) => <SheetRow key={`${p.id}${i}`} lead={<PropThumb id={p.id} />} title={p.name} sub={`${p.campus} · ${p.units} rooms`} end={<PropStatus s={p.status} />} onClick={() => navTo(`/inventory/properties/${p.id}`)} />)
+            {used.length ? used.map((p, i) => <SheetRow key={`${p.id}${i}`} lead={<PropThumb id={p.id} />} title={p.name} sub={`${p.campus} · ${p.units} rooms`} end={<PropStatus s={p.status} />} onClick={() => navTo(`/properties/${p.id}`)} />)
               : <p className="text-sm text-[#737373]">No property uses this layout yet.</p>}
           </SheetSection>
         )}
         {tab === 'fields' && (
-          <SheetSection title={`Fields · ${fields.length}`} action={<EditLink onClick={() => navTo('/inventory/custom-fields')}>Manage</EditLink>}>
+          <SheetSection title={`Fields · ${fields.length}`} action={<EditLink onClick={() => navTo('/properties/custom-fields')}>Manage</EditLink>}>
             {fields.length ? fields.map(({ f: x, level }) => <SheetRow key={`${x.id}${level.name}`} title={x.name} sub={x.type} end={<Pill tone={level.bsu ? 'blue' : 'grey'}>{level.name}</Pill>} />)
               : <p className="text-sm text-[#737373]">No custom fields on this layout.</p>}
           </SheetSection>

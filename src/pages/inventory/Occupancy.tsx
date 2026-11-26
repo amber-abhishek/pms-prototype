@@ -227,7 +227,7 @@ export function OccupancyPage() {
     <>
       <PageHeader icon={Grid3x3} title="Occupancy" crumbs={[SECTION]} />
       <EmptyArea art="noData" icon={Grid3x3} title="No rooms to show yet" sub="Add properties and rooms to see who lives where.">
-        <Button variant="primary" onClick={() => nav('/inventory/properties')}>Create a property</Button>
+        <Button variant="primary" onClick={() => nav('/properties')}>Create a property</Button>
       </EmptyArea>
     </>
   );

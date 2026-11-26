@@ -1,4 +1,4 @@
-import { Navigate, Route, RouterProvider, Routes, createHashRouter } from 'react-router-dom';
+import { Navigate, Route, RouterProvider, Routes, createHashRouter, useLocation } from 'react-router-dom';
 import { Toaster } from './components/shadcn/sonner';
 import { Shell } from './shell/Shell';
 import { Overview, Tasks } from './pages/Home';
@@ -32,7 +32,9 @@ function AppRoutes() {
           <Route index element={<Overview />} />
           <Route path="tasks/*" element={<Tasks />} />
           <Route path="activity" element={<Navigate to="/org/activity" replace />} />
-          <Route path="inventory/*" element={<InventoryRoutes />} />
+          <Route path="properties/*" element={<InventoryRoutes />} />
+          {/* Old links: the section moved from /inventory to /properties (2026-11-26). */}
+          <Route path="inventory/*" element={<OldInventory />} />
           <Route path="allocations/*" element={<AllocationsRoutes />} />
           <Route path="residents/*" element={<ResidentsRoutes />} />
           <Route path="offcampus/*" element={<OffcampusRoutes />} />
@@ -49,4 +51,11 @@ function AppRoutes() {
       <Toaster />
     </TooltipProvider>
   );
+}
+
+/** /inventory/units?p=x → /properties/units?p=x; /inventory/properties/col → /properties/col. */
+function OldInventory() {
+  const { pathname, search } = useLocation();
+  const rest = pathname.replace(/^\/inventory/, '').replace(/^\/properties(?=\/|$)/, '');
+  return <Navigate to={`/properties${rest}${search}`} replace />;
 }

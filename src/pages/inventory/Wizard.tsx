@@ -119,7 +119,7 @@ export function AddPropertyWizard() {
   const go = (i: number) => { if (step === 0) setNameTouched(true); setSeen((v) => (v.includes(i) ? v : [...v, i])); setStep(i); };
   /* Leaving loses every step, so ask first (✕ and Cancel). */
   const [leaving, setLeaving] = useState(false);
-  const leave = () => (step > 0 || name.trim() || invNo.trim() ? setLeaving(true) : nav('/inventory/properties'));
+  const leave = () => (step > 0 || name.trim() || invNo.trim() ? setLeaving(true) : nav('/properties'));
 
   const create = () => {
     if (creating.current) return;
@@ -220,7 +220,7 @@ export function AddPropertyWizard() {
                     </div>
                     <p className="text-[13px] leading-5 text-[#737373] mt-1">Rent and tenancy length use this unit.</p>
                   </SheetSection>
-                  <SheetSection title="Layout" action={<EditLink onClick={() => nav('/inventory/structures')}>New layout</EditLink>}>
+                  <SheetSection title="Layout" action={<EditLink onClick={() => nav('/properties/structures')}>New layout</EditLink>}>
                     <LayoutRadios value={shape.name} onChange={setStructure} />
                   </SheetSection>
                 </>
@@ -311,7 +311,7 @@ export function AddPropertyWizard() {
                       <span><span className="block text-sm font-medium text-[#D97706]">That’s {fmt(total)} rooms</span><span className="block text-xs text-[#737373] mt-0.5">Far more than a typical property. Check the counts, or tick to confirm.</span></span>
                     </label>
                   )}
-                  <p className="mt-3 text-sm leading-5 text-[#737373]">Every room already in a spreadsheet? <button type="button" onClick={() => nav('/inventory/properties?import=1')} className="text-[#2563EB] font-medium hover:underline underline-offset-2">Import CSV</button></p>
+                  <p className="mt-3 text-sm leading-5 text-[#737373]">Every room already in a spreadsheet? <button type="button" onClick={() => nav('/properties?import=1')} className="text-[#2563EB] font-medium hover:underline underline-offset-2">Import CSV</button></p>
                 </>
               )}
 
@@ -348,7 +348,7 @@ export function AddPropertyWizard() {
                     </div>
                     <Err>{dateErr}</Err>
                   </SheetSection>
-                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/inventory/rent-fees?tab=fees')}>Pricing</EditLink>}>
+                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/properties/rent-fees?tab=fees')}>Pricing</EditLink>}>
                     <SheetRow title="Organisation-wide fees apply" sub="Contents insurance · £45 per tenancy" />
                   </SheetSection>
                 </>
@@ -386,9 +386,9 @@ export function AddPropertyWizard() {
           </div></FooterZone.Provider>
         </DialogContent>
       </Modal>
-      <Created p={done} onView={() => done && nav(`/inventory/properties/${done.id}`, { replace: true })} onClose={() => nav('/inventory/properties', { replace: true })} />
+      <Created p={done} onView={() => done && nav(`/properties/${done.id}`, { replace: true })} onClose={() => nav('/properties', { replace: true })} />
       <Confirm open={leaving} onClose={() => setLeaving(false)} danger title="Discard this property?" sub="Nothing has been created yet. What you entered will be lost."
-        cancel="Keep editing" confirm="Discard" onConfirm={() => nav('/inventory/properties')}>
+        cancel="Keep editing" confirm="Discard" onConfirm={() => nav('/properties')}>
         {/* What goes: the draft, and how far it got. */}
         <div className="rounded-xl border border-[#E5E5E5] px-3 py-2.5 flex items-center gap-3">
           <LevelTile level="Property" icon={Buildings} size={28} />

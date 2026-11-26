@@ -44,10 +44,10 @@ export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?:
   const addTag = (t: Tag, created: boolean) => { if (!id) return; patchProp(id, (x) => ({ tags: [...x.tags, t], activity: logAct(x, `Tagged ${t.label}`) })); toast.success(created ? `${t.label} created and added` : `Tagged ${t.label}`); };
   const nav = useNavigate();
   const loc = useLocation();
-  const close = onClose ?? (() => nav('/inventory/properties'));
+  const close = onClose ?? (() => nav('/properties'));
   /* ↑ ↓ (and the keys) step through the Properties list as it is shown; straight from a link, through every unarchived property. */
   const allIds = useInv((s) => s.properties).filter((x) => x.status !== 'Archived').map((x) => x.id);
-  const stepper = onClose ? undefined : listNav(shownOrder.ids.length ? shownOrder.ids : allIds, (x) => x === id, (x) => nav(`/inventory/properties/${x}${loc.search}`));
+  const stepper = onClose ? undefined : listNav(shownOrder.ids.length ? shownOrder.ids : allIds, (x) => x === id, (x) => nav(`/properties/${x}${loc.search}`));
   const [tab, setTab] = useTab<TabId>('overview');
   const [checks, setChecks] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -131,7 +131,7 @@ export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?:
     <>
       <Modal open={archiveAsk} onClose={() => setArchiveAsk(false)} icon={Archive} width={440} title={`Archive ${p.name}?`}
         sub={p.liveTenancies > 0 ? `${p.liveTenancies} tenancies are live, so it can’t be archived yet. Close it to allocations first, from the Properties list.` : 'It leaves your properties and can’t be booked. You can undo straight after.'}
-        footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/inventory/properties?archive=${p.id}`)}>Close to allocations</Button></>
+        footer={p.liveTenancies > 0 ? <><Button onClick={() => setArchiveAsk(false)}>Cancel</Button><Button variant="primary" icon={null} onClick={() => nav(`/properties?archive=${p.id}`)}>Close to allocations</Button></>
           : <><Button onClick={() => setArchiveAsk(false)}>Keep</Button><Button variant="danger" icon={null} onClick={archiveNow}>Archive</Button></>}>{null}</Modal>
       {/* E2: not ready to go active */}
       <Modal open={checks} onClose={() => setChecks(false)} title={`${short} can’t go active yet`} width={520}
@@ -221,10 +221,10 @@ export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?:
                     end={<span className="shrink-0 text-sm text-[#737373] tabular-nums">{p.tenancies === false ? 'No tenancy' : t ? `${money(t.rent)} / ${per(p)} · ${t.weeks} wk` : '—'}</span>} />;
                 })}
               </SheetSection>
-              <SheetSection title={`Rooms · ${p.units}`} action={<EditLink onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Units</EditLink>}>
+              <SheetSection title={`Rooms · ${p.units}`} action={<EditLink onClick={() => nav(`/properties/units?p=${p.id}`)}>Open in Units</EditLink>}>
                 {allUnits(p, unitEdits).slice(0, 12).map((u) => (
                   <SheetRow key={u.id} title={<span className="font-mono text-[13px]">{u.code}</span>} sub={`${u.block} · ${u.type}`} end={<PropStatus s={u.status} />}
-                    onClick={() => nav(`/inventory/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)} />
+                    onClick={() => nav(`/properties/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)} />
                 ))}
                 {p.units > 12 && <p className="pt-3 text-sm text-[#737373]">And {p.units - 12} more</p>}
               </SheetSection>
@@ -277,12 +277,12 @@ export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?:
         <Menu width={200} trigger={(o) => <button type="button" onClick={o} aria-label="More" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><DotsThree size={16} /></button>} items={[
           { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
           { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
-          { label: 'Pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
+          { label: 'Pricing', icon: CurrencyGbp, onClick: () => nav('/properties/rent-fees') },
           { label: 'Change letting period', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
           'sep',
           { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
         ]} />
-        <Button icon={ListDashes} onClick={() => nav(`/inventory/units?p=${p.id}`)}>Open in Units</Button>
+        <Button icon={ListDashes} onClick={() => nav(`/properties/units?p=${p.id}`)}>Open in Units</Button>
         {p.status === 'Draft' && <Button variant="primary" icon={CheckCircle} onClick={activate}>Make active</Button>}
         <DialogCloseButton />
       </DialogHeader>
@@ -396,7 +396,7 @@ export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?:
               </table>}
             </Card>
             <Card className="overflow-hidden">
-              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Pricing</button></div>
+              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/properties/rent-fees')} className="ml-auto text-sm text-primary">Pricing</button></div>
               {templates.length ? templates.map((t) => (
                 <div key={t.id} className="h-12 px-4 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0 text-sm">
                   <span className="text-sm font-medium w-44">{t.name}</span><span className="text-[#737373] flex-1">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.billing}</span>
@@ -470,13 +470,13 @@ function UnitsTab({ p, onImport }: { p: Property; onImport: () => void }) {
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-[#737373] border-b border-line"><th className="font-medium h-9 px-4">Room</th><th className="font-medium">Block · flat</th><th className="font-medium">Room type</th><th className="font-medium">Rent / {per(p) === 'wk' ? 'week' : 'month'}</th><th className="font-medium pr-4">Status</th></tr></thead>
           <tbody>{units.map((u) => (
-            <tr key={u.id} className="border-b border-[#F5F5F5] last:border-0 h-10 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => nav(`/inventory/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)}>
+            <tr key={u.id} className="border-b border-[#F5F5F5] last:border-0 h-10 hover:bg-[#FAFAFA] cursor-pointer" onClick={() => nav(`/properties/units?p=${p.id}&open=${encodeURIComponent(u.id)}`)}>
               <td className="px-4 font-mono">{p.tenancies === false ? `B.${u.code.split('.')[0]}.${String(units.indexOf(u) + 1).padStart(2, '0')}` : u.code}</td><td className="text-[#737373]">{u.block} · {u.flat}</td><td>{u.type}</td>
               <td>{u.rent != null ? money(u.rent) : <span className="text-gray-400">No tenancy</span>}</td><td className="pr-4"><PropStatus s={u.status} /></td>
             </tr>
           ))}</tbody>
         </table>
-        {p.units > units.length && <div className="h-10 px-4 flex items-center border-t border-line text-sm text-[#737373]">Showing {units.length} of {p.units} · <button type="button" className="text-primary ml-1" onClick={() => nav(`/inventory/units?p=${p.id}`)}>see them all in Units</button></div>}
+        {p.units > units.length && <div className="h-10 px-4 flex items-center border-t border-line text-sm text-[#737373]">Showing {units.length} of {p.units} · <button type="button" className="text-primary ml-1" onClick={() => nav(`/properties/units?p=${p.id}`)}>see them all in Units</button></div>}
       </Card>
     </div>
   );

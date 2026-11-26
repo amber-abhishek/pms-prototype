@@ -327,7 +327,7 @@ function Chip({ value, onChange, options, label, icon }: { value: string; onChan
 export function OccupancyReport() {
   const nav = useNavigate();
   const props = useInv((s) => s.properties);
-  const openHall = (id: string) => nav(props.some((p) => p.id === id) ? `/inventory/properties?open=${id}` : '/inventory/occupancy');
+  const openHall = (id: string) => nav(props.some((p) => p.id === id) ? `/properties?open=${id}` : '/properties/occupancy');
   const schedules = useWorkspace((s) => s.schedules);
   const [year, setYear] = useState('2026/27');
   const [hall, setHall] = useState('All properties');

@@ -247,7 +247,10 @@ export function OccupancyPage() {
         introEnd={<>
           <DateRangePicker value={range} onChange={setRange} presets={PRESETS} />
           <span aria-hidden className="w-px h-5 bg-[#E5E5E5] shrink-0" />
-          {filterEls(hallFields, hallF, setHallF)}
+          {/* Location is one pick with an All row and counts, as on Units (2026-11-26); the rest stay multi-select. */}
+          <SelectFilter label="Location" width={220} value={hallF.location?.[0] ?? ''} onChange={(v) => setHallF({ ...hallF, location: v ? [v] : [] })}
+            options={hallFields[0].options.map((o) => ({ value: o.value, meta: o.count }))} />
+          {filterEls(hallFields.slice(1), hallF, setHallF)}
         </>}>
         <Button variant="primary" icon={DownloadSimple} onClick={() => toast.success(`${fileBase}-occupancy-${range.from.toISOString().slice(0, 10)}-to-${range.to.toISOString().slice(0, 10)}.csv exported`)}>Export</Button>
       </PageHeader>

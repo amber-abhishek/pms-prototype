@@ -148,9 +148,9 @@ function Today() {
           <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">
             <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="18 released" kind="line" chartOnly
               points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />
-            <RankCard title="Pre-let by property" note="Target 90%" target={90} more={0} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/inventory/properties')}>Create a property</Button></>} moreLabel="View all properties" moreTo="/inventory/properties"
-              rows={e ? [] : [...PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/inventory/properties?open=${h.id}` })),
-                { id: 'erh', name: 'Elvet Riverside Houses', value: 'Not letting', pct: 0, muted: true, to: '/inventory/properties?open=erh' }]} />
+            <RankCard title="Pre-let by property" note="Target 90%" target={90} more={0} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/properties')}>Create a property</Button></>} moreLabel="View all properties" moreTo="/properties"
+              rows={e ? [] : [...PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/properties?open=${h.id}` })),
+                { id: 'erh', name: 'Elvet Riverside Houses', value: 'Not letting', pct: 0, muted: true, to: '/properties?open=erh' }]} />
           </div>
         </div>
       </div>
@@ -168,7 +168,7 @@ function FirstDay() {
   const steps = [
     { id: 's1', title: 'Choose the resident site domain', sub: 'Portals · durham.residents.app', done: true },
     { id: 's2', title: 'Add locations', sub: `Organisation · ${campuses} locations`, done: campuses > 0, cta: 'Add locations', to: '/org/campuses' },
-    { id: 's3', title: 'Create your first property', sub: 'Properties · one, many at once, or an import', done: props > 0, cta: 'Create a property', to: '/inventory/properties/new' },
+    { id: 's3', title: 'Create your first property', sub: 'Properties · one, many at once, or an import', done: props > 0, cta: 'Create a property', to: '/properties/new' },
     { id: 's4', title: 'Invite your team', sub: 'Roles and access · resident managers, front desk, estates', done: members > 1, cta: 'Invite', to: '/org/people' },
     { id: 's5', title: 'Open an allocation term', sub: 'Allocations · needs at least one active property', done: cycles > 0, cta: 'Open a term', to: '/allocations/cycles' },
   ];

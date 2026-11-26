@@ -77,7 +77,7 @@ const mine: HTask[] = [
     detail: { short: 'Application review', sub: 'Task from Applications · 2027/28', pills: [{ label: 'Wed 16 Sep', tone: 'amber', icon: 'calendar' }],
       facts: [['Applications', '31 waiting more than 5 days'], ['Term', '2027/28'], ['Oldest', '9 days']],
       decide: { title: 'Review them in Applications', sub: 'The task closes itself when none has waited more than 5 days.' } } },
-  { id: 'k6', title: 'Check fire-door survey for St Mary’s College', from: { icon: 'properties', label: 'Properties' }, due: 'week', dueLabel: 'Thu 17 Sep', dueTone: 'amber', owner: ME, done: false, to: '/inventory/properties?open=p3', openLabel: 'Open property',
+  { id: 'k6', title: 'Check fire-door survey for St Mary’s College', from: { icon: 'properties', label: 'Properties' }, due: 'week', dueLabel: 'Thu 17 Sep', dueTone: 'amber', owner: ME, done: false, to: '/properties?open=p3', openLabel: 'Open property',
     detail: { short: 'Fire-door check', sub: 'Task from Properties', facts: [['Property', 'St Mary’s College'], ['Survey', 'Fire doors · due before move-in']] } },
   { id: 'k7', title: 'Give Tom access to Josephine Butler', from: { icon: 'roles', label: 'Roles and access' }, due: 'week', dueLabel: 'Fri 18 Sep', dueTone: 'grey', owner: ME, done: false, to: '/org/people', openLabel: 'Open Roles and access',
     detail: { short: 'Access request', sub: 'Task from Roles and access', facts: [['Person', 'Tom Baker · Property manager'], ['Asks for', 'Josephine Butler']] } },
@@ -190,7 +190,7 @@ export const NEEDS: Need[] = [
   { id: 'n4', icon: 'inbox', title: '31 applications waiting more than 5 days', sub: '2027/28 · To review', badge: { label: 'Behind', tone: 'orange', icon: 'trend' }, to: '/allocations/applications?tab=To%20review', taskId: 'k5', when: 'week', action: 'Review', mine: true },
   { id: 'n5', icon: 'notice', title: 'Move-in notice to Ustinov residents', sub: 'Draft · scheduled for Wednesday 09:00', badge: { label: 'Draft', tone: 'grey', icon: 'pencil' }, to: '/residents/notices?open=n1', taskId: 'k4', when: 'week', action: 'Send', mine: true },
   { id: 'n7', icon: 'conflict', title: '2 double-booked units', sub: 'Collingwood 3.2.C · Stephenson 4.2.C · overlapping bookings', badge: { label: 'Due today', tone: 'orange', icon: 'calendar' }, to: '/allocations/bookings?tab=Conflicts', when: 'today', action: 'Resolve', mine: false },
-  { id: 'n8', icon: 'import', title: 'Room import failed: hild-bede-flats.csv', sub: 'Hild Bede · 72 rooms · 2 rows need fixing', badge: { label: 'Failed', tone: 'red', icon: 'failed' }, to: '/inventory/imports', when: 'week', action: 'Fix', mine: false },
+  { id: 'n8', icon: 'import', title: 'Room import failed: hild-bede-flats.csv', sub: 'Hild Bede · 72 rooms · 2 rows need fixing', badge: { label: 'Failed', tone: 'red', icon: 'failed' }, to: '/properties/imports', when: 'week', action: 'Fix', mine: false },
   { id: 'n6', icon: 'landlord', title: 'Review 4 owner applications', sub: 'Off-campus · oldest waiting 6 days', badge: { label: 'Behind', tone: 'orange', icon: 'trend' }, to: '/offcampus/approvals?kind=owners', when: 'week', action: 'Review', mine: false },
 ];
 

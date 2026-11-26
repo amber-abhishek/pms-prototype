@@ -148,7 +148,7 @@ export const Status = ({ s, tone, icon }: { s: string; tone?: Tone; icon?: Icon 
 /** 52px header (2820:111): 16px grey-500 icon, 14px #737373 crumbs with 12px grey-400 chevrons; the current page is 14px regular ink, never bold. */
 /** Only a real parent page links (the list a record was opened from). Section names (Inventory, Allocations,
  *  Organisation…) are sidebar groups, not pages, so they stay plain text. */
-const CRUMB_TO: Record<string, string> = { Properties: '/inventory/properties' };
+const CRUMB_TO: Record<string, string> = { Properties: '/properties' };
 export type Crumb = string | { label: string; to?: string; onClick?: () => void; /** Never resolves through CRUMB_TO. */ plain?: boolean };
 /* Every page shows its trail in the header (2026-11-18): the module's name (Inventory, Residents…) as plain text, then
    any parent page as a link ("Residents › Amira Rahman", "Campuses › Durham City"), then the page's own name. */

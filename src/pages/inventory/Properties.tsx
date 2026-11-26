@@ -66,7 +66,7 @@ export function PropertiesPage() {
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (e.key === 'c' && !e.metaKey && !e.ctrlKey && !/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !document.querySelector('[role=dialog]')) nav('/inventory/properties/new');
+      if (e.key === 'c' && !e.metaKey && !e.ctrlKey && !/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !document.querySelector('[role=dialog]')) nav('/properties/new');
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
@@ -117,7 +117,7 @@ export function PropertiesPage() {
     <>
       <PageHeader icon={Buildings} title="All properties" crumbs={[{ label: 'Properties', plain: true }]}>
         {/* While empty, the empty state carries the create choices; the header doesn't repeat them. */}
-        {anyProps && <CreateButton onSingle={() => nav('/inventory/properties/new')} onBulk={() => setBulk(true)} onImport={() => setImport(true)} />}
+        {anyProps && <CreateButton onSingle={() => nav('/properties/new')} onBulk={() => setBulk(true)} onImport={() => setImport(true)} />}
       </PageHeader>
       {!anyProps ? (
         <div className="flex-1 flex items-center justify-center p-8">
@@ -126,7 +126,7 @@ export function PropertiesPage() {
             <div className="text-base leading-6 font-medium mt-5">No properties yet</div>
             <p className="text-sm text-[#737373] mt-1">Create one, or import from another PMS.</p>
             <div className="flex justify-center gap-2 mt-4">
-              <CreateButton onSingle={() => nav('/inventory/properties/new')} onBulk={() => setBulk(true)} onImport={() => setImport(true)} />
+              <CreateButton onSingle={() => nav('/properties/new')} onBulk={() => setBulk(true)} onImport={() => setImport(true)} />
               <Button icon={UploadSimple} onClick={() => setImport(true)}>Import from another PMS</Button>
             </div>
           </div>
@@ -142,7 +142,7 @@ export function PropertiesPage() {
               <MultiFilter label="Status" value={statusF} onChange={setStatusF} width={240} options={[{ value: 'Active', tone: 'green' }, { value: 'Draft', tone: 'amber' }, { value: 'Inactive', tone: 'grey' }, { value: 'Closed to allocations', tone: 'amber' }, { value: 'Archived', tone: 'red' }]} />
             </div>
           </div>
-          <Table rows={rows} cols={cols} onRow={(p) => nav(`/inventory/properties/${p.id}`)}
+          <Table rows={rows} cols={cols} onRow={(p) => nav(`/properties/${p.id}`)}
             empty={<Empty title="No properties match" sub="Try another location or clear the search." />}
             footer="always" summary={archivedShown ? `${rows.length} ${rows.length === 1 ? 'property' : 'properties'}` : rows.length === list.length ? `${list.length} ${list.length === 1 ? 'property' : 'properties'}` : `${rows.length} of ${list.length} properties`} />
         </>
@@ -305,7 +305,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
   if (stage === 'queued') {
     return (
       <Modal open={open} onClose={onClose} width={520} title="Import started" sub="It runs in the background and shows on Imports. We’ll email you the outcome."
-        footer={<><Button icon={null} onClick={() => { onClose(); nav('/inventory/imports'); }}>View imports</Button><Button variant="primary" icon={null} onClick={onClose}>Done</Button></>}>
+        footer={<><Button icon={null} onClick={() => { onClose(); nav('/properties/imports'); }}>View imports</Button><Button variant="primary" icon={null} onClick={onClose}>Done</Button></>}>
         <Illustration name="importSent" className="block w-[203px] h-[160px] mx-auto mb-2" />
         <SheetRow lead={<FileCsv size={20} className="shrink-0 text-[#737373]" />} title="st-marys-rooms.csv" sub={`144 rows · ${structure}`}
           end={<button type="button" aria-label="Cancel import" onClick={() => { useInv.getState().set('imports', (l) => l.filter((x) => x.name !== 'st-marys-rooms.csv')); onClose(); toast('Import cancelled'); }} className="text-[#737373] hover:text-ink"><X size={14} /></button>} />

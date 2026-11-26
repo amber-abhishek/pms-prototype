@@ -81,7 +81,7 @@ export function UnitsPage() {
     <>
       <PageHeader icon={ListDashes} title="Units" crumbs={[SECTION]} />
       <EmptyArea art="getStarted" icon={ListDashes} title="No units yet" sub="Rooms show here once a property is built or imported.">
-        <Button variant="primary" onClick={() => location.assign('#/inventory/properties')}>Create a property</Button>
+        <Button variant="primary" onClick={() => location.assign('#/properties')}>Create a property</Button>
       </EmptyArea>
     </>
   );

@@ -56,7 +56,7 @@ export function ImportsPage() {
   return (
     <>
       <PageHeader icon={FileArrowUp} title="Imports" crumbs={[{ label: 'Properties', plain: true }]}>
-        <Button variant="primary" icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
+        <Button variant="primary" icon={UploadSimple} onClick={() => nav('/properties?import=1')}>Import</Button>
       </PageHeader>
       <PageHeading />
       {/* Underline tabs on the bottom rule, as Approvals and Pricing (2026-11-24). */}
@@ -108,7 +108,7 @@ function ImportSheet({ j, nav, onClose }: { j: ImportJob; nav?: SheetNav; onClos
   const footer = j.status === 'Failed'
     ? <><Button icon={null} onClick={() => toast.success(`${j.name.replace(/\.csv$/, '')}-errors.csv downloaded`)}>Download errors</Button><Button variant="primary" icon={null} onClick={() => { useInv.getState().set('imports', (l) => l.map((x) => (x.id === j.id ? { ...x, status: 'Queued' as const, errors: undefined } : x))); toast.success(`${j.name} queued again`); }}>Retry</Button></>
     /* Done: open what it made. Running or queued: no footer; the file downloads from its row in Import. */
-    : j.status === 'Succeeded' ? <Button variant="primary" icon={null} onClick={() => go(j.name === 'st-marys-rooms.csv' ? '/inventory/properties/stm' : '/inventory/units')}>{j.name === 'st-marys-rooms.csv' ? 'Open St Mary’s College' : 'Open in Units'}</Button>
+    : j.status === 'Succeeded' ? <Button variant="primary" icon={null} onClick={() => go(j.name === 'st-marys-rooms.csv' ? '/properties/stm' : '/properties/units')}>{j.name === 'st-marys-rooms.csv' ? 'Open St Mary’s College' : 'Open in Units'}</Button>
       : undefined;
   return (
     <Sheet open onClose={onClose} title="Import" nav={nav} footer={footer}>

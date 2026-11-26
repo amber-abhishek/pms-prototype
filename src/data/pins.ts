@@ -65,7 +65,7 @@ export function useNavPath(pathname: string) {
 export const tabOf = (to: string) => new URLSearchParams(to.split('?')[1] ?? '').get('tab');
 export function isCurrent(to: string, current: string, all: string[]) {
   const tp = pathOf(to), p = pathOf(current);
-  /* A detail page under a row (/org/people/roles/x, /residents/r1, /inventory/properties/col) keeps that row selected:
+  /* A detail page under a row (/org/people/roles/x, /residents/r1, /properties/col) keeps that row selected:
      the deepest row whose path contains the page wins, unless a row matches the page exactly. */
   if (tp !== p) {
     if (tp === '/' || !p.startsWith(tp + '/') || all.some((t) => pathOf(t) === p)) return false;

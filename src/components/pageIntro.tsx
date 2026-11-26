@@ -11,13 +11,13 @@ export const INTRO_ON = true;
 /** centred: the page's content is a centred column (Settings 864px, Library 720px), so the heading sits over it. */
 type Intro = { text: string; sub?: boolean; centred?: boolean | 'narrow'; /** A hairline under the intro, when a band (a warning) follows rather than a toolbar or table. */ rule?: boolean };
 const INTROS: Record<string, Intro> = {
-  '/inventory/properties': { text: 'Every property you let, with its units, tags and how full it is for the coming year.', sub: true },
-  '/inventory/occupancy': { text: 'Who is in each room and which beds are still free.' },
-  '/inventory/structures': { text: 'Layouts set the levels a property is built from, such as building, floor, flat and room.' },
-  '/inventory/custom-fields': { text: 'Extra details you record on properties, units and rooms, beyond the standard ones.' },
-  '/inventory/tags': { text: 'Labels for grouping and filtering properties, like catered or self-catered.' },
-  '/inventory/rent-fees': { text: 'Rent and fee rules that differ from a property’s standard prices.' },
-  '/inventory/imports': { text: 'Bring properties and units in from a spreadsheet or another system, and see past imports.' },
+  '/properties': { text: 'Every property you let, with its units, tags and how full it is for the coming year.', sub: true },
+  '/properties/occupancy': { text: 'Who is in each room and which beds are still free.' },
+  '/properties/structures': { text: 'Layouts set the levels a property is built from, such as building, floor, flat and room.' },
+  '/properties/custom-fields': { text: 'Extra details you record on properties, units and rooms, beyond the standard ones.' },
+  '/properties/tags': { text: 'Labels for grouping and filtering properties, like catered or self-catered.' },
+  '/properties/rent-fees': { text: 'Rent and fee rules that differ from a property’s standard prices.' },
+  '/properties/imports': { text: 'Bring properties and units in from a spreadsheet or another system, and see past imports.' },
   '/allocations/applications': { text: 'Applications for the coming year, ready to review and allocate a room.', sub: true },
   '/allocations/offers': { text: 'Room offers you have sent, and the students waiting for one.', sub: true },
   '/allocations/bookings': { text: 'Confirmed bookings, with the room, term and contract for each resident.', sub: true },
@@ -45,12 +45,17 @@ const INTROS: Record<string, Intro> = {
   '/settings/emails': { text: 'How emails to residents look, and who they come from.', centred: true },
 };
 
+const NO_INTRO = new Set(['/properties/units']);
+
 function find(path: string, search: string): Intro | undefined {
   const p = path.replace(/\/+$/, '') || '/';
   /* A page whose views are ?tab= rows in the panel (Reports › Scheduled, Shared with me) can key a tab: '/path?tab=x'. */
   const tab = new URLSearchParams(search).get('tab');
   if (tab && INTROS[`${p}?tab=${tab}`]) return INTROS[`${p}?tab=${tab}`];
   if (INTROS[p]) return INTROS[p];
+  /* All properties is the section root (/properties), so its record routes (/properties/col) share the prefix with
+     sibling pages; Units has its own level heading and must not borrow the list intro. */
+  if (NO_INTRO.has(p)) return undefined;
   const base = Object.keys(INTROS).filter((k) => !k.includes('?') && p.startsWith(k + '/')).sort((a, b) => b.length - a.length)[0];
   return base ? INTROS[base] : undefined;
 }

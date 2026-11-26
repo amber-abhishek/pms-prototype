@@ -55,11 +55,11 @@ export function ImportsPage() {
   const cnt = (s: ImportJob['status']) => jobs.filter((j) => j.status === s).length;
   return (
     <>
-      <PageHeader icon={FileArrowUp} title="Imports" crumbs={['Properties']}>
+      <PageHeader icon={FileArrowUp} title="Imports" crumbs={[{ label: 'Properties', plain: true }]}>
         <Button variant="primary" icon={UploadSimple} onClick={() => nav('/inventory/properties?import=1')}>Import</Button>
       </PageHeader>
       <PageHeading />
-      {/* Underline tabs on the bottom rule, as Approvals and Custom pricing (2026-11-24). */}
+      {/* Underline tabs on the bottom rule, as Approvals and Pricing (2026-11-24). */}
       <StatusTabsBar value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: jobs.length }, { id: 'Running', label: 'Running', count: cnt('Running') }, { id: 'Queued', label: 'Queued', count: cnt('Queued') }, { id: 'Failed', label: 'Failed', count: cnt('Failed') }]} />
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 min-w-0 flex flex-col">

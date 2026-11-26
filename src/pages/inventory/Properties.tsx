@@ -115,7 +115,7 @@ export function PropertiesPage() {
 
   return (
     <>
-      <PageHeader icon={Buildings} title="All properties" crumbs={['Properties']}>
+      <PageHeader icon={Buildings} title="All properties" crumbs={[{ label: 'Properties', plain: true }]}>
         {/* While empty, the empty state carries the create choices; the header doesn't repeat them. */}
         {anyProps && <CreateButton onSingle={() => nav('/inventory/properties/new')} onBulk={() => setBulk(true)} onImport={() => setImport(true)} />}
       </PageHeader>

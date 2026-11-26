@@ -39,7 +39,7 @@ export function RentFeesPage() {
 
   return (
     <>
-      <PageHeader icon={CurrencyGbp} title="Custom pricing" crumbs={['Properties']}>
+      <PageHeader icon={CurrencyGbp} title="Pricing" crumbs={[{ label: 'Properties', plain: true }]}>
         {tab === 'templates' ? <Button variant="primary" icon={Plus} onClick={() => newTemplate()}>New template</Button> : (
           <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add fee</Button>
         )}

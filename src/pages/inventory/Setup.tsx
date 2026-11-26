@@ -22,7 +22,7 @@ export function StructuresPage() {
   const rows = structures.filter((s) => !needle || [s.name, ...s.levels.map((l) => l.name)].some((v) => v.toLowerCase().includes(needle)));
   return (
     <>
-      <PageHeader icon={TreeStructure} title="Property layouts" crumbs={['Properties']}>
+      <PageHeader icon={TreeStructure} title="Property layouts" crumbs={[{ label: 'Properties', plain: true }]}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
         {structures.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search layouts" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>New layout</Button>
@@ -288,7 +288,7 @@ export function CustomFieldsPage() {
   const rows = fields.filter((f) => !q || (f.name + f.key).toLowerCase().includes(q.toLowerCase()));
   return (
     <>
-      <PageHeader icon={Textbox} title="Custom fields" crumbs={['Properties']}>
+      <PageHeader icon={Textbox} title="Custom fields" crumbs={[{ label: 'Properties', plain: true }]}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
         {fields.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search fields" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New field</Button>
@@ -570,7 +570,7 @@ export function TagsPage() {
   const rows = tags.filter((t) => !q || t.label.toLowerCase().includes(q.toLowerCase()));
   return (
     <>
-      <PageHeader icon={Tag} title="Tags" crumbs={['Properties']}>
+      <PageHeader icon={Tag} title="Tags" crumbs={[{ label: 'Properties', plain: true }]}>
         {/* Search is the page's only control, so it sits in the header (no toolbar row). */}
         {tags.length > 0 && <div className="w-[240px] [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search tags" /></div>}
         <Button variant="primary" icon={Plus} onClick={() => setOpen('new')}>New tag</Button>

@@ -19,7 +19,7 @@ export const hallById = (id: string) => HALLS.find((h) => h.id === id);
 
 export type PermArea = { area: string; perms: { id: string; label: string; hint?: string }[] };
 export const PERMS: PermArea[] = [
-  { area: 'Properties', perms: [{ id: 'inv.view', label: 'View' }, { id: 'inv.edit', label: 'Edit' }, { id: 'inv.rent', label: 'Custom pricing' }] },
+  { area: 'Properties', perms: [{ id: 'inv.view', label: 'View' }, { id: 'inv.edit', label: 'Edit' }, { id: 'inv.rent', label: 'Pricing' }] },
   { area: 'Allocations', perms: [{ id: 'alloc.view', label: 'View' }, { id: 'alloc.offer', label: 'Make offers' }, { id: 'alloc.cancel', label: 'Cancel bookings' }] },
   { area: 'Residents', perms: [{ id: 'res.view', label: 'View' }, { id: 'res.checkin', label: 'Check in and out' }, { id: 'res.requests', label: 'Approve requests' }, { id: 'res.notices', label: 'Send notices' }] },
   { area: 'Maintenance', perms: [{ id: 'maint.view', label: 'View' }, { id: 'maint.log', label: 'Log faults' }, { id: 'maint.assign', label: 'Assign and close' }] },

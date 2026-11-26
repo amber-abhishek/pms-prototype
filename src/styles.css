@@ -275,3 +275,16 @@ body[data-accent="orange"] { --primary: 21 90% 48%; --primary-hover: 17 88% 40%;
   padding-bottom: 16px; border-bottom: 0;
   background: linear-gradient(to bottom, #F5F5F5 calc(100% - 17px), var(--tab-line) calc(100% - 17px), var(--tab-line) calc(100% - 16px), #FFFFFF calc(100% - 16px));
 }
+/* Skeleton shine: a bright band runs across each grey bar; Units staggers the bars by column so the shine
+   reads as one sweep from left to right across the table. */
+.skel {
+  background-color: #E8E8E8;
+  background-image: linear-gradient(90deg, transparent 20%, #FFFFFF 50%, transparent 80%);
+  background-size: 250% 100%; background-repeat: no-repeat;
+  animation: skel-shine 0.5s ease-in-out infinite;
+}
+@keyframes skel-shine { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; background-image: none; } }
+/* Units table pinned columns: once the table scrolls sideways (data-sx), the last pinned column (Unit) gets an edge. */
+[data-sx] td.pin-edge { box-shadow: 1px 0 0 #E5E5E5, 6px 0 8px -6px rgba(0,0,0,0.12); }
+[data-sx] th.pin-edge { box-shadow: inset 0 -1px 0 #E5E5E5, inset 0 1px 0 #E5E5E5, 1px 0 0 #E5E5E5, 6px 0 8px -6px rgba(0,0,0,0.12); }

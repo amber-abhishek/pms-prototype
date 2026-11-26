@@ -259,3 +259,10 @@ export const Dumbbell = wrap(L.Dumbbell);
 export const Sofa = wrap(L.Sofa);
 export const Utensils = wrap(L.Utensils);
 export const Hash = wrap(L.Hash);
+/* Table view controls (2026-11-26): Columns and Group by in the Units toolbar. */
+export const ColumnsIcon = wrap(L.Columns3);
+export const GroupRows = wrap(L.Rows3);
+export const TextT = wrap(L.Type);
+export const ToggleLeft = wrap(L.ToggleLeft);
+export const Maximize = wrap(L.Maximize2);
+export const Minimize = wrap(L.Minimize2);

@@ -1,10 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Archive, Buildings, Door, MagnifyingGlass, Plus, Stack, X, type Icon } from '../../components/icons';
 import { Confirm, Dropdown, Input, Sheet, SheetHero, SheetSection, Switch, cx, type SheetNav } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { choicesOf, invId, useInv, type Field, type Property } from '../../data/inventory';
-import { EditLink } from './common';
+import { EditActions, EditLink, FieldErr } from './common';
 
 /* Side panel for a level above the unit (Block, Floor, Flat), in the record-panel language (2026-11-19). Its job: fill in the
    custom fields attached to that level, and attach or create a field inline (the Add tag pattern). Values are prototype
@@ -42,17 +42,49 @@ export function useDraftValues(id: string) {
   return { draft: ready ? draft : id, changed, commit };
 }
 
+/** Details rows; the ones named in `edit` are edited in place: Edit swaps their values for inputs and the strip's
+ *  link for Cancel / Save (Enter saves, Escape cancels). No modal for a field or two (2026-11-26). */
+export type LevelDetails = {
+  rows: [string, string][];
+  edit: { fields: { label: string; options?: string[] }[]; validate: (v: Record<string, string>) => string; save: (v: Record<string, string>) => void };
+};
+export function DetailsCard({ rows, edit }: LevelDetails) {
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
+  const [tried, setTried] = useState(false);
+  const first = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (draft) first.current?.focus(); }, [!!draft]); // eslint-disable-line react-hooks/exhaustive-deps
+  const start = () => { setTried(false); setDraft(Object.fromEntries(rows.filter(([k]) => edit.fields.some((x) => x.label === k)))); };
+  const cancel = () => setDraft(null);
+  const err = draft ? edit.validate(draft) : '';
+  const save = () => { if (!draft) return; setTried(true); if (err) return; edit.save(draft); setDraft(null); };
+  const keys = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancel(); } };
+  const shown: [string, ReactNode][] = rows.map(([k, v]) => {
+    const fld = edit.fields.find((x) => x.label === k);
+    if (!draft || !fld) return [k, v];
+    const set = (nv: string) => setDraft((d) => ({ ...d, [k]: nv }));
+    const isFirst = edit.fields[0].label === k;
+    /* 28px fields that fit the 32px row (no taller row while editing); the box starts on the value column's edge. */
+    return [k, <div className="-my-1">{fld.options
+      ? <Dropdown ariaLabel={k} className="h-7 rounded-md" value={draft[k]} onChange={set} options={fld.options.map((o) => ({ value: o, label: o }))} />
+      : <Input ref={isFirst ? first : undefined} aria-label={k} className="h-7 rounded-md" value={draft[k]} onChange={(e) => set(e.target.value)} onKeyDown={keys} />}
+      {isFirst && tried && <FieldErr>{err}</FieldErr>}</div>];
+  });
+  return <SheetSection title="Details" action={draft ? <EditActions onCancel={cancel} onSave={save} /> : <EditLink onClick={start}>Edit</EditLink>} rows={shown} />;
+}
+
 const NEW_TYPES = ['Text', 'Number', 'Yes / no', 'Date'] as const;
 
 export function LevelSheet({ p, kind, label, id, name, meta, facts, onClose, nav, onArchive, details }: {
   p: Property; kind: LevelKind; /** The layout's own name for the level (House), when it isn't the kind. */ label?: string; id: string; name: string; meta: string; facts: [string, string][]; onClose: () => void; nav?: SheetNav; /** Archive in the control bar (it asks first). */ onArchive?: () => void;
-  /** A details card with Edit (name and the like), as the unit panel's Room card (2026-11-26). */ details?: { rows: [string, string][]; onEdit: () => void };
+  /** A details card whose Edit turns the editable rows into inputs in place (2026-11-26). */ details?: LevelDetails;
 }) {
   return (
     <Sheet open onClose={onClose} nav={nav} title={label ?? kind} width={520}
       onDelete={onArchive ? { label: `Archive ${name}`, text: 'Archive', icon: Archive, onClick: onArchive } : undefined}>
       <SheetHero icon={ICON[kind]} tone="grey" name={name} meta={meta} facts={facts} />
-      {details && <SheetSection title={label ?? kind} action={<EditLink onClick={details.onEdit}>Edit</EditLink>} rows={details.rows} />}
+      {/* The level's Details card, then its Custom fields card with Add field and × back (2026-11-26, asked for again):
+          a field can be attached to or taken off the level here as well as in Setup › Custom fields. */}
+      {details && <DetailsCard {...details} />}
       <LevelFields p={p} kind={kind} id={id} />
       <p className="mt-3 text-[13px] leading-5 text-[#737373]">Custom fields apply to every {levelName(p, kind).toLowerCase()} in {layoutOf(p)}; each one keeps its own value.</p>
     </Sheet>
@@ -61,7 +93,8 @@ export function LevelSheet({ p, kind, label, id, name, meta, facts, onClose, nav
 
 /** The custom fields on one record at a level (block, floor, flat or room): fill values, attach an existing field or create
  *  one inline, remove one from the level. Shared by the level panels and the unit panel (2026-11-20). */
-export function LevelFields({ p, kind, id, local, title, rows, onEdit }: { p: Property; kind: FieldLevel; id: string;
+export function LevelFields({ p, kind, id, local, title, rows, onEdit, fillOnly: fillOnlyProp }: { p: Property; kind: FieldLevel; id: string;
+  /** Values only: no Add field, no ×, and no card at all when the level has no fields. */ fillOnly?: boolean;
   /** For records being made (Add units): × only leaves the field out of this one, it doesn't come off the level. */ local?: boolean;
   /** The level's own card in the unit panel (2026-11-26): its details and Edit on top, its custom fields below, one card. */
   title?: string; rows?: [string, ReactNode][]; onEdit?: () => void }) {
@@ -85,25 +118,31 @@ export function LevelFields({ p, kind, id, local, title, rows, onEdit }: { p: Pr
     toast.success(`${fname} created on ${lv}s`);
   };
   const [removing, setRemoving] = useState<Field | null>(null);
+  const fillOnly = fillOnlyProp || !!rows;
   const detach = (f: Field) => {
     useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, attached: x.attached.filter((a) => a !== key) } : x)));
     toast.success(`${f.name} removed from ${lv}s`);
   };
+  if (fillOnlyProp && !fields.length) return null;
   return (
     <>
       <SheetSection title={title ?? 'Custom fields'} rows={rows}
-        action={<>{onEdit && <EditLink onClick={onEdit}>Edit</EditLink>}<FieldPicker have={fields} onAttach={(f) => (left.includes(f.id) ? setLeft((x) => x.filter((y) => y !== f.id)) : attach(f))} onCreate={create} /></>}>
-        {fields.length ? fields.map((f) => (
+        /* A level's own details card (rows given) carries Edit only; fields are added in Setup › Custom fields. */
+        action={<>{onEdit && <EditLink onClick={onEdit}>Edit</EditLink>}{!fillOnly && <FieldPicker have={fields} onAttach={(f) => (left.includes(f.id) ? setLeft((x) => x.filter((y) => y !== f.id)) : attach(f))} onCreate={create} />}</>}>
+        {/* In a level's details card, a mono caption under the rule says these rows are custom fields. */}
+        {rows && fields.length > 0 && <div className="pb-2 font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em] text-[#737373]">Custom fields</div>}
+        {fields.length ? <div>{fields.map((f) => (
           <div key={f.id} className="py-3 first:pt-0 last:pb-0 border-t border-[#EBEBEB] first:border-t-0 group/row grid grid-cols-[160px_minmax(0,1fr)] gap-3 items-center">
             <span className="min-w-0 flex items-center gap-1">
               <span className="min-w-0 truncate text-sm leading-5 text-[#737373]">{f.name}</span>
-              <button type="button" aria-label={local ? `Leave out ${f.name}` : `Remove ${f.name}`} title={local ? 'Leave out of these units' : undefined}
+              {/* A level's details card only fills values; removing a field from the level is Setup's job there. */}
+              {!fillOnly && <button type="button" aria-label={local ? `Leave out ${f.name}` : `Remove ${f.name}`} title={local ? 'Leave out of these units' : undefined}
                 onClick={() => { if (local) { setLeft((x) => [...x, f.id]); useInv.getState().set('fieldValues', (m) => { const { [f.id]: _, ...rest } = m[id] ?? {}; return { ...m, [id]: rest }; }); } else setRemoving(f); }}
-                className="shrink-0 size-6 rounded-md grid place-items-center text-[#A3A3A3] opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"><X size={14} /></button>
+                className="shrink-0 size-6 rounded-md grid place-items-center text-[#A3A3A3] opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"><X size={14} /></button>}
             </span>
             <FieldInput f={f} value={values[f.id] ?? ''} onChange={(v) => setValue(f.id, v)} />
           </div>
-        )) : title ? null : <p className="text-sm leading-5 text-[#737373]">No fields on {lv}s yet. Add one to record details here.</p>}
+        ))}</div> : title ? null : <p className="text-sm leading-5 text-[#737373]">No fields on {lv}s yet. Add one to record details here.</p>}
       </SheetSection>
       <Confirm open={!!removing} onClose={() => setRemoving(null)} danger title={`Remove ${removing?.name ?? ''}?`}
         sub={`It comes off every ${lv} in ${layoutOf(p)}. The field stays in Custom fields.`}
@@ -114,7 +153,7 @@ export function LevelFields({ p, kind, id, local, title, rows, onEdit }: { p: Pr
 
 /** Every value sits in the same 220px slot on the right, one row height (the input's), so toggles, pickers and boxes line up. */
 function FieldInput({ f, value, onChange }: { f: Field; value: string; onChange: (v: string) => void }) {
-  const slot = (c: ReactNode, end?: boolean) => <span className={cx('w-[220px] justify-self-end h-input flex items-center', end && 'justify-end')}>{c}</span>;
+  const slot = (c: ReactNode, end?: boolean) => <span className={cx('w-[160px] justify-self-end h-input flex items-center', end && 'justify-end')}>{c}</span>;
   if (f.type === 'Yes / no') return slot(<Switch checked={value === 'yes'} onChange={(b) => onChange(b ? 'yes' : 'no')} label={f.name} />, true);
   if (f.type.startsWith('Pick one')) {
     const opts = choicesOf(f);

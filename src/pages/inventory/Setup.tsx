@@ -29,7 +29,7 @@ export function StructuresPage() {
       </PageHeader>
       <PageHeading />
       {/* The levels rule lives in the page footer (2026-11-23): one line, blue title then the grey way out. */}
-      <Table rows={rows} empty={<Empty title="No layouts match" sub="Try a layout or level name." />} footer="always"
+      <Table rows={rows} columns={false} empty={<Empty title="No layouts match" sub="Try a layout or level name." />} footer="always"
             summary={<span className="flex items-center gap-2 min-w-0"><Info size={16} className="shrink-0 text-[#2563EB]" /><span className="font-medium text-[#2563EB] whitespace-nowrap">A layout in use can’t change its levels</span><span className="text-[#737373] truncate">(Make a new layout instead, or rename a level)</span></span>} onRow={setOpen} selected={open?.id}
             cols={[
               { key: 'n', label: 'Layout', render: (s) => (
@@ -64,18 +64,21 @@ function describe(s: Structure) {
   return b ? `Booked by ${b.name.toLowerCase()}` : `${s.levels.length} levels`;
 }
 
-/* Levels as a path of icon + name, all neutral. Bookable levels are ink, the levels above them grey. */
+/* Levels as a path of icon + name. Bookable levels are blue (the same tone as the panel's Bookable pill), the
+   levels above them grey. Tenancy is a record, not a place, so the table leaves it out;
+   the layout's panel still lists it. */
 function Levels({ s }: { s: Pick<Structure, 'levels'> }) {
+  const places = s.levels.filter((l) => l.name !== 'Tenancy');
   return (
     <span className="flex items-center gap-1">
-      {s.levels.map((l, i) => {
+      {places.map((l, i) => {
         const I = levelIcon(l.name);
         return (
           <span key={i} className="flex items-center gap-1 shrink-0">
             {i > 0 && <span aria-hidden className="w-1.5 h-px bg-[#D4D4D4]" />}
             <span title={l.bsu ? `${l.name} · bookable` : l.name}
-              className={cx('h-6 pl-1.5 pr-2 rounded-md flex items-center gap-1 text-[13px] whitespace-nowrap border', l.bsu ? 'border-[#E5E5E5] bg-white text-[#0A0A0A]' : 'border-transparent bg-[#F5F5F5] text-[#525252]')}>
-              <I size={14} className={l.bsu ? 'text-[#0A0A0A]' : 'text-[#737373]'} />{l.name}
+              className={cx('h-6 pl-1.5 pr-2 rounded-md flex items-center gap-1 text-[13px] whitespace-nowrap', l.bsu ? 'bg-[#2563EB]/10 text-[#1D4ED8] font-medium' : 'bg-[#F5F5F5] text-[#737373]')}>
+              <I size={14} className={l.bsu ? 'text-[#2563EB]' : 'text-[#A3A3A3]'} />{l.name}
             </span>
           </span>
         );

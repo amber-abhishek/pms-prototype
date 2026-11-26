@@ -869,7 +869,7 @@ function shieldClicks(ms = 350) {
 /** A SheetHero inside a Sheet switches the sheet to the record layout (control bar + hero) by calling this. */
 const RecordCtx = createContext<((on: boolean) => void) | null>(null);
 const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
-export function Sheet({ open, onClose, title, sub, children, footer, width = 520, nav, onDelete, more }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; width?: number; nav?: SheetNav;
+export function Sheet({ open, onClose, title, sub, children, footer, width = 520, nav, onDelete, more }: { open: boolean; onClose: () => void; title: ReactNode; sub?: ReactNode; icon?: Icon; children: ReactNode; footer?: ReactNode; /** px, or a CSS length such as '70vw' for wide record panels. */ width?: number | string; nav?: SheetNav;
   /** Record panels: a ⋯ menu (or other control) in the control bar, after the destructive button, for rare record-level actions. */ more?: ReactNode;
   /** Record panels: a destructive icon button in the control bar (rare action, so no footer). Label is its aria-label and
    *  tooltip, e.g. "Delete layout"; icon defaults to the bin (Archive for archiving). */ onDelete?: { label: string; onClick: () => void; icon?: Icon; /** Visible text; defaults to the full label ("Close enquiry", not "Close", beside the ✕). */ text?: string } }) {
@@ -1061,7 +1061,8 @@ export function SheetSection({ title, rows, action, children }: { title: string;
       <div className="px-4 py-3.5">
         {rows && <div className="-my-2.5"><DL rows={rows} /></div>}
         {/* Children that all render nothing ({false}, {null}) leave no empty block, so the bottom padding stays even. */}
-        {Children.toArray(children).length > 0 && <div className={rows ? 'mt-6' : undefined}>{children}</div>}
+        {/* Under the rows, more content (a level's custom fields) sits below a full-width rule. */}
+        {Children.toArray(children).length > 0 && <div className={rows ? '-mx-4 mt-3.5 px-4 pt-3.5 border-t border-[#EBEBEB]' : undefined}>{children}</div>}
       </div>
     </section>
   );

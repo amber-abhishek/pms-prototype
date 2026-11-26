@@ -1,7 +1,7 @@
 import { FooterZone } from '../../components/headerCtx';
-import { Fragment, useState, type ReactNode } from 'react';
-import { CaretRight, CaretUpDown, Check, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, MagnifyingGlass, WarningCircle, XCircle, Archive, Bed, Buildings, Door, DoorOpen, House, Key, Stack, type Icon } from '../../components/icons';
-import { Avatar, ConfirmFrame, Pill, Status, avatarFx, cx, isConfirmTitle, noAutoFocus, toneFg } from '../../components/ui';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
+import { SlidersHorizontal, CaretLeft, CaretRight, CaretUpDown, Check, Funnel, X, CheckCircle, RadioButton, Minus, MinusCircle, PauseCircle, PencilSimple, Plus, MagnifyingGlass, WarningCircle, XCircle, Archive, Bed, Buildings, Door, DoorOpen, House, Key, Stack, type Icon } from '../../components/icons';
+import { Avatar, Button, ConfirmFrame, IconTile as ToneTile, Pill, Status, avatarFx, cx, isConfirmTitle, noAutoFocus, toneFg } from '../../components/ui';
 import type { Tone } from '../../data/seed';
 import { Dialog, DialogBody, DialogCloseButton, DialogContent, DialogDescription, DialogFooter, DialogFrame, DialogTitle } from '../../components/shadcn/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/shadcn/dropdown-menu';
@@ -473,3 +473,223 @@ export function PropStack({ props, label }: { props: { id: string; name: string 
   );
 }
 
+
+
+/* Filter (2026-11-26), the Allocations queue's panel: active filters first, each with ×, then a "Filter by…" search and
+   every field in groups. A field opens its options (one choice, or several to tick) with Apply; Back returns. A 6px
+   blue dot on the button's icon marks applied filters (no count, no chip row).
+   Typed fields (2026-11-26, custom fields): a field with a `kind` picks an operator first, then its value; its value is
+   [op, ...args]. Choice: is / is not / is empty / is not empty; Number: is / more than / less than / is empty; Text:
+   contains / is / is empty; Yes / no: Yes / No / is empty. A field without a kind is the plain pick-from-list. */
+export type RuleKind = 'choice' | 'number' | 'text' | 'yesno';
+export type RuleField = { id: string; label: string; group: string; icon: Icon; /** Its icon tile's colour; by position when unset. */ tone?: Tone; options: { value: string; label?: string; meta?: number }[]; multi?: boolean; kind?: RuleKind;
+  /** Kept behind one row of this name (Custom fields ›) so the main list stays short; a search still finds it (2026-11-26). */ nest?: string };
+const RULE_TONES: Tone[] = ['blue', 'green', 'purple', 'amber', 'orange', 'red'];
+const RULE_OPS: Record<RuleKind, [string, string][]> = {
+  choice: [['is', 'is'], ['not', 'is not'], ['empty', 'is empty'], ['filled', 'is not empty']],
+  number: [['eq', 'is'], ['gt', 'more than'], ['lt', 'less than'], ['empty', 'is empty']],
+  text: [['has', 'contains'], ['eq', 'is'], ['empty', 'is empty']],
+  yesno: [['yes', 'is Yes'], ['no', 'is No'], ['empty', 'is empty']],
+};
+const NO_ARG = ['empty', 'filled', 'yes', 'no'];
+/** Does a record's value pass a typed rule? `v` is the record's raw value ('' or undefined when it has none). */
+export function ruleMatch(kind: RuleKind, rule: string[], v: string | number | undefined | null): boolean {
+  const [op, ...args] = rule;
+  const s = v == null ? '' : String(v).trim();
+  if (op === 'empty') return !s;
+  if (op === 'filled') return !!s;
+  if (kind === 'yesno') return s === op;
+  if (kind === 'choice') return op === 'not' ? !args.includes(s) : args.includes(s);
+  if (kind === 'number') { if (!s) return false; const n = +s, a = +args[0]; return op === 'gt' ? n > a : op === 'lt' ? n < a : n === a; }
+  const t = s.toLowerCase(), a = (args[0] ?? '').trim().toLowerCase();
+  return op === 'eq' ? t === a : t.includes(a);
+}
+export function RuleFilter({ fields, value, onChange, focus, compact }: {
+  fields: RuleField[]; value: Record<string, string[]>; onChange: (id: string, v: string[]) => void;
+  /** Icon only (32px square), for a toolbar squeezed by a side panel; the dot still marks applied filters. */ compact?: boolean;
+  /** Open the panel on one field's editor (a column header's "Filter"); `n` changes on every ask. */ focus?: { id: string; n: number } | null;
+}) {
+  const [open, setOpen] = useState(false);
+  /* Coloured icon tiles (2026-11-26), as the Pricing rows: each field keeps its own colour, set or by its place in the list. */
+  const toneOf = (f: RuleField): Tone => f.tone ?? RULE_TONES[Math.max(0, fields.indexOf(f)) % RULE_TONES.length];
+  const [edit, setEdit] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [sub, setSub] = useState<string | null>(null);
+  useEffect(() => { if (focus) { setOpen(true); setEdit(focus.id); } }, [focus?.n]); // eslint-disable-line react-hooks/exhaustive-deps
+  const active = fields.filter((f) => (value[f.id]?.length ?? 0) > 0);
+  const name = (f: RuleField, x: string) => f.options.find((o) => o.value === x)?.label ?? x;
+  const describe = (f: RuleField) => {
+    const vs = value[f.id] ?? [];
+    if (f.kind) {
+      const [op, ...args] = vs; const opL = RULE_OPS[f.kind].find(([k]) => k === op)?.[1] ?? op;
+      if (NO_ARG.includes(op)) return `${f.label} ${opL}`;
+      if (f.kind === 'text') return `${f.label} ${opL} “${args[0]}”`;
+      return `${f.label} ${opL} ${args.length > 2 ? `${name(f, args[0])} +${args.length - 1}` : args.map((x) => name(f, x)).join(', ')}`;
+    }
+    return `${f.label} is ${vs.length > 2 ? `${name(f, vs[0])} +${vs.length - 1}` : vs.map((x) => name(f, x)).join(', ')}`;
+  };
+  const field = fields.find((f) => f.id === edit);
+  /* The main list holds the plain fields and one row per nest; a nest's page (or any search) lists its fields by group. */
+  const ql = q.trim().toLowerCase();
+  const pool = fields.filter((f) => (sub ? f.nest === sub : ql ? true : !f.nest) && f.label.toLowerCase().includes(ql));
+  const groups = [...new Set(pool.map((f) => f.group))].map((g, i) => ({ g, i, items: pool.filter((f) => f.group === g) }));
+  const nests = sub || ql ? [] : [...new Set(fields.map((f) => f.nest).filter((x): x is string => !!x))];
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEdit(null); setQ(''); setSub(null); } }}>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label={compact ? 'Filter' : undefined} title={compact ? 'Filter' : undefined} className={cx(compact ? 'w-8 justify-center' : 'px-3', 'shrink-0 h-8 rounded-lg border border-[#E5E5E5] bg-white text-sm font-medium text-[#404040] flex items-center gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:bg-[#F5F5F5] data-[state=open]:bg-[#F5F5F5] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
+          <span className="relative flex">
+            <Funnel size={16} strokeWidth={1.75} />
+            {active.length > 0 && <span aria-hidden className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-[#2563EB] ring-2 ring-white" />}
+          </span>
+          {!compact && 'Filter'}{active.length > 0 && <span className="sr-only">, {active.length} applied</span>}
+        </button>
+      </PopoverTrigger>
+      {/* Focus moving elsewhere doesn't shut it (a column's menu opens it and hands focus back); a click outside still does. */}
+      <PopoverContent align="end" className="w-[300px] p-0 rounded-[10px] overflow-hidden" onFocusOutside={(e) => e.preventDefault()}>
+        {field ? <RuleEditor key={field.id} field={field} tone={toneOf(field)} cur={value[field.id] ?? []} fromActive={active.includes(field)} onBack={() => setEdit(null)}
+          onApply={(v) => { onChange(field.id, v); setEdit(null); setOpen(false); }} /> : (
+          <div className="max-h-[520px] overflow-auto pb-2">
+            {sub && (
+              <div className="h-11 px-3 flex items-center gap-2 border-b border-[#F5F5F5] text-sm">
+                <BackCrumb label="Filters" onClick={() => { setSub(null); setQ(''); }} />
+                <span className="font-medium truncate">{sub}</span>
+              </div>
+            )}
+            {/* The search is the panel's top row (2026-11-26): no box of its own, a rule under it, its icon in line with the
+                field icons below; it stays in view while the list scrolls. */}
+            <label className="sticky top-0 z-[1] h-11 px-4 flex items-center gap-2 bg-white border-b border-[#F5F5F5] text-sm">
+              <MagnifyingGlass size={16} className="shrink-0 text-gray-400" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={sub ? `Search ${sub.toLowerCase()}` : 'Filter by…'} className="flex-1 min-w-0 outline-none bg-transparent placeholder:text-gray-400" />
+              {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="size-5 shrink-0 rounded hover:bg-gray-100 flex items-center justify-center text-gray-400"><X size={12} /></button>}
+            </label>
+            {/* Active filters only while there are some. */}
+            {!sub && !q && active.length > 0 && <>
+              <div className="px-3 pt-3 pb-1 text-[11px] font-medium text-gray-400">Active filters</div>
+              {active.map((f) => (
+                <div key={f.id} className="mx-2 flex items-center gap-2 h-9 px-2 rounded-md hover:bg-[#F5F5F5]">
+                  <button type="button" className="flex-1 min-w-0 text-left text-sm text-ink truncate flex items-center gap-2" onClick={() => setEdit(f.id)}><ToneTile icon={f.icon} tone={toneOf(f)} size={24} /><span className="truncate">{describe(f)}</span></button>
+                  <button type="button" aria-label={`Remove ${f.label}`} onClick={() => onChange(f.id, [])} className="size-6 rounded hover:bg-gray-200 flex items-center justify-center text-gray-500"><X size={12} /></button>
+                </div>
+              ))}
+              <div className="border-t border-[#F5F5F5] mt-2" />
+            </>}
+            {groups.map(({ g, i, items }) => (
+              <div key={g} className={i === 0 ? 'mt-2' : 'mt-1'}>
+                <div className="px-3 py-1 text-[11px] font-medium text-gray-400">{g}</div>
+                {items.map((f) => (
+                  <button key={f.id} type="button" onClick={() => setEdit(f.id)} className="w-[calc(100%-16px)] mx-2 h-9 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2.5 text-sm text-ink">
+                    <ToneTile icon={f.icon} tone={toneOf(f)} size={24} /><span className="truncate">{f.label}</span>
+                    {active.includes(f) ? <Check size={14} className="ml-auto shrink-0 text-primary" /> : <CaretRight size={12} className="ml-auto shrink-0 text-gray-400" />}
+                  </button>
+                ))}
+              </div>
+            ))}
+            {nests.map((n) => {
+              const inN = fields.filter((f) => f.nest === n), on = inN.filter((f) => active.includes(f)).length;
+              return (
+                <div key={n} className="mt-2 pt-2 border-t border-[#F5F5F5]">
+                  <button type="button" onClick={() => setSub(n)} className="w-[calc(100%-16px)] mx-2 h-8 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2 text-sm text-ink">
+                    <SlidersHorizontal size={16} className="text-gray-500" /><span className="truncate">{n}</span>
+                    <span className="ml-auto font-mono text-xs text-gray-400 tabular-nums">{on ? `${on} on · ` : ''}{inN.length}</span>
+                    <CaretRight size={12} className="shrink-0 text-gray-400" />
+                  </button>
+                </div>
+              );
+            })}
+            {!pool.length && !nests.length && <div className="px-3 py-2 text-sm text-gray-400">No fields match</div>}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+/* Back in a filter panel (2026-11-26): a breadcrumb, "‹ Filters /", where it goes named instead of a bare arrow. */
+function BackCrumb({ label, onClick }: { label: string; onClick: () => void }) {
+  return <>
+    <button type="button" onClick={onClick} className="-ml-1 h-7 pl-1 pr-2 shrink-0 rounded-md flex items-center gap-0.5 text-sm text-[#737373] hover:bg-[#F5F5F5] hover:text-ink whitespace-nowrap"><CaretLeft size={14} />{label}</button>
+    <span aria-hidden className="shrink-0 text-[#D4D4D4]">/</span>
+  </>;
+}
+function RuleEditor({ field, tone, cur, fromActive, onBack, onApply }: { field: RuleField; /** The field's tile colour in the list, kept here. */ tone: Tone; cur: string[]; fromActive: boolean; onBack: () => void; onApply: (v: string[]) => void }) {
+  const kind = field.kind;
+  /* Typed: cur is [op, ...args]; plain: cur is the picked values. */
+  const [op, setOp] = useState(kind ? cur[0] ?? RULE_OPS[kind][0][0] : '');
+  const [vs, setVs] = useState<string[]>(kind ? cur.slice(1) : cur);
+  const [q, setQ] = useState('');
+  const opts = field.options.filter((o) => (o.label ?? o.value).toLowerCase().includes(q.trim().toLowerCase()));
+  const noArg = !!kind && NO_ARG.includes(op);
+  const multi = field.multi || kind === 'choice';
+  const ready = noArg || (kind === 'number' ? vs[0] != null && vs[0].trim() !== '' && !Number.isNaN(+vs[0]) : kind === 'text' ? !!vs[0]?.trim() : vs.length > 0);
+  const apply = () => { if (ready) onApply(kind ? [op, ...(noArg ? [] : vs)] : vs); };
+  const showList = !kind || (kind === 'choice' && !noArg);
+  return (
+    <div>
+      <div className="h-11 px-3 flex items-center gap-2 border-b border-[#F5F5F5] text-sm">
+        {/* One line: the trail never wraps; a long field name truncates instead. */}
+        <BackCrumb label={fromActive ? 'Active filters' : 'Filters'} onClick={onBack} />
+        <ToneTile icon={field.icon} tone={tone} size={24} /><span className="min-w-0 font-medium truncate" title={field.label}>{field.label}</span>
+      </div>
+      {kind === 'yesno' && (
+        /* Yes / no reads as a pick-one list (2026-11-26): Yes, No, or Empty, each a radio row, like a choice field's values. */
+        <div className="py-2">
+          {([['yes', 'Yes'], ['no', 'No'], ['empty', 'Empty']] as const).map(([k, l]) => (
+            <label key={k} className="mx-2 h-8 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2.5 text-sm cursor-pointer">
+              <input type="radio" name={field.id} checked={op === k} onChange={() => setOp(k)} className="size-4 rounded accent-primary" />
+              <span className={cx('flex-1', k === 'empty' && 'text-[#737373]')}>{l}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {kind && kind !== 'yesno' && (
+        /* Conditions as radio rows (2026-11-26), like Yes / no: the picked one that takes a value grows its box in the
+           row (a number or text). A choice field's values follow under a rule when the condition needs them. */
+        <div role="radiogroup" aria-label="Condition" className="py-2">
+          {RULE_OPS[kind].map(([k, l]) => {
+            const on = op === k, arg = !NO_ARG.includes(k) && (kind === 'number' || kind === 'text');
+            return (
+              <label key={k} className="mx-2 h-9 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2.5 text-sm cursor-pointer">
+                <input type="radio" name={`${field.id}-op`} checked={on} onChange={() => setOp(k)} className="size-4 shrink-0 rounded accent-primary" />
+                <span className={cx('whitespace-nowrap', k === 'empty' || k === 'filled' ? 'text-[#737373]' : 'text-ink')}>{l[0].toUpperCase() + l.slice(1)}</span>
+                {on && arg && (
+                  <input aria-label={`${l} value`} inputMode={kind === 'number' ? 'decimal' : undefined} value={vs[0] ?? ''} ref={(el) => el?.focus({ preventScroll: true })}
+                    onChange={(e) => setVs([e.target.value])} onKeyDown={(e) => e.key === 'Enter' && apply()} onClick={(e) => e.preventDefault()}
+                    placeholder={kind === 'number' ? '0' : 'Text'}
+                    className="ml-auto w-[120px] h-7 px-2 rounded-md border border-input bg-white text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25" />
+                )}
+              </label>
+            );
+          })}
+        </div>
+      )}
+      {kind === 'choice' && !noArg && <div className="border-t border-[#F5F5F5]" />}
+      {showList && (
+        <div className="py-2 max-h-[300px] overflow-auto">
+          {field.options.length > 8 && (
+            <label className="mx-3 mb-1 h-8 flex items-center gap-2 px-2 rounded-lg border border-line text-sm">
+              <MagnifyingGlass size={14} className="text-gray-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${field.label.toLowerCase()}`} className="flex-1 outline-none bg-transparent placeholder:text-gray-400" />
+            </label>
+          )}
+          {opts.map((o) => (
+            <label key={o.value} className="mx-2 h-8 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2.5 text-sm cursor-pointer">
+              {multi
+                ? <Checkbox checked={vs.includes(o.value)} onCheckedChange={(c) => setVs(c === true ? [...vs, o.value] : vs.filter((x) => x !== o.value))} />
+                : <input type="radio" name={field.id} checked={vs[0] === o.value} onChange={() => setVs([o.value])} className="size-4 rounded accent-primary" />}
+              <span className="flex-1">{o.label ?? o.value}</span>{o.meta != null && <span className="text-xs text-gray-400 tabular-nums">{o.meta}</span>}
+            </label>
+          ))}
+          {!opts.length && <div className="px-3 py-1.5 text-sm text-gray-400">No options</div>}
+        </div>
+      )}
+      <div className="h-12 px-3 flex items-center gap-2 border-t border-[#F5F5F5]">
+        <span className="text-xs text-gray-500">{kind === 'yesno' ? (op === 'empty' ? 'Empty' : op === 'yes' ? 'Yes' : 'No') : !showList ? '' : multi ? `${vs.length} selected` : vs.length ? name1(field, vs[0]) : 'Pick one'}</span>
+        {/* Clear (2026-11-26): takes the filter off when it's applied, else just empties the ticks; beside Apply. */}
+        <div className="ml-auto flex items-center gap-2">
+          {(cur.length > 0 || vs.length > 0) && <Button size="sm" variant="danger-ghost" icon={null} onClick={() => (cur.length ? onApply([]) : setVs([]))}>Clear</Button>}
+          <Button size="sm" variant="primary" disabled={!ready} onClick={apply}>Apply</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+const name1 = (f: RuleField, x: string) => f.options.find((o) => o.value === x)?.label ?? x;

@@ -22,8 +22,10 @@ import { Dialog as UIDialog, DialogCloseButton, DialogContent, DialogHeader, Dia
 type TabId = 'overview' | 'units' | 'tenancies' | 'photos' | 'activity';
 const shortName = (p: Property) => p.name.replace(/ College$/, '');
 
-export function PropertyDetail() {
-  const { id = '' } = useParams();
+/* Opened from Units (2026-11-26) it takes the id and a close of its own, and steps through nothing. */
+export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?: () => void } = {}) {
+  const params = useParams();
+  const id = idProp ?? params.id ?? '';
   const p = useInv((s) => s.properties.find((x) => x.id === id));
   const allTpl = useInv((s) => s.templates);
   const templates = useMemo(() => allTpl.filter((t) => t.propertyId === id), [allTpl, id]);
@@ -42,9 +44,10 @@ export function PropertyDetail() {
   const addTag = (t: Tag, created: boolean) => { if (!id) return; patchProp(id, (x) => ({ tags: [...x.tags, t], activity: logAct(x, `Tagged ${t.label}`) })); toast.success(created ? `${t.label} created and added` : `Tagged ${t.label}`); };
   const nav = useNavigate();
   const loc = useLocation();
+  const close = onClose ?? (() => nav('/inventory/properties'));
   /* ↑ ↓ (and the keys) step through the Properties list as it is shown; straight from a link, through every unarchived property. */
   const allIds = useInv((s) => s.properties).filter((x) => x.status !== 'Archived').map((x) => x.id);
-  const stepper = listNav(shownOrder.ids.length ? shownOrder.ids : allIds, (x) => x === id, (x) => nav(`/inventory/properties/${x}${loc.search}`));
+  const stepper = onClose ? undefined : listNav(shownOrder.ids.length ? shownOrder.ids : allIds, (x) => x === id, (x) => nav(`/inventory/properties/${x}${loc.search}`));
   const [tab, setTab] = useTab<TabId>('overview');
   const [checks, setChecks] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -104,7 +107,7 @@ export function PropertyDetail() {
     const was = p.status;
     patchProp(p.id, (x) => ({ status: 'Archived', archivedFrom: x.status, activity: logAct(x, `Archived ${x.name}`) }));
     setArchiveAsk(false);
-    nav('/inventory/properties');
+    close();
     toast.success(`${p.name} archived`, { action: { label: 'Undo', onClick: () => patchProp(p.id, () => ({ status: was })) } });
   };
   const setupRows = [
@@ -153,7 +156,7 @@ export function PropertyDetail() {
     <>
       {/* Record panel (2026-11-19): read-only. Archive sits in the control bar; edits open centred modals from the
           section Edit links; the footer only carries a draft's Make active. Open in Inventory lives on the Units tab. */}
-      <Sheet open onClose={() => nav('/inventory/properties')} title="Property" width={576} nav={stepper}
+      <Sheet open onClose={close} title="Property" width={576} nav={stepper}
         onDelete={{ label: 'Archive property', icon: Archive, onClick: () => setArchiveAsk(true) }}
         footer={p.status === 'Draft' ? <Button variant="primary" icon={null} onClick={activate}>Make active</Button> : undefined}>
         {/* Status is the record's state, so it sits on the name line (2026-11-23); the tag row below holds only tags and Add tag. */}
@@ -266,7 +269,7 @@ export function PropertyDetail() {
   return (
     <>
       {/* A centred modal over the Properties list, like Add property: the Connect header band (record type, actions, ✕), then the property. */}
-      <UIDialog open onOpenChange={(o) => { if (!o) nav('/inventory/properties'); }}>
+      <UIDialog open onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent aria-describedby={undefined} onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement | null)?.focus(); }} className="max-w-[1120px] h-[min(880px,calc(100vh-32px))] max-h-none [--gx:28px] [--cx:20px]">
       <DialogHeader className="py-3 px-6">
         <SheetNavButtons nav={stepper} />
@@ -274,7 +277,7 @@ export function PropertyDetail() {
         <Menu width={200} trigger={(o) => <button type="button" onClick={o} aria-label="More" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><DotsThree size={16} /></button>} items={[
           { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
           { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
-          { label: 'Custom pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
+          { label: 'Pricing', icon: CurrencyGbp, onClick: () => nav('/inventory/rent-fees') },
           { label: 'Change letting period', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
           'sep',
           { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
@@ -393,7 +396,7 @@ export function PropertyDetail() {
               </table>}
             </Card>
             <Card className="overflow-hidden">
-              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Custom pricing</button></div>
+              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/inventory/rent-fees')} className="ml-auto text-sm text-primary">Pricing</button></div>
               {templates.length ? templates.map((t) => (
                 <div key={t.id} className="h-12 px-4 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0 text-sm">
                   <span className="text-sm font-medium w-44">{t.name}</span><span className="text-[#737373] flex-1">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.billing}</span>

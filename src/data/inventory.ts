@@ -29,7 +29,7 @@ export type Template = {
 export type FeeType = { id: string; name: string; calc: 'Flat' | 'Percentage' | 'Per unit'; mandatory: boolean; refundable: boolean };
 export type Fee = { id: string; typeId: string; amount: string; appliesTo: string | null; chargedOn: 'Each tenancy' | 'Each room' | 'The property' };
 export type ImportJob = { id: string; name: string; kind: 'Spreadsheet' | 'Bulk create' | 'New property'; status: 'Running' | 'Queued' | 'Succeeded' | 'Failed'; done: number; total: number; errors?: number; by: string; started: string; structure: string; creates: string };
-export type Unit = { id: string; code: string; type: string; weeks: number | null; rent: number | null; status: UStatus; template: string | null; size: number; note?: string; accessible?: boolean; /** Made in Units › Add unit; kept whole in unitEdits. */ added?: boolean };
+export type Unit = { id: string; code: string; type: string; weeks: number | null; rent: number | null; status: UStatus; template: string | null; size: number; note?: string; accessible?: boolean; /** Made in Units › Add unit; kept whole in unitEdits. */ added?: boolean; /** Moved to another flat (Units › Location › Edit); this id is left behind and the unit lives on under the new one. */ movedTo?: string };
 export type Flat = { id: string; name: string; units: Unit[] };
 export type ArchivedRow = { id: string; name: string; type: string; flat?: boolean; units?: number; who: string; when: string; parent?: string };
 export type Structure = { id: string; name: string; levels: { name: string; bsu: boolean }[]; properties: number; updated: string };
@@ -205,7 +205,7 @@ export function flatsOf(p: Property, bi: number, floor: number, edits: Record<st
     const [, , fl, fn] = f.id.split('|');
     const pre = `${p.id}:${bi}:${fl}.${fn}.`;
     const added = Object.entries(edits).filter(([k, v]) => v.added && k.startsWith(pre) && !f.units.some((x) => x.id === k)).map(([, v]) => v as Unit);
-    return { ...f, name: edits[`flat|${f.id}`]?.code ?? f.name, units: [...f.units.map((x) => ({ ...x, ...edits[x.id] })), ...added] };
+    return { ...f, name: edits[`flat|${f.id}`]?.code ?? f.name, units: [...f.units.map((x) => ({ ...x, ...edits[x.id] })), ...added].filter((x) => !x.movedTo) };
   });
 }
 export const floorRooms = (b: Block) => Math.round(b.rooms / b.floors);

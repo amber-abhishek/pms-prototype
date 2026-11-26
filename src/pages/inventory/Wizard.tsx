@@ -348,7 +348,7 @@ export function AddPropertyWizard() {
                     </div>
                     <Err>{dateErr}</Err>
                   </SheetSection>
-                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/inventory/rent-fees?tab=fees')}>Custom pricing</EditLink>}>
+                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/inventory/rent-fees?tab=fees')}>Pricing</EditLink>}>
                     <SheetRow title="Organisation-wide fees apply" sub="Contents insurance · £45 per tenancy" />
                   </SheetSection>
                 </>

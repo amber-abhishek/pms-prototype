@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '../../components/shadcn/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { invId, useInv, type PStatus, type Tag, type UStatus } from '../../data/inventory';
 import { photoOf } from './photos';
+import { Checkbox } from '../../components/shadcn/checkbox';
 
 /* Status pills as the CMS frames draw them: Draft is a white outlined chip. */
 export function PropStatus({ s }: { s: PStatus | UStatus | 'Running' | 'Queued' | 'Succeeded' | 'Failed' }) {
@@ -323,6 +324,39 @@ export function Picker<T extends string>({ value, onChange, options, icon: I, pl
         {footer && <div className="border-t border-line mt-1 pt-1">{footer}</div>}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/* Picker's look with several choices (2026-11-26, Units' Property): ticks apply straight away; the top row clears them.
+   The trigger names one pick, or how many; it is as wide as the longest name. */
+export function MultiPicker({ value, onChange, options, icon: I, all, noun, className }: { value: string[]; onChange: (v: string[]) => void; options: { id: string; label: string }[]; icon?: Icon; all: string; noun: [string, string]; className?: string }) {
+  const picked = options.filter((o) => value.includes(o.id));
+  const text = !picked.length ? all : picked.length === 1 ? picked[0].label : `${picked.length} ${noun[1]}`;
+  const toggle = (id: string) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  const row = 'w-full flex items-center gap-2.5 px-2.5 h-8 rounded-md text-sm text-left text-[#0A0A0A] hover:bg-gray-50 outline-none focus-visible:bg-gray-50';
+  return (
+    <Popover>
+      <PopoverTrigger className={cx('w-full h-8 rounded-lg border border-gray-300 bg-white px-2.5 text-sm flex items-center gap-2 text-left outline-none data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25', className)}
+        aria-label={`${noun[0][0].toUpperCase()}${noun[0].slice(1)}: ${text}`}>
+        {I && <I size={14} className="text-gray-500" />}
+        {/* Every label stacked unseen in one grid cell, so the trigger is as wide as the longest and never truncates or jumps. */}
+        <span className="flex-1 min-w-0 grid">
+          {[all, ...options.map((o) => o.label)].map((l) => <span key={l} aria-hidden className="col-start-1 row-start-1 invisible whitespace-nowrap">{l}</span>)}
+          <span className="col-start-1 row-start-1 truncate">{text}</span>
+        </span>
+        <CaretUpDown size={14} className="text-gray-400" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-1 max-h-72 overflow-y-auto">
+        <button type="button" onClick={() => onChange([])} className={row}><span className="flex-1">{all}</span>{!value.length && <Check size={13} className="text-primary" />}</button>
+        <div className="h-px bg-[#E5E5E5] my-1" />
+        {options.map((o) => (
+          <label key={o.id} className={cx(row, 'cursor-pointer')}>
+            <Checkbox checked={value.includes(o.id)} onCheckedChange={() => toggle(o.id)} />
+            <span className="flex-1 truncate">{o.label}</span>
+          </label>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 

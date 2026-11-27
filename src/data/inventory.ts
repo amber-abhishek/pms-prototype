@@ -8,12 +8,15 @@ export type PStatus = 'Active' | 'Inactive' | 'Draft' | 'Closed to allocations' 
 export type UStatus = 'Active' | 'Draft' | 'Inactive' | 'Archived';
 export type Tag = { label: string; tone: Tone };
 export type Block = { name: string; floors: number; flats: number; rooms: number; roomType: string; size?: number };
-export type RoomType = { name: string; rooms: number; rent: number | null; next?: { rent: number; from: string } };
+export type RoomType = { name: string; rooms: number; rent: number | null; /** Contract length; unset = the undergraduate 39 weeks. */ weeks?: number; next?: { rent: number; from: string } };
 export type ActivityRow = { who: string; what: string; when: string };
 export type Counts = { all: number; active: number; draft: number; inactive: number; archived: number };
+/** A property's own word for its block level, "Block" unless it says otherwise. */
+export const blockWord = (p: { blockWord?: string }) => p.blockWord ?? 'Block';
 export type Property = {
   id: string; name: string; campus: string; structure: 'Building' | 'House'; /** The Property layouts entry it was built from (seeds name theirs, 2026-11-25). */ layout?: string; tags: Tag[]; units: number; status: PStatus;
   address: string; zone: string; invNo: string; letting: 'Weekly' | 'Monthly';
+  /** What this property calls its blocks (2026-11-27): Collingwood has wings. Defaults to Block. */ blockWord?: string;
   blocks: Block[]; build: { done: number; total: number } | null;
   photos: number; description: string; amenities: string[]; wardenPhone: string;
   /** The photos in their saved order, as indexes into the stock set (photoOf); unset = 0…photos-1. The first is the cover. */ photoOrder?: number[];
@@ -42,6 +45,9 @@ export const choicesOf = (f: Field): string[] => f.choices ?? (f.type.startsWith
 /** "Pick one · 3 options", counted from the choices. */
 export const pickOneType = (n: number) => `Pick one · ${n} ${n === 1 ? 'option' : 'options'}`;
 
+/** Room types offered across the seed (Durham's own categories, 2026/27), for the Room type pickers. */
+export const ROOM_TYPES = ['Standard single', 'Shared ensuite', 'Ensuite single', 'Ensuite plus', 'Twin ensuite', 'Townhouse room', 'Studio', 'One-bed flat', 'Accessible ensuite'];
+
 /* ---------------- Seed ---------------- */
 const T = (label: string, tone: Tone): Tag => ({ label, tone });
 const counts = (n: number, s: PStatus): Counts => ({ all: n, active: s === 'Active' ? n : 0, draft: s === 'Draft' ? n : 0, inactive: s === 'Inactive' ? n : 0, archived: 0 });
@@ -67,26 +73,99 @@ const fitFlats = (p: Property): Property => p.structure === 'House' ? p
   : { ...p, blocks: p.blocks.map((b) => ({ ...b, flats: Math.max(b.flats, Math.ceil(b.rooms / (b.floors * FLAT_MAX))) })) };
 
 export function makeInventorySeed() {
+  /* Real Durham University college accommodation, 2026/27 (researched 27 Nov 2026 from dur.ac.uk; sources below).
+     SOURCED: names, sites, addresses, catering, total rooms, room types and weekly rents (annual residence charge ÷
+     contract weeks, room only; catered colleges charge £107.11/wk for food on top). ESTIMATED: how rooms split across
+     buildings and floors, and some building names, which Durham doesn't publish (marked est.). Flats still hold at most
+     4 rooms here (FLAT_MAX), though real Durham flats hold 5–8.
+     Sources: dur.ac.uk › colleges-and-student-experience › accommodation-and-catering › residence-charges (UG + PG);
+     each college's accommodation page; AccessAble and Wikipedia for wing / building names. */
   const properties: Property[] = [
     prop({
-      id: 'col', name: 'Collingwood College', campus: 'Durham City', tags: [T('Catered', 'orange'), T('Hillside', 'purple'), T('Short stay', 'blue'), T('Sports', 'amber')], units: 412, status: 'Active',
-      address: 'South Road, Durham DH1 3LT', zone: 'Hill', invNo: 'COL-001', photos: 18, wardenPhone: '0191 334 5010',
-      blocks: [{ name: 'Block A', floors: 4, flats: 4, rooms: 128, roomType: 'Ensuite single', size: 13 }, { name: 'Block B', floors: 4, flats: 4, rooms: 144, roomType: 'Standard single', size: 11 }, { name: 'Block C', floors: 4, flats: 4, rooms: 140, roomType: 'Standard single', size: 11 }],
-      roomTypes: [{ name: 'Standard single', rooms: 186, rent: 182 }, { name: 'Ensuite single', rooms: 140, rent: 204 }, { name: 'Ensuite double', rooms: 52, rent: 214 }, { name: 'Studio', rooms: 34, rent: 246 }],
-      counts: { all: 412, active: 398, draft: 6, inactive: 5, archived: 3 },
+      id: 'col', blockWord: 'Wing', name: 'Collingwood College', campus: 'Durham City', tags: [T('Catered', 'orange'), T('The Hill', 'purple'), T('Arts centre', 'blue')], units: 555, status: 'Active',
+      address: 'South Road, Durham DH1 3LT', zone: 'The Hill', invNo: 'COL-001', photos: 18, wardenPhone: '0191 334 5000',
+      /* 555 live in; 194 en-suite + 16 twin en-suite rooms in the 1992 wings; the rest standard corridors of ~10 sharing.
+         Wing names from AccessAble / Wikipedia; per-wing rooms and floors est. */
+      blocks: [
+        { name: 'Cumbria Wing', floors: 4, flats: 4, rooms: 104, roomType: 'Ensuite single', size: 12 },
+        { name: 'Corbridge Wing', floors: 4, flats: 4, rooms: 90, roomType: 'Ensuite single', size: 12 },
+        { name: 'Alnwick Wing', floors: 2, flats: 2, rooms: 16, roomType: 'Twin ensuite', size: 16 },
+        { name: 'Durham Wing', floors: 3, flats: 4, rooms: 175, roomType: 'Standard single', size: 10 },
+        { name: 'Northumbria Wing', floors: 3, flats: 4, rooms: 170, roomType: 'Standard single', size: 10 },
+      ],
+      roomTypes: [{ name: 'Standard single', rooms: 345, rent: 185.06 }, { name: 'Ensuite single', rooms: 194, rent: 217.26 }, { name: 'Twin ensuite', rooms: 16, rent: 200.16 }],
+      counts: { all: 555, active: 541, draft: 6, inactive: 5, archived: 3 },
     }),
-    prop({ id: 'jb', name: 'Josephine Butler', campus: 'Durham City', tags: [T('Self-catered', 'green'), T('Long stay', 'blue')], units: 386, status: 'Active', address: 'South Road, Durham DH1 3DF', zone: 'Hill', invNo: 'JB-001' }),
-    prop({ id: 'ust', name: 'Ustinov College', campus: 'Durham City', tags: [T('Long stay', 'blue'), T('Self-catered', 'green'), T('Accessible', 'purple')], units: 540, status: 'Active', address: 'Howlands Farm, Durham DH1 3DZ', zone: 'Howlands', invNo: 'UST-001' }),
-    prop({ id: 'ste', name: 'Stephenson College', campus: 'Queen’s Campus', tags: [T('Catered', 'orange'), T('Shared lounge', 'red')], units: 610, status: 'Active', address: 'University Boulevard, Stockton TS17 6BH', zone: 'Stockton', invNo: 'STE-001' }),
-    prop({ id: 'hb', layout: 'Rooms only', name: 'Hild Bede', campus: 'Durham City', tags: [T('Catered', 'orange'), T('Riverside', 'green'), T('Chapel', 'grey')], units: 298, status: 'Active', address: 'Leazes Road, Durham DH1 1SZ', zone: 'Elvet', invNo: 'HB-001' }),
-    prop({ id: 'js', layout: 'Studio block', blocks: blocks3(455, 'Studio'), name: 'John Snow College', campus: 'Queen’s Campus', tags: [T('Self-catered', 'green')], units: 455, status: 'Active', address: 'Ebsworth Building, Stockton TS17 6BH', zone: 'Stockton', invNo: 'JS-001' }),
-    prop({ id: 'erh', layout: 'Shared houses', name: 'Elvet Riverside Houses', campus: 'Durham City', structure: 'House', tags: [], units: 48, status: 'Inactive', address: 'New Elvet, Durham DH1 3JT', zone: 'Elvet', invNo: 'ERH-001', blocks: [{ name: 'Houses', floors: 1, flats: 8, rooms: 48, roomType: 'Standard single', size: 10 }] }),
+    /* 546 live in; ~500 en-suite rooms in flats of 6; a few postgraduate studios. Block names from Wikipedia (unverified); split est. */
+    prop({
+      id: 'jb', name: 'Josephine Butler College', campus: 'Durham City', tags: [T('Self-catered', 'green'), T('Howlands Farm', 'blue')], units: 546, status: 'Active', address: 'South Road, Durham DH1 3DF', zone: 'Howlands Farm', invNo: 'JB-001',
+      blocks: [
+        { name: 'Kirknewton', floors: 4, flats: 4, rooms: 133, roomType: 'Ensuite single', size: 12 },
+        { name: 'Dilston', floors: 4, flats: 4, rooms: 133, roomType: 'Ensuite single', size: 12 },
+        { name: 'Milfield', floors: 4, flats: 4, rooms: 132, roomType: 'Ensuite single', size: 12 },
+        { name: 'Wooler', floors: 4, flats: 4, rooms: 132, roomType: 'Ensuite single', size: 12 },
+        { name: 'Elm', floors: 2, flats: 2, rooms: 16, roomType: 'Studio', size: 20 },
+      ],
+      roomTypes: [{ name: 'Ensuite single', rooms: 530, rent: 217.26 }, { name: 'Studio', rooms: 16, rent: 242.35, weeks: 50 }],
+    }),
+    /* Postgraduate only, 50-week contracts. ~400 rooms at Sheraton Park + 70 family flats at Keenan House (Dryburn Court). Split est. */
+    prop({
+      id: 'ust', name: 'Ustinov College', campus: 'Durham City', tags: [T('Postgraduate', 'purple'), T('Self-catered', 'green'), T('Family flats', 'blue')], units: 470, status: 'Active', address: 'Sheraton Park, Neville’s Cross, Durham DH1 4FL', zone: 'Sheraton Park', invNo: 'UST-001',
+      blocks: [
+        { name: 'Sheraton House', floors: 4, flats: 4, rooms: 160, roomType: 'Ensuite plus', size: 14 },
+        { name: 'Neville House', floors: 4, flats: 4, rooms: 240, roomType: 'Ensuite single', size: 12 },
+        { name: 'Keenan House', floors: 3, flats: 6, rooms: 70, roomType: 'One-bed flat', size: 32 },
+      ],
+      roomTypes: [{ name: 'Ensuite single', rooms: 240, rent: 202.44, weeks: 50 }, { name: 'Ensuite plus', rooms: 160, rent: 210.99, weeks: 50 }, { name: 'One-bed flat', rooms: 70, rent: 242.35, weeks: 50 }],
+    }),
+    /* Moved from Stockton to Howlands Farm 2017–19. 433 bedrooms: en-suite, paired shared en-suite and standard. Only
+       "Bellamy" is a known block name; the others and the split est. */
+    prop({
+      id: 'ste', name: 'Stephenson College', campus: 'Durham City', tags: [T('Self-catered', 'green'), T('Howlands Farm', 'blue')], units: 433, status: 'Active', address: 'Howlands Farm, South Road, Durham DH1 3DE', zone: 'Howlands Farm', invNo: 'STE-001',
+      blocks: [
+        { name: 'Bellamy', floors: 4, flats: 4, rooms: 200, roomType: 'Ensuite single', size: 12 },
+        { name: 'Block 2', floors: 4, flats: 4, rooms: 120, roomType: 'Shared ensuite', size: 11 },
+        { name: 'Block 3', floors: 4, flats: 4, rooms: 113, roomType: 'Standard single', size: 10 },
+      ],
+      roomTypes: [{ name: 'Ensuite single', rooms: 200, rent: 217.26 }, { name: 'Shared ensuite', rooms: 120, rent: 208.71 }, { name: 'Standard single', rooms: 113, rent: 185.06 }],
+    }),
+    /* Moved to Rushford Court (the 1853 County Hospital, run with Unite Students) in 2024. 358 bedrooms = 281 en-suite +
+       77 studios. Harding Building is real; the en-suite block names and split est. */
+    prop({
+      id: 'hb', layout: 'Rooms only', name: 'College of St Hild and St Bede', campus: 'Durham City', tags: [T('Self-catered', 'green'), T('Historic building', 'grey')], units: 358, status: 'Active', address: 'Rushford Court, North Road, Durham DH1 4RY', zone: 'Viaduct', invNo: 'HB-001',
+      blocks: [
+        { name: 'Harding Building', floors: 4, flats: 4, rooms: 77, roomType: 'Studio', size: 20 },
+        { name: 'North Block', floors: 5, flats: 4, rooms: 141, roomType: 'Ensuite plus', size: 13 },
+        { name: 'South Block', floors: 5, flats: 4, rooms: 140, roomType: 'Ensuite plus', size: 13 },
+      ],
+      roomTypes: [{ name: 'Ensuite plus', rooms: 281, rent: 225.82 }, { name: 'Studio', rooms: 77, rent: 249.77 }],
+    }),
+    /* Mount Oswald since 2020. 492 rooms in 6 blocks: 348 en-suite in flats + 144 townhouse rooms (12 townhouses × 12
+       over 4 floors, bathrooms shared by 2). Broadwick Street names from AccessAble; flat block names est. */
+    prop({
+      id: 'js', name: 'John Snow College', campus: 'Durham City', tags: [T('Self-catered', 'green'), T('Mount Oswald', 'blue')], units: 492, status: 'Active', address: 'The Approach, Mount Oswald, Durham DH1 3FR', zone: 'Mount Oswald', invNo: 'JS-001',
+      blocks: [
+        { name: 'Block 1', floors: 4, flats: 6, rooms: 87, roomType: 'Ensuite plus', size: 13 },
+        { name: 'Block 2', floors: 4, flats: 6, rooms: 87, roomType: 'Ensuite plus', size: 13 },
+        { name: 'Block 3', floors: 4, flats: 6, rooms: 87, roomType: 'Ensuite plus', size: 13 },
+        { name: 'Block 4', floors: 4, flats: 6, rooms: 87, roomType: 'Ensuite plus', size: 13 },
+        { name: '1–7 Broadwick Street', floors: 4, flats: 7, rooms: 84, roomType: 'Townhouse room', size: 11 },
+        { name: '8–12 Broadwick Street', floors: 4, flats: 5, rooms: 60, roomType: 'Townhouse room', size: 11 },
+      ],
+      roomTypes: [{ name: 'Ensuite plus', rooms: 348, rent: 225.82 }, { name: 'Townhouse room', rooms: 144, rent: 207.57 }],
+    }),
+    /* South College's townhouses at Mount Oswald: 12 students each, a bathroom per 2 rooms. Gillard (5) + Shipley (6)
+       townhouses per AccessAble = 132 rooms (est.). Kept Inactive for the prototype's Inactive tab. */
+    prop({ id: 'erh', layout: 'Shared houses', name: 'South College Townhouses', campus: 'Durham City', structure: 'House', tags: [T('Self-catered', 'green'), T('Mount Oswald', 'blue')], units: 132, status: 'Inactive', address: 'The Drive, Durham DH1 3LD', zone: 'Mount Oswald', invNo: 'SCT-001',
+      blocks: [{ name: 'Houses', floors: 1, flats: 11, rooms: 132, roomType: 'Townhouse room', size: 11 }],
+      roomTypes: [{ name: 'Townhouse room', rooms: 132, rent: 207.57 }] }),
   ].map(fitFlats);
+  /* Collingwood's 2026/27 contracts: new undergraduates 39 weeks, 26 Sep 2026 – 26 Jun 2027; a 34-week en-suite option. */
   const templates: Template[] = [
-    { id: 'tp1', propertyId: 'col', name: 'Ensuite single', weeks: 51, rent: 212, deposit: 250, billing: 'Weekly', from: '19 Sep 2027', to: '8 Sep 2028', linked: 96, own: 2, ownNote: '2.3.C £205 · 4.2.B £205', status: 'Active' },
-    { id: 'tp2', propertyId: 'col', name: 'Standard single', weeks: 44, rent: 168, deposit: 250, billing: 'Weekly', from: '19 Sep 2027', to: '24 Jul 2028', linked: 128, own: 1, ownNote: '1.4.D £160', status: 'Active' },
-    { id: 'tp3', propertyId: 'col', name: 'Studio', weeks: 51, rent: 246, deposit: 300, billing: 'Weekly', from: '19 Sep 2027', to: '8 Sep 2028', linked: 48, own: 0, status: 'Active' },
-    { id: 'tp4', propertyId: 'col', name: 'Summer let', weeks: 10, rent: 190, deposit: 0, billing: 'Upfront', from: '29 Jun 2027', to: '6 Sep 2027', linked: 0, own: 0, status: 'Inactive' },
+    { id: 'tp1', propertyId: 'col', name: 'Ensuite single', weeks: 39, rent: 217.26, deposit: 250, billing: 'Weekly', from: '26 Sep 2026', to: '26 Jun 2027', linked: 190, own: 2, ownNote: '3.1.D £210.00 · 4.2.B £210.00', status: 'Active' },
+    { id: 'tp2', propertyId: 'col', name: 'Standard single', weeks: 39, rent: 185.06, deposit: 250, billing: 'Weekly', from: '26 Sep 2026', to: '26 Jun 2027', linked: 344, own: 1, ownNote: '1.4.D £180.00', status: 'Active' },
+    { id: 'tp3', propertyId: 'col', name: 'Twin ensuite', weeks: 39, rent: 200.16, deposit: 250, billing: 'Weekly', from: '26 Sep 2026', to: '26 Jun 2027', linked: 16, own: 0, status: 'Active' },
+    { id: 'tp4', propertyId: 'col', name: 'Ensuite · 34 weeks', weeks: 34, rent: 226.96, deposit: 250, billing: 'Weekly', from: '26 Sep 2026', to: '21 May 2027', linked: 0, own: 0, status: 'Inactive' },
   ];
   const feeTypes: FeeType[] = [
     { id: 'ft1', name: 'Contents insurance', calc: 'Flat', mandatory: true, refundable: false },
@@ -150,7 +229,7 @@ export const useInv = create<InvState>()(
       patchProp: (id, fn) => set((st) => ({ properties: st.properties.map((p) => (p.id === id ? { ...p, ...fn(p) } : p)) })),
       editUnit: (id, e) => set((st) => ({ unitEdits: { ...st.unitEdits, [id]: { ...st.unitEdits[id], ...e } } })),
     }),
-    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 4, migrate: (st, v) => (v < 4 ? {} : termlyToWeekly(renameFrom(4)(st, v))),
+    { name: 'pms-inventory', storage: createJSONStorage(() => sessionStorage), version: 5, migrate: (st, v) => (v < 5 ? {} /* v5: real Durham seed (2026-11-27) replaces the dummy one */ : termlyToWeekly(renameFrom(4)(st, v))),
       /* A tab saved before flats were capped at 4 units gets its blocks re-split on load; edits are kept. */
       merge: (saved, cur) => { const m = { ...cur, ...(saved as Partial<InvState>) }; return { ...m, properties: m.properties.map(fitFlats) }; } },
   ),
@@ -169,28 +248,31 @@ const u = (pid: string, bi: number, code: string, type: string, weeks: number | 
 /** Hand-specified flats the designs show; everything else is generated from the block's counts. */
 function special(p: Property, bi: number, floor: number): Flat[] | null {
   if (p.id === 'col' && bi === 0 && floor === 3) {
+    const E = 217.26;
     const f1: Unit[] = [
-      u('col', 0, '3.1.A', 'Ensuite single', 51, 212, 'Active', 13), u('col', 0, '3.1.B', 'Ensuite single', 51, 212, 'Active', 13), u('col', 0, '3.1.C', 'Ensuite single', 51, 212, 'Active', 13),
-      u('col', 0, '3.1.D', 'Ensuite single', 51, 212, 'Inactive', 13),
+      u('col', 0, '3.1.A', 'Ensuite single', 39, E, 'Active', 12), u('col', 0, '3.1.B', 'Ensuite single', 39, E, 'Active', 12), u('col', 0, '3.1.C', 'Ensuite single', 39, E, 'Active', 12),
+      u('col', 0, '3.1.D', 'Ensuite single', 39, E, 'Inactive', 12),
     ];
     const f2: Unit[] = [
-      u('col', 0, '3.2.A', 'Studio', 51, 289, 'Inactive', 20), u('col', 0, '3.2.B', 'Studio', 51, 289, 'Active', 20), u('col', 0, '3.2.C', 'Ensuite single', 51, 212, 'Active', 13),
-      u('col', 0, '3.2.D', 'Accessible ensuite', 51, 212, 'Active', 16, { accessible: true }),
+      u('col', 0, '3.2.A', 'Ensuite single', 39, E, 'Inactive', 12), u('col', 0, '3.2.B', 'Ensuite single', 39, E, 'Active', 12), u('col', 0, '3.2.C', 'Ensuite single', 39, E, 'Active', 12),
+      u('col', 0, '3.2.D', 'Accessible ensuite', 39, E, 'Active', 16, { accessible: true }),
     ];
     const f3: Unit[] = [
-      u('col', 0, '3.3.A', 'Standard single', 44, 168, 'Active', 11), u('col', 0, '3.3.B', 'Standard single', 44, 168, 'Active', 11), u('col', 0, '3.3.C', 'Ensuite single', null, null, 'Draft', 13),
+      u('col', 0, '3.3.A', 'Ensuite single', 39, E, 'Active', 12), u('col', 0, '3.3.B', 'Ensuite single', 39, E, 'Active', 12), u('col', 0, '3.3.C', 'Ensuite single', null, null, 'Draft', 12), u('col', 0, '3.3.D', 'Ensuite single', 39, E, 'Active', 12),
     ];
     return [{ id: 'col|0|3|1', name: 'Flat 3.1', units: f1 }, { id: 'col|0|3|2', name: 'Flat 3.2', units: f2 }, { id: 'col|0|3|3', name: 'Flat 3.3', units: f3 }];
   }
   return null;
 }
-function weeksFor(type: string) { return type.startsWith('Ensuite') || type === 'Studio' ? 51 : 44; }
-export function rentFor(type: string) { return type === 'Studio' ? 246 : type.startsWith('Ensuite') ? 212 : 168; }
+/* Fallbacks when a property lists no rent for a type: Durham's 2026/27 undergraduate rates over 39 weeks. */
+function weeksFor(_type: string) { return 39; }
+export function rentFor(type: string) { return type === 'Studio' ? 249.77 : type.startsWith('Ensuite') || type === 'Accessible ensuite' ? 217.26 : type === 'Townhouse room' ? 207.57 : 185.06; }
 
 export function flatsOf(p: Property, bi: number, floor: number, edits: Record<string, Partial<Unit>>): Flat[] {
   const b = p.blocks[bi];
-  let flats = special(p, bi, floor);
-  if (!flats) {
+  const hand = special(p, bi, floor);
+  let flats: Flat[];
+  {
     const per = Math.max(1, Math.min(p.structure === 'House' ? Infinity : FLAT_MAX, Math.ceil(b.rooms / (b.floors * b.flats))));
     const built = p.build ? p.build.done : Infinity;
     const st: UStatus = p.status === 'Active' || p.status === 'Closed to allocations' ? 'Active' : p.status === 'Inactive' ? 'Inactive' : 'Draft';
@@ -204,12 +286,15 @@ export function flatsOf(p: Property, bi: number, floor: number, edits: Record<st
         const code = `${floor}.${fi + 1}.${L[k] ?? k}`;
         const has = p.tenancies !== false;
         const rt = p.roomTypes.find((r) => r.name === b.roomType);
-        units.push(u(p.id, bi, code, b.roomType, has ? weeksFor(b.roomType) : null, has ? (rt?.rent ?? rentFor(b.roomType)) : null, st, b.size ?? 12, { accessible: (idx * 7) % 23 === 0 }));
+        units.push(u(p.id, bi, code, b.roomType, has ? (rt?.weeks ?? weeksFor(b.roomType)) : null, has ? (rt?.rent ?? rentFor(b.roomType)) : null, st, b.size ?? 12, { accessible: (idx * 7) % 23 === 0 }));
       }
       if (p.id === 'stm' && bi === 1 && floor === 2 && fi === 3) units.push(u(p.id, bi, '2.4.G', b.roomType, null, null, 'Draft', 12, { note: 'added by hand, not in a group' }));
       return { id: `${p.id}|${bi}|${floor}|${fi + 1}`, name: `Flat ${floor}.${fi + 1}`, units };
     });
   }
+  /* The hand-made flats stand in for the first few of their floor; the rest of the floor stays generated, so the
+     property's room total still matches its real count. */
+  if (hand) flats = [...hand, ...flats.slice(hand.length)];
   /* A renamed flat is stored as edits["flat|<flat id>"].code (Units › Rename). */
   /* Units added by hand (Units › Add unit) are stored whole in the edits, keyed by an id inside their flat. */
   return flats.map((f) => {

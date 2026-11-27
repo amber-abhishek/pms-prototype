@@ -120,7 +120,7 @@ export function Grid<T extends { id: string }>({ cols, rows, onRow, hidden = [],
       <TableHeader className="sticky top-0 z-[1]"><TableRow>{cs.map((c, i) => <TableHead key={c.key} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className={cx(i === 0 && 'pl-[var(--cx,12px)]', i === cs.length - 1 && 'pr-[var(--cx,12px)]', c.className)}>{sort?.key === c.key ? <button type="button" onClick={sort.onToggle} className="inline-flex items-center gap-1 text-[#0A0A0A] font-medium">{c.label}{sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}</button> : c.label}</TableHead>)}</TableRow></TableHeader>
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }) => (
-          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow && 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]')}>
+          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow && 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#F5F9FF]')}>
             {cs.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && 'pl-[var(--cx,12px)]', i === cs.length - 1 && 'pr-[var(--cx,12px)]', i === cs.length - 1 && c.label === '' && 'row-act', c.className)}>{c.render(r)}</TableCell>)}
           </TableRow>
         ))}

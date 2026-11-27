@@ -10,12 +10,12 @@ import { Illustration } from '../../components/Illustration';
 import { Dialog as Modal, DialogContent, DialogTitle } from '../../components/shadcn/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/shadcn/tooltip';
 import { invId, useInv, type Property, type Template } from '../../data/inventory';
+import { ROOM_TYPES } from '../../data/inventory';
 import { EditLink, LV, LayoutRadios, useLayout, Menu, Modal as InvConfirm, MoneyInput, Picker, Stepper, type Level } from './common';
 
 type WBlock = { key: string; name: string; floors: number; flats: number; rpf: number; roomType: string; size: string; floorPat: string; flatPat: string; roomPat: string };
 const EYEBROW = 'font-mono text-[11px] leading-4 font-medium uppercase tracking-[0.04em]';
 type Terms = { weeks: string; rent: string; deposit: string };
-const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
 const DEF_TERMS: Record<string, Terms> = { 'Ensuite single': { weeks: '51', rent: '212', deposit: '250' }, 'Standard single': { weeks: '44', rent: '168', deposit: '250' }, Studio: { weeks: '51', rent: '246', deposit: '300' } };
 /* Figma "B · Left rail" (4119:17380, 2026-11-19): a numbered step list down the left, one hint line per step, neutral ink. */
 const STEPS: { title: string; sub: string; tip?: string }[] = [

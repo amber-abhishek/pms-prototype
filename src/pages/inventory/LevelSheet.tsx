@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Archive, Buildings, Door, MagnifyingGlass, Plus, Stack, X, type Icon } from '../../components/icons';
+import { Archive, ArrowRight, Buildings, Door, MagnifyingGlass, Plus, Stack, X, type Icon } from '../../components/icons';
 import { Button, Confirm, Dropdown, Input, Sheet, SheetHero, SheetSection, Switch, cx, type SheetNav } from '../../components/ui';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { choicesOf, invId, useInv, type Field, type Property } from '../../data/inventory';
@@ -28,6 +28,28 @@ export function removeCopy(f: string, props: Property[], layouts: string[], kind
   const who = picked.length === 1 ? picked[0] : picked.length === 2 ? `${picked[0]} and ${picked[1]}` : `the ${picked.length} you picked`;
   const all = count > picked.length ? `all ${count} ${n}s` : `every ${n}`;
   return `${f} will be removed from ${all} that use ${lay}, not just ${who}. You can add it back later.`;
+}
+
+/** A review's old and new values (2026-11-26): old red and struck, new green. Shared by Edit units and the level edits. */
+export const Old = ({ children }: { children: ReactNode }) => <span className="inline-block max-w-full truncate align-middle rounded-md px-1.5 py-0.5 bg-[#DC2626]/10 text-[#B91C1C] line-through decoration-[#B91C1C]/60">{children}</span>;
+export const New = ({ children }: { children: ReactNode }) => <span className="inline-block max-w-full truncate align-middle rounded-md px-1.5 py-0.5 bg-[#0B8A4C]/10 text-[#0B6B3C] font-medium">{children}</span>;
+
+/** Apply a level edit with Undo in its toast (2026-11-27), as Edit units has: keeps what the edit can touch (the named
+ *  properties' blocks, the unit edits it matches, the named records' field values) and puts exactly that back. */
+export function withUndo(msg: string, scope: { props?: string[]; edit?: (k: string) => boolean; values?: string[] }, apply: () => void) {
+  const st = useInv.getState();
+  const prevBlocks = new Map(st.properties.filter((p) => scope.props?.includes(p.id)).map((p) => [p.id, p.blocks]));
+  const prevE = scope.edit ? Object.fromEntries(Object.entries(st.unitEdits).filter(([k]) => scope.edit!(k))) : {};
+  const prevV = Object.fromEntries((scope.values ?? []).map((id) => [id, st.fieldValues[id]]));
+  apply();
+  /* 8s, not sonner's 4s: long enough to read what changed and reach Undo. */
+  toast.success(msg, { duration: 8000, action: { label: 'Undo', onClick: () => {
+    const s = useInv.getState();
+    if (prevBlocks.size) s.set('properties', (ps) => ps.map((p) => (prevBlocks.has(p.id) ? { ...p, blocks: prevBlocks.get(p.id)! } : p)));
+    if (scope.edit) s.set('unitEdits', (m) => ({ ...Object.fromEntries(Object.entries(m).filter(([k]) => !scope.edit!(k))), ...prevE }));
+    if (scope.values?.length) s.set('fieldValues', (m) => { const o = { ...m }; for (const [id, v] of Object.entries(prevV)) { if (v) o[id] = v; else delete o[id]; } return o; });
+    toast.success('Change undone');
+  } } });
 }
 
 export const attachKey = (p: Property, k: FieldLevel) => `${layoutOf(p)} › ${levelName(p, k)}`;
@@ -130,7 +152,13 @@ export function LevelFields({ p, kind, id, local, title, rows, onEdit, fillOnly:
   const [draft, setDraft] = useState<Record<string, string> | null>(null);
   const setValue = (fid: string, v: string) => (view ? setDraft((d) => ({ ...d, [fid]: v }))
     : useInv.getState().set('fieldValues', (m) => ({ ...m, [id]: { ...m[id], [fid]: v } })));
-  const saveDraft = () => { if (draft && Object.keys(draft).length) useInv.getState().set('fieldValues', (m) => ({ ...m, [id]: { ...m[id], ...draft } })); setDraft(null); };
+  /* Saved with Undo in the toast (2026-11-27), as the multi-record edits; only values that actually changed count. */
+  const saveDraft = () => {
+    const ch = Object.entries(draft ?? {}).filter(([fid, v]) => v !== (values[fid] ?? ''));
+    if (ch.length) withUndo(`${ch.length} ${ch.length === 1 ? 'value' : 'values'} changed on ${name ?? lv}`, { values: [id] },
+      () => useInv.getState().set('fieldValues', (m) => ({ ...m, [id]: { ...m[id], ...Object.fromEntries(ch) } })));
+    setDraft(null);
+  };
   const attach = (f: Field) => {
     useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, attached: [...x.attached, key] } : x)));
     toast.success(`${f.name} added to every ${lv} in ${layoutOf(p)}`);
@@ -237,7 +265,8 @@ export function CompareTable({ cols, rows }: { cols: string[]; rows: { label: st
 
 /** The custom fields shared by several records at one level (2026-11-27, V3 multi-select): only the fields every one of
  *  them has; a field where they agree shows the value, one where they differ reads "Mixed". A change writes to them all. */
-export function MultiLevelFields({ items, kind, name, meta }: { items: { p: Property; id: string; name: string }[]; kind: FieldLevel; name?: string; meta?: string }) {
+export function MultiLevelFields({ items, kind, name, meta, noun }: { items: { p: Property; id: string; name: string }[]; kind: FieldLevel; name?: string; meta?: string; /** What the property calls this level, e.g. "wing" (2026-11-27). */ noun?: string }) {
+  const these = `these ${noun ?? kind.toLowerCase()}s`;
   const all = useInv((s) => s.fields);
   const allProps = useInv((s) => s.properties);
   const vals = useInv((s) => s.fieldValues);
@@ -248,27 +277,34 @@ export function MultiLevelFields({ items, kind, name, meta }: { items: { p: Prop
   /* Values read as text first; Edit gives each record its own control under each field, as the panel lists them, and
    * Save writes only what changed, record by record (2026-11-27). */
   const [draft, setDraft] = useState<Record<string, Record<string, string>> | null>(null);
+  /* Review, then Undo (2026-11-27), as Edit units: Save first lists each value that changes, old → new. */
+  const [review, setReview] = useState(false);
+  const diffs = !draft ? [] : fields.flatMap((f) => items.flatMap((x) => {
+    const was = vals[x.id]?.[f.id] ?? '', now = draft[x.id]?.[f.id];
+    return now == null || now === was || (f.type === 'Yes / no' && (now || 'no') === (was || 'no')) ? [] : [{ f, x, was, now }];
+  }));
+  const close = () => { setDraft(null); setReview(false); };
   const save = () => {
-    if (draft && Object.keys(draft).length) useInv.getState().set('fieldValues', (m) => {
-      const n = { ...m }; Object.entries(draft).forEach(([id, d]) => { n[id] = { ...n[id], ...d }; }); return n;
-    });
-    setDraft(null);
+    const ids = [...new Set(diffs.map((d) => d.x.id))];
+    if (diffs.length) withUndo(`${diffs.length} ${diffs.length === 1 ? 'value' : 'values'} changed on ${ids.length === 1 ? items.find((x) => x.id === ids[0])?.name : `${ids.length} ${noun ?? kind.toLowerCase()}s`}`, { values: ids },
+      () => useInv.getState().set('fieldValues', (m) => { const n = { ...m }; diffs.forEach(({ f, x, now }) => { n[x.id] = { ...n[x.id], [f.id]: now }; }); return n; }));
+    close();
   };
   /* Add field (2026-11-27): attaches to every layout level the picked records sit on, so it shows on all of them. */
   const attach = (f: Field) => {
     useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, attached: [...new Set([...x.attached, ...keys])] } : x)));
-    toast.success(`${f.name} added to these ${kind.toLowerCase()}s`);
+    toast.success(`${f.name} added to ${these}`);
   };
   const create = (fname: string, type: string) => {
     const f: Field = { id: invId('cf'), name: fname, key: fname.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''), type, attached: keys };
     useInv.getState().set('fields', (l) => [...l, f]);
-    toast.success(`${fname} created on these ${kind.toLowerCase()}s`);
+    toast.success(`${fname} created on ${these}`);
   };
   /* Remove (2026-11-27): the field comes off the layout levels these records sit on, as on a single record. */
   const [removing, setRemoving] = useState<Field | null>(null);
   const detach = (f: Field) => {
     useInv.getState().set('fields', (l) => l.map((x) => (x.id === f.id ? { ...x, attached: x.attached.filter((a) => !keys.includes(a)) } : x)));
-    toast.success(`${f.name} removed from these ${kind.toLowerCase()}s`);
+    toast.success(`${f.name} removed from ${these}`);
   };
   return (
     <>
@@ -279,9 +315,33 @@ export function MultiLevelFields({ items, kind, name, meta }: { items: { p: Prop
         {fields.length > 0 && items.length <= COMPARE_MAX && <CompareTable cols={items.map((x) => x.name)} rows={fields.map((f) => ({ label: f.name, values: items.map((x) => shownValue(f, vals[x.id]?.[f.id])) }))} />}
         {!fields.length && <p className="text-sm leading-5 text-[#737373]">{keys.length > 1 ? 'These share no custom fields.' : 'No custom fields here yet.'}</p>}
       </SheetSection>
-      <PanelModal open={draft != null} onClose={() => setDraft(null)} width={560} eyebrow="Edit custom fields"
+      <PanelModal open={draft != null} onClose={close} width={560} eyebrow="Edit custom fields" pos={review ? 'Review' : undefined}
         title={name ?? `${items.length} ${kind.toLowerCase()}s`} meta={meta} icon={kind === 'Room' ? Door : ICON[kind]}
-        right={<><Button onClick={() => setDraft(null)}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
+        left={review ? <Button variant="ghost" icon={null} onClick={() => setReview(false)}>Back</Button> : undefined}
+        right={review
+          ? <><Button onClick={close}>Cancel</Button><Button variant="primary" disabled={!diffs.length} onClick={save}>{diffs.length ? `Change ${diffs.length} ${diffs.length === 1 ? 'value' : 'values'}` : 'Nothing to change'}</Button></>
+          : <><Button onClick={close}>Cancel</Button><Button variant="primary" onClick={() => setReview(true)}>Review</Button></>}>
+        {review ? (
+          <SheetSection title="What changes">
+            {!diffs.length ? <p className="text-sm leading-5 text-[#737373]">No values changed.</p> : (
+              <div className="divide-y divide-[#F0F0F0] -my-1">
+                {fields.filter((f) => diffs.some((d) => d.f.id === f.id)).map((f) => (
+                  <div key={f.id} className="py-3 first:pt-1 last:pb-1">
+                    <div className="font-mono text-xs font-medium uppercase tracking-wide text-[#737373]">{f.name}</div>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {diffs.filter((d) => d.f.id === f.id).map(({ x, was, now }) => (
+                        <div key={x.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center text-sm">
+                          <span className="min-w-0 truncate text-ink">{x.name}</span>
+                          <span className="flex items-center gap-2">{was ? <Old>{shownValue(f, was)}</Old> : <span className="text-[#A3A3A3]">—</span>}<ArrowRight size={14} className="shrink-0 text-[#737373]" />{now ? <New>{shownValue(f, now)}</New> : <span className="text-[#A3A3A3]">—</span>}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SheetSection>
+        ) : <>
         <SheetSection title="Custom fields" action={<FieldPicker have={fields} onAttach={attach} onCreate={create} />}>
         {!fields.length && <p className="text-sm leading-5 text-[#737373]">No shared custom fields yet.</p>}
         <div>{fields.map((f) => (
@@ -303,6 +363,7 @@ export function MultiLevelFields({ items, kind, name, meta }: { items: { p: Prop
           </div>
         ))}</div>
         </SheetSection>
+        </>}
       </PanelModal>
       <Confirm open={!!removing} onClose={() => setRemoving(null)} danger title={`Remove ${removing?.name ?? ''}?`}
         sub={removing ? removeCopy(removing.name, allProps, [...new Set(items.map((x) => layoutOf(x.p)))], kind, items.map((x) => x.name)) : ''}

@@ -9,12 +9,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn
 import { PersonName, Button, Dropdown, Empty, Field, Input, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, choicesOf, flatsOf, money, per, rentFor, useInv, type ArchivedRow, type Field as CustomField, type Flat, type Property, type Structure, type Unit, type UStatus } from '../../data/inventory';
+import { ROOM_TYPES } from '../../data/inventory';
 import { useOpen } from '../hooks';
 import { EditLink, FieldErr, LineTabs, Menu, Modal, MultiPicker, PanelModal, Picker, PropStatus, RadioCard, levelIcon, ruleMatch, type RuleField, type RuleKind } from './common';
 import { ColumnHead, ColumnsMenu, type SortState } from './tableKit';
 import { FilterChips, FilterGroupButton } from './viewFilter';
 import { GhostZone } from '../../components/headerCtx';
-import { LevelFields, LevelSheet, attachKey, layoutOf, useDraftValues, useFilledFields, type LevelKind } from './LevelSheet';
+import { LevelFields, LevelSheet, New, Old, attachKey, layoutOf, useDraftValues, useFilledFields, type LevelKind } from './LevelSheet';
 import { PHOTO, photoOf } from './photos';
 import { PropertyDetail } from './PropertyDetail';
 import { UnitsV2, VersionToggle, useUnitsVersion } from './UnitsV2';
@@ -25,7 +26,6 @@ import { StatusTabsBar } from '../offcampus/parts';
 /* The selection is a place in the tree: a property, a block, a floor or a flat. A null level means "the whole of the one above". */
 type Sel = { pid: string; bi: number | null; floor: number | null; flat: number | null };
 type TabId = 'all' | 'Active' | 'Draft' | 'Inactive' | 'Archived';
-const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
 /* Room amenities (2026-11-26): what's in the room itself. A unit with none set has its room type's usual set. */
 const UNIT_AMENITIES = ['Desk', 'Wardrobe', 'Sink', 'Ensuite bathroom', 'Kitchenette', 'Double bed', 'Grab rails', 'Blackout blinds', 'Smart TV'];
 const TYPE_AMENITIES: Record<string, string[]> = {
@@ -782,11 +782,51 @@ export function blockNameErr(p: Property, bi: number, v: string) {
   const n = v.trim();
   return !n ? 'Enter a name.' : p.blocks.some((x, i) => i !== bi && x.name.trim().toLowerCase() === n.toLowerCase()) ? `${p.name} already has ${n}.` : '';
 }
+/** The room types a block can take (2026-11-27): the ones its property prices, so a change never invents a rent. A
+ *  property with no price list yet falls back to the org-wide list. */
+export function roomTypesOf(p: Property) { return p.roomTypes.length ? p.roomTypes.map((r) => r.name) : [...ROOM_TYPES]; }
+/** What changing a block's room type does to its units (2026-11-27): how many follow it, what they pay now and will pay,
+ *  and how many carry their own type, rent or term that the change resets. */
+export function roomTypeImpact(p: Property, bi: number, roomType: string) {
+  const edits = useInv.getState().unitEdits;
+  const units = allUnits(p, edits).filter((u) => u.id.startsWith(`${p.id}:${bi}:`));
+  const rt = p.roomTypes.find((r) => r.name === roomType);
+  const rents = [...new Set(units.map((u) => u.rent).filter((r): r is number => r != null))].sort((a, b) => a - b);
+  const now = !rents.length ? '' : rents.length === 1 ? `${money(rents[0], true)} / wk` : `${money(rents[0], true)}–${money(rents[rents.length - 1], true)} / wk`;
+  const own = units.filter((u) => { const e = edits[u.id]; return !!e && (e.type != null || e.rent != null || e.weeks != null || e.template != null); }).length;
+  return { units: units.length, now, to: rt ? `${money(rt.rent ?? rentFor(roomType), true)} / wk for ${rt.weeks ?? 39} weeks` : '', own };
+}
+/* A block's room type is what its units are (2026-11-27): changing it resets any unit's own type, rent, term and
+   template, so no unit is left on the new type at the old price or the reverse. Units added by hand hold their values
+   in the edits, so they're set to the new type's instead. */
+function resetBlockUnits(p: Property, bi: number, roomType: string) {
+  const rt = p.roomTypes.find((r) => r.name === roomType);
+  const pre = `${p.id}:${bi}:`;
+  useInv.getState().set('unitEdits', (m) => {
+    const o = { ...m };
+    for (const [id, e] of Object.entries(m)) {
+      if (!id.startsWith(pre) || !e) continue;
+      if (e.added) { const weeks = rt?.weeks ?? 39; o[id] = { ...e, type: roomType, rent: rt?.rent ?? rentFor(roomType), weeks, template: `${roomType} · ${weeks} wk` }; continue; }
+      const { type: _t, rent: _r, weeks: _w, template: _tp, ...rest } = e;
+      o[id] = rest;
+    }
+    return o;
+  });
+}
 export function saveBlock(p: Property, bi: number, name: string, roomType: string) {
   const b = p.blocks[bi];
   if (name === b.name && roomType === b.roomType) return;
+  if (roomType !== b.roomType) resetBlockUnits(p, bi, roomType);
   useInv.getState().set('properties', (ps) => ps.map((x) => (x.id !== p.id ? x : { ...x, blocks: x.blocks.map((y, i) => (i === bi ? { ...y, name, roomType } : y)) })));
   toast.success(`${name} saved`);
+}
+/** Several blocks at once (V3 multi-select): the same rules as one, one toast. */
+export function saveBlocks(changes: { p: Property; bi: number; name: string; roomType: string }[]) {
+  changes.forEach(({ p, bi, roomType }) => { if (roomType !== p.blocks[bi].roomType) resetBlockUnits(p, bi, roomType); });
+  useInv.getState().set('properties', (ps) => ps.map((x) => {
+    const mine = changes.filter((c) => c.p.id === x.id);
+    return mine.length ? { ...x, blocks: x.blocks.map((y, bi) => { const c = mine.find((m) => m.bi === bi); return c ? { ...y, name: c.name, roomType: c.roomType } : y; }) } : x;
+  }));
 }
 export function flatNameErr(flat: Flat, siblings: Flat[], v: string) {
   const n = v.trim();
@@ -993,7 +1033,7 @@ function UnitRowView({ u, place, lead, gs, cols, fv, leadW, cursor, open, checke
      Hover, ticks and the open row (2026-11-26) fill from the checkbox on; the lead cell stays white and pointing at it lights nothing, and the open row's blue bar sits on the checkbox cell. */
   return (
     <tr onClick={() => onOpen(u.id)} aria-selected={open} className={cx('group/row cursor-pointer [&>td]:border-b', !lead && '[&>td]:border-[#E5E5E5]', lead && (lead.last ? '[&>td:not(:first-child)]:border-[#E5E5E5]' : '[&>td:not(:first-child)]:border-[#F0F0F0]'),
-      open ? cx('[&>td]:bg-[#EFF6FF]', BAR[cbAt])
+      open ? cx('[&>td]:bg-[#F5F9FF]', BAR[cbAt])
         : checked ? '[&>td]:bg-[#F5F9FF]' : cursor ? '[&>td]:bg-[#F5F5F5]'
         : cx('[&>td]:bg-white', HOVER[cbAt]))}>
       {lead && (
@@ -1395,8 +1435,6 @@ function RenameDialog({ flat, siblings, onClose }: { flat: Flat | null; siblings
 
 
 /* A diff's old and new values: red and struck through, green; soft 10% grounds, no border. */
-const Old = ({ children }: { children: ReactNode }) => <span className="inline-block max-w-full truncate align-middle rounded-md px-1.5 py-0.5 bg-[#DC2626]/10 text-[#B91C1C] line-through decoration-[#B91C1C]/60">{children}</span>;
-const New = ({ children }: { children: ReactNode }) => <span className="inline-block max-w-full truncate align-middle rounded-md px-1.5 py-0.5 bg-[#0B8A4C]/10 text-[#0B6B3C] font-medium">{children}</span>;
 
 /* ---------------- Bulk edit (2026-11-26): pick fields and values, review, change; Undo puts every unit back ---------------- */
 type AmState = Record<string, boolean | 'mixed'>;
@@ -1446,7 +1484,8 @@ export function BulkEditDialog({ ids, props, scope, onClose, onDone }: { ids: st
   ];
   const cfOf = (f: string) => fields.find((x) => `cf:${x.id}` === f);
   const choices = (f: string): string[] | null => {
-    if (f === 'type') return ROOM_TYPES;
+    /* Only types every ticked unit's property prices (2026-11-27), so a type change always has a rent to bring. */
+    if (f === 'type') { const sets = [...new Set(units.map(({ pp }) => pp))].map(roomTypesOf); const both = sets.length ? sets.reduce((a, b) => a.filter((t) => b.includes(t))) : [...ROOM_TYPES]; return both.length ? both : [...ROOM_TYPES]; }
     if (f === 'template') return tplNames;
     if (f === 'am+' || f === 'am-') return UNIT_AMENITIES;
     const c = cfOf(f); if (!c) return null;
@@ -1538,7 +1577,10 @@ export function BulkEditDialog({ ids, props, scope, onClose, onDone }: { ids: st
     const prevV = Object.fromEntries(touched.map(({ u }) => [u.id, st.fieldValues[u.id]]));
     touched.forEach(({ u, pp }) => valid.forEach((c) => {
       if (skipWhy(c, u, pp) || before(c, u) === after(c)) return;
-      if (c.f === 'type') st.editUnit(u.id, { type: c.v });
+      /* A new room type brings its price and term from the property's list (2026-11-27), so a unit is never left on the
+         new type at the old rent; a Rent change in the same edit still wins. */
+      if (c.f === 'type') { const rt = pp.roomTypes.find((r) => r.name === c.v); const ownRent = valid.some((x) => x.f === 'rent');
+        st.editUnit(u.id, rt ? { type: c.v, ...(ownRent ? {} : { rent: rt.rent }), weeks: rt.weeks ?? 39, template: `${c.v} · ${rt.weeks ?? 39} wk` } : { type: c.v }); }
       else if (c.f === 'rent') st.editUnit(u.id, { rent: Number(c.v) });
       else if (c.f === 'am+') st.editUnit(u.id, { amenities: [...amenitiesOf(u), c.v] });
       else if (c.f === 'am-') st.editUnit(u.id, { amenities: amenitiesOf(u).filter((x) => x !== c.v) });

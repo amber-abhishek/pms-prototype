@@ -62,7 +62,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      /* Connect rows: #E5E5E5 rule, hover #FAFAFA at 70% */ "border-b border-[#E5E5E5] transition-colors hover:bg-[#FAFAFA]/70 data-[state=selected]:bg-[#EFF6FF] data-[state=selected]:shadow-[inset_2px_0_0_#2563EB]",
+      /* Connect rows: #E5E5E5 rule, hover #FAFAFA at 70% */ "border-b border-[#E5E5E5] transition-colors hover:bg-[#FAFAFA]/70 data-[state=selected]:bg-[#F5F9FF] data-[state=selected]:shadow-[inset_2px_0_0_#2563EB]",
       className
     )}
     {...props}

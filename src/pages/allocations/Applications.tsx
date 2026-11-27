@@ -168,7 +168,7 @@ function Queue({ sort, tab, rows, total, filtered, open, setOpen, fs, setFs, fie
         <div className="flex-1 overflow-auto">
           {shown.map((a) => (
             <button key={a.id} type="button" onClick={() => setOpen(a.id)} data-selected={sel?.id === a.id || undefined}
-              className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F5F5F5] border-l-2', sel?.id === a.id ? 'bg-[#EFF6FF] border-l-primary' : 'border-l-transparent hover:bg-[#FAFAFA]')}>
+              className={cx('w-full text-left h-14 px-3 flex items-center gap-2.5 border-b border-[#F5F5F5] border-l-2', sel?.id === a.id ? 'bg-[#F5F9FF] border-l-primary' : 'border-l-transparent hover:bg-[#FAFAFA]')}>
               <Ini name={a.name} size={24} />
               <div className="min-w-0 flex-1">
                 <div className="text-sm truncate"><span className="font-semibold">{a.name}</span>{a.tag && <span className={cx('text-xs font-medium', a.tag === 'Eligibility' ? 'text-[#9A5B00]' : 'text-[#8B2CF5]')}> · {a.tag}</span>}</div>

@@ -682,7 +682,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
       ) : c.label)}</TableHead>)}</TableRow></TableHeader>
       <TableBody ref={bodyRef}>
         {items.map(({ row: r, motion }, ri) => (
-          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} aria-selected={selected === r.id || undefined} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow ? 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#EFF6FF]' : 'hover:bg-transparent', (group || ri === items.length - 1) && 'border-b-0')}>
+          <TableRow key={r.id} {...rowAttrs(r.id, motion)} onClick={() => onRow?.(r)} aria-selected={selected === r.id || undefined} data-state={selected === r.id ? 'selected' : undefined} className={cx(onRow ? 'cursor-pointer hover:bg-subtle data-[state=selected]:hover:bg-[#F5F9FF]' : 'hover:bg-transparent', (group || ri === items.length - 1) && 'border-b-0')}>
             {group && <TableCell className={cx(card ? 'pl-5' : 'pl-[var(--cx,12px)]', 'text-[#737373] whitespace-nowrap border-b', ri === items.length - 1 || group.get(items[ri + 1].row) === group.get(r) ? 'border-transparent' : 'border-[#F5F5F5]', group.className)}>{ri === 0 || group.get(items[ri - 1].row) !== group.get(r) ? group.get(r) : null}</TableCell>}
             {visible.map((c, i) => <TableCell key={c.key} className={cx(i === 0 && !group && (card ? 'pl-5' : 'pl-[var(--cx,12px)]'), i === visible.length - 1 && (card ? 'pr-5' : 'pr-[var(--cx,12px)]'), i === visible.length - 1 && c.label === '' && 'row-act', group && ri < items.length - 1 && 'border-b border-[#F5F5F5]', c.className)}>{muteDash(c.render(r))}</TableCell>)}
           </TableRow>

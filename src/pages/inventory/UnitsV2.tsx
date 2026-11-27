@@ -4,22 +4,24 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Checkbox } from '../../components/shadcn/checkbox';
-import { Bed, BuildingOffice, Buildings, House, CurrencyGbp, MapPin, Tag, TextT, Hash, CalendarBlank, Users, CaretDown, CaretRight, CheckCircle, Door, DotsThree, Stack, ToggleLeft, X, type Icon } from '../../components/icons';
-import { Avatar, Button, Dropdown, Input, PageHeader, Pill, PIN, type Tone, SearchInput, SelectFilter, SheetHero, SheetNavButtons, SheetRow, SheetSection, cx, type Fact, type SheetNav } from '../../components/ui';
+import { ArrowRight, Bed, BuildingOffice, Buildings, House, CurrencyGbp, MapPin, Tag, TextT, Hash, CalendarBlank, Users, CaretDown, CaretRight, CheckCircle, Door, DotsThree, Stack, ToggleLeft, X, type Icon, Info } from '../../components/icons';
+import { Avatar, Button, Confirm, Dropdown, Input, PageHeader, Pill, PIN, type Tone, SearchInput, SelectFilter, SheetHero, SheetNavButtons, SheetRow, SheetSection, cx, type Fact, type SheetNav } from '../../components/ui';
 import { allUnits, flatsOf, money, useInv, type Flat, type Property, type Unit, type UStatus } from '../../data/inventory';
+import { ROOM_TYPES, blockWord } from '../../data/inventory';
 import { EditLink, FieldErr, LineTabs, PanelModal, Menu, MultiPicker, PropStatus, ruleMatch, type RuleField } from './common';
 import { FilterChips, FilterGroupButton } from './viewFilter';
-import { COMPARE_MAX, CompareTable, DetailsCard, LevelFields, MultiLevelFields, Spread, layoutOf } from './LevelSheet';
+import { COMPARE_MAX, CompareTable, DetailsCard, LevelFields, MultiLevelFields, New, Old, Spread, layoutOf, withUndo } from './LevelSheet';
 import { ColumnsMenu } from './tableKit';
 import { photoOf } from './photos';
 import { StatusTabsBar } from '../offcampus/parts';
-import { BulkEditDialog, UnitSheet, blockNameErr, flatNameErr, saveBlock, saveFlatName, shapeOf } from './Units';
+import { BulkEditDialog, UnitSheet, blockNameErr, flatNameErr, roomTypeImpact, roomTypesOf, saveBlocks, saveFlatName, shapeOf } from './Units';
 
 type Kind = 'P' | 'B' | 'F' | 'L';
 type Node = { key: string; kind: Kind; name: string; sub: string; depth: number; p: Property; bi: number; floor: number; flat?: Flat; children: Node[]; units: Unit[] };
 const ICONS: Record<Kind, Icon> = { P: Buildings, B: Buildings, F: Stack, L: Door };
 const KIND_NAME: Record<Kind, string> = { P: 'Property', B: 'Block', F: 'Floor', L: 'Flat' };
-const ROOM_TYPES = ['Ensuite single', 'Standard single', 'Studio', 'Ensuite double', 'Accessible ensuite'];
+/** A level's name for this property: a block is a "Wing" where the property calls it that (2026-11-27). */
+const kindName = (k: Kind, p: Property) => (k === 'B' ? blockWord(p) : KIND_NAME[k]);
 const TYPE_TONE: Record<string, Tone> = { 'Ensuite single': 'blue', 'Standard single': 'orange', Studio: 'purple', 'Ensuite double': 'grey', 'Accessible ensuite': 'amber' };
 
 /* Let is prototype data: an active unit is let unless its id hashes into the free few (stable per unit). */
@@ -90,7 +92,7 @@ export function UnitsV2({ props }: { props: Property[] }) {
   const prune = (n: Node): Node => {
     if (!unitF || !n.children.length) return n;
     const children = n.children.map(prune).filter((c) => c.units.length);
-    const noun = n.kind === 'P' ? (n.sub.includes('house') ? 'house' : 'block') : n.kind === 'B' ? 'floor' : 'flat';
+    const noun = n.kind === 'P' ? (n.sub.includes('house') ? 'house' : blockWord(n.p).toLowerCase()) : n.kind === 'B' ? 'floor' : 'flat';
     return { ...n, children, sub: plural(children.length, noun) };
   };
   const gone = (id: string) => archivedFlats.some((a) => id === a || id.startsWith(`${a}|`));
@@ -116,7 +118,7 @@ export function UnitsV2({ props }: { props: Property[] }) {
       }).filter((x): x is Node => !!x);
       return { key: `B:${p.id}|${bi}`, kind: 'B', name: b.name, sub: plural(floors.length, 'floor'), depth: 1, p, bi, floor: 0, children: floors, units: floors.flatMap((f) => f.units) };
     }).filter((x): x is Node => !!x);
-    return { key: `P:${p.id}`, kind: 'P', name: p.name, sub: plural(blocks.length, 'block'), depth: 0, p, bi: 0, floor: 0, children: blocks, units: blocks.flatMap((b) => b.units) };
+    return { key: `P:${p.id}`, kind: 'P', name: p.name, sub: plural(blocks.length, blockWord(p).toLowerCase()), depth: 0, p, bi: 0, floor: 0, children: blocks, units: blocks.flatMap((b) => b.units) };
   }).map(prune).filter((n) => (!unitF || n.units.length) && figuresOk(n.units) && fieldsOk(n)), [props, propF, edits, structures, archivedFlats, rules, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const byKey = useMemo(() => { const m = new Map<string, Node>(); const walk = (n: Node) => { m.set(n.key, n); n.children.forEach(walk); }; tree.forEach(walk); return m; }, [tree]);
@@ -168,10 +170,23 @@ export function UnitsV2({ props }: { props: Property[] }) {
       anchor.current = n.key;
       return;
     }
+    /* A ⌘ / Shift-click on another level keeps what's picked (2026-11-27): it used to drop the whole selection and open
+       that row. Levels don't mix, so say so instead. */
+    if (mod && multi.length) {
+      toast(`Only ${cur ? kindName(cur.kind, cur.p).toLowerCase() : 'row'}s can be added to this selection.`, { id: 'mix-levels' });
+      return;
+    }
     setMulti([]);
     anchor.current = n.key;
     pick(n.key);
     if (n.children.length) setOpen((o) => ({ ...o, [n.key]: true }));
+  };
+  /* Add to / Remove from selection in the row's ⋯ menu (2026-11-27): only rows of the open level, so a block never
+     looks addable beside a flat. */
+  const selItem = (n: Node) => {
+    if (!cur || cur.kind === 'P' || n.kind !== cur.kind) return undefined;
+    if (picked.includes(n.key)) return picked.length > 1 ? { label: 'Remove from selection', onClick: () => clickRow(n, { metaKey: true } as React.MouseEvent) } : undefined;
+    return { label: 'Add to selection', onClick: () => clickRow(n, { metaKey: true } as React.MouseEvent) };
   };
   const i = cur ? rows.findIndex((r) => r.key === cur.key) : -1;
   const nav: SheetNav | undefined = cur && i >= 0 ? { prev: i > 0 ? () => setSel(rows[i - 1].key) : undefined, next: i < rows.length - 1 ? () => setSel(rows[i + 1].key) : undefined, pos: `${i + 1} of ${rows.length}` } : undefined;
@@ -285,6 +300,7 @@ export function UnitsV2({ props }: { props: Property[] }) {
                       </tr>
                     ),
                     ...sec.items.map((n) => <TreeRow key={n.key} n={n} cols={shown} open={ql ? n.children.some(hit) : !!open[n.key]} on={picked.includes(n.key)}
+                    selItem={selItem(n)}
                     onToggle={() => setOpen((o) => ({ ...o, [n.key]: !o[n.key] }))} onPick={(e) => clickRow(n, e)}
                     folds={folds(n)} onAll={(v) => setOpen((o) => { const m = { ...o }; const go = (x: Node) => { m[x.key] = v; x.children.forEach(go); }; go(n); return m; })} />)]).flat()}
                 </tbody>
@@ -355,13 +371,15 @@ function extraCells(us: Unit[]): ReactNode[] {
 
 /* A tree row: 48px; the name indented 24px a level with its caret, the count of what's in it in grey; Units; a Let bar
    (green 90%+, orange 80%+, red below) with the percentage; ⋯. The picked row is blue with a 2px bar on its left. */
-function TreeRow({ n, cols, open, on, folds, onToggle, onPick, onAll }: { n: Node; cols: string[]; open: boolean; on: boolean; folds: { expand: boolean; collapse: boolean }; onToggle: () => void; onPick: (e?: React.MouseEvent) => void; onAll: (v: boolean) => void }) {
+function TreeRow({ n, cols, open, on, folds, selItem, onToggle, onPick, onAll }: { n: Node; cols: string[]; open: boolean; on: boolean; folds: { expand: boolean; collapse: boolean };
+  /** The ⋯ menu's Add to / Remove from selection, when this row is at the open level. */
+  selItem?: { label: string; onClick: () => void }; onToggle: () => void; onPick: (e?: React.MouseEvent) => void; onAll: (v: boolean) => void }) {
   const let_ = pct(n.units);
   const tone = let_ >= 90 ? '#16A34A' : let_ >= 80 ? '#EA580C' : '#DC2626';
   const KindIcon = n.kind === 'P' ? Buildings : n.kind === 'B' ? BuildingOffice : n.kind === 'F' ? Stack : n.name.startsWith('House') ? House : Door;
   const photo = n.kind === 'P' ? photoOf(n.p.id) : undefined;
   return (
-    <tr onClick={(e) => onPick(e)} onContextMenu={(e) => { if (e.ctrlKey) { e.preventDefault(); onPick(e); } }} onMouseDown={(e) => { if (e.shiftKey) e.preventDefault(); }} aria-selected={on} className={cx(photo ? 'h-16' : 'h-12', 'cursor-pointer [&>td]:border-b [&>td]:border-[#F0F0F0] [&>td]:align-middle', '[&>td:first-child]:bg-inherit', on ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]' : 'bg-white hover:bg-[#FAFAFA]')}>
+    <tr onClick={(e) => onPick(e)} onContextMenu={(e) => { if (e.ctrlKey) { e.preventDefault(); onPick(e); } }} onMouseDown={(e) => { if (e.shiftKey) e.preventDefault(); }} aria-selected={on} className={cx(photo ? 'h-16' : 'h-12', 'group/tr cursor-pointer [&>td]:border-b [&>td]:border-[#F0F0F0] [&>td]:align-middle', '[&>td:first-child]:bg-inherit', on ? 'bg-[#F5F9FF] shadow-[inset_2px_0_0_#2563EB]' : 'bg-white hover:bg-[#FAFAFA]')}>
       {/* Hierarchy (2026-11-26): indent, a kind icon, and weight stepping down a level (property medium ink, block ink,
          floor and flat grey); no guide lines. */}
       <td className={cx('pl-6 pr-3 sticky left-0 z-[1] pin-edge', on && 'pin-on shadow-[inset_2px_0_0_#2563EB]')}>
@@ -382,10 +400,12 @@ function TreeRow({ n, cols, open, on, folds, onToggle, onPick, onAll }: { n: Nod
             </div>
           </> : <>
           <KindIcon size={16} aria-hidden className={cx('shrink-0', n.kind === 'P' ? 'text-[#525252]' : 'text-[#A3A3A3]')} />
-          <span className={cx('truncate', n.kind === 'P' || n.kind === 'B' ? 'font-medium text-ink' : 'text-[#404040]')}>{n.name}</span>
-          {/* What's inside (2026-11-26): plain 12px grey after a dot, only where there's a level below; a flat's "8 units" just
-             repeated the Units column, so leaf rows show none. */}
-          {n.children.length > 0 && <span className="shrink-0 flex items-center gap-1.5 text-xs text-[#A3A3A3] tabular-nums"><span aria-hidden>·</span>{n.sub}</span>}
+          {/* What's inside (2026-11-27): a 12px grey second line under the name, so a long name keeps the width; only
+             where there's a level below, as a flat's "8 units" just repeated the Units column. */}
+          <div className="min-w-0">
+            <div className={cx('truncate', n.kind === 'P' || n.kind === 'B' ? 'font-medium text-ink' : 'text-[#404040]')}>{n.name}</div>
+            {n.children.length > 0 && <div className="truncate text-xs leading-4 text-[#A3A3A3] tabular-nums">{n.sub}</div>}
+          </div>
           </>}
         </div>
       </td>
@@ -406,7 +426,7 @@ function TreeRow({ n, cols, open, on, folds, onToggle, onPick, onAll }: { n: Nod
       })}
       <td className="pr-6 text-right" onClick={(e) => e.stopPropagation()}>
         <Menu width={180} trigger={(o) => <button type="button" onClick={o} aria-label={`More for ${n.name}`} className="size-7 rounded-md inline-flex items-center justify-center text-[#737373] hover:bg-[#EBEBEB] hover:text-ink"><DotsThree size={16} /></button>}
-          items={[{ label: `Open ${KIND_NAME[n.kind].toLowerCase()}`, onClick: () => onPick() }, ...(folds.expand ? [{ label: 'Expand all', onClick: () => onAll(true) }] : []), ...(folds.collapse ? [{ label: 'Collapse all', onClick: () => onAll(false) }] : [])]} />
+          items={[{ label: `Open ${kindName(n.kind, n.p).toLowerCase()}`, onClick: () => onPick() }, ...(selItem ? [selItem] : []), ...(folds.expand ? [{ label: 'Expand all', onClick: () => onAll(true) }] : []), ...(folds.collapse ? [{ label: 'Collapse all', onClick: () => onAll(false) }] : [])]} />
       </td>
     </tr>
   );
@@ -444,7 +464,10 @@ function SlidePanel({ show, children }: { show: boolean; children: ReactNode }) 
     listed under each field with its own value and, while editing, its own control. */
 function MultiPanel({ nodes, onClose }: { nodes: Node[]; onClose: () => void }) {
   const kind = nodes[0].kind;
-  const noun = KIND_NAME[kind].toLowerCase();
+  /* Several properties picked with different words for a block fall back to "block". */
+  const words = [...new Set(nodes.map((n) => kindName(kind, n.p)))];
+  const word = words.length === 1 ? words[0] : KIND_NAME[kind];
+  const noun = word.toLowerCase();
   const units = nodes.flatMap((n) => n.units);
   const letP = pct(units);
   const facts: Fact[] = [['Units', String(units.length)], ['Active', String(units.filter((u) => u.status === 'Active').length), 'green'],
@@ -489,16 +512,25 @@ function MultiPanel({ nodes, onClose }: { nodes: Node[]; onClose: () => void }) 
     return others.some((o) => o.trim().toLowerCase() === low) ? (kind === 'B' ? `${n.p.name} already has ${v}.` : `This floor already has ${v}.`) : '';
   };
   const [tried, setTried] = useState(false);
-  const closeEdit = () => { setDd(null); setPat(''); setStart('1'); setTried(false); };
+  const closeEdit = () => { setDd(null); setPat(''); setStart('1'); setTried(false); setReview(false); };
+  /* Review, then Undo (2026-11-27), as Edit units: Review lists each name and room type that changes, old → new, and
+     what a room type change does to the units under it; Apply saves with Undo in the toast. */
+  const [review, setReview] = useState(false);
+  const live = (n: Node) => allProps.find((x) => x.id === n.p.id) ?? n.p;
+  const changed = dd == null ? [] : nodes.map((n, i) => ({ n, name: nameAt(i).trim(), rt: dd?.[i]?.rt ?? rtOf(n) })).filter(({ n, name, rt }) => name !== n.name || (kind === 'B' && rt !== rtOf(n)));
+  const toReview = () => { if (nodes.some((_, i) => errOf(i))) { setTried(true); return; } setReview(true); };
   const saveDetails = () => {
-    if (nodes.some((_, i) => errOf(i))) { setTried(true); return; }
-    const changed = nodes.map((n, i) => ({ n, name: nameAt(i).trim(), rt: dd?.[i]?.rt ?? rtOf(n) })).filter(({ n, name, rt }) => name !== n.name || (kind === 'B' && rt !== rtOf(n)));
-    if (kind === 'B') useInv.getState().set('properties', (ps) => ps.map((x) => {
-      const mine = changed.filter((c) => c.n.p.id === x.id);
-      return mine.length ? { ...x, blocks: x.blocks.map((y, bi) => { const c = mine.find((m) => m.n.bi === bi); return c ? { ...y, name: c.name, roomType: c.rt } : y; }) } : x;
-    }));
-    else useInv.getState().set('unitEdits', (e) => { const n = { ...e }; changed.forEach((c) => { n[`flat|${c.n.flat!.id}`] = { code: c.name }; }); return n; });
-    if (changed.length) toast.success(`${changed.length === 1 ? changed[0].name : `${changed.length} ${noun}s`} saved`);
+    if (!changed.length) { closeEdit(); return; }
+    const msg = `${changed.length === 1 ? changed[0].name : `${changed.length} ${noun}s`} saved`;
+    if (kind === 'B') {
+      const pids = [...new Set(changed.map((c) => c.n.p.id))], pre = changed.map((c) => `${c.n.p.id}:${c.n.bi}:`);
+      withUndo(msg, { props: pids, edit: (k) => pre.some((x) => k.startsWith(x)) },
+        () => saveBlocks(changed.map((c) => ({ p: live(c.n), bi: c.n.bi, name: c.name, roomType: c.rt }))));
+    } else {
+      const keys = changed.map((c) => `flat|${c.n.flat!.id}`);
+      withUndo(msg, { edit: (k) => keys.includes(k) },
+        () => useInv.getState().set('unitEdits', (e) => { const n = { ...e }; changed.forEach((c) => { n[`flat|${c.n.flat!.id}`] = { code: c.name }; }); return n; }));
+    }
     closeEdit();
   };
   /* Flats (2026-11-27): their Block (grouped where they differ), then every name listed, so Edit plainly covers renaming
@@ -506,14 +538,14 @@ function MultiPanel({ nodes, onClose }: { nodes: Node[]; onClose: () => void }) 
   const one = (vals: string[], names: string[]): ReactNode => (new Set(vals).size === 1 ? vals[0]
     : <Spread entries={vals.map((v, i) => ({ name: names[i], key: v, value: v }))} />);
   const flatRows: [string, ReactNode][] = kind !== 'L' ? [] : [
-    ['Block', one(nodes.map((n) => n.p.blocks[n.bi]?.name ?? ''), nodes.map((n) => n.name))],
+    [blockWord(nodes[0].p), one(nodes.map((n) => n.p.blocks[n.bi]?.name ?? ''), nodes.map((n) => n.name))],
     ['Names', <div className="flex flex-col gap-1">{nodes.slice(0, COMPARE_MAX).map((n) => <span key={n.key} className="truncate">{label(n)}</span>)}
       {nodes.length > COMPARE_MAX && <span className="text-[#737373]">+{nodes.length - COMPARE_MAX} more</span>}</div>],
   ];
   return (
     <aside className="shrink-0 w-[520px] flex flex-col border-l border-[#E5E5E5] bg-white min-h-0">
       <div className="h-14 shrink-0 px-5 flex items-center gap-3 border-b border-[#E5E5E5]">
-        <span className="font-mono text-[11px] uppercase tracking-wide text-[#737373]">{nodes.length} {noun}s</span>
+        <span className="font-mono text-[11px] uppercase tracking-wide text-[#737373]">{nodes.length} {noun}s selected</span>
         <button type="button" aria-label="Close" title="Close" onClick={onClose} className="ml-auto size-8 shrink-0 rounded-lg flex items-center justify-center text-[#404040] hover:bg-[#F5F5F5] hover:text-ink transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"><X size={18} strokeWidth={1.75} /></button>
       </div>
       {/* Spaced as the single panel (2026-11-27): the summary's own space under it, then the cards 12px apart (their own margin). */}
@@ -528,14 +560,18 @@ function MultiPanel({ nodes, onClose }: { nodes: Node[]; onClose: () => void }) 
               : nodes.length > COMPARE_MAX ? [['Room type', rts.length === 1 ? rts[0] : <Spread entries={nodes.map((n) => { const v = rtOf(n); return { name: label(n), key: v, value: v || '—' }; })} />]] : undefined}>
             {kind === 'B' && nodes.length <= COMPARE_MAX && <CompareTable cols={nodes.map(label)} rows={[{ label: 'Room type', values: nodes.map((n) => rtOf(n) || '—') }]} />}
           </SheetSection>
-          <PanelModal open={dd != null} onClose={closeEdit} width={kind === 'B' ? 640 : 560} eyebrow="Edit details" title={`${nodes.length} ${noun}s`} meta={meta} icon={ICONS[kind]}
-            right={<><Button onClick={closeEdit}>Cancel</Button><Button variant="primary" onClick={saveDetails}>Save</Button></>}>
+          <PanelModal open={dd != null} onClose={closeEdit} width={kind === 'B' ? 640 : 560} eyebrow="Edit details" pos={review ? 'Review' : undefined} title={`${nodes.length} ${noun}s`} meta={meta} icon={ICONS[kind]}
+            left={review ? <Button variant="ghost" icon={null} onClick={() => setReview(false)}>Back</Button> : undefined}
+            right={review
+              ? <><Button onClick={closeEdit}>Cancel</Button><Button variant="primary" disabled={!changed.length} onClick={saveDetails}>{changed.length ? `Change ${changed.length} ${changed.length === 1 ? noun : `${noun}s`}` : 'Nothing to change'}</Button></>
+              : <><Button onClick={closeEdit}>Cancel</Button><Button variant="primary" onClick={toReview}>Review</Button></>}>
+            {review ? <DetailsReview changed={changed.map((c) => ({ p: live(c.n), bi: c.n.bi, label: label(c.n), was: c.n.name, name: c.name, rtWas: kind === 'B' ? rtOf(c.n) : '', rt: kind === 'B' ? c.rt : '' }))} /> : <>
             <SheetSection title="Rename all">
               {/* Plain words (2026-11-27): say where the number goes, and show the names it will make before Apply. */}
               <div className="flex items-end gap-2">
                 <label className="flex-1 min-w-0 flex flex-col gap-1.5">
                   <span className="text-sm leading-5 text-[#737373]">Name format</span>
-                  <Input value={pat} onChange={(e) => setPat(e.target.value)} placeholder={kind === 'B' ? 'Block #' : 'Flat 1.#'} onKeyDown={(e) => { if (e.key === 'Enter') applyPattern(); }} />
+                  <Input value={pat} onChange={(e) => setPat(e.target.value)} placeholder={kind === 'B' ? `${word} #` : 'Flat 1.#'} onKeyDown={(e) => { if (e.key === 'Enter') applyPattern(); }} />
                 </label>
                 <label className="w-[104px] shrink-0 flex flex-col gap-1.5">
                   <span className="text-sm leading-5 text-[#737373]">First number</span>
@@ -545,7 +581,7 @@ function MultiPanel({ nodes, onClose }: { nodes: Node[]; onClose: () => void }) 
               </div>
               <p className="mt-2 text-xs leading-4 text-[#737373] truncate">{pat.trim()
                 ? <>Makes {preview.join(', ')}{nodes.length > 3 ? ' …' : ''}</>
-                : <>Type # where the number goes. {kind === 'B' ? '“Block #”' : '“Flat 1.#”'} makes {kind === 'B' ? 'Block 1, Block 2, Block 3' : 'Flat 1.1, Flat 1.2, Flat 1.3'} …</>}</p>
+                : <>Type # where the number goes. {kind === 'B' ? `“${word} #”` : '“Flat 1.#”'} makes {kind === 'B' ? `${word} 1, ${word} 2, ${word} 3` : 'Flat 1.1, Flat 1.2, Flat 1.3'} …</>}</p>
             </SheetSection>
             <SheetSection title={kind === 'B' ? 'Names and room types' : 'Names'}>
               <div className={cx('grid gap-x-3 pb-2 font-mono text-[11px] leading-4 uppercase tracking-[0.04em] text-[#737373]', kind === 'B' ? 'grid-cols-[minmax(0,1fr)_200px_160px]' : 'grid-cols-[minmax(0,1fr)_220px]')}>
@@ -561,7 +597,7 @@ function MultiPanel({ nodes, onClose }: { nodes: Node[]; onClose: () => void }) 
                         <Input aria-label={`New name, ${label(n)}`} value={nameAt(i)} aria-invalid={!!err || undefined}
                           onChange={(e) => setDd((d) => ({ ...d, [i]: { ...d?.[i], name: e.target.value } }))} />
                         {kind === 'B' && <Dropdown ariaLabel={`Room type, ${label(n)}`} value={dd?.[i]?.rt ?? rtOf(n)} placeholder="Choose"
-                          onChange={(v) => setDd((d) => ({ ...d, [i]: { ...d?.[i], rt: v } }))} options={ROOM_TYPES.map((t) => ({ value: t, label: t }))} />}
+                          onChange={(v) => setDd((d) => ({ ...d, [i]: { ...d?.[i], rt: v } }))} options={[...new Set([rtOf(n), ...roomTypesOf(n.p)])].filter(Boolean).map((t) => ({ value: t, label: t }))} />}
                       </div>
                       {err && <div className={cx('grid gap-x-3', kind === 'B' ? 'grid-cols-[minmax(0,1fr)_360px]' : 'grid-cols-[minmax(0,1fr)_220px]')}><span /><FieldErr>{err}</FieldErr></div>}
                     </div>
@@ -569,13 +605,92 @@ function MultiPanel({ nodes, onClose }: { nodes: Node[]; onClose: () => void }) 
                 })}
               </div>
             </SheetSection>
+            </>}
           </PanelModal>
           </>
         )}
-        <MultiLevelFields kind={levelKind} items={nodes.map((n) => ({ p: n.p, id: idOf(n), name: label(n) }))} name={`${nodes.length} ${noun}s`} meta={meta} />
+        <MultiLevelFields kind={levelKind} items={nodes.map((n) => ({ p: n.p, id: idOf(n), name: label(n) }))} name={`${nodes.length} ${noun}s`} meta={meta} noun={noun} />
         </div>
       </div>
     </aside>
+  );
+}
+
+/** A block room type change, asked first (2026-11-27): it reprices every unit in the block, so say how many, the rent
+ *  now and after, and how many units lose a type or rent of their own. One line per block. */
+type RtChange = { p: Property; bi: number; name: string; roomType: string };
+function RoomTypeConfirm({ changes, onClose, onConfirm }: { changes: RtChange[] | null; onClose: () => void; onConfirm: () => void }) {
+  const rows = (changes ?? []).map((c) => ({ c, i: roomTypeImpact(c.p, c.bi, c.roomType) }));
+  const total = rows.reduce((t, r) => t + r.i.units, 0), own = rows.reduce((t, r) => t + r.i.own, 0);
+  const one = rows.length === 1 ? rows[0] : null;
+  const words = [...new Set(rows.map((r) => blockWord(r.c.p).toLowerCase()))];
+  const word = words.length === 1 ? words[0] : 'block';
+  return (
+    <Confirm open={!!changes} onClose={onClose} confirm="Change room type" onConfirm={onConfirm}
+      title={one ? `Change ${one.c.p.blocks[one.c.bi].name} to ${one.c.roomType}?` : `Change room type for ${rows.length} ${word}s?`}
+      sub={`${total.toLocaleString('en-GB')} ${total === 1 ? 'unit takes' : 'units take'} the new room type and its rent.${own ? ` ${own} ${own === 1 ? 'unit has' : 'units have'} its own type or rent, which will be reset.` : ''}`}>
+      <div className="flex flex-col gap-2">
+        {rows.slice(0, 6).map(({ c, i }) => (
+          <div key={`${c.p.id}|${c.bi}`} className="text-sm leading-5">
+            <div className="font-medium text-ink truncate">{c.p.blocks[c.bi].name} → {c.roomType}</div>
+            <div className="text-[#737373]">{i.units} units · {i.now || 'no rent'} → {i.to || 'no price set'}</div>
+          </div>
+        ))}
+        {rows.length > 6 && <div className="text-sm text-[#737373]">+{rows.length - 6} more</div>}
+      </div>
+    </Confirm>
+  );
+}
+
+/** An amount with its pence smaller (12px) and grey (2026-11-27), so the pounds read first: "£217" ink, ".26" muted. Whole amounts show
+ *  ".00" so the column lines up. */
+function Pounds({ n }: { n: number }) {
+  const [whole, pence] = money(n, true).split('.');
+  return <span>{whole}<span className="text-xs text-[#A3A3A3]">.{pence}</span></span>;
+}
+
+/** The Details review (2026-11-27): each record that changes, its name and room type old → new; a room type change also
+ *  says how many units take it, their rent now → after, and how many units lose a type or rent of their own. */
+function DetailsReview({ changed }: { changed: { p: Property; bi: number; label: string; was: string; name: string; rtWas: string; rt: string }[] }) {
+  if (!changed.length) return <SheetSection title="What changes"><p className="text-sm leading-5 text-[#737373]">Nothing changed.</p></SheetSection>;
+  return (
+    <SheetSection title="What changes">
+      <div className="divide-y divide-[#F0F0F0] -my-1">
+        {changed.map((c) => {
+          const i = c.rt && c.rt !== c.rtWas ? roomTypeImpact(c.p, c.bi, c.rt) : null;
+          return (
+            <div key={`${c.p.id}|${c.bi}|${c.label}`} className="py-3 first:pt-1 last:pb-1">
+              <div className="font-medium text-sm text-ink truncate">{c.label}</div>
+              {c.name !== c.was && <div className="mt-2 grid grid-cols-[96px_minmax(0,1fr)] gap-3 items-center text-sm"><span className="text-[#737373]">Name</span><span className="min-w-0 flex items-center gap-2"><Old>{c.was}</Old><ArrowRight size={14} className="shrink-0 text-[#737373]" /><New>{c.name}</New></span></div>}
+              {i && <>
+                <div className="mt-2 grid grid-cols-[96px_minmax(0,1fr)] gap-3 items-center text-sm"><span className="text-[#737373]">Room type</span><span className="min-w-0 flex items-center gap-2"><Old>{c.rtWas}</Old><ArrowRight size={14} className="shrink-0 text-[#737373]" /><New>{c.rt}</New></span></div>
+                <div className="mt-2 grid grid-cols-[96px_minmax(0,1fr)] gap-3 items-center text-sm"><span className="text-[#737373]">Rent</span><span className="min-w-0 flex items-center gap-2 flex-wrap">{i.now ? <Old>{i.now}</Old> : <span className="text-[#A3A3A3]">—</span>}<ArrowRight size={14} className="shrink-0 text-[#737373]" /><New>{i.to || 'no price set'}</New><span className="text-xs text-[#737373] tabular-nums">{i.units} units</span></span></div>
+                {i.own > 0 && <div className="mt-2 text-xs text-[#B45309]">{i.own} {i.own === 1 ? 'unit has' : 'units have'} its own type or rent, which will be reset.</div>}
+              </>}
+            </div>
+          );
+        })}
+      </div>
+    </SheetSection>
+  );
+}
+
+/** Says multi-select exists (2026-11-27): a quiet grey line under a block, floor or flat's summary, until dismissed (kept in
+ *  this browser). */
+const TIP_KEY = 'units.multiTip.dismissed';
+function MultiTip({ noun }: { noun: string }) {
+  const [gone, setGone] = useState(() => { try { return localStorage.getItem(TIP_KEY) === '1'; } catch { return false; } });
+  if (gone) return null;
+  const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
+  return (
+    /* Quiet (2026-11-27): one grey line, no box or colour, so it reads as a tip rather than an alert. The summary already
+       leaves 16px under it, so the tip pulls up to sit 12px below the facts and 16px above the tabs. */
+    <div className="-mt-1 mb-4 flex items-center gap-1.5 text-xs leading-4 text-[#404040]">
+      <Info size={14} aria-hidden className="shrink-0 text-[#737373]" />
+      <span className="min-w-0 flex-1">{mod}-click or Shift-click other <span className="font-semibold text-ink">{noun}s</span> to edit several at once.</span>
+      <button type="button" aria-label="Dismiss tip" onClick={() => { setGone(true); try { localStorage.setItem(TIP_KEY, '1'); } catch { /* private mode */ } }}
+        className="shrink-0 size-5 rounded grid place-items-center text-[#A3A3A3] hover:bg-[#F5F5F5] hover:text-ink"><X size={12} /></button>
+    </div>
   );
 }
 
@@ -586,6 +701,7 @@ function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetN
      units. One property, so one bookable type: the edit always applies. */
   const [checked, setChecked] = useState<string[]>([]);
   const [bulkEdit, setBulkEdit] = useState(false);
+  const [askRt, setAskRt] = useState<RtChange[] | null>(null);
   const tri = (ids: string[]): boolean | 'indeterminate' => { const k = ids.filter((id) => checked.includes(id)).length; return !k ? false : k === ids.length ? true : 'indeterminate'; };
   const toggleIds = (ids: string[]) => setChecked((c) => (ids.every((id) => c.includes(id)) ? c.filter((x) => !ids.includes(x)) : [...new Set([...c, ...ids])]));
   const bulkStatus = (st: UStatus) => {
@@ -595,7 +711,7 @@ function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetN
     setChecked([]);
   };
   const sh = shapeOf(n.p, useInv.getState().structures);
-  const kidName = n.kind === 'P' ? (sh.house ? 'House' : 'Block') : n.kind === 'B' ? 'Floor' : 'Flat';
+  const kidName = n.kind === 'P' ? (sh.house ? 'House' : blockWord(n.p)) : n.kind === 'B' ? 'Floor' : 'Flat';
   const active = n.units.filter((u) => u.status === 'Active').length;
   /* Facts in colour (2026-11-26): Active green; Let by its band, as the tree's bar (green 90%+, orange 80%+, red below). */
   const letP = pct(n.units);
@@ -612,7 +728,7 @@ function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetN
   return (
     <aside className={'shrink-0 w-[520px] flex flex-col border-l border-[#E5E5E5] bg-white min-h-0'}>
       <div className="h-14 shrink-0 px-5 flex items-center gap-3 border-b border-[#E5E5E5]">
-        <span className="font-mono text-[11px] uppercase tracking-wide text-[#737373]">{sh.house && n.kind === 'L' ? 'House' : KIND_NAME[n.kind]}</span>
+        <span className="font-mono text-[11px] uppercase tracking-wide text-[#737373]">{sh.house && n.kind === 'L' ? 'House' : kindName(n.kind, n.p)}</span>
         <div className="ml-auto flex items-center gap-3">
           <SheetNavButtons nav={nav} />
           {/* As the other sheets (2026-11-27): a thin line after the chevrons, then a plain × with no outline. */}
@@ -624,6 +740,7 @@ function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetN
         <div className="px-5 pt-5">
           <SheetHero icon={ICONS[n.kind]} name={n.name} meta={meta} facts={facts}
             lead={n.kind === 'P' && photoOf(n.p.id) ? <img src={photoOf(n.p.id)} alt="" className="size-14 shrink-0 rounded-xl object-cover bg-[#F5F5F5]" /> : undefined} />
+          {n.kind !== 'P' && <MultiTip noun={kindName(n.kind, n.p).toLowerCase()} />}
         </div>
         {/* Tabs as on every record panel (2026-11-26): LineTabs, the ink underline on a full-width rule. */}
         <LineTabs value={tab} onChange={setTab} tabs={Object.entries(tabs).map(([id, label]) => ({ id, label }))} />
@@ -636,7 +753,7 @@ function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetN
               <section className="border-t border-[#EBEBEB]">
                 <div className="sticky top-0 z-[2] h-9 px-5 flex items-center gap-4 bg-white border-b border-[#EBEBEB] font-mono text-[11px] uppercase tracking-wide text-[#737373]">
                   <span className="w-4 shrink-0 flex"><Checkbox aria-label="Select all units" className="size-4 rounded-[4px] [&_svg]:size-3" checked={tri(n.units.map((u) => u.id))} onCheckedChange={() => toggleIds(n.units.map((u) => u.id))} /></span>
-                  <span aria-hidden className="w-12 shrink-0">Unit</span><span aria-hidden className="flex-1 min-w-0">Room type</span><span aria-hidden className="w-20 shrink-0">Rent</span><span aria-hidden className="w-20 shrink-0">Status</span><span className="w-3.5 shrink-0" />
+                  <span aria-hidden className="w-12 shrink-0">Unit</span><span aria-hidden className="flex-1 min-w-0">Room type</span><span aria-hidden className="w-[104px] shrink-0">Rent</span><span aria-hidden className="w-20 shrink-0">Status</span><span className="w-3.5 shrink-0" />
                 </div>
                 {groups.map((g, gi) => {
                   const id = g.key ?? 'all'; const isShut = shut.includes(id);
@@ -658,11 +775,11 @@ function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetN
                       )}
                       {!isShut && g.units.map((u, k) => (
                         <div key={u.id} role="button" tabIndex={0} onClick={() => onUnit(u)} onKeyDown={(e) => { if (e.key === 'Enter') onUnit(u); }}
-                          className={cx('w-full h-12 px-5 flex items-center gap-4 text-sm text-left cursor-pointer outline-none focus-visible:bg-[#FAFAFA]', checked.includes(u.id) ? 'bg-[#EFF6FF]' : 'hover:bg-[#FAFAFA]', k > 0 && 'border-t border-[#F0F0F0]')}>
+                          className={cx('w-full h-12 px-5 flex items-center gap-4 text-sm text-left cursor-pointer outline-none focus-visible:bg-[#FAFAFA]', checked.includes(u.id) ? 'bg-[#F5F9FF]' : 'hover:bg-[#FAFAFA]', k > 0 && 'border-t border-[#F0F0F0]')}>
                           <span className="w-4 shrink-0 flex" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${u.code}`} className="size-4 rounded-[4px] [&_svg]:size-3" checked={checked.includes(u.id)} onCheckedChange={() => toggleIds([u.id])} /></span>
                           <span className="w-12 shrink-0 font-medium text-ink">{u.code}</span>
                           <span className="flex-1 min-w-0 truncate text-[#404040]">{u.type}</span>
-                          <span className="w-20 shrink-0 tabular-nums text-[#404040]">{u.rent != null ? `${money(u.rent)} / wk` : '—'}</span>
+                          <span className="w-[104px] shrink-0 whitespace-nowrap tabular-nums text-[#404040]">{u.rent != null ? <><Pounds n={u.rent} /> / wk</> : '—'}</span>
                           <span className="w-20 shrink-0 flex"><PropStatus s={u.status} /></span>
                           <CaretRight size={14} className="shrink-0 text-[#A3A3A3]" />
                         </div>
@@ -678,16 +795,19 @@ function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetN
           <div className="p-5">
             {/* Block and flat details edit in place, the same card as V1 (2026-11-26); property and floor stay read-only. */}
             {n.kind === 'B' ? <DetailsCard rows={[['Name', n.name], ['Room type', n.p.blocks[n.bi]?.roomType ?? ''], ['Property', n.p.name]]} edit={{
-                fields: [{ label: 'Name' }, { label: 'Room type', options: [...ROOM_TYPES] }],
+                fields: [{ label: 'Name' }, { label: 'Room type', options: [...new Set([n.p.blocks[n.bi]?.roomType ?? '', ...roomTypesOf(n.p)])].filter(Boolean) }],
                 validate: (v) => blockNameErr(n.p, n.bi, v.Name),
-                save: (v) => saveBlock(n.p, n.bi, v.Name.trim(), v['Room type']) }} />
-            : n.kind === 'L' && n.flat && !sh.house ? <DetailsCard rows={[['Name', n.name], ['Block', n.p.blocks[n.bi]?.name ?? ''], ['Floor', `Floor ${n.floor}`], ['Property', n.p.name]]} edit={{
+                /* A room type change reprices the block's units: ask first (2026-11-27). */
+                save: (v) => (v['Room type'] !== n.p.blocks[n.bi]?.roomType
+                  ? setAskRt([{ p: n.p, bi: n.bi, name: v.Name.trim(), roomType: v['Room type'] }])
+                  : v.Name.trim() !== n.name && withUndo(`${v.Name.trim()} saved`, { props: [n.p.id] }, () => saveBlocks([{ p: n.p, bi: n.bi, name: v.Name.trim(), roomType: v['Room type'] }]))) }} />
+            : n.kind === 'L' && n.flat && !sh.house ? <DetailsCard rows={[['Name', n.name], [blockWord(n.p), n.p.blocks[n.bi]?.name ?? ''], ['Floor', `Floor ${n.floor}`], ['Property', n.p.name]]} edit={{
                 fields: [{ label: 'Name' }],
                 validate: (v) => flatNameErr(n.flat!, flatsOf(n.p, n.bi, n.floor, useInv.getState().unitEdits), v.Name),
                 save: (v) => saveFlatName(n.flat!, v.Name.trim()) }} />
             : <SheetSection title="Details" rows={n.kind === 'P'
               ? [['Name', n.p.name], ['Location', n.p.campus], ['Address', n.p.address], ['Letting', n.p.letting]]
-              : [['Name', n.name], ...(!sh.house ? [['Block', n.p.blocks[n.bi]?.name ?? ''] as [string, ReactNode]] : []), ...(n.kind === 'L' && !sh.house ? [['Floor', `Floor ${n.floor}`] as [string, ReactNode]] : []), ['Property', n.p.name]]} />}
+              : [['Name', n.name], ...(!sh.house ? [[blockWord(n.p), n.p.blocks[n.bi]?.name ?? ''] as [string, ReactNode]] : []), ...(n.kind === 'L' && !sh.house ? [['Floor', `Floor ${n.floor}`] as [string, ReactNode]] : []), ['Property', n.p.name]]} />}
             {levelKind && <LevelFields p={n.p} kind={levelKind} id={levelId} view name={n.name} meta={meta} />}
           </div>
         )}
@@ -713,6 +833,7 @@ function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetN
           </span>
         </div>
       )}
+      <RoomTypeConfirm changes={askRt} onClose={() => setAskRt(null)} onConfirm={() => { if (askRt) withUndo(`${askRt[0].name} saved`, { props: [...new Set(askRt.map((c) => c.p.id))], edit: (k) => askRt.some((c) => k.startsWith(`${c.p.id}:${c.bi}:`)) }, () => saveBlocks(askRt)); setAskRt(null); }} />
       {bulkEdit && <BulkEditDialog ids={checked} props={[n.p]} scope={`in ${n.kind === 'P' ? n.p.name : `${n.name}, ${n.p.name}`}`} onClose={() => setBulkEdit(false)} onDone={() => { setBulkEdit(false); setChecked([]); }} />}
     </aside>
   );

@@ -143,7 +143,7 @@ export function Reviews({ bare }: { bare?: boolean } = {}) {
                 {items.map(({ row: r, motion }) => {
                   const on = ticked.includes(r.id);
                   return (
-                    <tr key={r.id} {...rowAttrs(r.id, motion)} onClick={() => setOpen(r.id)} className={cx('border-b border-[#F5F5F5] cursor-pointer [&>td]:h-10 [&>td]:px-3 [&>td]:py-[11px]', on ? 'bg-[#EFF6FF] shadow-[inset_2px_0_0_theme(colors.primary)]' : open === r.id ? 'bg-[#EFF6FF]' : 'hover:bg-[#FAFAFA]')}>
+                    <tr key={r.id} {...rowAttrs(r.id, motion)} onClick={() => setOpen(r.id)} className={cx('border-b border-[#F5F5F5] cursor-pointer [&>td]:h-10 [&>td]:px-3 [&>td]:py-[11px]', on ? 'bg-[#F5F9FF] shadow-[inset_2px_0_0_theme(colors.primary)]' : open === r.id ? 'bg-[#F5F9FF]' : 'hover:bg-[#FAFAFA]')}>
                       {canTick && <td className="!pl-[var(--cx,12px)]" onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${r.title}`} checked={on} onCheckedChange={(v) => tick(r.id, (v === true))} /></td>}
                       <td className={cx(!canTick && '!pl-[var(--cx,12px)]')}>
                         {/* Same cell as the Properties list: 120×64 photo, 16px name, 14px grey line under it. */}

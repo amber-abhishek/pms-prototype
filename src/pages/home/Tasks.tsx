@@ -190,7 +190,7 @@ function MainRow({ t, handed, sel, onOpen, onCheck, onWake }: { t: HTask; handed
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(); }}
       style={{ transitionDuration: `${phase === 'leaving' ? LEAVE_MS : ROW_IN_MS}ms` }}
       aria-selected={sel || undefined}
-      className={cx(sel && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', 'group grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] items-center border-b border-[#F5F5F5] last:border-b-transparent text-sm cursor-pointer hover:bg-[#FAFAFA] focus-visible:bg-[#FAFAFA] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
+      className={cx(sel && '!bg-[#F5F9FF] shadow-[inset_2px_0_0_#2563EB]', 'group grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1fr)_72px_40px] items-center border-b border-[#F5F5F5] last:border-b-transparent text-sm cursor-pointer hover:bg-[#FAFAFA] focus-visible:bg-[#FAFAFA] outline-none overflow-hidden transition-[height,opacity,border-color,background-color] ease-snappy',
         closed ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100')}>
       <span className="pl-[var(--cx,12px)]"><Box checked={done} disabled={handed} label={done ? `Mark “${t.title}” not done` : `Mark “${t.title}” done`} onChange={check} /></span>
       <span title={t.title} className={cx('truncate px-4 font-medium transition-colors duration-150', handed || done ? 'text-gray-400' : 'text-ink', done && 'line-through')}>{t.title}</span>
@@ -298,7 +298,7 @@ function TeamBoard({ scope }: { scope: CaseId }) {
           {moving.map(({ row: r, motion }) => (
             <div key={r.id} {...rowAttrs(r.id, motion)} role="button" tabIndex={0} onClick={() => setOpen(r.id)} onKeyDown={(e) => { if (e.key === 'Enter') setOpen(r.id); }}
               aria-selected={open === r.id || undefined}
-              className={cx(open === r.id && '!bg-[#EFF6FF] shadow-[inset_2px_0_0_#2563EB]', "grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] h-11 items-center border-b border-[#F5F5F5] last:border-b-0 text-sm cursor-pointer hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA]")}>
+              className={cx(open === r.id && '!bg-[#F5F9FF] shadow-[inset_2px_0_0_#2563EB]', "grid grid-cols-[40px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] h-11 items-center border-b border-[#F5F5F5] last:border-b-0 text-sm cursor-pointer hover:bg-[#FAFAFA] outline-none focus-visible:bg-[#FAFAFA]")}>
               <span className="pl-[var(--cx,12px)]">
                 <Box checked={sel.includes(r.id) || r.done} disabled={r.done} label={`Select “${r.title}”`}
                   onChange={(v) => setSel((s) => (v ? [...s, r.id] : s.filter((id) => id !== r.id)))} />

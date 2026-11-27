@@ -277,7 +277,7 @@ export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?:
         <Menu width={200} trigger={(o) => <button type="button" onClick={o} aria-label="More" className="size-7 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center"><DotsThree size={16} /></button>} items={[
           { label: 'Edit details', icon: PencilSimple, onClick: () => setEditOpen('basics') },
           { label: 'Copy link', icon: LinkSimple, onClick: () => { void navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); } },
-          { label: 'Pricing', icon: CurrencyGbp, onClick: () => nav('/properties/rent-fees') },
+          { label: 'Pricing', icon: CurrencyGbp, onClick: () => nav('/properties/pricing') },
           { label: 'Change letting period', icon: ArrowsLeftRight, onClick: () => setLettingOpen(true) },
           'sep',
           { label: 'Archive', icon: Archive, danger: true, onClick: () => setArchiveAsk(true) },
@@ -396,7 +396,7 @@ export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?:
               </table>}
             </Card>
             <Card className="overflow-hidden">
-              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/properties/rent-fees')} className="ml-auto text-sm text-primary">Pricing</button></div>
+              <div className="h-12 px-4 flex items-center border-b border-[#F5F5F5]"><span className="text-sm font-semibold">Tenancy templates</span><button type="button" onClick={() => nav('/properties/pricing')} className="ml-auto text-sm text-primary">Pricing</button></div>
               {templates.length ? templates.map((t) => (
                 <div key={t.id} className="h-12 px-4 flex items-center gap-3 border-b border-[#F5F5F5] last:border-0 text-sm">
                   <span className="text-sm font-medium w-44">{t.name}</span><span className="text-[#737373] flex-1">{p.letting === 'Monthly' ? `${money(toMonthly(t.rent, t.weeks).rent, true)} / mo · ${toMonthly(t.rent, t.weeks).months} mo` : `${money(t.rent)} / wk · ${t.weeks} wk`} · deposit {money(t.deposit)} · {t.billing}</span>

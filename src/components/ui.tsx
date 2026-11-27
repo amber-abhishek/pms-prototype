@@ -665,7 +665,7 @@ export function Table<T extends { id: string }>({ cols, rows, onRow, empty, afte
   const [page, setPage] = useState(0);
   useEffect(() => setPage(0), [rows.length]);
   const allCols = cols;
-  const { visible, picker } = useColumns(allCols, columns);
+  const { visible, picker } = useColumns(allCols, columns, !card);
   const pages = paginate ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
   const shown = paginate ? rows.slice(page * pageSize, page * pageSize + pageSize) : rows;
   const { items, bodyRef } = useRowMotion(shown);

@@ -1,7 +1,7 @@
 /* Units v2 (2026-11-26, Figma 4319:18110): a tree table — property › block › floor › flat — with each level's unit count
    and how much of it is let, and the picked level open in a panel beside the table (not over it): its hero, facts and
    Units / Details / Activity. Units lists the level's units under the level below, each with "Open <level>". */
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { Bed, BuildingOffice, Buildings, House, CurrencyGbp, CaretDown, CaretRight, CheckCircle, Door, DotsThree, Stack, ToggleLeft, X, type Icon } from '../../components/icons';
@@ -144,8 +144,6 @@ export function UnitsV2({ props }: { props: Property[] }) {
 
   return (
     <>
-      {/* The side panel runs the full height (2026-11-26), beside the breadcrumb bar too: the bar and the list share the
-          left column. */}
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 min-w-0 flex flex-col">
         <PageHeader title="Units" crumbs={[{ label: 'Properties', plain: true }]} />
@@ -207,10 +205,11 @@ export function UnitsV2({ props }: { props: Property[] }) {
               {!tree.some(hit) && <div className="px-6 py-10 text-sm text-[#737373]">{ql ? <>Nothing matches “{q}”.</> : 'No properties match these filters.'}</div>}
             </div>
           </section>
+          {/* The side panel sits under the breadcrumb bar, inside the page (2026-11-27), and slides in and out. */}
+          <SlidePanel show={!!cur}>{cur && <LevelPanel key={cur.key} n={cur} nav={nav} onClose={() => setSel(null)}
+            onPick={pick} onUnit={(u) => setUnitOpen({ p: cur.p, u, path: pathOf(cur, byKey, parentOf) })} />}</SlidePanel>
         </div>
         </div>
-        {cur && <LevelPanel key={cur.key} n={cur} nav={nav} onClose={() => setSel(null)}
-          onPick={pick} onUnit={(u) => setUnitOpen({ p: cur.p, u, path: pathOf(cur, byKey, parentOf) })} />}
       </div>
       {unitOpen && <UnitSheet p={unitOpen.p} unit={unitOpen.u} path={unitOpen.path} onClose={() => setUnitOpen(null)} />}
     </>
@@ -288,6 +287,33 @@ function TreeRow({ n, full, open, on, folds, onToggle, onPick, onAll }: { n: Nod
 }
 
 /* The picked level beside the table: a 56px bar (kind, ⌃ ⌄, expand, ✕), the hero with its facts, then tabs. */
+/* Opens by growing from 0 to the panel width, so the list gives way as the panel slides in from the right; closing
+   reverses it and keeps the last panel on screen until the slide ends. */
+const PANEL_W = 520;
+function SlidePanel({ show, children }: { show: boolean; children: ReactNode }) {
+  const [mounted, setMounted] = useState(show);
+  const [wide, setWide] = useState(show);
+  const last = useRef<ReactNode>(children);
+  if (show) last.current = children;
+  useEffect(() => {
+    if (show) {
+      setMounted(true);
+      let r = requestAnimationFrame(() => { r = requestAnimationFrame(() => setWide(true)); });
+      return () => cancelAnimationFrame(r);
+    }
+    setWide(false);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setMounted(false);
+  }, [show]);
+  if (!mounted) return null;
+  return (
+    <div onTransitionEnd={(e) => { if (e.target === e.currentTarget && !show) setMounted(false); }}
+      className={cx('shrink-0 overflow-hidden flex motion-reduce:transition-none transition-[width]', wide ? 'duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]' : 'duration-200 ease-in')}
+      style={{ width: wide ? PANEL_W : 0 }}>
+      <div className="shrink-0 flex min-h-0" style={{ width: PANEL_W }}>{show ? children : last.current}</div>
+    </div>
+  );
+}
+
 function LevelPanel({ n, nav, onClose, onPick, onUnit }: { n: Node; nav?: SheetNav; onClose: () => void; onPick: (k: string) => void; onUnit: (u: Unit) => void }) {
   const [tab, setTab] = useState<string>('units');
   const [shut, setShut] = useState<string[]>([]);
@@ -429,16 +455,17 @@ function IconBtn({ label, icon: I, onClick }: { label: string; icon: Icon; onCli
   return <button type="button" aria-label={label} title={label} onClick={onClick} className="size-8 rounded-lg border border-[#E5E5E5] bg-white flex items-center justify-center text-[#525252] hover:bg-[#F5F5F5] hover:text-ink"><I size={16} strokeWidth={1.75} /></button>;
 }
 
-/* The V1 / V2 switch (2026-11-26): a floating segmented pill at the bottom centre of the page; the pick is remembered. */
+/* The V1 / V2 / V3 switch (2026-11-26; V3 2026-11-27): a floating segmented pill at the bottom centre of the page; the pick is remembered. */
 const VKEY = 'pms.units.version';
-export function useUnitsVersion(): [1 | 2, (v: 1 | 2) => void] {
-  const [v, setV] = useState<1 | 2>(() => { try { return localStorage.getItem(VKEY) === '2' ? 2 : 1; } catch { return 1; } });
+export type UnitsVersion = 1 | 2 | 3;
+export function useUnitsVersion(): [UnitsVersion, (v: UnitsVersion) => void] {
+  const [v, setV] = useState<UnitsVersion>(() => { try { const s = localStorage.getItem(VKEY); return s === '2' ? 2 : s === '3' ? 3 : 1; } catch { return 1; } });
   return [v, (x) => { setV(x); try { localStorage.setItem(VKEY, String(x)); } catch { /* private mode */ } }];
 }
-export function VersionToggle({ value, onChange }: { value: 1 | 2; onChange: (v: 1 | 2) => void }) {
+export function VersionToggle({ value, onChange }: { value: UnitsVersion; onChange: (v: UnitsVersion) => void }) {
   return (
     <div role="radiogroup" aria-label="Units design" className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 p-1 rounded-full bg-[#0A0A0A] shadow-[0_8px_24px_rgba(0,0,0,0.18)] flex items-center gap-1">
-      {([1, 2] as const).map((x) => (
+      {([1, 2, 3] as const).map((x) => (
         <button key={x} type="button" role="radio" aria-checked={value === x} onClick={() => onChange(x)}
           className={cx('h-7 px-3.5 rounded-full font-mono text-[11px] uppercase tracking-wide transition-colors', value === x ? 'bg-white text-ink' : 'text-[#A3A3A3] hover:text-white')}>V{x}</button>
       ))}

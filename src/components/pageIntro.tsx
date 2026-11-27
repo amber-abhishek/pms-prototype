@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { TitleH1, cx } from './ui';
+import { Info } from './icons';
+import { Tooltip, TooltipContent, TooltipTrigger } from './shadcn/tooltip';
 
 /* Page heading with a short line on what the page is for (trial, 2026-11-24). Shown under the breadcrumb bar on
    every module page; Overview, My tasks, Units (its own level heading), the Occupancy report and the Booking site editor get none. Set INTRO_ON to false to turn
@@ -9,14 +11,14 @@ import { TitleH1, cx } from './ui';
 export const INTRO_ON = true;
 
 /** centred: the page's content is a centred column (Settings 864px, Library 720px), so the heading sits over it. */
-type Intro = { text: string; sub?: boolean; centred?: boolean | 'narrow'; /** A hairline under the intro, when a band (a warning) follows rather than a toolbar or table. */ rule?: boolean };
+type Intro = { text: string; sub?: boolean; centred?: boolean | 'narrow'; /** A hairline under the intro, when a band (a warning) follows rather than a toolbar or table. */ rule?: boolean; /** An info icon after the title with this tooltip (2026-11-27). */ tip?: string };
 const INTROS: Record<string, Intro> = {
   '/properties': { text: 'Every property you let, with its units, tags and how full it is for the coming year.', sub: true },
   '/properties/occupancy': { text: 'Who is in each room and which beds are still free.' },
-  '/properties/structures': { text: 'Layouts set the levels a property is built from, such as building, floor, flat and room.' },
+  '/properties/layouts': { text: 'Layouts set the levels a property is built from, such as building, floor, flat and room.' },
   '/properties/custom-fields': { text: 'Extra details you record on properties, units and rooms, beyond the standard ones.' },
   '/properties/tags': { text: 'Labels for grouping and filtering properties, like catered or self-catered.' },
-  '/properties/rent-fees': { text: 'Rent and fee rules that differ from a property’s standard prices.' },
+  '/properties/pricing': { text: 'Rent and fee rules that differ from a property’s standard prices.' },
   '/properties/imports': { text: 'Bring properties and units in from a spreadsheet or another system, and see past imports.' },
   '/allocations/applications': { text: 'Applications for the coming year, ready to review and allocate a room.', sub: true },
   '/allocations/offers': { text: 'Room offers you have sent, and the students waiting for one.', sub: true },
@@ -28,7 +30,7 @@ const INTROS: Record<string, Intro> = {
   '/residents/notices': { text: 'Messages to residents, sent now or scheduled, by property or group.', sub: true },
   '/offcampus/approvals': { text: 'Owners and listings waiting for your check before students can see them.', sub: true },
   '/offcampus/listings': { text: 'Private homes listed for your students, and how each one is doing.', sub: true },
-  '/offcampus/enquiries': { text: 'Questions students have sent to owners about their listings.', sub: true },
+  '/offcampus/enquiries': { text: 'Questions students have sent to owners about their listings.', sub: true, tip: 'No action needed. Owners reply to enquiries themselves; this list is for you to keep an eye on.' },
   '/offcampus/portal': { text: 'How the off-campus site behaves, how it looks and where it lives.', sub: true, centred: true },
   '/reports/library': { text: 'Ready-made reports on lettings, rent, maintenance and notices.', centred: 'narrow' },
   '/reports/library?tab=scheduled': { text: 'Reports emailed on a schedule, and who gets each one.', rule: true },
@@ -77,7 +79,17 @@ export function PageIntro({ title, end }: { title: string; /** Controls level wi
   if (!intro) return null;
   const words = (
     <>
-      <TitleH1 className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</TitleH1>
+      {intro.tip ? (
+        <div className="flex items-center gap-1.5">
+          <TitleH1 className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</TitleH1>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" aria-label="About this page" className="size-6 rounded-md flex items-center justify-center text-[#A3A3A3] hover:text-[#404040] hover:bg-black/[0.04] outline-none focus-visible:ring-2 focus-visible:ring-ring"><Info size={16} strokeWidth={1.75} /></button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[260px] whitespace-normal">{intro.tip}</TooltipContent>
+          </Tooltip>
+        </div>
+      ) : <TitleH1 className="text-xl leading-7 font-medium text-[#0A0A0A]">{title}</TitleH1>}
       <p className="mt-1 max-w-[640px] text-sm leading-5 text-[#737373]">{intro.text}</p>
     </>
   );

@@ -44,7 +44,7 @@ export type NavCounts = ReturnType<typeof useNavCounts>;
 
 /** A view inside a page (its ?tab=), shown under the row only while that page is open. */
 export type NavSub = { label: string; tab: string; count?: (c: NavCounts) => number };
-export type NavItem = { label: string; to: string; icon: Icon; count?: (c: NavCounts) => number; /** A size, not work to do (7 properties): left out of a closed module's rolled-up count. */ total?: boolean; alert?: boolean; soon?: boolean; sub?: NavSub[]; /** The row itself opens a landing page (no tab); its sub rows are the tabs. */ landing?: boolean };
+export type NavItem = { label: string; to: string; icon: Icon; count?: (c: NavCounts) => number; /** A size, not work to do (7 properties): left out of a closed module's rolled-up count. */ total?: boolean; /** A tooltip on the count (2026-11-27), e.g. Enquiries: they're for owners to answer, so nothing to do here. */ countTip?: string; alert?: boolean; soon?: boolean; sub?: NavSub[]; /** The row itself opens a landing page (no tab); its sub rows are the tabs. */ landing?: boolean };
 export type NavSection = { label?: string; action?: string; pinned?: boolean; items: NavItem[]; };
 export type Module = {
   id: string; label: string; icon: Icon; home: string; match: (path: string) => boolean;
@@ -75,10 +75,10 @@ export const modules: Module[] = [
         { label: 'Occupancy', to: '/properties/occupancy', icon: Gauge },
       ] },
       { label: 'Setup', items: [
-        { label: 'Property layouts', to: '/properties/structures', icon: Stack },
+        { label: 'Property layouts', to: '/properties/layouts', icon: Stack },
         { label: 'Custom fields', to: '/properties/custom-fields', icon: TextCursorInput },
         { label: 'Tags', to: '/properties/tags', icon: Tag },
-        { label: 'Pricing', to: '/properties/rent-fees', icon: Wallet },
+        { label: 'Pricing', to: '/properties/pricing', icon: Wallet },
         { label: 'Imports', to: '/properties/imports', icon: FileArrowUp },
       ] },
     ],
@@ -112,7 +112,7 @@ export const modules: Module[] = [
       { items: [
         { label: 'Approvals', to: '/offcampus/approvals', icon: UserCheck, count: (c) => c.landlords + c.reviews },
         { label: 'Listings', to: '/offcampus/listings', icon: House },
-        { label: 'Enquiries', to: '/offcampus/enquiries', icon: MessageSquare, count: (c) => c.enquiries },
+        { label: 'Enquiries', to: '/offcampus/enquiries', icon: MessageSquare, count: (c) => c.enquiries, countTip: 'New enquiries. No action needed: owners reply to these.' },
         { label: 'Off-campus portal', to: '/offcampus/portal', icon: AppWindow },
       ] },
     ],

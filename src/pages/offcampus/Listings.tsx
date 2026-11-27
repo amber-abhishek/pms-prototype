@@ -65,7 +65,7 @@ function HmoTab() {
                 <div className="w-[280px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={setQ} placeholder="Search owner or property" /></div>
                 <div className="ml-auto"><Tabs variant="segmented" value={tab} onChange={setTab} tabs={[{ id: 'all', label: 'All', count: hmos.length }, { id: 'active', label: 'Active', count: n('Active') }, { id: 'paused', label: 'Inactive', count: n('Paused') }]} /></div>
       </div>)}
-      <Table fill rows={rows} footer={false}
+      <Table fill rows={rows} footer={false} columns={false}
         empty={hmos.length ? (t ? <Empty art="noResults" title="No listing matches that search" /> : <Empty art="nothingToShow" title={`No ${tab === 'paused' ? 'inactive' : tab} listings`} />) : <Empty art="properties" title="No owner listings yet" sub="Approved owners’ houses show here." />}
         cols={[
           { key: 'no', label: 'S.No.', className: 'w-14', render: (h) => <span className="font-mono text-[#737373] tabular-nums">{rows.indexOf(h) + 1}</span> },

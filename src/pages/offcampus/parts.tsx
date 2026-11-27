@@ -1,7 +1,7 @@
 import { Badge } from '../../components/shadcn/badge';
 import { Illustration, type Illo } from '../../components/Illustration';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowCounterClockwise, CaretUpDown, Check, Image, X, type Icon } from '../../components/icons';
+import { ArrowCounterClockwise, CaretUpDown, Check, Image, type Icon } from '../../components/icons';
 import { Button, ConfirmFrame, Tabs, TitleH1, cx, PIN, isConfirmTitle, noAutoFocus } from '../../components/ui';
 import { Dialog, DialogContent, DialogFrame } from '../../components/shadcn/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
@@ -124,23 +124,25 @@ export function Combo({ value, auto, options, onPick, icon: I }: { /** The regio
   );
 }
 
-/** Dark floating bar for bulk actions. */
+/** The bulk footer while rows are ticked (2026-11-27): the Units page's footer, not a floating dark bar. A 59px bar
+ *  across the foot of the list, in line with the sidebar profile: "N selected" on the left, then Clear in red and the
+ *  bulk actions on the right. The list above it is the flex-1 part, so it shrinks to make room. */
 export function BulkBar({ count, children, onClear }: { count: number; children: ReactNode; onClear: () => void }) {
   if (!count) return null;
   return (
-    /* The toast's look (shadcn/sonner.tsx): a near-black 12px-radius bar, 14px white text, light pill actions and a round
-       grey × at the end, so a selection reads like the feedback toasts. */
-    <div role="toolbar" aria-label="Selection" className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 min-h-11 py-2 pl-3.5 pr-1.5 rounded-xl bg-[#0A0A0A] text-white text-sm flex items-center gap-3 shadow-[0_2px_2px_rgba(17,24,39,0.12)] animate-[pop_.15s_cubic-bezier(0.23,1,0.32,1)]">
-      <span className="mr-3 font-medium leading-5 tabular-nums whitespace-nowrap">{count} selected</span>
-      {children}
-      <button type="button" aria-label="Clear selection" onClick={onClear} className="shrink-0 size-7 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><X size={14} /></button>
+    <div role="toolbar" aria-label="Selection" className="h-[59px] shrink-0 px-6 flex items-center gap-3 border-t border-[#E5E5E5] bg-white text-sm text-[#737373]">
+      <span className="text-ink font-medium tabular-nums whitespace-nowrap">{count} selected</span>
+      <span className="ml-auto shrink-0 flex items-center gap-2">
+        <Button size="sm" variant="danger-ghost" icon={null} onClick={onClear}>Clear</Button>
+        {children}
+      </span>
     </div>
   );
 }
 
-/** An action in the BulkBar, styled as the toast's action button (Undo). */
+/** A bulk action in the BulkBar: a small primary button, as Edit units on the Units footer. */
 export const BulkAction = ({ onClick, children }: { onClick: () => void; children: ReactNode }) => (
-  <button type="button" onClick={onClick} className="shrink-0 -mr-1 h-7 px-2.5 rounded-full bg-[#0C63F8] text-sm font-medium text-white hover:bg-[#0A56D9] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 whitespace-nowrap">{children}</button>
+  <Button size="sm" variant="primary" icon={null} onClick={onClick}>{children}</Button>
 );
 
 /** Figma empty-state illustration (Workspace · Empty states). */

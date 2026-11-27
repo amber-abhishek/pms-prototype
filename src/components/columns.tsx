@@ -1,12 +1,15 @@
-import { isValidElement, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { isValidElement, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Popover, PopoverContent, PopoverTrigger } from './shadcn/popover';
-import { DotsSixVertical, Eye, EyeSlash, SlidersHorizontal } from './icons';
+import { ColumnsIcon, DotsSixVertical, Eye, EyeSlash, SlidersHorizontal } from './icons';
 
-/* Column customisation (2026-11-23), as Notion's view Properties: one Columns button in the table header opens a
+/* Column customisation (2026-11-23), as Notion's view Properties: one Columns button opens a
    list of the table's columns; drag a row (or focus its handle and press ↑ ↓) to reorder, the eye shows or hides it.
    S.No. and the first named column are the row's identity, so they stay put and can't be hidden; a header-less
-   action column always stays last. The choice is kept per table, in this browser. */
+   action column always stays last. The choice is kept per table, in this browser.
+   Where (2026-11-27): a "Columns" button at the end of the page's toolbar, beside the filters, as on Units. A table
+   with no toolbar above it (a card in Settings) keeps the small icon in its last header cell. */
 
 type C = { key: string; label: ReactNode };
 type Saved = { order: string[]; hidden: string[] };
@@ -33,7 +36,7 @@ function parts<T extends C>(cols: T[]) {
   return { lead: body.slice(0, leadN), mid: body.slice(leadN), tail };
 }
 
-export function useColumns<T extends C>(cols: T[], enabled: boolean) {
+export function useColumns<T extends C>(cols: T[], enabled: boolean, /** Put the button in the page toolbar when there is one. */ dock = true) {
   const { pathname } = useLocation();
   const id = `pms-cols:${pathname}:${cols.map((c) => c.key).join(',')}`;
   const [saved, setSaved] = useState<Saved | null>(() => (enabled ? read(id) : null));
@@ -48,12 +51,46 @@ export function useColumns<T extends C>(cols: T[], enabled: boolean) {
   const can = enabled && mid.length > 0;
   return {
     visible: can ? visible : cols,
-    picker: can ? <ColumnPicker mid={midOrdered} hidden={hidden} changed={!!saved}
-      onChange={(o, h) => save({ order: o, hidden: h })} onReset={() => save(null)} /> : null,
+    picker: can ? <Docked dock={dock} render={(inBar) => <ColumnPicker inBar={inBar} mid={midOrdered} hidden={hidden} changed={!!saved}
+      onChange={(o, h) => save({ order: o, hidden: h })} onReset={() => save(null)} />} /> : null,
   };
 }
 
-function ColumnPicker({ mid, hidden, changed, onChange, onReset }: {
+/** The page toolbar above `el` (a [data-toolbar] that comes before it in an ancestor), if any. */
+function toolbarFor(el: HTMLElement): HTMLElement | null {
+  for (let a = el.parentElement; a; a = a.parentElement) {
+    const bars = [...a.querySelectorAll<HTMLElement>('[data-toolbar]')].filter((t) => !t.contains(el) && t.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
+    if (bars.length) return bars[bars.length - 1];
+  }
+  return null;
+}
+/** Renders the picker into the page toolbar (its controls group, at the end) when one is found, else where it stands. */
+function Docked({ dock, render }: { dock: boolean; render: (inBar: boolean) => ReactNode }) {
+  const anchor = useRef<HTMLSpanElement>(null);
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const el = anchor.current; if (!dock || !el) return;
+    const bar = toolbarFor(el); if (!bar) return;
+    /* The toolbar's controls sit in its last flex child (search, filters); the button goes after them. */
+    const last = bar.lastElementChild as HTMLElement | null;
+    const host = last && getComputedStyle(last).display.includes('flex') ? last : bar;
+    const s = document.createElement('span'); s.dataset.colSlot = ''; s.style.display = 'contents';
+    /* Before the view tabs (Needs action / All) when the bar has them (2026-11-27), else at the end. Folder tabs (the
+       grey band) don't count. */
+    const tl = [...bar.querySelectorAll<HTMLElement>('[role=tablist]')].find((t) => !t.closest('[data-tab-band]'));
+    if (tl) {
+      let n: HTMLElement = tl;
+      while (n.parentElement && n.parentElement !== bar && n.parentElement.children.length === 1) n = n.parentElement;
+      n.parentElement!.insertBefore(s, n);
+    } else host.appendChild(s);
+    setSlot(s);
+    return () => { s.remove(); setSlot(null); };
+  }, [dock]);
+  return <><span ref={anchor} hidden />{slot ? createPortal(render(true), slot) : render(false)}</>;
+}
+
+function ColumnPicker({ inBar, mid, hidden, changed, onChange, onReset }: {
+  /** In the page toolbar: a bordered "Columns" button like the filters beside it. */ inBar: boolean;
   /* Only columns that can move or hide are listed; the fixed ones (S.No., the main column, actions) aren't shown. */
   mid: C[]; hidden: string[]; changed: boolean; onChange: (order: string[], hidden: string[]) => void; onReset: () => void;
 }) {
@@ -75,11 +112,15 @@ function ColumnPicker({ mid, hidden, changed, onChange, onReset }: {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" aria-label="Columns" title="Columns" onClick={(e) => e.stopPropagation()}
+        {inBar ? (
+          <button type="button" className="shrink-0 h-8 px-3 rounded-lg border border-[#E5E5E5] bg-white text-sm font-medium text-[#404040] flex items-center gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:bg-[#F5F5F5] data-[state=open]:bg-[#F5F5F5] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="relative flex"><ColumnsIcon size={16} strokeWidth={1.75} />{changed && <span aria-hidden className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-[#2563EB] ring-2 ring-white" />}</span>Columns
+          </button>
+        ) : <button type="button" aria-label="Columns" title="Columns" onClick={(e) => e.stopPropagation()}
           className="relative size-6 shrink-0 rounded-md inline-flex items-center justify-center text-[#737373] hover:text-[#0A0A0A] hover:bg-black/[0.05] data-[state=open]:bg-black/[0.05] data-[state=open]:text-[#0A0A0A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/30">
           <SlidersHorizontal size={16} strokeWidth={1.5} />
           {changed && <span aria-hidden className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-[#2563EB] ring-2 ring-white" />}
-        </button>
+        </button>}
       </PopoverTrigger>
       <PopoverContent align="end" className="p-0 overflow-hidden normal-case tracking-normal font-sans" style={{ width: 264 }}>
         <div className="h-10 px-3 flex items-center justify-between border-b border-[#E5E5E5]">
@@ -95,7 +136,9 @@ function ColumnPicker({ mid, hidden, changed, onChange, onReset }: {
                   onDragEnd={() => { setDrag(null); setOver(null); }}
                   onDragOver={(e) => { e.preventDefault(); if (over !== c.key) setOver(c.key); }}
                   onDrop={(e) => { e.preventDefault(); if (drag && drag !== c.key) move(drag, i); setDrag(null); setOver(null); }}
-                  className={`${row} group/col hover:bg-[#F5F5F5] ${drag === c.key ? 'opacity-40' : ''} ${over === c.key && drag && drag !== c.key ? 'shadow-[inset_0_2px_0_#2563EB]' : ''}`}>
+                  className={`${row} group/col hover:bg-[#F5F5F5] ${drag === c.key ? 'opacity-40' : ''} relative`}>
+                  {/* Square-ended drop line (2026-11-27), not an inset shadow bent by the row's rounded corners. */}
+                  {over === c.key && drag && drag !== c.key && <span aria-hidden className="pointer-events-none absolute inset-x-0 -top-px h-0.5 bg-[#2563EB]" />}
                   <button type="button" id={`colgrip-${c.key}`} aria-label={`Move ${nameOf(c)}`} title="Drag, or use ↑ ↓" onKeyDown={(e) => onKey(e, c.key)}
                     className="w-4 h-6 shrink-0 -ml-0.5 rounded flex items-center justify-center text-[#A3A3A3] cursor-grab active:cursor-grabbing group-hover/col:text-[#525252] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/30">
                     <DotsSixVertical size={14} strokeWidth={1.75} />

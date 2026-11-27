@@ -589,8 +589,8 @@ export function RuleFilter({ fields, value, onChange, focus, compact }: {
               const inN = fields.filter((f) => f.nest === n), on = inN.filter((f) => active.includes(f)).length;
               return (
                 <div key={n} className="mt-2 pt-2 border-t border-[#F5F5F5]">
-                  <button type="button" onClick={() => setSub(n)} className="w-[calc(100%-16px)] mx-2 h-8 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2 text-sm text-ink">
-                    <SlidersHorizontal size={16} className="text-gray-500" /><span className="truncate">{n}</span>
+                  <button type="button" onClick={() => setSub(n)} className="w-[calc(100%-16px)] mx-2 h-9 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2.5 text-sm text-ink">
+                    {/* A toned tile like the fields above it (2026-11-27). */}<ToneTile icon={SlidersHorizontal} tone="grey" size={24} /><span className="truncate">{n}</span>
                     <span className="ml-auto font-mono text-xs text-gray-400 tabular-nums">{on ? `${on} on · ` : ''}{inN.length}</span>
                     <CaretRight size={12} className="shrink-0 text-gray-400" />
                   </button>

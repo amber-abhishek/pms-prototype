@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { NotFound } from './Misc';
 import { ImportsPage } from './inventory/Imports';
 import { OccupancyPage } from './inventory/Occupancy';
@@ -8,6 +8,11 @@ import { RentFeesPage } from './inventory/RentFees';
 import { CustomFieldsPage, StructuresPage, TagsPage } from './inventory/Setup';
 import { UnitsPage } from './inventory/Units';
 import { AddPropertyWizard } from './inventory/Wizard';
+
+function Moved({ to }: { to: string }) {
+  const { search } = useLocation();
+  return <Navigate to={`/properties/${to}${search}`} replace />;
+}
 
 export function InventoryRoutes() {
   return (
@@ -19,10 +24,13 @@ export function InventoryRoutes() {
       <Route path=":id" element={<><PropertiesPage /><PropertyDetail /></>} />
       <Route path="units" element={<UnitsPage />} />
       <Route path="occupancy" element={<OccupancyPage />} />
-      <Route path="structures" element={<StructuresPage />} />
+      <Route path="layouts" element={<StructuresPage />} />
       <Route path="custom-fields" element={<CustomFieldsPage />} />
       <Route path="tags" element={<TagsPage />} />
-      <Route path="rent-fees" element={<RentFeesPage />} />
+      <Route path="pricing" element={<RentFeesPage />} />
+      {/* Old addresses for Property layouts and Pricing, kept so saved links still open. */}
+      <Route path="structures" element={<Moved to="layouts" />} />
+      <Route path="rent-fees" element={<Moved to="pricing" />} />
       <Route path="imports" element={<ImportsPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -18,7 +18,7 @@ const TABS: { id: string; label: string; to: string; icon: Icon; external?: bool
   { id: 'general', label: 'General', to: '/settings', icon: Gear },
   { id: 'academic-year', label: 'Letting year', to: '/settings/academic-year', icon: CalendarBlank },
   { id: 'notifications', label: 'Notifications', to: '/settings/notifications', icon: Bell },
-  { id: 'structures', label: 'Structures', to: '/properties/structures', icon: TreeStructure, external: true },
+  { id: 'structures', label: 'Structures', to: '/properties/layouts', icon: TreeStructure, external: true },
   { id: 'custom-fields', label: 'Custom fields', to: '/properties/custom-fields', icon: Textbox, external: true },
   { id: 'payments', label: 'Payments', to: '/settings/payments', icon: CreditCard },
   { id: 'integrations', label: 'Integrations', to: '/settings/integrations', icon: Plug },

@@ -170,7 +170,10 @@ function PageRow({ it, count, locked, collapsed }: { it: NavItem; count?: number
       <I size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
-      {has && <span className={cx('text-xs leading-4 font-medium tabular-nums', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>}
+      {has && (() => {
+        const badge = <span className={cx('text-xs leading-4 font-medium tabular-nums', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>;
+        return it.countTip ? <Tooltip><TooltipTrigger asChild>{badge}</TooltipTrigger><TooltipContent side="right">{it.countTip}</TooltipContent></Tooltip> : badge;
+      })()}
     </>
   );
   if (disabled) return <div className={cls} aria-disabled>{inner}</div>;

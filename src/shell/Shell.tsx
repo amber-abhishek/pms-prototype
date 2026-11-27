@@ -343,7 +343,10 @@ function PanelRow({ it, count, locked, mode }: { it: NavItem; count?: number; lo
       {mode === 'module' && <PI size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0" />}
       <span className="flex-1 truncate">{it.label}</span>
       {it.soon && <Pill tone="purple">Soon</Pill>}
-      {!open && count !== undefined && count > 0 && <span className={cx('font-mono text-xs font-normal tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>}
+      {!open && count !== undefined && count > 0 && (() => {
+        const badge = <span className={cx('font-mono text-xs font-normal tabular-nums', action && 'group-hover/row:invisible group-focus-within/row:invisible', it.alert ? 'text-[#DC2626]' : 'text-[#737373]')}>{count}</span>;
+        return it.countTip ? <Tooltip><TooltipTrigger asChild>{badge}</TooltipTrigger><TooltipContent side="right">{it.countTip}</TooltipContent></Tooltip> : badge;
+      })()}
       {/* A page with views (Listings: Owner, Partners) gets the module rows' chevron: right when closed, down when open. */}
       {it.sub && !disabled && (open
         ? <ChevronDown size={16} strokeWidth={1.5} absoluteStrokeWidth className="shrink-0 text-[#A3A3A3]" />

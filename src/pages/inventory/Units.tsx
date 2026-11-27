@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Archive, ArrowRight, CheckCircle, CaretDown, CurrencyGbp, Hash, TextT, ToggleLeft, Tag, ArrowUUpLeft, Bed, Buildings, Stack, CaretRight, MapPin, Door, DotsThree, Info, ListDashes, PencilSimple, Plus, Warning, X, WarningCircle, ChevronsUpDown,
+  Archive, ArrowRight, CheckCircle, CaretDown, CurrencyGbp, Hash, TextT, ToggleLeft, Tag, ArrowUUpLeft, Bank, Bed, Buildings, Stack, CaretRight, MapPin, Door, DotsThree, Info, ListDashes, PencilSimple, Plus, Warning, X, WarningCircle, ChevronsUpDown,
 } from '../../components/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/shadcn/popover';
 import { PersonName, Button, Dropdown, Empty, Field, Input, PageHeader, Pill, SearchInput, Sheet, SheetHero, SheetRow, SheetSection, cx, listNav, type SheetNav, PIN, SelectFilter } from '../../components/ui';
@@ -17,6 +17,7 @@ import { LevelFields, LevelSheet, attachKey, layoutOf, useDraftValues, useFilled
 import { PHOTO, photoOf } from './photos';
 import { PropertyDetail } from './PropertyDetail';
 import { UnitsV2, VersionToggle, useUnitsVersion } from './UnitsV2';
+import { UnitsTree } from './UnitsTree';
 import { EmptyArea } from '../allocations/common';
 import { StatusTabsBar } from '../offcampus/parts';
 
@@ -54,7 +55,8 @@ const nameOf = (f: Flat, sh: Shape) => (sh.house ? `House ${f.id.split('|')[3]}`
 /** Units table column widths; Template takes what's left. */
 /* Block and Floor carry a group checkbox on hover, so they're 20px wider; Room type gives some back. Every column is a
    fixed width (custom field columns 150) and a blank last column takes what's left. */
-const COL_W: Record<string, number> = { Property: 180, House: 100, Unit: 80, Block: 130, Floor: 110, Flat: 100, 'Room type': 150, Rent: 80, Status: 100, Template: 140 };
+/* Tightened (2026-11-27) so a block or floor fits beside the V3 tree without a sideways scroll. */
+const COL_W: Record<string, number> = { Property: 180, House: 92, Unit: 88, Block: 120, Floor: 96, Flat: 88, 'Room type': 132, Rent: 88, Status: 104, Template: 136 };
 const colW = (h: string) => COL_W[h] ?? (h.startsWith('cf:') ? 150 : undefined);
 /** The optional columns, in their order; custom fields join as cf:<id> (Columns, 2026-11-26). */
 const BASE_COLS = ['Room type', 'Rent', 'Status', 'Template'];
@@ -87,13 +89,14 @@ export function UnitsPage() {
   );
   return <UnitsSwitch props={props} />;
 }
-/* V1 (the flat table) or V2 (tree + side panel, 2026-11-26), picked by the floating switch at the bottom. */
+/* V1 (the flat table), V2 (tree table + side panel, 2026-11-26) or V3 (V1 with the left property tree, 2026-11-27), picked by
+   the floating switch at the bottom. */
 function UnitsSwitch({ props }: { props: Property[] }) {
   const [v, setV] = useUnitsVersion();
-  return <>{v === 2 ? <UnitsV2 props={props} /> : <UnitsView props={props} />}<VersionToggle value={v} onChange={setV} /></>;
+  return <>{v === 2 ? <UnitsV2 props={props} /> : <UnitsView key={v} props={props} tree={v === 3} />}<VersionToggle value={v} onChange={setV} /></>;
 }
 
-function UnitsView({ props }: { props: Property[] }) {
+function UnitsView({ props, tree = false }: { props: Property[]; /** V3: the left property tree picks the place, and holds Location. */ tree?: boolean }) {
   const [sp, setSp] = useSearchParams();
   const [open, setOpen] = useOpen();
   const edits = useInv((s) => s.unitEdits);
@@ -241,7 +244,10 @@ function UnitsView({ props }: { props: Property[] }) {
      doesn't already name and the layout has. */
   const gb = gbKey != null;
   /* Sorted or grouped, the table is one flat list: the place levels become plain columns and nothing pins (2026-11-26). */
-  const flatView = gb || !!sort;
+  /* A sort keeps the table's shape (2026-11-27): Block or Floor reorders blocks, or floors, inside their parent; any
+     other column sorts the units inside their own group. Only Group by flattens the table. */
+  const placeSort = !gb && (sort?.col === 'Block' || sort?.col === 'Floor');
+  const flatView = gb;
   const placeCols: string[] = flatView ? (allMode ? ['Property', 'Block', 'Floor', 'Flat'] : sh.house ? ['House'] : ['Block', 'Floor', ...(sh.flats ? ['Flat'] : [])])
     : allMode ? ['Block', 'Floor', 'Flat']
     : grouped ? (mode === 'property' ? ['Floor', ...(sh.flats ? ['Flat'] : [])] : sh.flats ? ['Flat'] : [])
@@ -284,7 +290,7 @@ function UnitsView({ props }: { props: Property[] }) {
   /* Figma 4251:17646: the heading is the place, property · block · floor; each part above the current one goes back up. */
   const floorName = p.structure === 'House' ? 'Houses' : `Floor ${sel.floor}`;
   const place: { label: string; onClick?: () => void }[] = /* Not "All properties" (2026-11-26): that's the Properties page's own name, so here it reads as units. */
-    allMode ? [{ label: propF.length ? `Units in ${scopeProps.length} properties` : loc ? `Units in ${loc}` : 'All units' }] : [
+    allMode ? [{ label: propF.length ? (scopeProps.length === 1 ? `Units in ${scopeProps[0].name}` : `Units in ${scopeProps.length} properties`) : loc ? `Units in ${loc}` : 'All units' }] : [
     { label: p.name, onClick: mode !== 'property' ? toProperty : undefined },
     ...(block && !sh.house ? [{ label: block.name, onClick: mode === 'floor' || mode === 'flat' ? () => toBlock(sel.bi!) : undefined }] : []),
     ...(sel.floor != null && !sh.house ? [{ label: floorName, onClick: mode === 'flat' ? () => toFloor(sel.bi!, sel.floor!) : undefined }] : []),
@@ -316,6 +322,8 @@ function UnitsView({ props }: { props: Property[] }) {
     if (col === 'Rent') return u.rent;
     if (col === 'Status') return u.status;
     if (col === 'Template') return xVal('template', u);
+    /* Block and Floor sort too (2026-11-27): by the block's name, then by floor number. */
+    if (col === 'Block' || col === 'Floor') { const at = parseUnit(u.id); if (!at) return undefined; return col === 'Floor' ? at.floor : props.find((x) => x.id === at.pid)?.blocks[at.bi ?? 0]?.name; }
     if (col.startsWith('cf:')) return fieldValues[u.id]?.[col.slice(3)];
     return undefined;
   };
@@ -329,6 +337,25 @@ function UnitsView({ props }: { props: Property[] }) {
   };
   const sorted: Row[] = (() => {
     if (!sort) return rows0;
+    if (placeSort) {
+      /* Properties keep their order; blocks (by name) or floors (by number, inside their block) flip. */
+      const pIdx = new Map<string, number>();
+      const key = (u: Unit) => { const at = parseUnit(u.id); if (!at) return null; if (!pIdx.has(at.pid)) pIdx.set(at.pid, pIdx.size); return at; };
+      const dir = sort.dir === 'asc' ? 1 : -1;
+      return rows0.map((r, i) => ({ r, i, at: key(r.u) })).sort((a, b) => {
+        if (!a.at || !b.at) return a.i - b.i;
+        const pd = pIdx.get(a.at.pid)! - pIdx.get(b.at.pid)!; if (pd) return pd;
+        const bn = (x: Sel) => props.find((q) => q.id === x.pid)?.blocks[x.bi ?? 0]?.name ?? '';
+        if (sort.col === 'Block') return dir * bn(a.at).localeCompare(bn(b.at), undefined, { numeric: true }) || a.i - b.i;
+        return (a.at.bi ?? 0) - (b.at.bi ?? 0) || dir * ((a.at.floor ?? 0) - (b.at.floor ?? 0)) || a.i - b.i;
+      }).map((x) => x.r);
+    }
+    if (!gb) {
+      /* Units sort inside their innermost pinned group (the lead and pinned level cells they sit under; Flat is a plain column), so groups stay whole and in place. */
+      const gIdx = new Map<string, number>();
+      const chain = (r: Row) => { const k = [r.lead?.g ?? r.lead?.key ?? '', ...(r.place ?? []).slice(0, subCols.length).map((c) => c.g ?? '')].join('/'); if (!gIdx.has(k)) gIdx.set(k, gIdx.size); return gIdx.get(k)!; };
+      return rows0.map((r, i) => ({ r, i, g: chain(r) })).sort((a, b) => a.g - b.g || cmp(a.r.u, b.r.u) || a.i - b.i).map((x) => x.r);
+    }
     return rows0.map((r, i) => ({ r, i })).sort((a, b) => cmp(a.r.u, b.r.u) || a.i - b.i).map((x) => x.r);
   })();
   /* Group by a field (2026-11-26): a 48px header row per value, with its count, a box to tick the group and a caret to fold it. */
@@ -422,10 +449,13 @@ function UnitsView({ props }: { props: Property[] }) {
   const cursorId = kbd ? navList[cursor]?.id : undefined;
   /* Pinned columns (2026-11-26): the lead, the checkbox and Unit stay put when the table scrolls sideways. */
   /* +16 (2026-11-26): 24px between the name and the row checkbox. In All, Block is a second pinned column beside Property. */
-  const propW = leadLabel ? (leadLabel === 'Property' ? 264 : 144) : 0; /* tighter once the group boxes went; Property +52 for its photo (2026-11-26) */
+  const propW = leadLabel ? (leadLabel === 'Property' ? 224 : 120) : 0; /* tighter once the group boxes went; Property +52 for its photo (2026-11-26), then 40 less to sit closer to Block (2026-11-27) */
   /* The Notion-style Filter's rules map onto the page's own filter state. */
   const floorMax = Math.max(0, ...(allMode ? scopeProps.filter((x) => !shapeOf(x, structures).house).flatMap((x) => x.blocks) : sel.bi != null ? [p.blocks[sel.bi]] : p.blocks).map((b) => b?.floors ?? 0));
   const ruleFields: RuleField[] = [
+    /* V3 (2026-11-27): the tree replaces the toolbar's property picker, so Property is a filter on All units. It's apart
+       from navigation: picking a place in the tree doesn't set it, and it doesn't open a property. */
+    ...(tree && allMode ? [{ id: 'property', label: 'Property', group: 'Place', icon: Bank, /* not Block's building (2026-11-27) */ multi: true, options: locProps.map((x) => ({ value: x.id, label: x.name })) }] : []),
     ...(allMode ? [{ id: 'block', label: 'Block', group: 'Place', icon: Buildings, multi: true, options: [...new Set(scopeProps.filter((x) => !shapeOf(x, structures).house).flatMap((x) => x.blocks.map((b) => b.name)))].map((n) => ({ value: n })) }]
       : !sh.house && p.blocks.length > 1 ? [{ id: 'block', label: 'Block', group: 'Place', icon: Buildings, multi: true, options: p.blocks.map((b, i) => ({ value: String(i), label: b.name })).filter((o) => !goneIn(archivedFlats)(`${p.id}|${o.value}`)) }] : []),
     ...(allMode || !sh.house ? [{ id: 'floor', label: 'Floor', group: 'Place', icon: Stack, multi: true, options: Array.from({ length: floorMax }, (_, i) => ({ value: String(i + 1), label: `Floor ${i + 1}` })) }] : []),
@@ -439,6 +469,7 @@ function UnitsView({ props }: { props: Property[] }) {
       options: x.kind === 'choice' ? choicesOf(x.f).map((c) => ({ value: c })) : [] })),
   ];
   const ruleValue: Record<string, string[]> = {
+    property: allMode ? propF : [],
     block: blockF,
     floor: floorF,
     status: tab === 'Archived' ? ['Archived'] : tab === 'all' ? statusF : [],
@@ -446,12 +477,14 @@ function UnitsView({ props }: { props: Property[] }) {
     ...xF,
   };
   const onRule = (id: string, v: string[]) => {
+    /* Narrows All units to the ticked properties (one or several); none, or every one, is all of them. */
+    if (id === 'property') { setPropF(v.length >= locProps.length ? [] : v); setCursor(0); return; }
     if (id === 'block') setBlockF(v);
     if (id === 'floor') setFloorF(v);
     /* Archived is its own table, so ticking it shows that alone; Active and Draft narrow the list. */
     if (id === 'status') { if (v.includes('Archived')) { setTab('Archived'); setStatusF([]); } else { if (tab === 'Archived') setTab('all'); setStatusF(v); } }
     if (id === 'type') setTypeF(v);
-    if (!['block', 'floor', 'status', 'type'].includes(id)) setXF((m) => ({ ...m, [id]: v }));
+    if (!['block', 'floor', 'status', 'type', 'property'].includes(id)) setXF((m) => ({ ...m, [id]: v }));
     setCursor(0);
   };
   /* Columns: the fixed ones and the custom fields on units; Group by: unit fields, then pick-one and yes/no custom fields by level. */
@@ -461,15 +494,18 @@ function UnitsView({ props }: { props: Property[] }) {
     ...levelFields.filter((x) => x.kind === 'choice' || x.kind === 'yesno').map((x) => ({ id: x.key, label: x.f.name, group: `${x.lv} custom fields` })),
   ];
   /* A column's header menu filters through the Filter panel's own field for it. */
-  const filterIdOf = (h: string) => (h === 'Room type' ? 'type' : h === 'Status' ? (ruleFields.some((f) => f.id === 'status') ? 'status' : null) : h === 'Rent' ? 'rent' : h === 'Template' ? 'template' : h.startsWith('cf:') ? `cf:Unit:${h.slice(3)}` : null);
+  const filterIdOf = (h: string) => (h === 'Block' ? 'block' : h === 'Floor' ? 'floor' : h === 'Room type' ? 'type' : h === 'Status' ? (ruleFields.some((f) => f.id === 'status') ? 'status' : null) : h === 'Rent' ? 'rent' : h === 'Template' ? 'template' : h.startsWith('cf:') ? `cf:Unit:${h.slice(3)}` : null);
   const head = (h: string) => {
     const label = colLabel(h);
-    if (h !== 'Unit' && !cols.includes(h)) return label; // Block, Floor, Flat… are the layout's own columns
+    /* Block and Floor are the layout's own columns but sort and filter like the rest (2026-11-27); they can't be hidden. Flat, House, Property stay plain. */
+    const place = h === 'Block' || h === 'Floor';
+    if (h !== 'Unit' && !place && !cols.includes(h)) return label;
     const fid = filterIdOf(h);
     /* Room type and Template are names, not an order: no sort (2026-11-26); filter them instead. */
     return <ColumnHead label={label} col={h} sort={sort} onSort={h === 'Room type' || h === 'Template' ? undefined : setSort}
       onFilter={fid && ruleFields.some((f) => f.id === fid) ? () => setFilterFocus((x) => ({ id: fid, n: (x?.n ?? 0) + 1 })) : undefined}
-      onHide={h === 'Unit' ? undefined : () => setCols((c) => c.filter((x) => x !== h))} />;
+      filtered={!!fid && (ruleValue[fid]?.length ?? 0) > 0} onClearFilter={fid ? () => onRule(fid, []) : undefined}
+      onHide={h === 'Unit' || place ? undefined : () => setCols((c) => c.filter((x) => x !== h))} />;
   };
   const subW = subCols.map((h) => SUB_W[h]);
   const subLeft = (j: number) => propW + subW.slice(0, j).reduce((a, b) => a + b, 0);
@@ -557,7 +593,8 @@ function UnitsView({ props }: { props: Property[] }) {
       <PageHeader icon={ListDashes} title={allMode ? 'Units' : p.name} crumbs={allMode ? [SECTION] : [SECTION, { label: 'Units', onClick: () => go(home(ALL)) }]} />
       {/* No Add unit here (2026-11-26): units come from building or importing a property. */}
       <div className="flex-1 min-h-0 flex">
-        {/* No side tree (2026-11-26): the table alone, scoped by the Property and Block pickers in the toolbar. */}
+        {/* V1 has no side tree (2026-11-26): the table alone, scoped by the toolbar pickers. V3 brings the tree back (2026-11-27). */}
+        {tree && <UnitsTree props={props} all={ALL} structures={structures} shapeOf={shapeOf} sel={sel} go={go} loc={loc} setLoc={setLoc} onInfo={setLevel} />}
         <section className="flex-1 min-w-0 flex flex-col">
           {/* Heading band: the place as one 20px line, property · block · floor; the parts above the current level link back up. */}
           {/* Spaced as the page intros (Occupancy): 24px above (the tab band gives 16 of it) and below, 4px between title and sub line, controls on the sub line's baseline. */}
@@ -595,10 +632,12 @@ function UnitsView({ props }: { props: Property[] }) {
             {/* Scope (2026-11-26): Location narrows the Property list; picking one that leaves the shown property out goes back to All.
                 Then one Notion-style Filter for Block, Floor, Status and Room type. */}
             <div className="ml-auto min-w-0 flex items-center gap-2">
+              {!tree && <>
               <SelectFilter label="Location" value={loc} width={220} onChange={(v) => { setLoc(v); if (v && !allMode && p.campus !== v) go(home(ALL)); }}
                 options={[...new Set(props.map((x) => x.campus))].map((c) => ({ value: c, meta: props.filter((x) => x.campus === c).reduce((n, x) => n + x.units, 0) }))} />
               <div className="shrink-0"><MultiPicker icon={Buildings} all="All properties" noun={['property', 'properties']} value={allMode ? propF : [p.id]} onChange={(v) => { setPropF(v.length > 1 ? v : []); go(home(v.length === 1 ? v[0] : ALL)); }} options={locProps.map((x) => ({ id: x.id, label: x.name }))} /></div>
               <span aria-hidden className="w-px h-5 bg-[#E5E5E5] shrink-0" />
+              </>}
               <RuleFilter fields={ruleFields} value={ruleValue} onChange={onRule} focus={filterFocus} />
               <GroupByMenu value={gbKey} onChange={(v) => { setGbKey(v); setCollapsed([]); setCursor(0); }} none="None · by place" options={gbOptions} />
               <ColumnsMenu options={colOptions} value={cols} onChange={setCols} />
@@ -624,10 +663,10 @@ function UnitsView({ props }: { props: Property[] }) {
                     </div>
                   </div>
                 )}
-                {!flatList.length ? <Empty art="noResults" title={`No ${tab === 'all' ? '' : tab.toLowerCase() + ' '}units here`} sub={typeF.length ? `None of type ${typeF.join(' or ')}.` : undefined} /> : <table className="w-full text-sm table-fixed">
+                {!flatList.length ? <Empty art="noResults" title={`No ${tab === 'all' ? '' : tab.toLowerCase() + ' '}units here`} sub={typeF.length ? `None of type ${typeF.join(' or ')}.` : undefined} /> : <table className="w-full text-sm table-fixed border-separate border-spacing-0">
                   <thead ref={headRef} className="sticky top-0 z-[3]"><tr className="text-left">
-                    {leadLabel && <th style={{ width: propW, minWidth: propW, left: 0 }} className="pl-6 sticky z-[1]">{leadLabel}</th>}
-                    {subCols.map((h, j) => <th key={h} style={{ width: subW[j], minWidth: subW[j], left: subLeft(j) }} className="pr-3 sticky z-[1]">{h}</th>)}
+                    {leadLabel && <th style={{ width: propW, minWidth: propW, left: 0 }} className="pl-6 sticky z-[1]">{leadLabel === 'Block' || leadLabel === 'Floor' ? head(leadLabel) : leadLabel}</th>}
+                    {subCols.map((h, j) => <th key={h} style={{ width: subW[j], minWidth: subW[j], left: subLeft(j) }} className="pr-3 sticky z-[1]">{head(h)}</th>)}
                     <th style={{ left: leadW, width: cbW(leadW), minWidth: cbW(leadW) }} className={cx('sticky z-[1]', leadLabel ? 'pl-3' : 'pl-6')}><Checkbox aria-label="Select all" className="size-4 rounded-[4px] [&_svg]:size-3" checked={tri(flatList.map((u) => u.id))} onCheckedChange={() => toggleIds(flatList.map((u) => u.id))} /></th>
                     {/* Figma D1 4251:17819: Unit, Place, Room type, Rent, Status, Template. */}
                     {/* Fixed column widths (2026-11-26) so spare width goes to Template at the end, not into gaps between columns. */}
@@ -886,7 +925,7 @@ const cbW = (leadW: number) => (leadW ? 36 : 48);
 /* Tailwind needs the selectors written out: the open row's blue bar and the hover fill start at the checkbox cell. */
 const BAR: Record<number, string> = { 1: '[&>td:nth-child(1)]:shadow-[inset_2px_0_0_#2563EB]', 2: '[&>td:nth-child(2)]:shadow-[inset_2px_0_0_#2563EB]', 3: '[&>td:nth-child(3)]:shadow-[inset_2px_0_0_#2563EB]', 4: '[&>td:nth-child(4)]:shadow-[inset_2px_0_0_#2563EB]', 5: '[&>td:nth-child(5)]:shadow-[inset_2px_0_0_#2563EB]' };
 const HOVER: Record<number, string> = { 1: '[&:hover>td]:bg-[#F5F5F5] [&:hover_.peek]:visible', 2: '[&:has(>td:nth-child(n+2):hover)>td]:bg-[#F5F5F5] [&:has(>td:nth-child(n+2):hover)_.peek]:visible', 3: '[&:has(>td:nth-child(n+3):hover)>td]:bg-[#F5F5F5] [&:has(>td:nth-child(n+3):hover)_.peek]:visible', 4: '[&:has(>td:nth-child(n+4):hover)>td]:bg-[#F5F5F5] [&:has(>td:nth-child(n+4):hover)_.peek]:visible', 5: '[&:has(>td:nth-child(n+5):hover)>td]:bg-[#F5F5F5] [&:has(>td:nth-child(n+5):hover)_.peek]:visible' };
-const SUB_W: Record<string, number> = { Block: 112, Floor: 104, Flat: 104 };
+const SUB_W: Record<string, number> = { Block: 104, Floor: 88, Flat: 88 };
 /** The lead cell's content: name (opens its panel) over its count (no checkbox, 2026-11-26).
  *  Only a run's first row shows it; the label pins to the top while its rows scroll. A hovered row shows its own
  *  property, block, floor and flat in grey (2026-11-26), so a row deep in a run still says where it is. */
@@ -1374,7 +1413,6 @@ export function BulkEditDialog({ ids, props, scope, onClose, onDone }: { ids: st
   const structures = useInv((s) => s.structures);
   const values = useInv((s) => s.fieldValues);
   const [step, setStep] = useState<'edit' | 'review'>('edit');
-  const [changes, setChanges] = useState<BulkChange[]>([{ f: '', v: '' }]);
   const busy = useRef(false);
   /* The ticked units with their property, read once. */
   const [units] = useState(() => {
@@ -1430,7 +1468,6 @@ export function BulkEditDialog({ ids, props, scope, onClose, onDone }: { ids: st
   const errOf = (c: BulkChange) => (c.f === 'am' ? (() => { const d = amDiff(c); return d.add.length || d.drop.length ? '' : 'Tick or untick an amenity.'; })() : !c.f ? 'Pick a field.' : !c.v.trim() ? 'Enter a value.' : isNum(c.f) && !(Number(c.v) >= 0) ? 'Enter a number.' : c.f === 'rent' && !(Number(c.v) > 0) ? 'Rent must be above £0.' : '');
   const [tried, setTried] = useState(false);
   const usable = opts.filter((o) => !o.disabled).length;
-  const ready = changes.every((c) => !errOf(c));
   /* Picking a field fills its value with what the units hold now (2026-11-26), ready to change; mixed values, amenities
      and empty ones start blank, with the mix shown under the row. */
   const prefill = (f: string) => {
@@ -1440,8 +1477,10 @@ export function BulkEditDialog({ ids, props, scope, onClose, onDone }: { ids: st
     const ch = choices(f); return !ch || ch.includes(n.text) ? n.text : '';
   };
   const set = (i: number, c: Partial<BulkChange>) => setChanges((l) => l.map((x, j) => (j === i ? { ...x, ...c, ...(c.f != null ? { v: prefill(c.f), am: c.f === 'am' ? { ...amNow } : undefined } : {}) } : x)));
-  /* What the ticked units hold now: the one value they share, or how many different ones (the first few on hover). */
-  const nowOf = (f: string): { text: string; all?: string[]; mixed: boolean } => {
+  /* What the ticked units hold now (2026-11-27): a breakdown of each value with how many units hold it, most common first,
+     as Jira's bulk change and Salesforce's mass update show it. `text` stays for the review and the box's placeholder. */
+  type Now = { text: string; all?: string[]; mixed: boolean; dist: [string, number][] };
+  const nowOf = (f: string): Now => {
     const vs = units.map(({ u }) => {
       if (f === 'type') return u.type; if (f === 'rent') return u.rent != null ? money(u.rent) : '—';
       if (f === 'template') return u.template ?? '—';
@@ -1449,22 +1488,26 @@ export function BulkEditDialog({ ids, props, scope, onClose, onDone }: { ids: st
       const cf = cfOf(f); return cf ? fieldShown(cf, values[u.id]?.[cf.id]) || '—' : '—';
     });
     if (f === 'am' || f === 'am+' || f === 'am-') {
-      /* Amenities: the ones every ticked unit has, then the ones only some have. */
+      /* Amenities: each one any ticked unit has, with how many have it. */
+      const dist = UNIT_AMENITIES.map((a): [string, number] => [a, units.filter(({ u }) => amenitiesOf(u).includes(a)).length]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
       const all = UNIT_AMENITIES.filter((a) => amNow[a] === true), some = UNIT_AMENITIES.filter((a) => amNow[a] === 'mixed');
       const text = [all.length ? all.join(', ') : '', some.length ? `some have ${some.join(', ')}` : ''].filter(Boolean).join(' · ');
-      return { text: text || 'None', mixed: false };
+      return { text: text || 'None', mixed: some.length > 0, dist };
     }
+    const count = new Map<string, number>(); vs.forEach((x) => count.set(x, (count.get(x) ?? 0) + 1));
+    const dist = [...count].sort((a, b) => b[1] - a[1]);
+    const d = dist.map(([x]) => x);
     if (f === 'rent') {
       /* Rent mixed: the range. */
       const ns = units.map(({ u }) => u.rent).filter((r): r is number => r != null);
       const lo = Math.min(...ns), hi = Math.max(...ns);
-      if (ns.length && lo !== hi) return { text: `${money(lo)} – ${money(hi)}`, mixed: true, all: [...new Set(vs)] };
+      if (ns.length && lo !== hi) return { text: `${money(lo)} – ${money(hi)}`, mixed: true, all: d, dist };
     }
-    const count = new Map<string, number>(); vs.forEach((x) => count.set(x, (count.get(x) ?? 0) + 1));
-    const d = [...count].sort((a, b) => b[1] - a[1]).map(([x]) => x);
-    /* Mixed: the most common value and how many others (all of them on hover). */
-    return d.length === 1 ? { text: d[0], mixed: false } : { text: `${d[0]} +${d.length - 1} more`, all: d, mixed: true };
+    return d.length === 1 ? { text: d[0], mixed: false, dist } : { text: `${d[0]} +${d.length - 1} more`, all: d, mixed: true, dist };
   };
+  /* One empty row to start (2026-11-27: showing every field with a value up front was tried and dropped); Add field brings more. */
+  const [changes, setChanges] = useState<BulkChange[]>([{ f: '', v: '' }]);
+  const ready = changes.every((c) => !errOf(c));
   /* What each change does to each unit, and why a unit is left out. */
   const stored = (c: BulkChange) => (cfOf(c.f)?.type === 'Yes / no' ? (c.v === 'Yes' ? 'yes' : 'no') : c.v.trim());
   const skipWhy = (c: BulkChange, _u: Unit, pp: Property) => {
@@ -1517,36 +1560,51 @@ export function BulkEditDialog({ ids, props, scope, onClose, onDone }: { ids: st
   };
   const shown = touched.slice(0, 6);
   return (
-    <PanelModal open onClose={onClose} width={640} eyebrow="Edit units" pos={step === 'review' ? 'Review' : undefined} title={`${ids.length.toLocaleString('en-GB')} ${ids.length === 1 ? bsu.toLowerCase() : bsuPlural(bsu)}`} icon={PencilSimple} meta={scope ? scope[0].toUpperCase() + scope.slice(1) : undefined}
+    <PanelModal open onClose={onClose} width={680} eyebrow="Edit units" pos={step === 'review' ? 'Review' : undefined} title={`${ids.length.toLocaleString('en-GB')} ${ids.length === 1 ? bsu.toLowerCase() : bsuPlural(bsu)}`} icon={PencilSimple} meta={scope ? scope[0].toUpperCase() + scope.slice(1) : undefined}
       left={step === 'review' ? <Button variant="ghost" icon={null} onClick={() => setStep('edit')}>Back</Button> : undefined}
       right={step === 'edit'
         ? <><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={() => { setTried(true); if (ready) setStep('review'); }}>Review</Button></>
         : <><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!touched.length} onClick={apply}>{touched.length ? `Change ${touched.length.toLocaleString('en-GB')} ${touched.length === 1 ? 'unit' : 'units'}` : 'Nothing to change'}</Button></>}>
       {step === 'edit' ? (
         <SheetSection title="Changes" action={changes.length < usable ? <Button type="button" size="sm" variant="ghost" icon={Plus} className="-mr-2" onClick={() => setChanges((l) => [...l, { f: '', v: '' }])}>Add field</Button> : undefined}>
-          <div className="space-y-3">
+          {/* One row per field (2026-11-27), as multi-record inspectors lay it out: the field picker, the new value, and under it what the units hold now as value chips with counts, on one line (the top two, the rest behind +N more). */}
+          <div className="divide-y divide-[#F0F0F0] -my-1">
             {changes.map((c, i) => {
               const ch = c.f ? choices(c.f) : null;
               const now = c.f ? nowOf(c.f) : null;
+              const shownN = 2, extra = now ? now.dist.slice(shownN) : [];
               return (
-                <div key={i}>
-                  <div className="flex items-start gap-2">
-                    <div className="w-[200px] shrink-0"><Dropdown ariaLabel="Field" placeholder="Field" value={c.f} onChange={(f) => set(i, { f })} options={opts.filter((o) => o.value === c.f || !changes.some((x) => x.f === o.value))} /></div>
-                    <div className="flex-1 min-w-0">
-                      {!c.f ? <Input disabled readOnly value="" placeholder="Value" /> : c.f === 'am'
-                        ? <AmenityPicker now={amNow} value={c.am ?? amNow} onChange={(am) => setChanges((l) => l.map((x, j) => (j === i ? { ...x, am } : x)))} />
-                        : ch
-                        ? <Dropdown ariaLabel={label(c.f)} placeholder={`Pick ${label(c.f).toLowerCase()}`} value={c.v} onChange={(v) => set(i, { v })} options={ch.map((x) => ({ value: x, label: x }))} />
-                        : <Input aria-label={label(c.f)} inputMode={isNum(c.f) ? 'decimal' : undefined} placeholder={c.f === 'rent' ? `£ per ${lettings[0] === 'Monthly' ? 'month' : 'week'}` : label(c.f)} value={c.v} onChange={(e) => set(i, { v: e.target.value })} />}
-                      {tried && errOf(c) && <FieldErr>{errOf(c)}</FieldErr>}
-                    </div>
-                    {changes.length > 1 && <button type="button" aria-label="Remove" onClick={() => setChanges((l) => l.filter((_, j) => j !== i))} className="size-9 shrink-0 rounded-lg flex items-center justify-center text-[#737373] hover:bg-[#F5F5F5] hover:text-ink"><X size={16} /></button>}
+                <div key={i} className="py-3 first:pt-1 last:pb-1 grid grid-cols-[160px_minmax(0,1fr)_36px] gap-x-3 items-start">
+                  <Dropdown ariaLabel="Field" placeholder="Field" value={c.f} onChange={(f) => set(i, { f })} options={opts.filter((o) => o.value === c.f || !changes.some((x) => x.f === o.value))} />
+                  <div className="min-w-0">
+                    {!c.f ? <Input disabled readOnly value="" placeholder="Value" /> : c.f === 'am'
+                      ? <AmenityPicker now={amNow} value={c.am ?? amNow} onChange={(am) => setChanges((l) => l.map((x, j) => (j === i ? { ...x, am } : x)))} />
+                      : ch
+                      ? <Dropdown ariaLabel={label(c.f)} placeholder={`Pick ${label(c.f).toLowerCase()}`} value={c.v} onChange={(v) => set(i, { v })} options={ch.map((x) => ({ value: x, label: x }))} />
+                      : <Input aria-label={label(c.f)} inputMode={isNum(c.f) ? 'decimal' : undefined} placeholder={c.f === 'rent' ? `£ per ${lettings[0] === 'Monthly' ? 'month' : 'week'}` : label(c.f)} value={c.v} onChange={(e) => set(i, { v: e.target.value })} />}
+                    {tried && errOf(c) && <FieldErr>{errOf(c)}</FieldErr>}
+                    {now && now.dist.length > 0 && !(now.dist.length === 1 && now.dist[0][0] === '—') && (
+                      <div className="mt-2 flex flex-nowrap items-center gap-1.5 min-w-0 overflow-hidden">
+                        <span className="shrink-0 font-mono text-[11px] uppercase tracking-wide text-[#A3A3A3] mr-0.5">Current</span>
+                        {c.f === 'rent' && now.mixed && <span className="shrink-0 h-6 px-2 rounded-md bg-[#F5F5F5] text-xs text-ink inline-flex items-center tabular-nums whitespace-nowrap">{now.text}</span>}
+                        {(c.f === 'rent' && now.mixed ? [] : now.dist.slice(0, shownN)).map(([v, n]) => (
+                          <span key={v} title={`${v} · ${n.toLocaleString('en-GB')} units`} className="min-w-0 shrink h-6 px-1.5 rounded-md bg-[#F5F5F5] text-xs text-ink inline-flex items-center gap-1.5">
+                            <span className="truncate">{v}</span>
+                            <span className="shrink-0 font-mono text-[11px] text-[#737373] tabular-nums">{n === units.length ? 'all' : n.toLocaleString('en-GB')}</span>
+                          </span>
+                        ))}
+                        {(c.f === 'rent' && now.mixed ? now.dist.length > 0 : extra.length > 0) && (
+                          <span className="shrink-0 h-6 px-1 rounded-md text-xs text-[#737373] inline-flex items-center whitespace-nowrap" title={(c.f === 'rent' && now.mixed ? now.dist : extra).slice(0, 12).map(([v, n]) => `${v} · ${n}`).join('\n')}>
+                            {c.f === 'rent' && now.mixed ? `${now.dist.length} prices` : `+${extra.length} more`}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {/* What the units hold now, under the value box, for every picked field (2026-11-26): the shared value, a rent
-                      range, or the most common value and how many others (all on hover). */}
-                  {now && (
-                    <div className="mt-1.5 pl-[208px] text-xs text-[#737373] truncate" title={now.all?.slice(0, 8).join('\n')}>Current: <span className="text-[#404040]">{now.text}</span></div>
-                  )}
+                  {/* The ✕ is always there (2026-11-27) so every row lines up; on the only row it clears it, off while it's empty. */}
+                  <button type="button" aria-label={`Remove ${c.f ? label(c.f) : 'field'}`} disabled={changes.length === 1 && !c.f}
+                    onClick={() => setChanges((l) => (l.length > 1 ? l.filter((_, j) => j !== i) : [{ f: '', v: '' }]))}
+                    className="size-9 rounded-lg flex items-center justify-center text-[#737373] hover:bg-[#F5F5F5] hover:text-ink disabled:text-[#D4D4D4] disabled:hover:bg-transparent disabled:cursor-default"><X size={16} /></button>
                 </div>
               );
             })}

@@ -220,7 +220,7 @@ export function AddPropertyWizard() {
                     </div>
                     <p className="text-[13px] leading-5 text-[#737373] mt-1">Rent and tenancy length use this unit.</p>
                   </SheetSection>
-                  <SheetSection title="Layout" action={<EditLink onClick={() => nav('/properties/structures')}>New layout</EditLink>}>
+                  <SheetSection title="Layout" action={<EditLink onClick={() => nav('/properties/layouts')}>New layout</EditLink>}>
                     <LayoutRadios value={shape.name} onChange={setStructure} />
                   </SheetSection>
                 </>
@@ -348,7 +348,7 @@ export function AddPropertyWizard() {
                     </div>
                     <Err>{dateErr}</Err>
                   </SheetSection>
-                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/properties/rent-fees?tab=fees')}>Pricing</EditLink>}>
+                  <SheetSection title="Fees" action={<EditLink onClick={() => nav('/properties/pricing?tab=fees')}>Pricing</EditLink>}>
                     <SheetRow title="Organisation-wide fees apply" sub="Contents insurance · £45 per tenancy" />
                   </SheetSection>
                 </>

@@ -483,15 +483,16 @@ export function PropStack({ props, label }: { props: { id: string; name: string 
    contains / is / is empty; Yes / no: Yes / No / is empty. A field without a kind is the plain pick-from-list. */
 export type RuleKind = 'choice' | 'number' | 'text' | 'yesno';
 export type RuleField = { id: string; label: string; group: string; icon: Icon; /** Its icon tile's colour; by position when unset. */ tone?: Tone; options: { value: string; label?: string; meta?: number }[]; multi?: boolean; kind?: RuleKind;
-  /** Kept behind one row of this name (Custom fields ›) so the main list stays short; a search still finds it (2026-11-26). */ nest?: string };
+  /** Kept behind one row of this name (Custom fields ›) so the main list stays short; a search still finds it (2026-11-26). */ nest?: string;
+  /** A typed field's conditions, when only some of its kind's apply (Units V2's choices: is / is not, 2026-11-27). */ ops?: string[] };
 const RULE_TONES: Tone[] = ['blue', 'green', 'purple', 'amber', 'orange', 'red'];
-const RULE_OPS: Record<RuleKind, [string, string][]> = {
+export const RULE_OPS: Record<RuleKind, [string, string][]> = {
   choice: [['is', 'is'], ['not', 'is not'], ['empty', 'is empty'], ['filled', 'is not empty']],
   number: [['eq', 'is'], ['gt', 'more than'], ['lt', 'less than'], ['empty', 'is empty']],
   text: [['has', 'contains'], ['eq', 'is'], ['empty', 'is empty']],
   yesno: [['yes', 'is Yes'], ['no', 'is No'], ['empty', 'is empty']],
 };
-const NO_ARG = ['empty', 'filled', 'yes', 'no'];
+export const NO_ARG = ['empty', 'filled', 'yes', 'no'];
 /** Does a record's value pass a typed rule? `v` is the record's raw value ('' or undefined when it has none). */
 export function ruleMatch(kind: RuleKind, rule: string[], v: string | number | undefined | null): boolean {
   const [op, ...args] = rule;
@@ -611,10 +612,12 @@ function BackCrumb({ label, onClick }: { label: string; onClick: () => void }) {
     <span aria-hidden className="shrink-0 text-[#D4D4D4]">/</span>
   </>;
 }
-function RuleEditor({ field, tone, cur, fromActive, onBack, onApply }: { field: RuleField; /** The field's tile colour in the list, kept here. */ tone: Tone; cur: string[]; fromActive: boolean; onBack: () => void; onApply: (v: string[]) => void }) {
+export function RuleEditor({ field, tone, cur, fromActive, onBack, onApply, backLabel }: { field: RuleField; /** The field's tile colour in the list, kept here. */ tone: Tone; cur: string[]; fromActive: boolean; onBack: () => void; onApply: (v: string[]) => void;
+  /** The back crumb's words; null hides it (a filter chip's own popover has nowhere to go back to). */ backLabel?: string | null }) {
   const kind = field.kind;
+  const ops = kind ? RULE_OPS[kind].filter(([k]) => !field.ops || field.ops.includes(k)) : [];
   /* Typed: cur is [op, ...args]; plain: cur is the picked values. */
-  const [op, setOp] = useState(kind ? cur[0] ?? RULE_OPS[kind][0][0] : '');
+  const [op, setOp] = useState(kind ? cur[0] ?? ops[0][0] : '');
   const [vs, setVs] = useState<string[]>(kind ? cur.slice(1) : cur);
   const [q, setQ] = useState('');
   const opts = field.options.filter((o) => (o.label ?? o.value).toLowerCase().includes(q.trim().toLowerCase()));
@@ -627,7 +630,7 @@ function RuleEditor({ field, tone, cur, fromActive, onBack, onApply }: { field: 
     <div>
       <div className="h-11 px-3 flex items-center gap-2 border-b border-[#F5F5F5] text-sm">
         {/* One line: the trail never wraps; a long field name truncates instead. */}
-        <BackCrumb label={fromActive ? 'Active filters' : 'Filters'} onClick={onBack} />
+        {backLabel !== null && <BackCrumb label={backLabel ?? (fromActive ? 'Active filters' : 'Filters')} onClick={onBack} />}
         <ToneTile icon={field.icon} tone={tone} size={24} /><span className="min-w-0 font-medium truncate" title={field.label}>{field.label}</span>
       </div>
       {kind === 'yesno' && (
@@ -645,7 +648,7 @@ function RuleEditor({ field, tone, cur, fromActive, onBack, onApply }: { field: 
         /* Conditions as radio rows (2026-11-26), like Yes / no: the picked one that takes a value grows its box in the
            row (a number or text). A choice field's values follow under a rule when the condition needs them. */
         <div role="radiogroup" aria-label="Condition" className="py-2">
-          {RULE_OPS[kind].map(([k, l]) => {
+          {ops.map(([k, l]) => {
             const on = op === k, arg = !NO_ARG.includes(k) && (kind === 'number' || kind === 'text');
             return (
               <label key={k} className="mx-2 h-9 px-2 rounded-md hover:bg-[#F5F5F5] flex items-center gap-2.5 text-sm cursor-pointer">

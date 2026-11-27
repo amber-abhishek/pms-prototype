@@ -10,8 +10,9 @@ import { PersonName, Button, Dropdown, Empty, Field, Input, PageHeader, Pill, Se
 import { Checkbox } from '../../components/shadcn/checkbox';
 import { allUnits, choicesOf, flatsOf, money, per, rentFor, useInv, type ArchivedRow, type Field as CustomField, type Flat, type Property, type Structure, type Unit, type UStatus } from '../../data/inventory';
 import { useOpen } from '../hooks';
-import { EditLink, FieldErr, LineTabs, Menu, Modal, MultiPicker, PanelModal, Picker, PropStatus, RadioCard, RuleFilter, levelIcon, ruleMatch, type RuleField, type RuleKind } from './common';
-import { ColumnHead, ColumnsMenu, GroupByMenu, type SortState } from './tableKit';
+import { EditLink, FieldErr, LineTabs, Menu, Modal, MultiPicker, PanelModal, Picker, PropStatus, RadioCard, levelIcon, ruleMatch, type RuleField, type RuleKind } from './common';
+import { ColumnHead, ColumnsMenu, type SortState } from './tableKit';
+import { FilterChips, FilterGroupButton } from './viewFilter';
 import { GhostZone } from '../../components/headerCtx';
 import { LevelFields, LevelSheet, attachKey, layoutOf, useDraftValues, useFilledFields, type LevelKind } from './LevelSheet';
 import { PHOTO, photoOf } from './photos';
@@ -55,7 +56,7 @@ const nameOf = (f: Flat, sh: Shape) => (sh.house ? `House ${f.id.split('|')[3]}`
 /** Units table column widths; Template takes what's left. */
 /* Block and Floor carry a group checkbox on hover, so they're 20px wider; Room type gives some back. Every column is a
    fixed width (custom field columns 150) and a blank last column takes what's left. */
-/* Tightened (2026-11-27) so a block or floor fits beside the V3 tree without a sideways scroll. */
+/* Tightened (2026-11-27) so a block or floor fits beside the V2 tree without a sideways scroll. */
 const COL_W: Record<string, number> = { Property: 180, House: 92, Unit: 88, Block: 120, Floor: 96, Flat: 88, 'Room type': 132, Rent: 88, Status: 104, Template: 136 };
 const colW = (h: string) => COL_W[h] ?? (h.startsWith('cf:') ? 150 : undefined);
 /** The optional columns, in their order; custom fields join as cf:<id> (Columns, 2026-11-26). */
@@ -89,14 +90,14 @@ export function UnitsPage() {
   );
   return <UnitsSwitch props={props} />;
 }
-/* V1 (the flat table), V2 (tree table + side panel, 2026-11-26) or V3 (V1 with the left property tree, 2026-11-27), picked by
-   the floating switch at the bottom. */
+/* V1 (the flat table), V2 (V1 with the left property tree, 2026-11-27) or V3 (tree table + side panel, 2026-11-26), picked
+   by the floating switch at the bottom. V2 and V3 swapped places on 2026-11-27. */
 function UnitsSwitch({ props }: { props: Property[] }) {
   const [v, setV] = useUnitsVersion();
-  return <>{v === 2 ? <UnitsV2 props={props} /> : <UnitsView key={v} props={props} tree={v === 3} />}<VersionToggle value={v} onChange={setV} /></>;
+  return <>{v === 3 ? <UnitsV2 props={props} /> : <UnitsView key={v} props={props} tree={v === 2} />}<VersionToggle value={v} onChange={setV} /></>;
 }
 
-function UnitsView({ props, tree = false }: { props: Property[]; /** V3: the left property tree picks the place, and holds Location. */ tree?: boolean }) {
+function UnitsView({ props, tree = false }: { props: Property[]; /** V2: the left property tree picks the place, and holds Location. */ tree?: boolean }) {
   const [sp, setSp] = useSearchParams();
   const [open, setOpen] = useOpen();
   const edits = useInv((s) => s.unitEdits);
@@ -122,10 +123,10 @@ function UnitsView({ props, tree = false }: { props: Property[]; /** V3: the lef
      field with collapsible groups, and typed filters (Rent, Template, custom fields at every level) beside the plain ones. */
   const [cols, setCols] = useState<string[]>(BASE_COLS);
   const [sort, setSort] = useState<SortState>(null);
-  const [gbKey, setGbKey] = useState<string | null>(null);
+  /* Group by is gone from V1 and V2 (2026-11-27), as from V3; rows stay grouped by place. */
+  const gbKey = null as string | null;
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [xF, setXF] = useState<Record<string, string[]>>({});
-  const [filterFocus, setFilterFocus] = useState<{ id: string; n: number } | null>(null);
   const fieldsAll = useInv((s) => s.fields);
   const fieldValues = useInv((s) => s.fieldValues);
   const [bulkEdit, setBulkEdit] = useState(false);
@@ -453,7 +454,7 @@ function UnitsView({ props, tree = false }: { props: Property[]; /** V3: the lef
   /* The Notion-style Filter's rules map onto the page's own filter state. */
   const floorMax = Math.max(0, ...(allMode ? scopeProps.filter((x) => !shapeOf(x, structures).house).flatMap((x) => x.blocks) : sel.bi != null ? [p.blocks[sel.bi]] : p.blocks).map((b) => b?.floors ?? 0));
   const ruleFields: RuleField[] = [
-    /* V3 (2026-11-27): the tree replaces the toolbar's property picker, so Property is a filter on All units. It's apart
+    /* V2 (2026-11-27): the tree replaces the toolbar's property picker, so Property is a filter on All units. It's apart
        from navigation: picking a place in the tree doesn't set it, and it doesn't open a property. */
     ...(tree && allMode ? [{ id: 'property', label: 'Property', group: 'Place', icon: Bank, /* not Block's building (2026-11-27) */ multi: true, options: locProps.map((x) => ({ value: x.id, label: x.name })) }] : []),
     ...(allMode ? [{ id: 'block', label: 'Block', group: 'Place', icon: Buildings, multi: true, options: [...new Set(scopeProps.filter((x) => !shapeOf(x, structures).house).flatMap((x) => x.blocks.map((b) => b.name)))].map((n) => ({ value: n })) }]
@@ -487,24 +488,16 @@ function UnitsView({ props, tree = false }: { props: Property[]; /** V3: the lef
     if (!['block', 'floor', 'status', 'type', 'property'].includes(id)) setXF((m) => ({ ...m, [id]: v }));
     setCursor(0);
   };
-  /* Columns: the fixed ones and the custom fields on units; Group by: unit fields, then pick-one and yes/no custom fields by level. */
+  /* Columns: the fixed ones and the custom fields on units. */
   const colOptions = [...BASE_COLS.map((c) => ({ id: c, label: c })), ...levelFields.filter((x) => x.lv === 'Unit').map((x) => ({ id: `cf:${x.f.id}`, label: x.f.name, group: 'Custom' }))];
-  const gbOptions = [
-    { id: 'status', label: 'Status', group: 'Unit' }, { id: 'type', label: 'Room type', group: 'Unit' }, { id: 'template', label: 'Template', group: 'Unit' },
-    ...levelFields.filter((x) => x.kind === 'choice' || x.kind === 'yesno').map((x) => ({ id: x.key, label: x.f.name, group: `${x.lv} custom fields` })),
-  ];
-  /* A column's header menu filters through the Filter panel's own field for it. */
-  const filterIdOf = (h: string) => (h === 'Block' ? 'block' : h === 'Floor' ? 'floor' : h === 'Room type' ? 'type' : h === 'Status' ? (ruleFields.some((f) => f.id === 'status') ? 'status' : null) : h === 'Rent' ? 'rent' : h === 'Template' ? 'template' : h.startsWith('cf:') ? `cf:Unit:${h.slice(3)}` : null);
   const head = (h: string) => {
     const label = colLabel(h);
     /* Block and Floor are the layout's own columns but sort and filter like the rest (2026-11-27); they can't be hidden. Flat, House, Property stay plain. */
     const place = h === 'Block' || h === 'Floor';
     if (h !== 'Unit' && !place && !cols.includes(h)) return label;
-    const fid = filterIdOf(h);
     /* Room type and Template are names, not an order: no sort (2026-11-26); filter them instead. */
     return <ColumnHead label={label} col={h} sort={sort} onSort={h === 'Room type' || h === 'Template' ? undefined : setSort}
-      onFilter={fid && ruleFields.some((f) => f.id === fid) ? () => setFilterFocus((x) => ({ id: fid, n: (x?.n ?? 0) + 1 })) : undefined}
-      filtered={!!fid && (ruleValue[fid]?.length ?? 0) > 0} onClearFilter={fid ? () => onRule(fid, []) : undefined}
+      /* No Filter in the column menu and no filtered dot (2026-11-27): filters live in the toolbar's Filter menu and chips. */
       onHide={h === 'Unit' || place ? undefined : () => setCols((c) => c.filter((x) => x !== h))} />;
   };
   const subW = subCols.map((h) => SUB_W[h]);
@@ -593,7 +586,7 @@ function UnitsView({ props, tree = false }: { props: Property[]; /** V3: the lef
       <PageHeader icon={ListDashes} title={allMode ? 'Units' : p.name} crumbs={allMode ? [SECTION] : [SECTION, { label: 'Units', onClick: () => go(home(ALL)) }]} />
       {/* No Add unit here (2026-11-26): units come from building or importing a property. */}
       <div className="flex-1 min-h-0 flex">
-        {/* V1 has no side tree (2026-11-26): the table alone, scoped by the toolbar pickers. V3 brings the tree back (2026-11-27). */}
+        {/* V1 has no side tree (2026-11-26): the table alone, scoped by the toolbar pickers. V2 brings the tree back (2026-11-27). */}
         {tree && <UnitsTree props={props} all={ALL} structures={structures} shapeOf={shapeOf} sel={sel} go={go} loc={loc} setLoc={setLoc} onInfo={setLevel} />}
         <section className="flex-1 min-w-0 flex flex-col">
           {/* Heading band: the place as one 20px line, property · block · floor; the parts above the current level link back up. */}
@@ -627,7 +620,8 @@ function UnitsView({ props, tree = false }: { props: Property[]; /** V3: the lef
             </div>} />
           {/* Toolbar: search on the left; the status (was the tab strip) as a single-choice dropdown and the room-type filter on the right. */}
           {/* The tab band leaves 16px of white under it only when a table follows (styles.css); with the empty state the toolbar adds it. */}
-          <div {...PIN} className={cx('shrink-0 px-6 pb-4 flex items-center gap-2', tab === 'Archived' || flatList.length ? 'pt-0' : 'pt-4')}>
+          <div {...PIN} className={cx('shrink-0 px-6 pb-4', tab === 'Archived' || flatList.length ? 'pt-0' : 'pt-4')}>
+          <div className="flex items-center gap-2">
             <div className="w-[260px] min-w-[140px] shrink [&>label]:!w-full"><SearchInput value={q} onChange={(v) => { setQ(v); setCursor(0); }} placeholder={allMode ? 'Search units' : `Search ${title}`} /></div>
             {/* Scope (2026-11-26): Location narrows the Property list; picking one that leaves the shown property out goes back to All.
                 Then one Notion-style Filter for Block, Floor, Status and Room type. */}
@@ -638,10 +632,13 @@ function UnitsView({ props, tree = false }: { props: Property[]; /** V3: the lef
               <div className="shrink-0"><MultiPicker icon={Buildings} all="All properties" noun={['property', 'properties']} value={allMode ? propF : [p.id]} onChange={(v) => { setPropF(v.length > 1 ? v : []); go(home(v.length === 1 ? v[0] : ALL)); }} options={locProps.map((x) => ({ id: x.id, label: x.name }))} /></div>
               <span aria-hidden className="w-px h-5 bg-[#E5E5E5] shrink-0" />
               </>}
-              <RuleFilter fields={ruleFields} value={ruleValue} onChange={onRule} focus={filterFocus} />
-              <GroupByMenu value={gbKey} onChange={(v) => { setGbKey(v); setCollapsed([]); setCursor(0); }} none="None · by place" options={gbOptions} />
+              {/* V1 and V2 filter as V3 (2026-11-27): the compact Filter menu with values in a flyout, and the applied ones as
+                  chips under the toolbar. */}
+              <FilterGroupButton fields={ruleFields} value={ruleValue} onChange={onRule} />
               <ColumnsMenu options={colOptions} value={cols} onChange={setCols} />
             </div>
+          </div>
+          <div className="empty:hidden mt-3"><FilterChips fields={ruleFields} value={ruleValue} onChange={onRule} /></div>
           </div>
 
           {tab === 'Archived' ? (
@@ -1133,7 +1130,7 @@ export function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: 
           </div>
         </PanelModal>
         {/* Custom fields attached to rooms in this layout (Accessible room, Ensuite type…), filled per room (2026-11-20). */}
-        <LevelFields p={p} kind="Room" id={unit.id} />
+        <LevelFields p={p} kind="Room" id={unit.id} view name={unit.code} meta={p.name} />
         {/* The levels the unit sits in, each its own card (2026-11-26): details with Edit, then that level's custom fields,
             the same as its own panel. Nearest first. */}
         {uFlat && (ush.house || ush.flats) && <LevelCard p={p} kind="Flat" id={uFlat.id} onEdit={() => setLvEdit('flat')}
@@ -1168,7 +1165,7 @@ export function UnitSheet({ p, unit, onClose, path, nav }: { nav?: SheetNav; p: 
           </SheetSection>
         )}
         <SheetSection title="Next year">
-          <SheetRow title="2027/28" sub={`Not let yet${unit.rent != null ? ` · ${money(unit.rent + 8)} / ${per(p)}` : ''}`} end={<EditLink onClick={() => toast('Offers live in Allocations › Offers')}>Offer</EditLink>} />
+          <SheetRow title="2027/28" sub={`Not occupied yet${unit.rent != null ? ` · ${money(unit.rent + 8)} / ${per(p)}` : ''}`} end={<EditLink onClick={() => toast('Offers live in Allocations › Offers')}>Offer</EditLink>} />
         </SheetSection>
       </>}
       {tab === 'history' && <>
@@ -1193,7 +1190,7 @@ function ArchiveDialog({ t, onClose, onConfirm }: { t: ArchTarget | null; onClos
   const withT = units.filter((u) => u.rent != null).length;
   const shown = units.slice(0, 6);
   return (
-    <Modal open onClose={onClose} icon={Archive} tone="red" title={`Archive ${t.name}?`} sub={`${t.name} and its ${units.length} units leave every list and can’t be let. You can restore them from Archived.`} width={500}
+    <Modal open onClose={onClose} icon={Archive} tone="red" title={`Archive ${t.name}?`} sub={`${t.name} and its ${units.length} units leave every list and can’t be occupied. You can restore them from Archived.`} width={500}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" onClick={() => { if (busy.current) return; busy.current = true; onConfirm(t); }}>Archive {t.kind.toLowerCase()} and {units.length} units</Button></>}>
       <div className="rounded-xl border border-line divide-y divide-line">
         {shown.map((u) => <div key={u.id} className="h-10 px-3.5 flex items-center gap-3 text-sm"><span className="font-mono w-14">{u.code}</span><span className="flex-1 text-[#737373]">{u.type}</span><PropStatus s={u.status} /></div>)}

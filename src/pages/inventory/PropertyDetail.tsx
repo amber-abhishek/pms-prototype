@@ -168,7 +168,7 @@ export function PropertyDetail({ id: idProp, onClose }: { id?: string; onClose?:
             {p.tags.map((t) => <TagX key={t.label} t={t} />)}
             <TagPicker have={p.tags} onPick={addTag} onRemove={removeTag} trigger={addTagChip()} />
           </>}
-          facts={[['Units', String(p.units)], ['Pre-let', PRE_LET[p.id] != null ? `${PRE_LET[p.id]}%` : '—', PRE_LET[p.id] != null ? (PRE_LET[p.id] < 85 ? 'amber' : 'green') : undefined], ['Letting', p.letting]]}>
+          facts={[['Units', String(p.units)], ['Occupancy', PRE_LET[p.id] != null ? `${PRE_LET[p.id]}%` : '—', PRE_LET[p.id] != null ? (PRE_LET[p.id] < 85 ? 'amber' : 'green') : undefined], ['Letting', p.letting]]}>
           <PropStatus s={p.status} />
         </SheetHero>
         <div className="-mx-5">

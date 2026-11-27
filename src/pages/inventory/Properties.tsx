@@ -87,7 +87,7 @@ export function PropertiesPage() {
   const cols = [
     /* Figma 3884:39809 row: 116×62 photo (r6), then a 12px blue kicker, the 14px medium name and a grey street · postcode line; 84px tall. */
     { key: 'name', label: head('Property', 'name'), className: 'py-[11px]', render: (p: Property) => {
-      const k = KICKER[p.id] ?? (p.status === 'Active' ? null : 'Not letting 2026/27');
+      const k = KICKER[p.id] ?? (p.status === 'Active' ? null : 'No occupancy 2026/27');
       return (
         <span className="flex items-center gap-4 min-w-0">
           {PHOTO[p.id] ? <img src={PHOTO[p.id]} alt="" loading="lazy" className="w-[120px] h-16 rounded-[5px] object-cover shrink-0 bg-[#F5F5F5]" />
@@ -160,7 +160,7 @@ export function PropertiesPage() {
 /* Dummy row details for the Figma kicker (the backend has none yet); photos come from ./photos. */
 /** Dummy pre-let share per property (no backend yet); the list's kicker and the property sheet's key facts share it. */
 export const PRE_LET: Record<string, number> = { col: 88, jb: 83, ust: 94, ste: 91, hb: 86, js: 89 };
-const KICKER: Record<string, string> = Object.fromEntries(Object.entries(PRE_LET).map(([k, v]) => [k, `${v}% pre-let`]));
+const KICKER: Record<string, string> = Object.fromEntries(Object.entries(PRE_LET).map(([k, v]) => [k, `${v}% occupancy`]));
 /** "South Road, Durham DH1 3DF" → "South Road · DH1 3DF". */
 const shortAddress = (a: string) => { const parts = a.split(', '); const pc = parts[parts.length - 1].split(' ').slice(-2).join(' '); return parts.length > 1 ? `${parts[0]} · ${pc}` : a; };
 

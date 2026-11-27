@@ -42,7 +42,7 @@ const dayLabel = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', mo
 const LET = DAYS.map((_, i) => Math.round(i < 7 ? 2290 + i * 1.6 : i < 20 ? 2378 + (i - 7) * 3 : i === 20 ? 2453 : 2453 + (i - 20) * 2.8));
 const OCC_POINTS = DAYS.map((d, i) => {
   const delta = i ? LET[i] - LET[i - 1] : 0;
-  return { label: dayLabel(d), value: LET[i], note: `${LET[i].toLocaleString('en-GB')} beds let · ${delta >= 0 ? '+' : ''}${delta}` };
+  return { label: dayLabel(d), value: LET[i], note: `${LET[i].toLocaleString('en-GB')} beds occupied · ${delta >= 0 ? '+' : ''}${delta}` };
 });
 /* Lowest first, so the property furthest from target leads; Elvet isn't letting this term (Figma 4192:31036). */
 const PRELET = [
@@ -146,11 +146,11 @@ function Today() {
             <MoveInCard empty={e} />
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_376px] gap-4">
-            <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds let yet' : undefined} up="212 let" down="18 released" kind="line" chartOnly
+            <TrendCard title="Occupancy" badge={e ? '0%' : '86%'} value={e ? '0' : '2,481'} of={e ? 'of 0 beds' : 'of 2,893 beds'} empty={e ? 'No beds occupied yet' : undefined} up="212 occupied" down="18 released" kind="line" chartOnly
               points={OCC_POINTS} ticks={['16 Aug', '23 Aug', '30 Aug', '6 Sep', '14 Sep']} axis={[2200, 2300, 2400, 2500]} />
-            <RankCard title="Pre-let by property" note="Target 90%" target={90} more={0} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/properties')}>Create a property</Button></>} moreLabel="View all properties" moreTo="/properties"
+            <RankCard title="Occupancy by property" note="Target 90%" target={90} more={0} empty={<><span>No properties yet</span><Button size="sm" onClick={() => nav('/properties')}>Create a property</Button></>} moreLabel="View all properties" moreTo="/properties"
               rows={e ? [] : [...PRELET.map((h) => ({ id: h.id, name: h.name, value: `${h.pct}%`, pct: h.pct, warn: h.pct < 80, to: `/properties?open=${h.id}` })),
-                { id: 'erh', name: 'Elvet Riverside Houses', value: 'Not letting', pct: 0, muted: true, to: '/properties?open=erh' }]} />
+                { id: 'erh', name: 'Elvet Riverside Houses', value: 'No occupancy', pct: 0, muted: true, to: '/properties?open=erh' }]} />
           </div>
         </div>
       </div>

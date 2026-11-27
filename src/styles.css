@@ -68,6 +68,11 @@
   body { @apply bg-chrome text-ink font-sans antialiased text-sm; }
   * { @apply border-line; }
   :focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
+  /* Clicked controls show no ring, even when Shift / ⌘ is then held to multi-select (focusMode.ts); keyboard users still
+     get it, and text fields always keep theirs. */
+  html[data-input=pointer] :is(button, a, [role=button], [role=tab], [role=menuitem], [role=option], [role=checkbox], [role=switch], [role=row], tr, summary, [tabindex]):not(input, textarea, select, [contenteditable]):focus-visible {
+    outline: none !important; --tw-ring-shadow: 0 0 #0000 !important; --tw-ring-offset-shadow: 0 0 #0000 !important;
+  }
 }
 
 @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
@@ -288,3 +293,5 @@ body[data-accent="orange"] { --primary: 21 90% 48%; --primary-hover: 17 88% 40%;
 /* Units table pinned columns: once the table scrolls sideways (data-sx), the last pinned column (Unit) gets an edge. */
 [data-sx] td.pin-edge { box-shadow: 1px 0 0 #E5E5E5, 6px 0 8px -6px rgba(0,0,0,0.12); }
 [data-sx] th.pin-edge { box-shadow: inset 0 -1px 0 #E5E5E5, inset 0 1px 0 #E5E5E5, 1px 0 0 #E5E5E5, 6px 0 8px -6px rgba(0,0,0,0.12); }
+/* The picked row keeps its blue left bar under the shadow (Units V2, 2026-11-27). */
+[data-sx] td.pin-edge.pin-on { box-shadow: inset 2px 0 0 #2563EB, 1px 0 0 #E5E5E5, 6px 0 8px -6px rgba(0,0,0,0.12); }

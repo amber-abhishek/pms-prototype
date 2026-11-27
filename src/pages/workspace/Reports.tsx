@@ -372,13 +372,13 @@ export function OccupancyReport() {
           { label: 'Occupancy', value: `${occ}%`, sub: archived ? `Final week of ${year}` : `${diff >= 0 ? '+' : '−'}${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'pt' : 'pts'} vs 2025/26`,
             meter: { kind: 'progress', value: t.res + t.arr, max: t.beds, target: OCC_TARGET, tip: `${occ}% · target ${OCC_TARGET}%` } },
           /* The same blues as the chart below: in residence, then arriving. */
-          { label: 'Rent roll', value: gbpM(t.roll), sub: `${fmt(t.res + t.arr)} beds let · ${year}`,
+          { label: 'Rent roll', value: gbpM(t.roll), sub: `${fmt(t.res + t.arr)} beds occupied · ${year}`,
             meter: { kind: 'split', parts: [{ label: 'In residence', value: t.res, color: '#2563EB' }, { label: 'Arriving', value: t.arr, color: '#93C5FD' }] } },
           /* Split by hall, largest first, so the biggest gap reads first. */
           { label: archived ? 'Void beds at year end' : 'Void beds today', value: fmt(t.vac), sub: archived ? 'the year has ended' : `${gbp(t.risk)} rent at risk`,
             meter: byHall(rows, (r) => r.vac, ['#C2410C', '#EA580C', '#F97316', '#FB923C', '#FDBA74']) },
           { label: 'Held units', value: fmt(t.blk), sub: 'excluded from occupancy', meter: byHall(rows, (r) => r.blk, ['#6D28D9', '#7C3AED', '#8B5CF6', '#A78BFA', '#C4B5FD']) },
-          { label: 'Avg days void', value: archived ? '—' : '11.6', sub: archived ? 'kept for the current year only' : 'from release to re-let' },
+          { label: 'Avg days void', value: archived ? '—' : '11.6', sub: archived ? 'kept for the current year only' : 'from release to occupied again' },
         ]} />
         <div className="grid grid-cols-[minmax(0,1fr)_460px] gap-4">
         {/* Connect cards (2026-11-17): r16, a #FAFAFA mono strip, 20px body, as on the Overview. */}

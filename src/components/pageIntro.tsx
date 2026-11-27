@@ -13,7 +13,7 @@ export const INTRO_ON = true;
 /** centred: the page's content is a centred column (Settings 864px, Library 720px), so the heading sits over it. */
 type Intro = { text: string; sub?: boolean; centred?: boolean | 'narrow'; /** A hairline under the intro, when a band (a warning) follows rather than a toolbar or table. */ rule?: boolean; /** An info icon after the title with this tooltip (2026-11-27). */ tip?: string };
 const INTROS: Record<string, Intro> = {
-  '/properties': { text: 'Every property you let, with its units, tags and how full it is for the coming year.', sub: true },
+  '/properties': { text: 'Every property you manage, with its units, tags and occupancy for the coming year.', sub: true },
   '/properties/occupancy': { text: 'Who is in each room and which beds are still free.' },
   '/properties/layouts': { text: 'Layouts set the levels a property is built from, such as building, floor, flat and room.' },
   '/properties/custom-fields': { text: 'Extra details you record on properties, units and rooms, beyond the standard ones.' },
